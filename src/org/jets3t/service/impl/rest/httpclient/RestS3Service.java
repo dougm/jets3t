@@ -412,8 +412,8 @@ public class RestS3Service extends S3Service {
         httpMethod.setRequestHeader("Authorization", authorizationString);                                
     }
     
-    public S3Bucket getBucket(String bucketName) throws S3ServiceException {
-        log.debug("Getting bucket by name: " + bucketName);
+    public boolean isBucketAvailable(String bucketName) throws S3ServiceException {
+        log.debug("Checking existence of bucket: " + bucketName);
 
         // Ensure bucket exists and is accessible by performing a HEAD request
         HttpMethodBase httpMethod = performRestHead(bucketName, null, null);
@@ -429,12 +429,9 @@ public class RestS3Service extends S3Service {
              log.debug("Releasing un-wanted bucket HEAD response");            
             httpMethod.releaseConnection();
         }
-
-        S3Bucket bucket = new S3Bucket();
-        bucket.setName(bucketName);
-        // TODO Note this doesn't include the creation date...
         
-        return bucket;
+        // If we get this far, the bucket exists.
+        return true;
     }    
 
     public S3Bucket[] listAllBuckets() throws S3ServiceException {
@@ -506,10 +503,11 @@ public class RestS3Service extends S3Service {
     }
     
     public void deleteObject(S3Bucket bucket, String objectKey) throws S3ServiceException {
+        assertValidBucket(bucket, "deleteObject");
         deleteObject(bucket.getName() + "/" + objectKey);
     }    
 
-    public void deleteObject(String path) throws S3ServiceException {
+    protected void deleteObject(String path) throws S3ServiceException {
         log.debug("Deleting object with path: " + path);
         performRestDelete(path);
     }
@@ -571,7 +569,8 @@ public class RestS3Service extends S3Service {
     public S3Bucket createBucket(S3Bucket bucket) 
         throws S3ServiceException 
     {
-        assertValidBucket(bucket, "Create bucket");
+        assertAuthenticatedConnection("createBucket");
+        assertValidBucket(bucket, "createBucket");
         
         log.debug("Creating bucket with name: " + bucket.getName());
         Map map = createObjectImpl(bucket.getName(), null, null, null, null, bucket.getAcl());
@@ -588,7 +587,7 @@ public class RestS3Service extends S3Service {
      * Beware of high memory requirements when creating large S3 objects when the Content-Length
      * is not set in the object.
      */
-    public S3Object createObject(S3Bucket bucket, S3Object object) throws S3ServiceException 
+    public S3Object putObject(S3Bucket bucket, S3Object object) throws S3ServiceException 
     {
         assertValidBucket(bucket, "Create Object in bucket");
         assertValidObject(object, "Create Object in bucket " + bucket.getName());

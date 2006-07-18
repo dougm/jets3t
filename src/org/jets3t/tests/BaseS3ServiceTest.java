@@ -42,6 +42,7 @@ import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.Mimetypes;
+import org.jets3t.service.utils.ServiceUtils;
 
 public abstract class BaseS3ServiceTest extends TestCase {
     protected AWSCredentials awsCredentials = null;
@@ -99,8 +100,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
         s3Service.createBucket(bucketName);
 
-        S3Bucket createdBucket = s3Service.getBucket(bucketName);
-        assertEquals("Bucket name mismatch", bucketName, createdBucket.getName());
+        boolean bucketExists = s3Service.isBucketAvailable(bucketName);
+        assertTrue("Bucket should exist", bucketExists);
 
         try {
             s3Service.deleteBucket(null);
@@ -133,25 +134,25 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setKey("TestObject");
 
         try {
-            s3Service.createObject(null, null);
+            s3Service.putObject(null, null);
             fail("Cannot create an object without a valid bucket");
         } catch (S3ServiceException e) {
         }
 
         try {
-            s3Service.createObject(null, object);
+            s3Service.putObject(null, object);
             fail("Cannot create an object without a valid bucket");
         } catch (S3ServiceException e) {
         }
 
         try {
-            s3Service.createObject(bucket, new S3Object());
+            s3Service.putObject(bucket, new S3Object());
             fail("Cannot create an object without a valid object");
         } catch (S3ServiceException e) {
         }
 
         // Create basic object with default content type and no data.
-        S3Object basicObject = s3Service.createObject(bucket, object);
+        S3Object basicObject = s3Service.putObject(bucket, object);
         assertEquals("Unexpected default content type", Mimetypes.MIMETYPE_OCTET_STREAM,
             basicObject.getContentType());
 
@@ -173,7 +174,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // no data.
         String contentType = Mimetypes.MIMETYPE_JETS3T_DIRECTORY;
         object.setContentType(contentType);
-        S3Object directoryObject = s3Service.createObject(bucket, object);
+        S3Object directoryObject = s3Service.putObject(bucket, object);
         assertEquals("Unexpected default content type", contentType, directoryObject
             .getContentType());
 
@@ -194,7 +195,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.replaceAllMetadata(metadata);
         object.setContentType(contentType);
         object.setDataInputStream(new ByteArrayInputStream(objectData.getBytes()));
-        S3Object dataObject = s3Service.createObject(bucket, object);
+        S3Object dataObject = s3Service.putObject(bucket, object);
         assertEquals("Unexpected content type", contentType, dataObject.getContentType());
         assertEquals("Mismatching hash", dataHash, dataObject.getETag());
 
@@ -245,7 +246,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Precondition: Modified since yesterday
         s3Service.getObjectDetails(bucket, object.getKey(), yesterday, null, null, null);
         // Precondition: Mot modified since after creation date.
-        // TODO : Why does this fail for the REST service?
+        // TODO : This test fails for the REST service, why?
 //        try {
 //            s3Service.getObjectDetails(bucket, object.getKey(), afterObjectCreation, null, null, null);
 //            fail("Cannot have been modified since object was created");
@@ -310,7 +311,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         
         // Access public "third-party" bucket
         S3Service anonymousS3Service = getS3Service(null);
-        anonymousS3Service.getBucket("jetS3T");
+        anonymousS3Service.isBucketAvailable("jetS3T");
 
         S3Service s3Service = getS3Service(awsCredentials);
 
@@ -321,7 +322,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Create private object (default permissions).
         String privateKey = "PrivateObject";
         object.setKey(privateKey);
-        s3Service.createObject(bucket, object);
+        s3Service.putObject(bucket, object);
         URL url = new URL(s3Url + "/" + bucketName + "/" + privateKey);
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
@@ -337,7 +338,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         acl.setOwner(bucketOwner);
         acl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
         object.setAcl(acl);
-        s3Service.createObject(bucket, object);
+        s3Service.putObject(bucket, object);
         url = new URL(s3Url + "/" + bucketName + "/" + publicKey);      
         assertEquals("Expected access (200)", 
                 200, ((HttpURLConnection)url.openConnection()).getResponseCode());
@@ -356,7 +357,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String publicKey2 = "PublicObject2";
         object.setKey(publicKey2);
         object.setAcl(privateToPublicACL); // This ACL has ALL_USERS READ permission set above.
-        s3Service.createObject(bucket, object);
+        s3Service.putObject(bucket, object);
         url = new URL(s3Url + "/" + bucketName + "/" + publicKey2);
         assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
             .getResponseCode());
@@ -375,8 +376,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
         int secondsUntilExpiry = 3;
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, secondsUntilExpiry);
-        String urlString = s3Service.createSignedUrl(bucket.getName(), privateKey, awsCredentials,
-            cal.getTimeInMillis() / 1000);
+        String urlString = S3Service.createSignedUrl(bucket.getName(), privateKey, awsCredentials,
+            cal.getTimeInMillis() / 1000, false);
         url = new URL(urlString);
         assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
             .getResponseCode());

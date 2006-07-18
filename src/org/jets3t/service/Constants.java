@@ -20,41 +20,71 @@ package org.jets3t.service;
 
 import java.io.File;
 
-public class Constants {	
-	public static File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home") + "/.jets3t");
-		
-	public static String METADATA_JETS3T_LOCAL_FILE_DATE = "local-file-date-iso860";
-    public static String METADATA_JETS3T_ENCRYPTED = "x-encrypted";
-    
-    
-    public static String FILE_PATH_DELIM = "/";
-	
-
-	public static String DEFAULT_ENCODING = "UTF8";
+/**
+ * Constants used by the S3Service and its implementation classes.
+ * 
+ * @author James Murty
+ */
+public class Constants {
     /**
-     * HMAC/SHA1 Algorithm per RFC 2104.
+     * The default preferences directory is &lt;user.home&gt;/.jets3t
+     */
+    public static File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home")
+        + "/.jets3t");
+
+    /**
+     * The file delimiter used by jets3t is the '/' character, which is compatible with standard
+     * browser access to S3 files.
+     */
+    public static String FILE_PATH_DELIM = "/";
+
+    /**
+     * The default encoding used for text data. 
+     */
+    public static String DEFAULT_ENCODING = "UTF8";
+
+    /**
+     * HMAC/SHA1 Algorithm per RFC 2104, used when generating S3 signatures.
      */
     public static final String HMAC_SHA1_ALGORITHM = "HmacSHA1";
 
-	
-	public static String REST_HEADER_PREFIX = "x-amz-";
-	public static String REST_METADATA_PREFIX = "x-amz-meta-";
-	public static String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
-	public static String REST_SERVER_DNS = "s3.amazonaws.com";
+    ///////////////////////////////////////
+    // jets3t-specific metadata item names.
+    ///////////////////////////////////////
+    /**
+     * Metadata header for storing the original date of a local file uploaded to S3, so it can
+     * be used subsequently to compare files instead of relying on the S3 upload date.
+     */
+    public static String METADATA_JETS3T_LOCAL_FILE_DATE = "jets3t-original-file-date-iso860";
     
+    /**
+     * Metadata header for storing information about data encryption applied by jets3t tools.
+     */
+    public static String METADATA_JETS3T_ENCRYPTED = "jets3t-encryption";
+
+    ///////////////////////////////////
+    // Settings used by all S3 Services
+    ///////////////////////////////////
+
+    /**
+     * Default number of objects to include in each chunk of an object listing.
+     */
+    public static long DEFAULT_OBJECT_LIST_CHUNK_SIZE = 1000;
+
+    ///////////////////////////////////
+    // Headers used by REST S3 Services
+    ///////////////////////////////////
+
+    public static String REST_HEADER_PREFIX = "x-amz-";
+    public static String REST_METADATA_PREFIX = "x-amz-meta-";
+    public static String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
+    public static String REST_SERVER_DNS = "s3.amazonaws.com";
     public static String ACL_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
-    
-    public static final String SOAP_SERVICE_NAME = "AmazonS3";    
-	
-	public static String INPUT_STREAM_MAP_KEY = "ResponseInputStream";
-	public static long OBJECT_LIST_CHUNK_SIZE = 1000;
-    
-    public static File getPreferencesDirectory(File directory) {
-        File preferencesDirectory = new File(directory, ".jets3t");
-        if (!preferencesDirectory.exists()) { 
-            preferencesDirectory.mkdirs();
-        }
-        return preferencesDirectory;
-    }
-    
+
+    ///////////////////////////////////
+    // Headers used by SOAP S3 Services
+    ///////////////////////////////////
+
+    public static final String SOAP_SERVICE_NAME = "AmazonS3";
+
 }

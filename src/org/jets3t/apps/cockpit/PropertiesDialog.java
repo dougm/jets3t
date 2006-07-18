@@ -316,7 +316,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         S3Object object = new S3Object();
         object.setBucket(bucket);
         object.setOwner(owner);
-        object.setKey("src/org/jets3t/apps/manager/PropertiesDialog.java");
+        object.setKey("src/org/jets3t/apps/cockpit/PropertiesDialog.java");
         object.setContentLength(54367);
         object.setContentType("text/plain");
         object.setETag("fd43lhg984l4knhohnlg44");

@@ -20,7 +20,6 @@ package org.jets3t.service.executor;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -38,6 +37,7 @@ import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.utils.ServiceUtils;
 
 public class S3ServiceExecutor {
     private final Log log = LogFactory.getLog(S3ServiceExecutor.class);
@@ -49,24 +49,17 @@ public class S3ServiceExecutor {
     private ArrayList serviceEventListeners = new ArrayList();
     private final long sleepTime;
     
-    protected S3ServiceExecutor(S3Service s3Service, long threadSleepTimeMS) {
-        this.s3Service = s3Service;
-        this.sleepTime = threadSleepTimeMS;
-    }
-    
-    public static S3ServiceExecutor getExecutor(String serviceType, AWSCredentials awsCredentials) throws S3ServiceException {
-        return getExecutor(serviceType, awsCredentials, DEFAULT_SLEEP_TIME);
+    public S3ServiceExecutor(S3Service s3Service, S3ServiceEventListener listener) {
+        this(s3Service, listener, DEFAULT_SLEEP_TIME);
     }
 
-    public static S3ServiceExecutor getExecutor(String serviceType, AWSCredentials awsCredentials, long threadSleepTimeMS) throws S3ServiceException {
-        S3Service s3Service = S3Service.getS3Service(serviceType, awsCredentials);
-        return new S3ServiceExecutor(s3Service, threadSleepTimeMS);
-    }
-    
-    public static S3ServiceExecutor getExecutor(S3Service s3Service, long threadSleepTimeMS) throws S3ServiceException {
-        return new S3ServiceExecutor(s3Service, threadSleepTimeMS);
-    }
-    
+    public S3ServiceExecutor(
+        S3Service s3Service, S3ServiceEventListener listener, long threadSleepTimeMS) 
+    {
+        this.s3Service = s3Service;
+        serviceEventListeners.add(listener);
+        this.sleepTime = threadSleepTimeMS;
+    }    
 
     public S3Service getS3Service() {
         return s3Service;
@@ -125,17 +118,19 @@ public class S3ServiceExecutor {
         S3Bucket[] buckets = null;
         try {
             buckets = s3Service.listAllBuckets();
-            fireServiceEvent(new ListAllBucketsEvent(ServiceEvent.EVENT_COMPLETED, buckets));
+            fireServiceEvent(new ListAllBucketsEvent(ServiceEvent.EVENT_IN_PROGRESS, buckets));
+            fireServiceEvent(new ListAllBucketsEvent(ServiceEvent.EVENT_COMPLETED));
         } catch (Throwable t) {
             fireServiceEvent(new ListAllBucketsEvent(t));
         }
     }
     
     public void listObjects(S3Bucket bucket) {
-        fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_STARTED, bucket));        
+        fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_STARTED, bucket, null));        
         try {
             S3Object[] objects = s3Service.listObjects(bucket);        
-            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_COMPLETED, bucket, objects));
+            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, bucket, objects, null));
+            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_COMPLETED));
         } catch (Throwable t) {
             fireServiceEvent(new ListObjectsEvent(t));
         }
@@ -145,7 +140,8 @@ public class S3ServiceExecutor {
         fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_STARTED, bucket, prefix));
         try {
             S3Object[] objects = s3Service.listObjects(bucket, prefix);        
-            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_COMPLETED, bucket, objects, prefix));
+            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, bucket, objects, prefix));
+            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_COMPLETED));
         } catch (Throwable t) {
             fireServiceEvent(new ListObjectsEvent(t));
         }
@@ -194,7 +190,7 @@ public class S3ServiceExecutor {
     }
     
     public void createObjects(final S3Bucket bucket, final S3Object[] objects) {       
-        final long bytesTotal = S3Service.countBytesInObjects(objects);
+        final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
         final long bytesCompleted[] = new long[] {0};
         
         BytesTransferredListener bytesTransferredListener = new BytesTransferredListener() {
@@ -436,7 +432,7 @@ public class S3ServiceExecutor {
         }
 
         // Set total bytes to 0 to flag the fact we cannot monitor the bytes transferred. 
-        final long bytesTotal = S3Service.countBytesInObjects(objects);
+        final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
         
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
@@ -635,7 +631,7 @@ public class S3ServiceExecutor {
                         interruptableInputStream, bytesTransferredListener);
                     s3Object.setDataInputStream(pmInputStream);
                 }
-                result = s3Service.createObject(bucket, s3Object);
+                result = s3Service.putObject(bucket, s3Object);
             } catch (S3ServiceException e) {
                 result = e;
             } finally {

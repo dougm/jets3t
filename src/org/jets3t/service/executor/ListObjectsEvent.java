@@ -21,45 +21,42 @@ package org.jets3t.service.executor;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 
-public class ListObjectsEvent extends ServiceEvent {	
-	private S3Object[] objects = null;
-	private S3Bucket bucket = null;
-	private String prefix = null;
-	
-	public ListObjectsEvent(Throwable t) {
-		super(t);
-	}
+public class ListObjectsEvent extends ServiceEvent {
+    private S3Object[] objects = null;
 
-	public ListObjectsEvent(int eventStatus, S3Bucket bucket) {
-		super(eventStatus);
-		this.bucket = bucket;
-	}
-	
-	public ListObjectsEvent(int eventStatus, S3Bucket bucket, String prefix) {
-		this(eventStatus, bucket);
-		this.prefix = prefix;
-	}
+    private S3Bucket bucket = null;
 
-	public ListObjectsEvent(int eventStatus, S3Bucket bucket, S3Object[] objects) {
-		this(eventStatus, bucket);
-		this.objects = objects;
-	}
+    private String prefix = null;
 
-	public ListObjectsEvent(int eventStatus, S3Bucket bucket, S3Object[] objects, String prefix) {
-		this(eventStatus, bucket, prefix);
-		this.objects = objects;
-	}
-	
-	public S3Bucket getBucket() {
-		return bucket;
-	}
+    public ListObjectsEvent(Throwable t) {
+        super(t);
+    }
 
-	public S3Object[] getObjects() {
-		return objects;
-	}
-	
-	public String getPrefix() {
-		return prefix;
-	}
+    public ListObjectsEvent(int eventStatus) {
+        super(eventStatus);
+    }
+
+    public ListObjectsEvent(int eventStatus, S3Bucket bucket, String prefix) {
+        this(eventStatus);
+        this.bucket = bucket;
+        this.prefix = prefix;
+    }
+
+    public ListObjectsEvent(int eventStatus, S3Bucket bucket, S3Object[] objects, String prefix) {
+        this(eventStatus, bucket, prefix);
+        this.objects = objects;
+    }
+
+    public S3Bucket getBucket() {
+        return bucket;
+    }
+
+    public S3Object[] getObjects() {
+        return objects;
+    }
+
+    public String getPrefix() {
+        return prefix;
+    }
 
 }

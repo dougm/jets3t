@@ -28,6 +28,13 @@ public class S3Bucket extends BaseS3Object {
 	
 	private String name = null;
 	private AccessControlList acl = null;
+    
+    public S3Bucket() {        
+    }
+    
+    public S3Bucket(String name) {
+        this.name = name;
+    }
 	
 	public String toString() {
 		return "S3Bucket [name=" + getName() + ",creationDate=" + getCreationDate() + ",owner=" + getOwner() + "] Metadata=" + getMetadata();

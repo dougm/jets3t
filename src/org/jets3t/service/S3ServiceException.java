@@ -18,6 +18,13 @@
  */
 package org.jets3t.service;
 
+/**
+ * Exception for use by <code>S3Service</code>s and related utilities.
+ * This exception can hold useful additional information about errors that occur
+ * when communicating with S3.
+ *  
+ * @author James Murty
+ */
 public class S3ServiceException extends Exception {
 	private static final long serialVersionUID = -7025759441563263552L;
 
@@ -49,7 +56,6 @@ public class S3ServiceException extends Exception {
 	}
 	
 	public String getErrorCode() {
-		// TODO Fix this
 		if (xmlMessage != null && xmlMessage.indexOf("<Code>") >= 0) {
 			int startIndex = xmlMessage.indexOf("<Code>") + 6;
 			int endIndex = xmlMessage.indexOf("</Code>");

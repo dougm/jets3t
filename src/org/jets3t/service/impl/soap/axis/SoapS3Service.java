@@ -263,7 +263,8 @@ public class SoapS3Service extends S3Service {
         return buckets;
     }
 
-    public S3Bucket getBucket(String bucketName) throws S3ServiceException {
+    public boolean isBucketAvailable(String bucketName) throws S3ServiceException {
+        log.debug("Checking existence of bucket: " + bucketName);
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -273,9 +274,8 @@ public class SoapS3Service extends S3Service {
                 bucketName, null, null, new Integer(0), 
                 null, getAWSAccessKey(), timestamp, signature, null);
             
-            S3Bucket bucket = new S3Bucket();
-            bucket.setName(bucketName);
-            return bucket;
+            // If we get this far, the bucket exists.
+            return true;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get Bucket: " + bucketName, e);   
         }
@@ -374,7 +374,7 @@ public class SoapS3Service extends S3Service {
         }            
     }
 
-    public S3Object createObject(S3Bucket bucket, S3Object object) throws S3ServiceException {
+    public S3Object putObject(S3Bucket bucket, S3Object object) throws S3ServiceException {
         assertValidBucket(bucket, "Create Object in bucket");
         assertValidObject(object, "Create Object in bucket " + bucket.getName());        
         log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucket.getName());        

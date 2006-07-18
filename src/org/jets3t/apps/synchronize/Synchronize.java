@@ -35,6 +35,7 @@ import java.util.Map;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.GZipInflatingOutputStream;
 import org.jets3t.service.model.S3Bucket;
@@ -222,7 +223,7 @@ public class Synchronize {
         if (file.isDirectory()) {
             newObject.setContentLength(0);
             newObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-            s3Service.createObject(bucket, newObject);
+            s3Service.putObject(bucket, newObject);
         } else {
             newObject.setContentType(Mimetypes.getMimetype(file));
 
@@ -234,7 +235,7 @@ public class Synchronize {
             
             newObject.setContentLength(uploadFile.length());
             newObject.setDataInputStream(new FileInputStream(uploadFile));
-            s3Service.createObject(bucket, newObject);
+            s3Service.putObject(bucket, newObject);
             
             // TODO Delete temporary files created by this program, to free disk space ASAP.
         }                            
@@ -584,7 +585,7 @@ public class Synchronize {
                     S3Object dirObject = new S3Object();
                     dirObject.setKey(currentDirPath);
                     dirObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-                    s3Service.createObject(bucket, dirObject);
+                    s3Service.putObject(bucket, dirObject);
                     currentDirPath += Constants.FILE_PATH_DELIM;
                 }
             } catch (Exception e) {
@@ -763,7 +764,7 @@ public class Synchronize {
          
         // Perform the UPLOAD/DOWNLOAD.
         Synchronize client = new Synchronize(
-            S3Service.getS3Service(S3Service.SERVICE_TYPE_REST, awsCredentials), 
+            new RestS3Service(awsCredentials),
             doAction, isQuiet, isForce, isKeepOld, isGzipEnabled, isEncryptionEnabled);
         client.run(s3Path, localDirectory, actionCommand, encryptionPassword);
     }

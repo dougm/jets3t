@@ -37,7 +37,7 @@ public class HttpClientRestS3ServiceTest extends BaseS3ServiceTest {
         object.setOwner(bucket.getOwner());
         
         try {
-            s3Service.createObject(bucket, object);
+            s3Service.putObject(bucket, object);
             URL url = new URL("http://s3.amazonaws.com/" + bucketName + "/" + publicKey);      
             assertEquals("Expected public access (200)", 
                     200, ((HttpURLConnection)url.openConnection()).getResponseCode());

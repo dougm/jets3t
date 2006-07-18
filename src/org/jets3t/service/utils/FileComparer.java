@@ -41,18 +41,9 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.executor.CreateBucketsEvent;
-import org.jets3t.service.executor.CreateObjectsEvent;
-import org.jets3t.service.executor.DeleteObjectsEvent;
-import org.jets3t.service.executor.DownloadObjectsEvent;
 import org.jets3t.service.executor.GetObjectHeadsEvent;
-import org.jets3t.service.executor.GetObjectsEvent;
-import org.jets3t.service.executor.ListAllBucketsEvent;
-import org.jets3t.service.executor.ListObjectsEvent;
-import org.jets3t.service.executor.LookupACLEvent;
-import org.jets3t.service.executor.S3ServiceEventListener;
+import org.jets3t.service.executor.S3ServiceEventAdaptor;
 import org.jets3t.service.executor.S3ServiceExecutor;
-import org.jets3t.service.executor.UpdateACLEvent;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 
@@ -189,22 +180,9 @@ public class FileComparer {
         // Retrieve the complete information about all objects listed via GetObjectsHeads.
         final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
         final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
-        S3ServiceExecutor executor = S3ServiceExecutor.getExecutor(s3Service, 250);
-        executor.addServiceEventListener(new S3ServiceEventListener() {
-            public void s3ServiceEventPerformed(ListAllBucketsEvent event) {}
-            public void s3ServiceEventPerformed(ListObjectsEvent event) {}
-            public void s3ServiceEventPerformed(CreateObjectsEvent event) {}
-            public void s3ServiceEventPerformed(CreateBucketsEvent event) {}
-            public void s3ServiceEventPerformed(DeleteObjectsEvent event) {}
-            public void s3ServiceEventPerformed(GetObjectsEvent event) {}
-            public void s3ServiceEventPerformed(LookupACLEvent event) {}
-            public void s3ServiceEventPerformed(UpdateACLEvent event) {}
-            public void s3ServiceEventPerformed(DownloadObjectsEvent event) {}            
-
+        S3ServiceExecutor executor = new S3ServiceExecutor(s3Service, new S3ServiceEventAdaptor() {
             public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
-                if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventStatus()
-                    || GetObjectHeadsEvent.EVENT_COMPLETED == event.getEventStatus())
-                {
+                if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
                     S3Object[] finishedObjects = event.getObjects();
                     if (finishedObjects.length > 0) {
                         s3ObjectsCompleteList.addAll(Arrays.asList(finishedObjects));

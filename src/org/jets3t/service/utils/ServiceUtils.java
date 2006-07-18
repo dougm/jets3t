@@ -42,6 +42,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.model.S3Object;
 
 import sun.misc.BASE64Encoder;
 
@@ -148,7 +149,15 @@ public class ServiceUtils {
         }
         return sb.toString();
     }
-
+    
+    public static long countBytesInObjects(S3Object[] objects) {
+        long byteTotal = 0;
+        for (int i = 0; objects != null && i < objects.length; i++) {
+            byteTotal += objects[i].getContentLength();
+        }
+        return byteTotal;
+    }
+            
     public static Map cleanRestMetadataMap(Map metadata) {
         log.debug("Cleaning up REST metadata items");
         HashMap cleanMap = new HashMap();
