@@ -23,8 +23,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -42,14 +45,19 @@ import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.Mimetypes;
-import org.jets3t.service.utils.ServiceUtils;
 
 public abstract class BaseS3ServiceTest extends TestCase {
+    protected String TEST_PROPERTIES_FILENAME = "test.properties";
     protected AWSCredentials awsCredentials = null;
     
     public BaseS3ServiceTest() throws IOException {
         InputStream propertiesIS = 
-            ClassLoader.getSystemResourceAsStream("test.properties");
+            ClassLoader.getSystemResourceAsStream(TEST_PROPERTIES_FILENAME);
+        
+        if (propertiesIS == null) {
+            throw new IOException("Unable to load test properties file from classpath: " 
+                + TEST_PROPERTIES_FILENAME);
+        }
         
         Properties testProperties = new Properties();        
         testProperties.load(propertiesIS);
@@ -234,7 +242,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
 
         // Test object GET constraints.
         Calendar objectCreationTimeCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
-        objectCreationTimeCal.setTime(object.getLastModifiedDate());
+        objectCreationTimeCal.setTime(dataObject.getLastModifiedDate());
         
 //        objectCreationTimeCal.add(Calendar.SECOND, 1);
 //        Calendar afterObjectCreation = (Calendar) objectCreationTimeCal.clone();
@@ -390,6 +398,81 @@ public abstract class BaseS3ServiceTest extends TestCase {
         s3Service.deleteObject(bucket, privateKey);
         s3Service.deleteObject(bucket, publicKey);
         s3Service.deleteObject(bucket, publicKey2);
+        s3Service.deleteBucket(bucket.getName());
+    }
+    
+    public void testObjectListing() throws Exception {
+        S3Service s3Service = getS3Service(awsCredentials);
+
+        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
+
+        S3Bucket bucket = s3Service.createBucket(bucketName);
+        
+        // Represent a directory structure in S3.
+        List objectsList = new ArrayList();
+        objectsList.add(new S3Object(bucket, "dir1"));
+        objectsList.add(new S3Object(bucket, "dir1/doc1Level1"));
+        objectsList.add(new S3Object(bucket, "dir1/doc2level1"));
+        objectsList.add(new S3Object(bucket, "dir1/dir1Level1"));
+        objectsList.add(new S3Object(bucket, "dir1/dir1Level1/doc1Level2"));
+        objectsList.add(new S3Object(bucket, "dir1/dir1Level1/dir1Level2"));
+        objectsList.add(new S3Object(bucket, "dir1/dir1Level1/dir1Level2/doc1Level3"));
+        
+        // Create objects
+        Iterator iter = objectsList.iterator();
+        while (iter.hasNext()) {
+            S3Object object = (S3Object) iter.next();
+            s3Service.putObject(bucket, object);
+        }
+        
+        S3Object[] objects = null;
+        
+        // List all items in directory.
+        objects = s3Service.listObjects(bucket);        
+        assertEquals("Incorrect number of objects in directory structure", 7, objects.length);
+        
+        // List the same items with a prefix.
+        objects = s3Service.listObjects(bucket, "dir1", null);        
+        assertEquals("Incorrect number of objects matching prefix", 7, objects.length);
+        
+        // List items up one directory with a prefix (will include dir1Level1)
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1", null);        
+        assertEquals("Incorrect number of objects matching prefix", 4, objects.length);
+
+        // List items up one directory with a prefix (will not include dir1Level1)
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1/", null);        
+        assertEquals("Incorrect number of objects matching prefix", 3, objects.length);
+
+        // Try a prefix matching no object keys.
+        objects = s3Service.listObjects(bucket, "dir1-NonExistent", null);        
+        assertEquals("Expected no results", 0, objects.length);
+
+        // Use delimiter with an partial prefix. 
+        objects = s3Service.listObjects(bucket, "dir", "/");        
+        assertEquals("Expected no results", 1, objects.length);
+        
+        // Use delimiter to find item dir1 only.
+        objects = s3Service.listObjects(bucket, "dir1", "/");        
+        assertEquals("Incorrect number of objects matching prefix and delimiter", 1, objects.length);
+        
+        // Use delimiter to find items within dir1 only.
+        objects = s3Service.listObjects(bucket, "dir1/", "/");        
+        assertEquals("Incorrect number of objects matching prefix and delimiter", 3, objects.length);
+
+        // List items up one directory with prefix and delimiter (will include only dir1Level1)
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1", "/");        
+        assertEquals("Incorrect number of objects matching prefix", 1, objects.length);
+
+        // List items up one directory with prefix and delimiter (will include only contents of dir1Level1)
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1/", "/");        
+        assertEquals("Incorrect number of objects matching prefix", 2, objects.length);
+        
+        // Clean up.
+        iter = objectsList.iterator();
+        while (iter.hasNext()) {
+            S3Object object = (S3Object) iter.next();
+            s3Service.deleteObject(bucket, object.getKey());
+        }
         s3Service.deleteBucket(bucket.getName());
     }
 

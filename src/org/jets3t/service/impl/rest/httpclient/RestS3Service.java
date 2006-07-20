@@ -452,21 +452,17 @@ public class RestS3Service extends S3Service {
         return buckets;
     }
 
-    public S3Object[] listObjects(S3Bucket bucket, String prefix, long maxListingLength) 
+    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter, long maxListingLength) 
         throws S3ServiceException 
     {
         assertValidBucket(bucket, "List objects in bucket");
-        if (prefix == null) {
-            log.debug("Listing objects in bucket '" + bucket.getName() 
-                    + "', with a maximum listing size of " + maxListingLength);
-        } else {
-            log.debug("Listing objects starting with prefix '" + prefix + "' in bucket '" 
-                    + bucket.getName() + "', with a maximum listing size of " + maxListingLength);            
-        }
         
         HashMap parameters = new HashMap();
         if (prefix != null) {
             parameters.put("prefix", prefix);
+        } 
+        if (delimiter != null) {
+            parameters.put("delimiter", delimiter);
         }
         if (maxListingLength > 0) {
             parameters.put("max-keys", String.valueOf(maxListingLength));

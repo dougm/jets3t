@@ -281,17 +281,10 @@ public class SoapS3Service extends S3Service {
         }
     }
 
-    public S3Object[] listObjects(S3Bucket bucket, String prefix, long maxListingLength)
+    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter, long maxListingLength)
         throws S3ServiceException
     {
         assertValidBucket(bucket, "List objects in bucket");
-        if (prefix == null) {
-            log.debug("Listing objects in bucket '" + bucket.getName() 
-                    + "', with a maximum listing size of " + maxListingLength);
-        } else {
-            log.debug("Listing objects starting with prefix '" + prefix + "' in bucket '" 
-                    + bucket.getName() + "', with a maximum listing size of " + maxListingLength);            
-        }
 
         String marker = null;
         ArrayList objects = new ArrayList();        
@@ -304,7 +297,7 @@ public class SoapS3Service extends S3Service {
                 String signature = makeSignature("ListBucket", timestamp);
                 ListBucketResult result = s3SoapBinding.listBucket(
                     bucket.getName(), prefix, marker, new Integer((int)maxListingLength), 
-                    null, getAWSAccessKey(), timestamp, signature, null);
+                    delimiter, getAWSAccessKey(), timestamp, signature, null);
                 
                 S3Object[] partialObjects = new S3Object[result.getContentsCount()];
                 ListEntry[] entries = result.getContents();

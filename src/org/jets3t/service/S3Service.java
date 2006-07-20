@@ -178,7 +178,7 @@ public abstract class S3Service {
      */
     public S3Object[] listObjects(S3Bucket bucket) throws S3ServiceException {
         assertValidBucket(bucket, "listObjects");
-        return listObjects(bucket, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+        return listObjects(bucket, null, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
     }
 
     /**
@@ -191,13 +191,17 @@ public abstract class S3Service {
      * This must be a valid S3Bucket object that is non-null and contains a name.
      * @param prefix
      * only objects with a key that starts with this prefix will be listed
+     * @param delimiter
+     * only list objects with key names up to this delimiter, may be null.
+     * <b>Note</b>: If a non-null delimiter is specified, the prefix must include enough text to
+     * reach the first occurrence of the delimiter in the bucket's keys, or no results will be returned.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
      */
-    public S3Object[] listObjects(S3Bucket bucket, String prefix) throws S3ServiceException {
-        assertValidBucket(bucket, "listObjects with prefix");
-        return listObjects(bucket, prefix, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter) throws S3ServiceException {
+        assertValidBucket(bucket, "listObjects");
+        return listObjects(bucket, prefix, delimiter, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
     }
 
     /**
@@ -352,8 +356,8 @@ public abstract class S3Service {
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
      */
-    public abstract S3Object[] listObjects(S3Bucket bucket, String prefix, long maxListingLength)
-        throws S3ServiceException;
+    public abstract S3Object[] listObjects(S3Bucket bucket, String prefix, 
+        String delimiter, long maxListingLength) throws S3ServiceException;
 
     /**
      * Creates a bucket in S3 based on the provided bucket object.

@@ -38,6 +38,14 @@ public class S3Object extends BaseS3Object {
 	private InputStream dataInputStream = null;
 	private AccessControlList acl = null;
     private boolean isMetadataComplete = false;
+    
+    public S3Object() {        
+    }
+    
+    public S3Object(S3Bucket bucket, String key) {
+        this.bucket = bucket;
+        this.key = key;
+    }
 	
     public String toString() {
 		return "S3Object [key=" + getKey() + ",bucket=" + (getBucket() != null? getBucket().getName() : null) 

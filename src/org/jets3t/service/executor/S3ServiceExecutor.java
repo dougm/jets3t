@@ -136,10 +136,10 @@ public class S3ServiceExecutor {
         }
     }
     
-    public void listObjects(S3Bucket bucket, String prefix) {
+    public void listObjects(S3Bucket bucket, String prefix, String delimiter) {
         fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_STARTED, bucket, prefix));
         try {
-            S3Object[] objects = s3Service.listObjects(bucket, prefix);        
+            S3Object[] objects = s3Service.listObjects(bucket, prefix, delimiter);        
             fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, bucket, objects, prefix));
             fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_COMPLETED));
         } catch (Throwable t) {

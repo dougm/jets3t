@@ -175,7 +175,7 @@ public class FileComparer {
         throws S3ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
-        S3Object[] s3ObjectsIncomplete = s3Service.listObjects(bucket, prefix);
+        S3Object[] s3ObjectsIncomplete = s3Service.listObjects(bucket, prefix, null);
 
         // Retrieve the complete information about all objects listed via GetObjectsHeads.
         final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
