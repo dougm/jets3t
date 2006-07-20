@@ -61,7 +61,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.crypto.NoSuchPaddingException;
-import javax.swing.ButtonGroup;
 import javax.swing.JApplet;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
@@ -75,7 +74,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
@@ -91,7 +89,6 @@ import javax.swing.text.NumberFormatter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.executor.CancelEventListener;
@@ -111,7 +108,6 @@ import org.jets3t.service.executor.ServiceEvent;
 import org.jets3t.service.executor.UpdateACLEvent;
 import org.jets3t.service.executor.S3ServiceExecutor.S3ObjectAndOutputStream;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.impl.soap.axis.SoapS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.GZipInflatingOutputStream;
 import org.jets3t.service.model.S3Bucket;
@@ -199,7 +195,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     // Preferences selected.
     private String preferenceEncryptionPassword = null;
     private EncryptionUtil encryptionPasswordUtil = null;    
-    private Class currentServiceClass = null;
     
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
@@ -451,23 +446,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Preferences menu.        
         JMenu preferencesMenu = new JMenu("Preferences");
         
-        JRadioButtonMenuItem prefRestServiceMenuItem = new JRadioButtonMenuItem("Use REST/HTTP service");
-        prefRestServiceMenuItem.setSelected(true);
-        prefRestServiceMenuItem.setActionCommand("PreferenceRestService");
-        prefRestServiceMenuItem.addActionListener(this);
-        preferencesMenu.add(prefRestServiceMenuItem);
-        
-        JRadioButtonMenuItem prefSoapServiceMenuItem = new JRadioButtonMenuItem("Use SOAP/HTTP service");
-        prefSoapServiceMenuItem.setActionCommand("PreferenceSoapService");
-        prefSoapServiceMenuItem.addActionListener(this);
-        preferencesMenu.add(prefSoapServiceMenuItem);
-        
-        ButtonGroup serviceTypeButtonGroup = new ButtonGroup();
-        serviceTypeButtonGroup.add(prefRestServiceMenuItem);
-        serviceTypeButtonGroup.add(prefSoapServiceMenuItem);
-        
-        preferencesMenu.add(new JSeparator());
-        
         prefAutomaticGzip = new JCheckBoxMenuItem("Compress (gzip) uploaded files?");
         preferencesMenu.add(prefAutomaticGzip);
 
@@ -706,25 +684,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         
         // Preference Events        
-        else if ("PreferenceRestService".equals(event.getActionCommand())) {
-            try {
-                AWSCredentials awsCredentials = (s3ServiceExecutor != null? 
-                    s3ServiceExecutor.getAWSCredentials() : null);
-                s3ServiceExecutor = new S3ServiceExecutor(new RestS3Service(awsCredentials), this);
-                currentServiceClass = RestS3Service.class;
-            } catch (Exception e) {
-                reportException(ownerFrame, "Unable to load REST service", e);
-            }
-        } else if ("PreferenceSoapService".equals(event.getActionCommand())) {
-            try {
-                AWSCredentials awsCredentials = (s3ServiceExecutor != null? 
-                    s3ServiceExecutor.getAWSCredentials() : null);
-                s3ServiceExecutor = new S3ServiceExecutor(new SoapS3Service(awsCredentials), this);
-                currentServiceClass = SoapS3Service.class;
-            } catch (Exception e) {
-                reportException(ownerFrame, "Unable to load SOAP service", e);
-            }
-        } else if ("PreferenceEncryptFiles".equals(event.getActionCommand())) {
+        else if ("PreferenceEncryptFiles".equals(event.getActionCommand())) {
             prefEncryptionPassword.setEnabled(prefAutomaticEncryption.isSelected());
         } else if ("PreferenceSetEncryptionPassword".equals(event.getActionCommand())) {
             try {
@@ -787,11 +747,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             final AWSCredentials awsCredentials = 
                 LoginDialog.showDialog(ownerFrame, preferencesDirectory);
 
-            if (currentServiceClass.equals(RestS3Service.class)) {
-                s3ServiceExecutor = new S3ServiceExecutor(new RestS3Service(awsCredentials), this);
-            } else {
-                s3ServiceExecutor = new S3ServiceExecutor(new SoapS3Service(awsCredentials), this);                    
-            }
+            s3ServiceExecutor = new S3ServiceExecutor(new RestS3Service(awsCredentials), this);
 
             if (awsCredentials == null) {
                 log.debug("Log in cancelled by user");
@@ -811,11 +767,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             reportException(ownerFrame, "Unable to Log in", e);
             try {
                 // Revert to anonymous service.
-                if (currentServiceClass.equals(RestS3Service.class)) {
-                    s3ServiceExecutor = new S3ServiceExecutor(new RestS3Service(null), this);
-                } else {
-                    s3ServiceExecutor = new S3ServiceExecutor(new SoapS3Service(null), this);                    
-                }
+                s3ServiceExecutor = new S3ServiceExecutor(new RestS3Service(null), this);
             } catch (S3ServiceException e2) {
                 reportException(ownerFrame, "Unable to revert to anonymous user", e2);
             }
@@ -830,11 +782,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         log.debug("Logging out");
         try {
             // Revert to anonymous service.
-            if (currentServiceClass.equals(RestS3Service.class)) {
-                s3ServiceExecutor = new S3ServiceExecutor(new RestS3Service(null), this);
-            } else {
-                s3ServiceExecutor = new S3ServiceExecutor(new SoapS3Service(null), this);                    
-            }
+            s3ServiceExecutor = new S3ServiceExecutor(new RestS3Service(null), this);
             
             bucketsTable.clearSelection();
             ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
@@ -916,11 +864,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
             ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();            
         } 
-        else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
+        else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
             S3Bucket[] buckets = event.getBuckets();
             for (int i = 0; i < buckets.length; i++) {
                 ((BucketTableModel)bucketsTable.getModel()).addBucket(buckets[i]);
-            }            
+            }
+        }
+        else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
             stopProgressDisplay();
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventStatus()) {
@@ -1023,11 +973,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
+            updateObjectsSummary();
+
             S3Object[] objects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
-            cachedBuckets.put(event.getBucket().getName(), objects);
+            cachedBuckets.put(getCurrentSelectedBucket().getName(), objects);            
             stopProgressDisplay();
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventStatus()) {
+            updateObjectsSummary();
+
             stopProgressDisplay();
             reportException(ownerFrame, "listObjects", event.getErrorCause());
         }
