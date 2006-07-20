@@ -62,6 +62,11 @@ public class Constants {
      */
     public static String METADATA_JETS3T_ENCRYPTED = "jets3t-encryption";
 
+    /**
+     * Metadata header for storing information about data compression applied by jets3t tools.
+     */
+    public static String METADATA_JETS3T_COMPRESSED = "jets3t-compression";
+
     ///////////////////////////////////
     // Settings used by all S3 Services
     ///////////////////////////////////

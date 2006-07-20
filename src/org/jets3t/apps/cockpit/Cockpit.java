@@ -1509,13 +1509,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
                 OutputStream outputStream = new FileOutputStream(file);
                 
-                if (Mimetypes.MIMETYPE_GZIP.equals(objects[i].getContentType())) 
+                if ("gzip".equalsIgnoreCase(objects[i].getContentEncoding())
+                    || null != objects[i].getMetadata().get(Constants.METADATA_JETS3T_COMPRESSED))
                 {
                     // Automatically inflate gzipped data.
+                    log.debug("Inflating gzipped data for object: " + objects[i].getKey());                    
                     outputStream = new GZipInflatingOutputStream(outputStream);
                 }
                 if (objects[i].getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED) != null) 
                 {
+                    log.debug("Decrypting encrypted data for object: " + objects[i].getKey());                    
                     // Automatically decrypt encrypt files.
                     if (encryptionPasswordUtil == null) {
                         if (!initEncryptionUtility()) {
@@ -1627,16 +1630,23 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempUploadFile));
         InputStream inputStream = new BufferedInputStream(new FileInputStream(originalFile));
         
+        String contentEncoding = null;
         if (prefAutomaticGzip.isSelected()) {
             inputStream = new GZipDeflatingInputStream(inputStream);
-            newObject.setContentType(Mimetypes.MIMETYPE_GZIP);
+            contentEncoding = "gzip";
+            newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
             actionText += "Compressing";                
         } 
         if (prefAutomaticEncryption.isSelected()) {
-            inputStream = encryptionPasswordUtil.encrypt(inputStream);                        
+            inputStream = encryptionPasswordUtil.encrypt(inputStream);
+            contentEncoding = null;
+            newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
             newObject.addMetadata(Constants.METADATA_JETS3T_ENCRYPTED, 
                 encryptionPasswordUtil.getCipher().getAlgorithm()); 
             actionText += (actionText.length() == 0? "Encrypting" : " and encrypting");                
+        }
+        if (contentEncoding != null) {
+            newObject.addMetadata("Content-Encoding", contentEncoding);
         }
 
         updateProgressDisplay(actionText + " '" + originalFile.getName() + "' for upload", 0);

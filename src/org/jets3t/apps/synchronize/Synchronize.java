@@ -177,15 +177,22 @@ public class Synchronize {
         tempUploadFile.deleteOnExit();
         
         // Transform data from original file, gzipping or encrypting as specified in user's options.
-        InputStream inputStream = new BufferedInputStream(new FileInputStream(originalFile));        
+        InputStream inputStream = new BufferedInputStream(new FileInputStream(originalFile));       
+        String contentEncoding = null;        
         if (isGzipEnabled) {
             inputStream = new GZipDeflatingInputStream(inputStream);
-            newObject.setContentType(Mimetypes.MIMETYPE_GZIP);
+            contentEncoding = "gzip";
+            newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
         } 
         if (isEncryptionEnabled) {
-            inputStream = encryptionPasswordUtil.encrypt(inputStream);                        
+            inputStream = encryptionPasswordUtil.encrypt(inputStream);
+            contentEncoding = null;
+            newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
             newObject.addMetadata(Constants.METADATA_JETS3T_ENCRYPTED, 
                 encryptionPasswordUtil.getCipher().getAlgorithm()); 
+        }
+        if (contentEncoding != null) {
+            newObject.addMetadata("Content-Encoding", contentEncoding);
         }
 
         // Write transformed data to temporary file.
@@ -269,7 +276,10 @@ public class Synchronize {
             
             OutputStream outputStream = new FileOutputStream(fileTarget);
             
-            if (isGzipEnabled && Mimetypes.MIMETYPE_GZIP.equals(object.getContentType())) {
+            if (isGzipEnabled && 
+                ("gzip".equalsIgnoreCase(object.getContentEncoding())
+                || null != object.getMetadata().get(Constants.METADATA_JETS3T_COMPRESSED)))
+            {
                 // Automatically inflate gzipped data.
                 outputStream = new GZipInflatingOutputStream(outputStream);
             }

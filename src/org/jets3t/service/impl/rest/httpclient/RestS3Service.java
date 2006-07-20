@@ -289,6 +289,11 @@ public class RestS3Service extends S3Service {
                 
                 if (!key.equalsIgnoreCase("content-type") 
                     && !key.equalsIgnoreCase("content-length")
+                    && !key.equalsIgnoreCase("content-language")
+                    && !key.equalsIgnoreCase("expires")
+                    && !key.equalsIgnoreCase("cache-control")
+                    && !key.equalsIgnoreCase("content-disposition")
+                    && !key.equalsIgnoreCase("content-encoding")
                     && !key.startsWith(Constants.REST_HEADER_PREFIX)) 
                 {
                     key = Constants.REST_METADATA_PREFIX + key;

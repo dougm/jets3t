@@ -31,6 +31,7 @@ public class S3Object extends BaseS3Object {
     public static final String METADATA_HEADER_HASH_MD5 = "md5-hash";   
 	public static final String METADATA_HEADER_CONTENT_LENGTH = "Content-Length";	
 	public static final String METADATA_HEADER_CONTENT_TYPE = "Content-Type";	
+    public static final String METADATA_HEADER_CONTENT_ENCODING = "Content-Encoding";   
 	public static final String METADATA_HEADER_STORAGE_CLASS = "Storage-Class";	
 	
 	private String key = null;
@@ -42,6 +43,10 @@ public class S3Object extends BaseS3Object {
     public S3Object() {        
     }
     
+    public S3Object(String key) {
+        this.key = key;
+    }
+
     public S3Object(S3Bucket bucket, String key) {
         this.bucket = bucket;
         this.key = key;
@@ -133,7 +138,15 @@ public class S3Object extends BaseS3Object {
 		getMetadata().put(METADATA_HEADER_CONTENT_TYPE, contentType);
 	}
 	
-	public S3Bucket getBucket() {
+    public String getContentEncoding() {
+        return (String) getMetadata().get(METADATA_HEADER_CONTENT_ENCODING);
+    }
+
+    public void setContentEncoding(String contentEncoding) {
+        getMetadata().put(METADATA_HEADER_CONTENT_ENCODING, contentEncoding);
+    }
+
+    public S3Bucket getBucket() {
 		return bucket;
 	}
 
