@@ -1,5 +1,9 @@
 package org.jets3t.service.impl.soap.axis;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -391,14 +395,31 @@ public class SoapS3Service extends S3Service {
                 log.debug("Uploading data input stream for S3Object: " + object.getKey());
                 
                 if (contentLength == 0 && object.getDataInputStream().available() > 0) {
-                    contentLength = object.getDataInputStream().available();
+                    
                     log.warn("S3Object Content-Length was set to 0 despite having a non-empty data"
-                        + " input stream. The Content-length value has been reset to " + contentLength);
+                        + " input stream. The Content-length will be determined in memory.");
+                    
+                    // Read all data into memory to determine it's length.
+                    BufferedInputStream bis = new BufferedInputStream(object.getDataInputStream());
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    BufferedOutputStream bos = new BufferedOutputStream(baos);
+                    byte[] buffer = new byte[8192];
+                    int read = -1;
+                    while ((read = bis.read(buffer)) != -1) {
+                        bos.write(buffer, 0, read);
+                    }
+                    bis.close();
+                    bos.close();
+
+                    contentLength = baos.size();
+                    object.setDataInputStream(new ByteArrayInputStream(baos.toByteArray()));
+                    
+                    log.debug("Content-Length value has been reset to " + contentLength);
                 }                
                 
                 DataHandler dataHandler = new DataHandler(
                     new SourceDataSource(
-                        null, contentType, new StreamSource(object.getDataInputStream())));                
+                        null, contentType, new StreamSource(object.getDataInputStream())));           
                 s3SoapBinding.addAttachment(dataHandler);                
             } else {
                 DataHandler dataHandler = new DataHandler(
