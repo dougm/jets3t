@@ -38,6 +38,7 @@ public class AxisSoapS3ServiceTest extends BaseS3ServiceTest {
         try {
             s3Service.putObject(bucket, object);
             fail("Shouldn't be able to use REST canned ACL setting with SOAP service");
+        } catch (S3ServiceException e) {
         } finally {
             s3Service.deleteBucket(bucket.getName());
         }
