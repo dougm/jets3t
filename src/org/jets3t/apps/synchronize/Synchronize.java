@@ -541,11 +541,11 @@ public class Synchronize {
      *                  which files are restored.
      * @param localDirectory    A local directory where files are backed-up from, or restored to.
      * @param actionCommand     The action to perform, UPLOAD or DOWNLOAD
-     * @param password      If non-null, an {@link EncryptionUtil} object is created with the provided
+     * @param cryptoPassword      If non-null, an {@link EncryptionUtil} object is created with the provided
      *                      password to encrypt or decrypt files.
      * @throws Exception
      */
-    public void run(String s3Path, File localDirectory, String actionCommand, String password) throws Exception 
+    public void run(String s3Path, File localDirectory, String actionCommand, String credentialsPassword, String cryptoPassword) throws Exception 
     {
         String bucketName = null;
         String objectPath = "";        
@@ -572,8 +572,8 @@ public class Synchronize {
             throw new SynchronizeException("Action string must be 'UPLOAD' or 'DOWNLOAD'");
         }        
         
-        if (password != null) {
-            encryptionPasswordUtil = new EncryptionUtil(password);
+        if (cryptoPassword != null) {
+            encryptionPasswordUtil = new EncryptionUtil(cryptoPassword);
         } 
                 
         S3Bucket bucket = null;
@@ -605,7 +605,7 @@ public class Synchronize {
                 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         Map filesMap = FileComparer.buildFileMap(localDirectory, null);
-        Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath);
+        Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath, null);
         FileComparerResults discrepancyResults = FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap);
 
         // Perform the requested action on the set of disrepancies.
@@ -694,7 +694,7 @@ public class Synchronize {
         String actionCommand = null;
         File localDirectory = null;
         String s3Path = null;
-        AWSCredentials awsCredentials = null;
+        File awsCredentialsFile = null;
         int reqArgCount = 0;
         
         // Options
@@ -746,7 +746,7 @@ public class Synchronize {
                 } else if (reqArgCount == 2) {
                     s3Path = arg;
                 } else if (reqArgCount == 3) {
-                    awsCredentials = AWSCredentials.load("Synchronize", new File(arg));                    
+                    awsCredentialsFile = new File(arg);                    
                 } else {
                     System.err.println("ERROR: Too many parameters");
                     printHelpAndExit();                    
@@ -761,22 +761,31 @@ public class Synchronize {
             printHelpAndExit();
         }
         
-        // Read the encryption/decryption password from stdin.
+        // Read the AWSCredentials and (possibly) the encryption/decryption password from stdin.        
+        String credentialsPassword = null;
         String encryptionPassword = null;
+        if (System.in.available() == 0) {
+            System.err.println("ERROR: The AWSCredentialsFile password must be piped into this program");
+            System.exit(2);
+        }
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        credentialsPassword = reader.readLine();
         if (isEncryptionEnabled) {
             if (System.in.available() == 0) {
                 System.err.println("ERROR: When using encryption a password must be piped into this program");
                 System.exit(2);
             }
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             encryptionPassword = reader.readLine();
         }
+
+        // Load the AWS credentials from encrypted file.
+        AWSCredentials awsCredentials = AWSCredentials.load(credentialsPassword, awsCredentialsFile);        
          
         // Perform the UPLOAD/DOWNLOAD.
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials),
             doAction, isQuiet, isForce, isKeepOld, isGzipEnabled, isEncryptionEnabled);
-        client.run(s3Path, localDirectory, actionCommand, encryptionPassword);
+        client.run(s3Path, localDirectory, actionCommand, credentialsPassword, encryptionPassword);
     }
         
 }

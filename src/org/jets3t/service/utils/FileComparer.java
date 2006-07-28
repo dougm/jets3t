@@ -43,6 +43,7 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.executor.GetObjectHeadsEvent;
 import org.jets3t.service.executor.S3ServiceEventAdaptor;
+import org.jets3t.service.executor.S3ServiceEventListener;
 import org.jets3t.service.executor.S3ServiceExecutor;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -171,12 +172,33 @@ public class FileComparer {
      * @return
      * @throws S3ServiceException
      */
-    public static Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath)
-        throws S3ServiceException
+    public static Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath,
+        S3ServiceEventListener s3ServiceEventListener) throws S3ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
         S3Object[] s3ObjectsIncomplete = s3Service.listObjects(bucket, prefix, null);
+        return buildS3ObjectMap(s3Service, bucket, targetPath, s3ObjectsIncomplete, s3ServiceEventListener);
+    }
 
+
+    /**
+     * Builds an S3 Object Map containing all the given objects,
+     * where the map's key for each object is the relative path to the object.
+     * 
+     * @see buildDiscrepancyLists
+     * @see buildFileMap
+     * 
+     * @param s3Service
+     * @param bucket
+     * @param targetPath
+     * @param s3ObjectsIncomplete
+     * @return
+     * @throws S3ServiceException
+     */
+    public static Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,  String targetPath, 
+        S3Object[] s3ObjectsIncomplete, S3ServiceEventListener s3ServiceEventListener) 
+        throws S3ServiceException
+    {
         // Retrieve the complete information about all objects listed via GetObjectsHeads.
         final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
         final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
@@ -194,6 +216,9 @@ public class FileComparer {
                 }
             }
         });
+        if (s3ServiceEventListener != null) {
+            executor.addServiceEventListener(s3ServiceEventListener);
+        }
         executor.getObjectsHeads(bucket, s3ObjectsIncomplete);
         if (s3ServiceExceptions[0] != null) {
             throw s3ServiceExceptions[0];

@@ -199,10 +199,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
     private Map downloadObjectsToFileMap = null;
-    private boolean downloadingObjects = false;
-    private boolean uploadingObjects = false;
-    private File[] uploadingFiles = null;
-    
+    private boolean downloadingObjects = false;    
     
     // File comparison options
     private final String UPLOAD_NEW_FILES_ONLY = "Only upload new file(s)";
@@ -787,7 +784,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             bucketsTable.clearSelection();
             ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
             ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();
-            
+                        
             updateObjectsSummary();
 
             ownerFrame.setTitle(APPLICATION_TITLE);
@@ -860,15 +857,25 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public void s3ServiceEventPerformed(ListAllBucketsEvent event) {        
         if (ServiceEvent.EVENT_STARTED == event.getEventStatus()) {
             startProgressDisplay("Listing buckets for " + s3ServiceExecutor.getAWSCredentials().getAccessKey());
-            bucketsTable.clearSelection();            
-            ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
-            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();            
+            
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    bucketsTable.clearSelection();       
+                    ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
+                    ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();            
+                }
+            });
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
-            S3Bucket[] buckets = event.getBuckets();
-            for (int i = 0; i < buckets.length; i++) {
-                ((BucketTableModel)bucketsTable.getModel()).addBucket(buckets[i]);
-            }
+            final S3Bucket[] buckets = event.getBuckets();
+
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    for (int i = 0; i < buckets.length; i++) {
+                        ((BucketTableModel)bucketsTable.getModel()).addBucket(buckets[i]);
+                    }
+                }
+            });
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
             stopProgressDisplay();
@@ -913,7 +920,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         if (cachedBuckets.containsKey(newlySelectedBucket.getName())) {
             S3Object[] objects = (S3Object[]) cachedBuckets.get(newlySelectedBucket.getName());
-            s3ServiceEventPerformed(new ListObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, newlySelectedBucket, objects, null));
+            
+            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                    
+            ((ObjectTableModel)objectsTable.getModel()).addObjects(objects, false);
+            updateObjectsSummary();
         } else {        
             listObjects();
         }
@@ -959,28 +969,44 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * 
      * @param event
      */
-    public void s3ServiceEventPerformed(ListObjectsEvent event) {
+    public void s3ServiceEventPerformed(final ListObjectsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventStatus()) {            
-            startProgressDisplay("Listing objects in " + event.getBucket().getName());
+            startProgressDisplay("Listing objects in " + getCurrentSelectedBucket().getName());
             
-            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                    
+                }
+            });
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
             if (event.getObjects() != null) {
-                for (int i = 0; i < event.getObjects().length; i++) {
-                    ((ObjectTableModel)objectsTable.getModel()).addObject(event.getObjects()[i], false);
-                }
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        for (int i = 0; i < event.getObjects().length; i++) {
+                            ((ObjectTableModel)objectsTable.getModel()).addObject(event.getObjects()[i], false);
+                        }
+                    }
+                });                
             }
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
-            updateObjectsSummary();
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {            
+                    updateObjectsSummary();
+                    S3Object[] objects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+                    cachedBuckets.put(getCurrentSelectedBucket().getName(), objects);            
+                }
+            });
 
-            S3Object[] objects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
-            cachedBuckets.put(getCurrentSelectedBucket().getName(), objects);            
             stopProgressDisplay();
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventStatus()) {
-            updateObjectsSummary();
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                        updateObjectsSummary();
+                }
+            });
 
             stopProgressDisplay();
             reportException(ownerFrame, "listObjects", event.getErrorCause());
@@ -1146,18 +1172,22 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * 
      * @param event
      */
-    public void s3ServiceEventPerformed(CreateBucketsEvent event) {
+    public void s3ServiceEventPerformed(final CreateBucketsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventStatus()) {    
             startProgressDisplay("Creating " + event.getProgressStatus().getThreadCount() + " buckets",                     
                 0, event.getProgressStatus().getThreadCount(), 
                 "Cancel bucket creation", event.getProgressStatus().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
-            for (int i = 0; i < event.getBuckets().length; i++) {
-                int insertRow = ((BucketTableModel) bucketsTable.getModel()).addBucket(
-                    event.getBuckets()[i]);
-                bucketsTable.setRowSelectionInterval(insertRow, insertRow);                
-            }
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    for (int i = 0; i < event.getBuckets().length; i++) {                
+                        int insertRow = ((BucketTableModel) bucketsTable.getModel()).addBucket(
+                            event.getBuckets()[i]);
+                        bucketsTable.setRowSelectionInterval(insertRow, insertRow);                
+                    }
+                }
+            });
             
             ProgressStatus progressStatus = event.getProgressStatus();
             String statusText = "Created " + progressStatus.getCompletedThreads() + " buckets of " + progressStatus.getThreadCount();
@@ -1296,31 +1326,35 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
             stopProgressDisplay();                
             
-            S3Object[] objectsWithACL = getSelectedObjects();
+            final S3Object[] objectsWithACL = getSelectedObjects();
             
-            // Build merged ACL containing ALL relevant permissions
-            AccessControlList mergedACL = new AccessControlList();
-            for (int i = 0; i < objectsWithACL.length; i++) {
-                AccessControlList objectACL = objectsWithACL[i].getAcl();
-                mergedACL.grantAllPermissions(objectACL.getGrants());
-                
-                // TODO Can we assume that all the objects will have the same owner?
-                if (mergedACL.getOwner() == null) { 
-                    mergedACL.setOwner(objectACL.getOwner());
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    // Build merged ACL containing ALL relevant permissions
+                    AccessControlList mergedACL = new AccessControlList();
+                    for (int i = 0; i < objectsWithACL.length; i++) {
+                        AccessControlList objectACL = objectsWithACL[i].getAcl();
+                        mergedACL.grantAllPermissions(objectACL.getGrants());
+                        
+                        // TODO Can we assume that all the objects will have the same owner?
+                        if (mergedACL.getOwner() == null) { 
+                            mergedACL.setOwner(objectACL.getOwner());
+                        }
+                    }
+                    
+                    // Show ACL dialog box for user to change ACL settings for all objects.
+                    AccessControlList updatedObjectACL = AccessControlDialog.showDialog(ownerFrame, objectsWithACL, mergedACL);
+                    if (updatedObjectACL != null) {
+                        // Update ACLs for each object.
+                        for (int i = 0; i < objectsWithACL.length; i++) {
+                            objectsWithACL[i].setAcl(updatedObjectACL);
+                        }
+                        
+                        // Perform ACL updates.
+                        updateObjectsAccessControlLists(getCurrentSelectedBucket(), objectsWithACL);
+                    }
                 }
-            }
-            
-            // Show ACL dialog box for user to change ACL settings for all objects.
-            AccessControlList updatedObjectACL = AccessControlDialog.showDialog(ownerFrame, objectsWithACL, mergedACL);
-            if (updatedObjectACL != null) {
-                // Update ACLs for each object.
-                for (int i = 0; i < objectsWithACL.length; i++) {
-                    objectsWithACL[i].setAcl(updatedObjectACL);
-                }
-                
-                // Perform ACL updates.
-                updateObjectsAccessControlLists(getCurrentSelectedBucket(), objectsWithACL);
-            }                        
+            });
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventStatus()) {
             stopProgressDisplay();        
@@ -1664,14 +1698,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         return tempUploadFile;
     }
     
-    private void uploadFilesToS3(final File files[]) {
-        // Perform the upload (via retrieving details with the uploadingObjects flag set)
-        uploadingObjects = true;
-        uploadingFiles = files;
-        retrieveObjectsDetails(((ObjectTableModel)objectsTable.getModel()).getObjects());
-    }
-        
-    private void performObjectsUpload() {        
+    private void uploadFilesToS3(final File uploadingFiles[]) {
         try {
             // Build map of files proposed for upload.
             HashMap filesForUploadMap = new HashMap();
@@ -1684,9 +1711,20 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }                
             }
             
-            // Build map of objects already existing in target S3 bucket.
-            Map s3ExistingObjectsMap = FileComparer.populateS3ObjectMap("",
-                ((ObjectTableModel)objectsTable.getModel()).getObjects());
+            // Build map of objects already existing in target S3 bucket with keys
+            // matching the proposed upload keys.
+            List objectsWithExistingKeys = new ArrayList();
+            S3Object[] existingObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+            for (int i = 0; i < existingObjects.length; i++) {
+                if (filesForUploadMap.keySet().contains(existingObjects[i].getKey()))
+                {
+                    objectsWithExistingKeys.add(existingObjects[i]);
+                }
+            }
+            existingObjects = (S3Object[]) objectsWithExistingKeys.toArray(new S3Object[] {});
+            
+            Map s3ExistingObjectsMap = FileComparer.buildS3ObjectMap(s3ServiceExecutor.getS3Service(),
+                getCurrentSelectedBucket(), "", existingObjects, this); 
                             
             // Compare files being uploaded and existing S3 objects.
             FileComparerResults comparisonResults = 
@@ -1798,7 +1836,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         } 
     }
     
-    public void s3ServiceEventPerformed(CreateObjectsEvent event) {
+    public void s3ServiceEventPerformed(final CreateObjectsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventStatus()) {    
             // Show percentage of uploaded bytes if it's non-zero ...
             if (event.getBytesTotal() > 0) {
@@ -1814,9 +1852,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
-            for (int i = 0; i < event.getObjects().length; i++) {
-                ((ObjectTableModel)objectsTable.getModel()).addObject(event.getObjects()[i], false);
-            }
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {            
+                    for (int i = 0; i < event.getObjects().length; i++) {
+                        ((ObjectTableModel)objectsTable.getModel()).addObject(event.getObjects()[i], false);
+                    }
+                }
+            });
             
             // Show percentage of uploaded bytes if it's non-zero ...
             if (event.getBytesTotal() > 0) {
@@ -1840,15 +1882,22 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
-            updateObjectsSummary();
-            
-            S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
-            cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
-            
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    updateObjectsSummary();
+                    S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+                    cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
+                }
+            });
+                        
             stopProgressDisplay();        
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventStatus()) {
-            updateObjectsSummary();
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    updateObjectsSummary();
+                }
+            });
 
             stopProgressDisplay();        
         }
@@ -1884,7 +1933,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }.start();        
     }
     
-    public void s3ServiceEventPerformed(DeleteObjectsEvent event) {
+    public void s3ServiceEventPerformed(final DeleteObjectsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventStatus()) {    
             startProgressDisplay("Deleting " + event.getProgressStatus().getThreadCount() + " object(s) in "
                 + getCurrentSelectedBucket().getName(), 
@@ -1892,21 +1941,28 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 event.getProgressStatus().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
-            for (int i = 0; i < event.getObjects().length; i++) {
-                ((ObjectTableModel)objectsTable.getModel()).removeObject(
-                    event.getObjects()[i]);
-            }
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {            
+                    for (int i = 0; i < event.getObjects().length; i++) {
+                        ((ObjectTableModel)objectsTable.getModel()).removeObject(
+                            event.getObjects()[i]);
+                    }
+                }
+            });
             
             ProgressStatus progressStatus = event.getProgressStatus();
             String statusText = "Deleted " + progressStatus.getCompletedThreads() + " of " + progressStatus.getThreadCount() + " objects";
             updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventStatus()) {
-            updateObjectsSummary();
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    updateObjectsSummary();
+                    S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+                    cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
+                }
+            });
             
-            S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
-            cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
-
             stopProgressDisplay();                
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventStatus()) {
@@ -1950,7 +2006,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }).start();
     }
     
-    public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
+    public void s3ServiceEventPerformed(final GetObjectHeadsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventStatus()) {
             startProgressDisplay("Retrieving details of " + event.getProgressStatus().getThreadCount() 
                 + " object(s) from " + getCurrentSelectedBucket().getName(), 
@@ -1959,12 +2015,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
             // Store detail-complete objects in table.
-            for (int i = 0; i < event.getObjects().length; i++) {
-                // Retain selected status of objects for downloads or properties 
-                boolean highlightUpdatedObjects = downloadingObjects || viewingObjectProperties; 
-                ((ObjectTableModel)objectsTable.getModel()).addObject(event.getObjects()[i], highlightUpdatedObjects);
-                log.debug("Updated table with " + event.getObjects()[i].getKey() + ", content-type=" + event.getObjects()[i].getContentType());                
-            }            
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    for (int i = 0; i < event.getObjects().length; i++) {
+                        // Retain selected status of objects for downloads or properties 
+                        boolean highlightUpdatedObjects = downloadingObjects || viewingObjectProperties; 
+                        ((ObjectTableModel)objectsTable.getModel()).addObject(event.getObjects()[i], highlightUpdatedObjects);
+                        log.debug("Updated table with " + event.getObjects()[i].getKey() + ", content-type=" + event.getObjects()[i].getContentType());                
+                    }
+                }
+            });
             
             // Update progress of GetObject requests.
             ProgressStatus progressStatus = event.getProgressStatus();
@@ -1979,9 +2039,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             if (downloadingObjects) {
                 performObjectsDownload();
                 downloadingObjects = false;
-            } else if (uploadingObjects) {
-                performObjectsUpload();
-                uploadingObjects = false;
             } else if (viewingObjectProperties) {
                 PropertiesDialog.showDialog(ownerFrame, getSelectedObjects()[0]);
                 viewingObjectProperties = false;                    
@@ -2118,29 +2175,27 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         
         public void addObject(S3Object object, boolean highlightNewObject) {
-            synchronized (objectList) {
-                int insertRow = 
-                    Collections.binarySearch(objectList, object, new Comparator() {
-                        public int compare(Object o1, Object o2) {
-                            return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
-                        }
-                    });
-                if (insertRow >= 0) {
-                    // We already have an item with this key, replace it.
-                    objectList.remove(insertRow);
-                    this.removeRow(insertRow);                
-                } else {
-                    insertRow = (-insertRow) - 1;                
-                }
-                // New object to insert.
-                objectList.add(insertRow, object);
-                this.insertRow(insertRow, new Object[] {object.getKey(), formatByteSize(object.getContentLength()), 
-                    object.getLastModifiedDate() /*, object.getHash(), object.getStorageClass()*/});
-                
-                // Automatically select (highlight) a newly aded object, if required.
-                if (highlightNewObject) {
-                    objectsTable.addRowSelectionInterval(insertRow, insertRow);
-                }
+            int insertRow = 
+                Collections.binarySearch(objectList, object, new Comparator() {
+                    public int compare(Object o1, Object o2) {
+                        return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
+                    }
+                });
+            if (insertRow >= 0) {
+                // We already have an item with this key, replace it.
+                objectList.remove(insertRow);
+                this.removeRow(insertRow);                
+            } else {
+                insertRow = (-insertRow) - 1;                
+            }
+            // New object to insert.
+            objectList.add(insertRow, object);
+            this.insertRow(insertRow, new Object[] {object.getKey(), formatByteSize(object.getContentLength()), 
+                object.getLastModifiedDate() /*, object.getHash(), object.getStorageClass()*/});
+            
+            // Automatically select (highlight) a newly aded object, if required.
+            if (highlightNewObject) {
+                objectsTable.addRowSelectionInterval(insertRow, insertRow);
             }
         }
         
@@ -2151,21 +2206,17 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         
         public void removeObject(S3Object object) {
-            synchronized (objectList) {
-                int index = objectList.indexOf(object);
-                this.removeRow(index);
-                objectList.remove(object);
-            }
+            int index = objectList.indexOf(object);
+            this.removeRow(index);
+            objectList.remove(object);
         }
         
         public void removeAllObjects() {
-            synchronized (objectList) {
-                int rowCount = this.getRowCount();
-                for (int i = 0; i < rowCount; i++) {
-                    this.removeRow(0);
-                }
-                objectList.clear();
+            int rowCount = this.getRowCount();
+            for (int i = 0; i < rowCount; i++) {
+                this.removeRow(0);
             }
+            objectList.clear();
         }
         
         public S3Object getObject(int row) {
