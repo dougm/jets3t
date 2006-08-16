@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<!-- ====================================================================== 
+     Jul 8, 2006 5:23:55 PM                                                        
+
+     jets3t    
+     Toolkit for Amazon's S3 online storage service.
+                   
+     James Murty                                                                
+     ====================================================================== -->
+<project name="jets3t" default="dist">
+    <description>
+    		jets3t : Toolkit for Amazon's S3 online storage service
+    </description>
+	
+	<property file="build.properties"/>
+	
+    <!-- ================================= 
+         Define the script-wide classpath.
+         ================================= -->
+	<path id="classpath">
+		<fileset dir="${dir.libs}" includes="**/*.jar"/>
+	</path>
+	
+	
+	<target name="compile-service">
+		<mkdir dir="${dir.build}"/>
+		<javac 
+			srcdir="${dir.src}"
+			destdir="${dir.build}"
+			debug="${debug}"
+		>
+			<classpath refid="classpath"/>
+			<include name="org/jets3t/service/**"/>
+		</javac>
+	</target>
+	
+	<target name="compile-app-cockpit">
+		<mkdir dir="${dir.build}"/>
+		<javac 
+			srcdir="${dir.src}"
+			destdir="${dir.build}"
+			debug="${debug}"
+		>
+			<classpath refid="classpath"/>
+			<include name="org/jets3t/apps/cockpit/**"/>
+		</javac>
+	</target>
+
+	<target name="compile-app-synchronize">
+		<mkdir dir="${dir.build}"/>
+		<javac 
+			srcdir="${dir.src}"
+			destdir="${dir.build}"
+			debug="${debug}"
+		>
+			<classpath refid="classpath"/>
+			<include name="org/jets3t/apps/synchronize/**"/>
+		</javac>
+	</target>
+	
+	<target name="dist-service" depends="compile-service">
+		<mkdir dir="${dir.dist}"/>
+		<jar
+			basedir="${dir.build}"			
+			file="${dir.dist}/${dist.file.service}"
+			>
+			<include name="org/jets3t/service/**"/>
+		</jar>
+	</target>
+
+	<target name="dist-app-cockpit" depends="dist-service,compile-app-cockpit">
+		<mkdir dir="${dir.dist}"/>
+		<jar
+			basedir="${dir.build}"			
+			file="${dir.dist}/${dist.file.cockpit}"
+			manifest="${dir.src}/cockpit.mf"
+			>
+			<include name="org/jets3t/apps/cockpit/**"/>
+		</jar>
+	</target>
+	
+	<target name="dist-app-synchronize" depends="dist-service,compile-app-synchronize">
+		<mkdir dir="${dir.dist}"/>
+		<jar
+			basedir="${dir.build}"			
+			file="${dir.dist}/${dist.file.synchronize}"
+			manifest="${dir.src}/synchronize.mf"
+			>
+			<include name="org/jets3t/apps/synchronize/**"/>
+		</jar>
+	</target>
+	
+	<target name="dist-apps" depends="dist-app-cockpit,dist-app-synchronize">
+	</target>
+
+	<target name="dist" depends="dist-service,dist-apps,api-docs">
+	</target>
+
+	<target name="clean">
+		<delete dir="${dir.build}"/>
+		<delete dir="${dir.dist}"/>
+	</target>
+
+	<target name="api-docs">		
+		<mkdir dir="${dir.apidocs}"/>
+		<javadoc 
+			author="false" 
+			version="true"
+			destdir="${dir.apidocs}" 
+			windowtitle="jets3t API : Amazon S3 Toolkit"
+		>
+			<classpath refid="classpath"/>
+			<fileset dir="src" includes="**/*.java"/>
+		</javadoc>
+	</target>
+
+</project>
+
