@@ -894,7 +894,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         S3Bucket newlySelectedBucket = getCurrentSelectedBucket();
         if (newlySelectedBucket == null) {
             viewBucketPropertiesMenuItem.setEnabled(false);
-            refreshBucketMenuItem.setEnabled(false);
+            refreshBucketMenuItem.setEnabled(true);
             updateBucketACLMenuItem.setEnabled(false);
             deleteBucketMenuItem.setEnabled(false);
             
@@ -1057,6 +1057,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         mi0.setActionCommand("ViewBucketProperties");
         mi0.addActionListener(this);
         menu.add(mi0);
+        
+        JMenuItem mi1 = new JMenuItem("Refresh object listing");
+        mi1.setActionCommand("RefreshObjects");
+        mi1.addActionListener(this);
+        menu.add(mi1);
 
         JMenuItem mi3 = new JMenuItem("Update bucket's Access Control List...");
         mi3.setActionCommand("UpdateBucketACL");
@@ -1098,11 +1103,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         JPopupMenu menu = new JPopupMenu();
         
-        if (objectsTable.getSelectedRows().length == 1) {
-            JMenuItem mi0 = new JMenuItem("View object properties...");
-            mi0.setActionCommand("ViewObjectProperties");
-            mi0.addActionListener(this);
-            menu.add(mi0);
+        JMenuItem mi0 = new JMenuItem("View object properties...");
+        mi0.setActionCommand("ViewObjectProperties");
+        mi0.addActionListener(this);
+        menu.add(mi0);
+        if (objectsTable.getSelectedRows().length != 1) {
+            mi0.setEnabled(false);
         }
         
         JMenuItem mi2 = new JMenuItem("Update object's Access Control List...");
