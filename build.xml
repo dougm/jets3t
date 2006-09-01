@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
 <!-- ====================================================================== 
-     Jul 8, 2006 5:23:55 PM                                                        
-
      jets3t    
      Toolkit for Amazon's S3 online storage service.
                    
@@ -59,20 +57,20 @@
 	</target>
 	
 	<target name="dist-service" depends="compile-service">
-		<mkdir dir="${dir.dist}"/>
+		<mkdir dir="${dir.dist}/jets3t-${version}"/>
 		<jar
 			basedir="${dir.build}"			
-			file="${dir.dist}/${dist.file.service}"
+			file="${dir.dist}/jets3t-${version}/${dist.file.service}"
 			>
 			<include name="org/jets3t/service/**"/>
 		</jar>
 	</target>
 
 	<target name="dist-app-cockpit" depends="dist-service,compile-app-cockpit">
-		<mkdir dir="${dir.dist}"/>
+		<mkdir dir="${dir.dist}/jets3t-${version}"/>
 		<jar
 			basedir="${dir.build}"			
-			file="${dir.dist}/${dist.file.cockpit}"
+			file="${dir.dist}/jets3t-${version}/${dist.file.cockpit}"
 			manifest="${dir.src}/cockpit.mf"
 			>
 			<include name="org/jets3t/apps/cockpit/**"/>
@@ -80,10 +78,10 @@
 	</target>
 	
 	<target name="dist-app-synchronize" depends="dist-service,compile-app-synchronize">
-		<mkdir dir="${dir.dist}"/>
+		<mkdir dir="${dir.dist}/jets3t-${version}"/>
 		<jar
 			basedir="${dir.build}"			
-			file="${dir.dist}/${dist.file.synchronize}"
+			file="${dir.dist}/jets3t-${version}/${dist.file.synchronize}"
 			manifest="${dir.src}/synchronize.mf"
 			>
 			<include name="org/jets3t/apps/synchronize/**"/>
@@ -93,12 +91,35 @@
 	<target name="dist-apps" depends="dist-app-cockpit,dist-app-synchronize">
 	</target>
 
-	<target name="dist" depends="dist-service,dist-apps,api-docs">
+	<target name="dist" depends="dist-service,dist-apps">
+	</target>
+	
+	<target name="package" depends="dist,api-docs">
+		<!-- Copy documentation to dist directory so it's included in archive files -->
+		<mkdir dir="${dir.dist}/jets3t-${version}/docs/api"/>
+		<copy 			
+			todir="${dir.dist}/jets3t-${version}/docs">
+			<fileset dir="www" includes="**/*.htm*"/>
+		</copy>
+		<copy 			
+			todir="${dir.dist}/jets3t-${version}/docs/api">
+			<fileset dir="${dir.apidocs}"/>
+		</copy>
+		
+		<!-- Create archives -->
+		<zip 
+			destfile="${dir.dist}/jets3t-${version}.zip"
+			basedir="${dir.dist}/jets3t-${version}"/>
+		<tar 
+			compression="gzip"
+			destfile="${dir.dist}/jets3t-${version}.tar.gz"
+			basedir="${dir.dist}/jets3t-${version}"/>
 	</target>
 
 	<target name="clean">
 		<delete dir="${dir.build}"/>
 		<delete dir="${dir.dist}"/>
+		<delete dir="${dir.apidocs}"/>
 	</target>
 
 	<target name="api-docs">		
@@ -107,10 +128,13 @@
 			author="false" 
 			version="true"
 			destdir="${dir.apidocs}" 
-			windowtitle="jets3t API : Amazon S3 Toolkit"
-		>
+			windowtitle="jets3t API : Amazon S3 Toolkit">
+			
 			<classpath refid="classpath"/>
-			<fileset dir="src" includes="**/*.java"/>
+			<fileset 
+				dir="src" 
+				includes="**/*.java"
+				excludes="org/jets3t/service/impl/soap/axis/_2006_03_01/**/*.java"/>
 		</javadoc>
 	</target>
 

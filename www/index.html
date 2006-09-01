@@ -1,24 +1,63 @@
 <html>
 <head>
-<title>jets3t Home Page</title>
+<title>jets3t - Home</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 </head>
 
 <body bgcolor="#FFFFFF" text="#000000">
-<h1>jets3t Home Page</h1>
+<center><h1>jets3t - Home</h1></center>
 
-<table><tr><td>Home | Getting Started | Documentation</td></tr></table>
+<center>
+	<a href="index.html">Home</a> | 
+	<a href="start.html">Getting Started</a> | 
+	<a href="cockpit.html">Cockpit</a> | 
+	<a href="synchronize.html">Synchronize</a> | 
+	<a href="api/index.html">API Documentation</a>
+</center>
 
 <h2>What is jets3t?</h2>
-<p>jets3t is a Java toolkit for the 
-<a href="http://www.amazon.com/b/ref=sc_fe_l_2/103-5296594-0109452?ie=UTF8&node=16427261&no=15879911&me=A36L942TSJ2AJA">
-Amazon Simple Storage Service</a> (also known as Amazon S3). If you have
-an S3 account, you can use this toolkit to transfer files to and from your
-online storage area and do other <a href="#nifty">nifty things</a>.</p>
-<p>The jets3t toolkit is mainly aimed at developers, but the project also includes 
-a couple of applications built on the toolkit that may be of use to everyone else:</p>
-<p>Cockpit: A graphical (Swing) application for viewing and managing the contents of an Amazon S3 account.</p>
-<p>Synchronize: A console application to synchronize directories on your computer an Amazon S3 account.</p>
+<p>jets3t is a Java (1.4+) toolkit for the 
+<a href="http://www.amazon.com/s3">
+Amazon Simple Storage Service</a> (also known as Amazon S3). Building on the Java library provided by Amazon, the toolkit aims to simplify interaction with S3 while providing powerful <a href="#features">additional features</a>.</p>
+<p>If you have an S3 account, you can use this toolkit to build applications that transfer files to and from your online storage area.</p>
+
+<h3>Toolkit Features:</h3>
+<p>
+<ul>
+<li>Works with JDK version 1.4</li>
+<li>Free, Open Source library (see <a href="#license">licensing</a>)</li>
+<li>Easy to use (see <a href="start.html">Getting Started</a>)</li>
+<li>Built-in multi-threaded Executor engine that allows multiple uploads/downloads to run simultaneously</li>
+<li>Includes utility classes to help encrypt and/or compress data</li>
+<li>Includes a powerful REST/HTTP implementation based on <a href="http://jakarta.apache.org/commons/httpclient/">HttpClient</a> 3, and a basic SOAP implementation based on <a href="">Axis</a> 1.4.</li>
+<li>Extensible Service interface, allowing developers to add their own REST or SOAP implementations based on their preferred libraries</li>
+<li>Two example applications built using the toolkit</li>
+</ul>
+</p>
+
+<h3>Included Applications</h3>
+<p>The jets3t project includes two Java applications built using the toolkit:
+<ul>
+<li><a href="cockpit.html">Cockpit</a>: A graphical (Swing) application for viewing and managing the contents of an Amazon S3 account.</li>
+<li><a href="synchronize.html">Synchronize</a>: A console application to synchronize directories on your computer with an Amazon S3 account.</li>
+</ul>
+</p>
+
+<h3><a name="license">How is jets3t licensed?</a></h3>
+<p>This project is licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
+In short, this license means jets3t is free for commercial or non-commercial use, 
+and you may modify and/or redistribute it if you wish.
+
+<h3>Alternate resources</h3>
+<p>There are a number of other programs and toolkits available for the Amazon S3 service. If jets3t doesn't meet your needs, perhaps something more appropriate will be available in Amazon's <a href="http://solutions.amazonwebservices.com/connect/kbcategory.jspa?categoryID=66">S3 Solutions Catalog</a>.</p>
+
+<h2>Who should use jets3t?</h2>
+<p>The jets3t toolkit is intended to be used by Java developers, however the applications included with the project may also be of use to non-developers.</p>
+
+<h2>Project Goals</h2>
+<p>jets3t was started as a hobbyist project so we could build simple applications to backup important files to S3 (<a href="synchronize.html">Synchronize</a>), and easily manage the contents of our S3 account (<a href="cockpit.html">Cockpit</a>). We are releasing these applications, and the underlying toolkit, in the hope it may be useful for others.</p>
+<p>We have no particular goals for the jets3t project at present except for fixing bugs and making minor improvements. If the project proves to be useful to others and there is sufficient demand, we will look into making larger scale changes/additions based on your suggestions.</p>
+<p>So if you use jets3t and would like it to be improved to better meet your needs, please let us know.</p>
 
 <h2>What is Amazon S3?</h2>
 The Amazon Simple Storage Service is a paid-for online file storage service 
@@ -34,23 +73,12 @@ Amazon S3</a> home page.</p>
 <p>If you're ready to give it a try, you can
 <a href="http://aws-portal.amazon.com/gp/aws/developer/subscription/index.html/103-5296594-0109452?ie=UTF8&serviceID=8&servicePlanID=6">
 sign up right now</a>.
-
-<h2>Project Goals</h2>
-<p></p>
-
-<h2>Are you affiliated with Amazon?</h2>
+<h3>Are you affiliated with Amazon?</h3>
 <p>This project has no relationship with Amazon, we just think the S3 service is cool.</p>
 
-<h2>How is jets3t licensed?</h2>
-<p>This project is licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
-In short, this license means jets3t is free for commercial or non-commercial use, 
-and you may modify and/or redistribute it if you wish.
-
 <h2>Why is this toolkit called jets3t?</h2>
-<p>jets3t stands for <b>J</b>ava <b>S3</b> <b>T</b>oolkit. jets3t is the closest thing to real word we could think of.</p>
-<p>What about the 'et' you ask? Well, to be honest, we don't know. 
-We're open for suggestions as to what E and T could stand for...</p>
-
+<p>jets3t stands for <b>J</b>ava <b>S3</b> <b>T</b>oolkit. jets3t is the closest thing to real word containing these "letters" we could think of.</p>
+<p>What about the 'et' in j<b>et</b>s3t you ask? Well, to be honest, we don't know; we're open for suggestions as to what the E and T could stand for...</p>
 
 
 </body>
