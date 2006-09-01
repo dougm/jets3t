@@ -34,6 +34,7 @@ import java.util.Properties;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.executor.S3ServiceEventAdaptor;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.GZipInflatingOutputStream;
@@ -607,7 +608,13 @@ public class Synchronize {
                 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         Map filesMap = FileComparer.buildFileMap(localDirectory, null);
-        Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath, null);
+
+        S3ServiceEventAdaptor errorCatchingAdaptor = new S3ServiceEventAdaptor();
+        Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath, errorCatchingAdaptor);
+        if (errorCatchingAdaptor.wasErrorThrown()) {
+            throw new Exception("Unable to build map of S3 Objects", errorCatchingAdaptor.getErrorThrown());
+        }
+        
         FileComparerResults discrepancyResults = FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap);
 
         // Perform the requested action on the set of disrepancies.

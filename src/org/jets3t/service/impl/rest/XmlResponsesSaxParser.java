@@ -184,7 +184,6 @@ public class XmlResponsesSaxParser {
             if (name.equals("Contents")) {
                 currentObject = new S3Object();
                 currentObject.setBucket(ownerBucket);
-                listingTruncated = false;
             } else if (name.equals("Owner")) {
                 currentOwner = new S3Owner();
                 currentObject.setOwner(currentOwner);

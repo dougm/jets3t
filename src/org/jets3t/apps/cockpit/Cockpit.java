@@ -52,6 +52,7 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -89,6 +90,7 @@ import javax.swing.text.NumberFormatter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.executor.CancelEventListener;
@@ -175,6 +177,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem refreshObjectMenuItem = null;
     private JMenuItem updateObjectACLMenuItem = null;
     private JMenuItem downloadObjectMenuItem = null;
+    private JMenuItem generatePublicUrl = null;
     private JMenuItem deleteObjectMenuItem = null;
 
     // Preference menu items.
@@ -429,6 +432,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
         objectMenu.add(new JSeparator());
 
+        generatePublicUrl = new JMenuItem("Generate public URL...");
+        generatePublicUrl.setActionCommand("GenerateURL");
+        generatePublicUrl.addActionListener(this);
+        objectMenu.add(generatePublicUrl);        
+        
+        objectMenu.add(new JSeparator());
+
         deleteObjectMenuItem = new JMenuItem("Delete selected object(s)...");
         deleteObjectMenuItem.setActionCommand("DeleteObjects");
         deleteObjectMenuItem.addActionListener(this);
@@ -438,6 +448,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         refreshObjectMenuItem.setEnabled(false);
         updateObjectACLMenuItem.setEnabled(false);
         downloadObjectMenuItem.setEnabled(false);
+        generatePublicUrl.setEnabled(false);
         deleteObjectMenuItem.setEnabled(false);
 
         // Preferences menu.        
@@ -670,6 +681,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             listObjects();
         } else if ("UpdateObjectACL".equals(event.getActionCommand())) {
             lookupObjectsAccessControlLists();
+        } else if ("GenerateURL".equals(event.getActionCommand())) {
+            generatePublicUrl();
         } else if ("DeleteObjects".equals(event.getActionCommand())) {
             deleteSelectedObjects();
         } else if ("DownloadObjects".equals(event.getActionCommand())) {
@@ -860,6 +873,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
+                    cachedBuckets.clear();
                     bucketsTable.clearSelection();       
                     ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
                     ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();            
@@ -933,19 +947,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * Actions performed when an object is selected in the objects list table.
      */
     private void objectSelectedAction() {
-        if (getSelectedObjects().length == 0) {
-            viewObjectPropertiesMenuItem.setEnabled(false);
-            updateObjectACLMenuItem.setEnabled(false);
-            downloadObjectMenuItem.setEnabled(false);
-            deleteObjectMenuItem.setEnabled(false);
-        } else {
-            if (getSelectedObjects().length == 1) {
-                viewObjectPropertiesMenuItem.setEnabled(true);
-            }
-            updateObjectACLMenuItem.setEnabled(true);
-            downloadObjectMenuItem.setEnabled(true);
-            deleteObjectMenuItem.setEnabled(true);
-        }
+        int count = getSelectedObjects().length;
+        
+        updateObjectACLMenuItem.setEnabled(count > 0);
+        downloadObjectMenuItem.setEnabled(count > 0);
+        deleteObjectMenuItem.setEnabled(count > 0);
+        viewObjectPropertiesMenuItem.setEnabled(count == 1);
+        generatePublicUrl.setEnabled(count == 1);
     }
 
     /**
@@ -1132,17 +1140,28 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         menu.add(new JSeparator());
 
         JMenuItem mi4 = null;
+        mi4 = new JMenuItem("Generate public URL...");
+        mi4.setActionCommand("GenerateURL");
+        mi4.addActionListener(this);
+        menu.add(mi4);
+        if (objectsTable.getSelectedRows().length != 1) {
+            mi4.setEnabled(false);
+        }        
+
+        menu.add(new JSeparator());
+
+        JMenuItem mi5 = null;
         if (objectsTable.getSelectedRows().length == 1) {
             S3Object object = 
                 ((ObjectTableModel)objectsTable.getModel()).getObject(
                 objectsTable.getSelectedRows()[0]);
-            mi4 = new JMenuItem("Delete '" + object.getKey() + "'...");
+            mi5 = new JMenuItem("Delete '" + object.getKey() + "'...");
         } else {
-            mi4 = new JMenuItem("Delete " + objectsTable.getSelectedRows().length + " objects...");
+            mi5 = new JMenuItem("Delete " + objectsTable.getSelectedRows().length + " objects...");
         }        
-        mi4.setActionCommand("DeleteObjects");
-        mi4.addActionListener(this);
-        menu.add(mi4);
+        mi5.setActionCommand("DeleteObjects");
+        mi5.addActionListener(this);
+        menu.add(mi5);
         
         menu.show(invoker, xPos, yPos);
     }
@@ -1912,6 +1931,49 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             reportException(ownerFrame, "createObjects", event.getErrorCause());
         }
     }
+    
+    private void generatePublicUrl() {
+        final S3Object[] objects = getSelectedObjects(); 
+
+        if (objects.length != 1) {
+            System.err.println("Ignoring Generate Public URL object command, can only operate on a single object");
+            return;            
+        }
+        S3Object currentObject = objects[0];
+
+        Object response = JOptionPane.showInputDialog(ownerFrame,
+            "For how many hours should '" + currentObject.getKey() + "' be accessible by the URL?",
+            "Generate Public URL", JOptionPane.QUESTION_MESSAGE, null, null, "0.5");
+            
+        if (response == null) {
+            return;
+        }
+        
+        try {
+            // Determine expiry time for URL
+            double hoursFromNow = Double.parseDouble(response.toString());
+            int secondsFromNow = (int) (hoursFromNow * 60 * 60);
+            Calendar cal = Calendar.getInstance();
+            cal.add(Calendar.SECOND, secondsFromNow);
+
+            // Generate URL
+            String signedUrl = S3Service.createSignedUrl(
+                currentObject.getBucket().getName(), currentObject.getKey(),
+                s3ServiceExecutor.getAWSCredentials(), cal.getTimeInMillis() / 1000, true);
+            
+            // Display signed URL
+            JOptionPane.showInputDialog(ownerFrame,
+                "URL for '" + currentObject.getKey() + "'."
+                + "\n This URL will be valid until approximately " + cal.getTime() 
+                + "\n(Amazon's server time may be ahead of or behind your computer's clock)",
+                "Signed URL", JOptionPane.INFORMATION_MESSAGE, null, null, signedUrl);
+
+        } catch (NumberFormatException e) {
+            reportException(ownerFrame, "Hours must be a valid decimal value; eg 3, 0.1", e);
+        } catch (S3ServiceException e) {
+            reportException(ownerFrame, "Unable to generate public URL", e);
+        }
+    }    
         
     private void deleteSelectedObjects() {
         final S3Object[] objects = getSelectedObjects(); 

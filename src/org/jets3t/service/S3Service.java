@@ -42,6 +42,7 @@ import org.jets3t.service.utils.ServiceUtils;
 public abstract class S3Service {
 
     private AWSCredentials awsCredentials = null;
+    protected boolean isHttpsOnly = false;
 
     /**
      * Construct an <code>S3Service</code> identified by the given AWS Principal.

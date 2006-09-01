@@ -74,8 +74,9 @@ public class RestS3Service extends S3Service {
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
     
-    public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
+    public RestS3Service(AWSCredentials awsCredentials, boolean isHttpsOnly) throws S3ServiceException {
         super(awsCredentials);
+        this.isHttpsOnly = isHttpsOnly;
         
         insecureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_INSECURE, PROTOCOL_INSECURE);
         secureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_SECURE, PROTOCOL_SECURE);
@@ -100,6 +101,10 @@ public class RestS3Service extends S3Service {
         
         httpClient = new HttpClient(clientParams, connectionManager);
     }
+    
+    public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
+        this(awsCredentials, false);
+    }    
             
     protected void performRequest(HttpMethodBase httpMethod, int expectedResponseCode) 
         throws S3ServiceException 
@@ -352,14 +357,17 @@ public class RestS3Service extends S3Service {
         if (path == null) {
             throw new S3ServiceException("Cannot connect to S3 Service with a null path");
         }
-        
-        String protocol = isAuthenticatedConnection() ? PROTOCOL_SECURE
-                : PROTOCOL_INSECURE;
-        int port = isAuthenticatedConnection() ? PORT_SECURE : PORT_INSECURE;
-        
+
         String resourceString = buildResourceStringFromPath(path);
-        String url = protocol + "://" + Constants.REST_SERVER_DNS + ":" + port + resourceString;
-            
+
+        String url = null;
+        if (isHttpsOnly) {
+            log.debug("SOAP service will use HTTPS for all communication");
+            url = PROTOCOL_SECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_SECURE + resourceString;
+        } else {
+            url = PROTOCOL_INSECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_INSECURE + resourceString;        
+        }
+        
         HttpMethodBase httpMethod = null;
         if ("PUT".equals(method)) {
             httpMethod = new PutMethod(url);

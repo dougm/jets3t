@@ -24,6 +24,7 @@ import javax.xml.transform.stream.StreamSource;
 
 import org.apache.axis.attachments.AttachmentPart;
 import org.apache.axis.attachments.SourceDataSource;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
@@ -59,20 +60,25 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 
-import sun.misc.BASE64Encoder;
-
 public class SoapS3Service extends S3Service {
     private final Log log = LogFactory.getLog(SoapS3Service.class);
     private AmazonS3_ServiceLocator locator = null;
 
-    public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
+    public SoapS3Service(AWSCredentials awsCredentials, boolean isHttpsOnly) throws S3ServiceException {
         super(awsCredentials);
         
         locator = new AmazonS3_ServiceLocator();
-        // Use an SSL connection, to further secure the signature. 
-        locator.setAmazonS3EndpointAddress( locator.getAmazonS3Address().replaceAll( "http:", "https:" ) );
+        if (isHttpsOnly) {
+            // Use an SSL connection, to further secure the signature. 
+            log.debug("SOAP service will use HTTPS for all communication");
+            locator.setAmazonS3EndpointAddress( locator.getAmazonS3Address().replaceAll( "http:", "https:" ) );
+        }
         // Ensure we can get the stub.
         getSoapBinding();
+    }
+    
+    public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
+        this(awsCredentials, false);
     }
     
     private AmazonS3SoapBindingStub getSoapBinding() throws S3ServiceException {
@@ -119,8 +125,8 @@ public class SoapS3Service extends S3Service {
         }
 
         // Compute the HMAC on the digest, and set it.
-        BASE64Encoder encoder = new BASE64Encoder();
-        return encoder.encode(mac.doFinal(canonicalString.getBytes()));
+        byte[] b64 = Base64.encodeBase64(mac.doFinal(canonicalString.getBytes())); 
+        return new String(b64);
     }
 
     private Calendar getTimeStamp( long timestamp ) throws ParseException {

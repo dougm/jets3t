@@ -74,6 +74,9 @@ public class S3ServiceExecutor {
     }
 
     protected void fireServiceEvent(ServiceEvent event) {
+        if (serviceEventListeners.size() == 0) {
+            log.warn("S3ServiceExecutor invoked without any S3ServiceEventListener objects, this is dangerous!");
+        }
         Iterator listenerIter = new ArrayList(serviceEventListeners).iterator();
         while (listenerIter.hasNext()) {
             S3ServiceEventListener listener = (S3ServiceEventListener) listenerIter.next();

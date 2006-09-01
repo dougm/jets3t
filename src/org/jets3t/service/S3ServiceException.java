@@ -30,6 +30,11 @@ public class S3ServiceException extends Exception {
 
 	private String xmlMessage = null;
 
+    /**
+     * Constructor that includes the XML error document returned by S3.      
+     * @param message
+     * @param xmlMessage
+     */
 	public S3ServiceException(String message, String xmlMessage) {
 		super(message);
 		this.xmlMessage = xmlMessage;
@@ -55,6 +60,10 @@ public class S3ServiceException extends Exception {
 		return super.toString() + (xmlMessage != null? " XML Error Message: " + xmlMessage: "");
 	}
 	
+    /**
+     * @return The Error Code returned by S3, if this exception was created with the 
+     * XML Message constructor.
+     */
 	public String getErrorCode() {
 		if (xmlMessage != null && xmlMessage.indexOf("<Code>") >= 0) {
 			int startIndex = xmlMessage.indexOf("<Code>") + 6;
@@ -64,5 +73,19 @@ public class S3ServiceException extends Exception {
 			return null;
 		}
 	}
+    
+    /**
+     * @return The Error Message returned by S3, if this exception was created with the 
+     * XML Message constructor.
+     */
+    public String getErrorMessage() {
+        if (xmlMessage != null && xmlMessage.indexOf("<Message>") >= 0) {
+            int startIndex = xmlMessage.indexOf("<Message>") + 9;
+            int endIndex = xmlMessage.indexOf("</Message>");
+            return xmlMessage.substring(startIndex, endIndex);
+        } else {
+            return null;
+        }
+    }
 	
 }

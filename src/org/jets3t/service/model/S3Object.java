@@ -18,6 +18,9 @@
  */
 package org.jets3t.service.model;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Date;
 
@@ -43,6 +46,12 @@ public class S3Object extends BaseS3Object {
     public S3Object() {        
     }
     
+    public S3Object(S3Bucket bucket, File file) throws FileNotFoundException {
+        this(bucket, file.getName());
+        setContentLength(file.length());
+        setDataInputStream(new FileInputStream(file));
+    }
+
     public S3Object(String key) {
         this.key = key;
     }

@@ -1,8 +1,6 @@
 package org.jets3t.tests;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;

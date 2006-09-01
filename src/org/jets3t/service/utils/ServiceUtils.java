@@ -38,13 +38,12 @@ import java.util.SimpleTimeZone;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Object;
-
-import sun.misc.BASE64Encoder;
 
 public class ServiceUtils {
     private static final Log log = LogFactory.getLog(ServiceUtils.class);
@@ -131,9 +130,8 @@ public class ServiceUtils {
         }
 
         // Compute the HMAC on the digest, and set it.
-        String b64 = new BASE64Encoder().encode(mac.doFinal(canonicalString.getBytes()));
-
-        return b64;
+        byte[] b64 = Base64.encodeBase64(mac.doFinal(canonicalString.getBytes())); 
+        return new String(b64);
     }
 
     public static String readInputStreamToString(InputStream is) throws IOException {
