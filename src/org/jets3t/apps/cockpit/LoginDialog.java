@@ -252,7 +252,7 @@ public class LoginDialog extends JDialog implements ActionListener, ListSelectio
 
         this.getContentPane().add(tabbedPane);
         this.pack();
-        this.setSize(500, 360); // TODO Better way to set initial size?
+        this.setSize(500, 360);
         this.setLocationRelativeTo(this.getOwner());
     }
 

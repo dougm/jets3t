@@ -22,7 +22,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,8 +49,6 @@ import org.xml.sax.helpers.XMLReaderFactory;
 
 public class XmlResponsesSaxParser {
     private static final Log log = LogFactory.getLog(XmlResponsesSaxParser.class);
-
-    private ServiceUtils serviceUtils = new ServiceUtils();
 
     private XMLReader xr = null;
 
@@ -92,10 +89,10 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    public ListBucketHandler parseListBucketObjectsResponse(S3Bucket bucket, InputStream inputStream)
+    public ListBucketHandler parseListBucketObjectsResponse(InputStream inputStream)
         throws S3ServiceException
     {
-        ListBucketHandler handler = new ListBucketHandler(bucket);
+        ListBucketHandler handler = new ListBucketHandler();
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
@@ -121,8 +118,6 @@ public class XmlResponsesSaxParser {
     // ////////////
 
     public class ListBucketHandler extends DefaultHandler {
-        private S3Bucket ownerBucket = null;
-
         private S3Object currentObject = null;
 
         private S3Owner currentOwner = null;
@@ -144,9 +139,8 @@ public class XmlResponsesSaxParser {
 
         private String lastKey = null;
 
-        public ListBucketHandler(S3Bucket ownerBucket) {
+        public ListBucketHandler() {
             super();
-            this.ownerBucket = ownerBucket;
             this.currText = new StringBuffer();
         }
 
@@ -183,7 +177,6 @@ public class XmlResponsesSaxParser {
         public void startElement(String uri, String name, String qName, Attributes attrs) {
             if (name.equals("Contents")) {
                 currentObject = new S3Object();
-                currentObject.setBucket(ownerBucket);
             } else if (name.equals("Owner")) {
                 currentOwner = new S3Owner();
                 currentObject.setOwner(currentOwner);
@@ -222,7 +215,7 @@ public class XmlResponsesSaxParser {
                 lastKey = elementText;
             } else if (name.equals("LastModified")) {
                 try {
-                    currentObject.setLastModifiedDate(serviceUtils.parseIso8601Date(elementText));
+                    currentObject.setLastModifiedDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
                     throw new RuntimeException("Unexpected date format in list bucket output", e);
                 }
@@ -297,7 +290,7 @@ public class XmlResponsesSaxParser {
                 currentBucket.setName(elementText);
             } else if (name.equals("CreationDate")) {
                 try {
-                    currentBucket.setCreationDate(serviceUtils.parseIso8601Date(elementText));
+                    currentBucket.setCreationDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
                     throw new RuntimeException("Unexpected date format in list bucket output", e);
                 }
@@ -309,61 +302,6 @@ public class XmlResponsesSaxParser {
             this.currText.append(ch, start, length);
         }
     }
-
-    // TODO Remove?
-    // public class ErrorResponseHandler extends DefaultHandler {
-    // private String errorCode = null;
-    // private String errorMessage = null;
-    // private String resourcePath = null;
-    // private String requestId = null;
-    // private StringBuffer currText = null;
-    //
-    // public ErrorResponseHandler() {
-    // super();
-    // this.currText = new StringBuffer();
-    // }
-    //		
-    // public String getErrorCode() {
-    // return errorCode;
-    // }
-    //		
-    // public String getErrorMessage() {
-    // return errorMessage;
-    // }
-    //
-    // public String getRequestId() {
-    // return requestId;
-    // }
-    //
-    // public String getResourcePath() {
-    // return resourcePath;
-    // }
-    //
-    // public void startDocument() { }
-    //
-    // public void endDocument() { }
-    //
-    // public void startElement(String uri, String name, String qName, Attributes attrs) { }
-    //
-    // public void endElement(String uri, String name, String qName) {
-    // String elementText = this.currText.toString();
-    // // Error details.
-    // if (name.equals("Code")) {
-    // errorCode = elementText;
-    // } else if (name.equals("Message")) {
-    // errorMessage = elementText;
-    // } else if (name.equals("Resource")) {
-    // resourcePath = elementText;
-    // } else if (name.equals("RequestId")) {
-    // requestId = elementText;
-    // }
-    // this.currText = new StringBuffer();
-    // }
-    //
-    // public void characters(char ch[], int start, int length) {
-    // this.currText.append(ch, start, length);
-    // }
-    // }
 
     public class AccessControlListHandler extends DefaultHandler {
         private AccessControlList accessControlList = null;

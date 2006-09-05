@@ -23,11 +23,9 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -104,7 +102,7 @@ public class AWSCredentials {
 			fileIS = new BufferedInputStream(new FileInputStream(file));
 			
 			StringBuffer friendlyName = new StringBuffer();
-			byte[] encryptedKeys = new byte[2048]; // TODO Beware of this limit.
+			byte[] encryptedKeys = new byte[2048];
 			
 			int b = -1;
 	
@@ -128,21 +126,10 @@ public class AWSCredentials {
 	
 			String keys = encryptionUtil.decryptString(encryptedKeys, 0, encryptedDataIndex);
 			
-	//		CipherInputStream cis = encryptionUtil.decrypt();
-	//		
-	//		byte decryptedData[] = new byte[2048];
-	//		int byteCount = 0;
-	//		int bytesRead = -1;
-	//		while ((bytesRead = cis.read(decryptedData, byteCount, decryptedData.length)) != -1) {
-	//			byteCount += bytesRead;
-	//		}
-	//		cis.close();
-	//		
-	//		String keys = new String(decryptedData, 0, byteCount, EncryptionUtil.UNICODE_FORMAT);
-			
 			int delimOffset = keys.indexOf(KEYS_DELIMITER);
 			if (delimOffset < 0) {
-				throw new Exception("Unable to load keys from file " + file.getAbsolutePath() + ". Is the password correct?"); // TODO
+				throw new Exception("Unable to load AWS keys from file " 
+                    + file.getAbsolutePath() + ". Is the password correct?");
 			}
 			
 			AWSCredentials awsCredentials = new AWSCredentials(

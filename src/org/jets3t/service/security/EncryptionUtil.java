@@ -41,104 +41,139 @@ import javax.crypto.spec.IvParameterSpec;
 
 public class EncryptionUtil {
     private static final String KEY_BASE = "Ç È¾Ñr=™QÎ yªS4C.$SØñtûˆ‡Ií[ÆOè…€u@Ó©dFT«ŠÚ‡NhèvÇÑ£lž^uÓÌ¹+tÏ:ËK7Q¤°H>ã:iæuäïŸQî#Ý´1ÑzjµÚÜ)1oäÖM¯5DF’ÇÙ.#c;øáðöíB½Ævª";
-    
-	public static final String DEFAULT_ENCRYPTION_SCHEME = "DESede";
-	public static final String DEFAULT_BLOCK_MODE = "CBC";
-	public static final String DEFAULT_PADDING_MODE = "PKCS5Padding";
-	public static final String UNICODE_FORMAT = "UTF8";
+    public static final String DEFAULT_ENCRYPTION_SCHEME = "DESede";
+    public static final String DEFAULT_BLOCK_MODE = "CBC";
+    public static final String DEFAULT_PADDING_MODE = "PKCS5Padding";
+    public static final String UNICODE_FORMAT = "UTF8";
 
-	private Cipher cipher = null;
-	private SecretKey key = null;
-	private IvParameterSpec ivSpec = null;
+    private String algorithm = null;
+    private SecretKey key = null;
+    private IvParameterSpec ivSpec = null;
 
-	public EncryptionUtil(String encryptionKey, String encryptionScheme, String blockMode, String paddingMode) 
-		throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException 
-	{
+    public EncryptionUtil(String encryptionKey, String encryptionScheme, String blockMode,
+        String paddingMode) throws InvalidKeyException, NoSuchAlgorithmException,
+        NoSuchPaddingException, InvalidKeySpecException {
         encryptionKey = encryptionKey + KEY_BASE;
-        
-		int keyOffset = 0;
-		byte spec[] = new byte[8];
-		for (int specOffset = 0; specOffset < spec.length; specOffset++) {
-			keyOffset = (keyOffset + 7) % encryptionKey.length();
-			spec[specOffset] = encryptionKey.getBytes()[keyOffset];
-		}
 
-		KeySpec keySpec = new DESedeKeySpec(encryptionKey.getBytes());
-		ivSpec = new IvParameterSpec(spec);
-		key = SecretKeyFactory.getInstance(encryptionScheme).generateSecret( keySpec );		
-		cipher = Cipher.getInstance(encryptionScheme + "/" + blockMode + "/" + paddingMode);
-	}
+        int keyOffset = 0;
+        byte spec[] = new byte[8];
+        for (int specOffset = 0; specOffset < spec.length; specOffset++) {
+            keyOffset = (keyOffset + 7) % encryptionKey.length();
+            spec[specOffset] = encryptionKey.getBytes()[keyOffset];
+        }
 
-	public EncryptionUtil(String encryptionKey) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException 
-	{
-		this(encryptionKey, DEFAULT_ENCRYPTION_SCHEME, DEFAULT_BLOCK_MODE, DEFAULT_PADDING_MODE);
-	}
+        KeySpec keySpec = new DESedeKeySpec(encryptionKey.getBytes());
+        ivSpec = new IvParameterSpec(spec);
+        key = SecretKeyFactory.getInstance(encryptionScheme).generateSecret(keySpec);
+        algorithm = encryptionScheme + "/" + blockMode + "/" + paddingMode;
+    }
 
-	public byte[] encrypt(String data) throws IllegalStateException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException, InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException 
-	{
-		cipher.init( Cipher.ENCRYPT_MODE, key, ivSpec );
-		return cipher.doFinal(data.getBytes(UNICODE_FORMAT));
-	}
-	
-	public String decryptString(byte[] data) throws InvalidKeyException, InvalidAlgorithmParameterException, UnsupportedEncodingException, IllegalStateException, IllegalBlockSizeException, BadPaddingException {
-		cipher.init( Cipher.DECRYPT_MODE, key, ivSpec );
-		return new String(cipher.doFinal(data), UNICODE_FORMAT);		
-	}
+    public EncryptionUtil(String encryptionKey) throws InvalidKeyException,
+        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException {
+        this(encryptionKey, DEFAULT_ENCRYPTION_SCHEME, DEFAULT_BLOCK_MODE, DEFAULT_PADDING_MODE);
+    }
 
-	public String decryptString(byte[] data, int startIndex, int endIndex) throws InvalidKeyException, InvalidAlgorithmParameterException, UnsupportedEncodingException, IllegalStateException, IllegalBlockSizeException, BadPaddingException {
-		cipher.init( Cipher.DECRYPT_MODE, key, ivSpec );
-		return new String(cipher.doFinal(data, startIndex, endIndex), UNICODE_FORMAT);		
-	}
+    public byte[] encrypt(String data) throws IllegalStateException, IllegalBlockSizeException,
+        BadPaddingException, UnsupportedEncodingException, InvalidKeySpecException,
+        InvalidKeyException, InvalidAlgorithmParameterException, 
+        NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+        return cipher.doFinal(data.getBytes(UNICODE_FORMAT));
+    }
 
-	public byte[] encrypt(byte[] data) throws IllegalStateException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException 
-	{
-		cipher.init( Cipher.ENCRYPT_MODE, key, ivSpec );
-		return cipher.doFinal(data);
-	}
+    public String decryptString(byte[] data) throws InvalidKeyException,
+        InvalidAlgorithmParameterException, UnsupportedEncodingException, IllegalStateException,
+        IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+        return new String(cipher.doFinal(data), UNICODE_FORMAT);
+    }
 
-	public byte[] decrypt(byte[] data) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalStateException, IllegalBlockSizeException, BadPaddingException {
-		cipher.init( Cipher.DECRYPT_MODE, key, ivSpec );
-		return cipher.doFinal(data);		
-	}
+    public String decryptString(byte[] data, int startIndex, int endIndex)
+        throws InvalidKeyException, InvalidAlgorithmParameterException,
+        UnsupportedEncodingException, IllegalStateException, IllegalBlockSizeException,
+        BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+        return new String(cipher.doFinal(data, startIndex, endIndex), UNICODE_FORMAT);
+    }
 
-	public byte[] decrypt(byte[] data, int startIndex, int endIndex) throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalStateException, IllegalBlockSizeException, BadPaddingException {
-		cipher.init( Cipher.DECRYPT_MODE, key, ivSpec );
-		return cipher.doFinal(data, startIndex, endIndex);		
-	}
+    public byte[] encrypt(byte[] data) throws IllegalStateException, IllegalBlockSizeException,
+        BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, 
+        NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+        return cipher.doFinal(data);
+    }
 
-	public CipherInputStream encrypt(InputStream is) throws InvalidKeyException, InvalidAlgorithmParameterException {
-		cipher.init( Cipher.ENCRYPT_MODE, key, ivSpec );
-		return new CipherInputStream(is, cipher);
-	}
+    public byte[] decrypt(byte[] data) throws InvalidKeyException,
+        InvalidAlgorithmParameterException, IllegalStateException, IllegalBlockSizeException,
+        BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+        return cipher.doFinal(data);
+    }
 
-	public CipherInputStream decrypt(InputStream is) throws InvalidKeyException, InvalidAlgorithmParameterException {
-		cipher.init( Cipher.DECRYPT_MODE, key, ivSpec );
-		return new CipherInputStream(is, cipher);
-	}
+    public byte[] decrypt(byte[] data, int startIndex, int endIndex) throws InvalidKeyException,
+        InvalidAlgorithmParameterException, IllegalStateException, IllegalBlockSizeException,
+        BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+        return cipher.doFinal(data, startIndex, endIndex);
+    }
 
-	public CipherOutputStream encrypt(OutputStream os) throws InvalidKeyException, InvalidAlgorithmParameterException {
-		cipher.init( Cipher.ENCRYPT_MODE, key, ivSpec );
-		return new CipherOutputStream(os, cipher);
-	}
+    public CipherInputStream encrypt(InputStream is) throws InvalidKeyException,
+        InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+        return new CipherInputStream(is, cipher);
+    }
 
-	public CipherOutputStream decrypt(OutputStream os) throws InvalidKeyException, InvalidAlgorithmParameterException {
-		cipher.init( Cipher.DECRYPT_MODE, key, ivSpec );
-		return new CipherOutputStream(os, cipher);
-	}
+    public CipherInputStream decrypt(InputStream is) throws InvalidKeyException,
+        InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+        return new CipherInputStream(is, cipher);
+    }
 
-	public Cipher getCipher() {
-		return cipher;
-	}
+    public CipherOutputStream encrypt(OutputStream os) throws InvalidKeyException,
+        InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+        return new CipherOutputStream(os, cipher);
+    }
 
-	public static String generateRandomKeyBase(int length) {
-		Random random = new Random();
-		byte keyBaseBytes[] = new byte[length];
-		random.nextBytes(keyBaseBytes);
-		String keyBase = new String(keyBaseBytes);
-		// Replace troublesome characters. 
-		keyBase.replace('\n','-');
-		keyBase.replace('\\','/');
-		return keyBase;
-	}
+    public CipherOutputStream decrypt(OutputStream os) throws InvalidKeyException,
+        InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
+    {
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+        return new CipherOutputStream(os, cipher);
+    }
+
+    public String getAlgorithm() {
+        return algorithm;
+    }
+
+    public static String generateRandomKeyBase(int length) {
+        Random random = new Random();
+        byte keyBaseBytes[] = new byte[length];
+        random.nextBytes(keyBaseBytes);
+        String keyBase = new String(keyBaseBytes);
+        // Replace troublesome characters.
+        keyBase.replace('\n', '-');
+        keyBase.replace('\\', '/');
+        return keyBase;
+    }
 
 }

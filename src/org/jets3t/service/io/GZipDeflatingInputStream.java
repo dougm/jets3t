@@ -172,24 +172,5 @@ public class GZipDeflatingInputStream extends InputStream implements InputStream
     		deflatedBytes[bufferEnd++] = (byte) (s & 0xff);
     		deflatedBytes[bufferEnd++] = (byte) ((s >> 8) & 0xff);
     }
-	
-	
-	// TODO Remove
-	public static void main(String[] args) throws Exception {
-		GZipDeflatingInputStream ris = new GZipDeflatingInputStream(new FileInputStream(
-//			new File("/Users/Shared/Share with PC/Application for 5 Ada Lane.cwk")));
-			new File("conf/log4j.properties")));
-		OutputStream os = new BufferedOutputStream(new FileOutputStream("/Users/jmurty/Desktop/Test.gz"));
-		int c = -1;
-		while ((c = ris.read()) != -1) {
-			os.write(c);
-		}
-//		byte[] b = new byte[8192];
-//		while ((c =ris.read(b)) != -1) {
-//			os.write(b, 0, c);
-//		}
-		os.close();
-		ris.close();
-	}
-			
+				
 }

@@ -64,21 +64,17 @@ public class SoapS3Service extends S3Service {
     private final Log log = LogFactory.getLog(SoapS3Service.class);
     private AmazonS3_ServiceLocator locator = null;
 
-    public SoapS3Service(AWSCredentials awsCredentials, boolean isHttpsOnly) throws S3ServiceException {
+    public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         super(awsCredentials);
         
         locator = new AmazonS3_ServiceLocator();
-        if (isHttpsOnly) {
+        if (super.isHttpsOnly()) {
             // Use an SSL connection, to further secure the signature. 
             log.debug("SOAP service will use HTTPS for all communication");
             locator.setAmazonS3EndpointAddress( locator.getAmazonS3Address().replaceAll( "http:", "https:" ) );
         }
         // Ensure we can get the stub.
         getSoapBinding();
-    }
-    
-    public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
-        this(awsCredentials, false);
     }
     
     private AmazonS3SoapBindingStub getSoapBinding() throws S3ServiceException {
@@ -244,8 +240,7 @@ public class SoapS3Service extends S3Service {
     }
     
     
-    public S3Bucket[] listAllBuckets() throws S3ServiceException {
-        assertAuthenticatedConnection("List all buckets");
+    public S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
         log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
         
         S3Bucket[] buckets = null;
@@ -273,7 +268,7 @@ public class SoapS3Service extends S3Service {
         return buckets;
     }
 
-    public boolean isBucketAvailable(String bucketName) throws S3ServiceException {
+    public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
         log.debug("Checking existence of bucket: " + bucketName);
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
@@ -291,11 +286,9 @@ public class SoapS3Service extends S3Service {
         }
     }
 
-    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter, long maxListingLength)
+    public S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, long maxListingLength)
         throws S3ServiceException
     {
-        assertValidBucket(bucket, "List objects in bucket");
-
         String marker = null;
         ArrayList objects = new ArrayList();        
         boolean incompleteListing = true;            
@@ -306,7 +299,7 @@ public class SoapS3Service extends S3Service {
                 Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
                 String signature = makeSignature("ListBucket", timestamp);
                 ListBucketResult result = s3SoapBinding.listBucket(
-                    bucket.getName(), prefix, marker, new Integer((int)maxListingLength), 
+                    bucketName, prefix, marker, new Integer((int)maxListingLength), 
                     delimiter, getAWSAccessKey(), timestamp, signature, null);
                 
                 S3Object[] partialObjects = new S3Object[result.getContentsCount()];
@@ -339,33 +332,33 @@ public class SoapS3Service extends S3Service {
                 }
             }
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to List Objects in bucket: " + bucket.getName(), e);   
+            throw new S3ServiceException("Unable to List Objects in bucket: " + bucketName, e);   
         }
         log.debug("Found " + objects.size() + " objects in total");
         return (S3Object[]) objects.toArray(new S3Object[] {});        
     }
 
-    public S3Bucket createBucket(S3Bucket bucket) throws S3ServiceException {
-        assertValidBucket(bucket, "Create bucket");        
-        log.debug("Creating bucket with name: " + bucket.getName());
-        
+    public S3Bucket createBucketImpl(String bucketName, AccessControlList acl) throws S3ServiceException {
         Grant[] grants = null;
-        if (bucket.getAcl() != null) {
-            grants = convertACLtoGrants(bucket.getAcl());        
+        if (acl != null) {
+            grants = convertACLtoGrants(acl);        
         }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
             String signature = makeSignature("CreateBucket", timestamp);
             s3SoapBinding.createBucket(
-                bucket.getName(), grants, getAWSAccessKey(), timestamp, signature);
+                bucketName, grants, getAWSAccessKey(), timestamp, signature);
+            
+            S3Bucket bucket = new S3Bucket(bucketName);
+            bucket.setAcl(acl);
+            return bucket;            
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Create Bucket: " + bucket.getName(), e);   
+            throw new S3ServiceException("Unable to Create Bucket: " + bucketName, e);   
         }
-        return bucket;
     }
     
-    public void deleteBucket(String bucketName) throws S3ServiceException {
+    public void deleteBucketImpl(String bucketName) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -377,10 +370,8 @@ public class SoapS3Service extends S3Service {
         }            
     }
 
-    public S3Object putObject(S3Bucket bucket, S3Object object) throws S3ServiceException {
-        assertValidBucket(bucket, "Create Object in bucket");
-        assertValidObject(object, "Create Object in bucket " + bucket.getName());        
-        log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucket.getName());        
+    public S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException {
+        log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);        
 
         Grant[] grants = null;
         if (object.getAcl() != null) {
@@ -402,7 +393,8 @@ public class SoapS3Service extends S3Service {
                 
                 if (contentLength == 0 && object.getDataInputStream().available() > 0) {
                     
-                    log.warn("S3Object Content-Length was set to 0 despite having a non-empty data"
+                    log.warn("S3Object " + object.getKey() 
+                        + " - Content-Length was set to 0 despite having a non-empty data"
                         + " input stream. The Content-length will be determined in memory.");
                     
                     // Read all data into memory to determine it's length.
@@ -437,7 +429,7 @@ public class SoapS3Service extends S3Service {
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
             String signature = makeSignature("PutObject", timestamp);
             PutObjectResult result = 
-                s3SoapBinding.putObject(bucket.getName(), object.getKey(), metadata, 
+                s3SoapBinding.putObject(bucketName, object.getKey(), metadata, 
                     contentLength, grants, null, getAWSAccessKey(), 
                     timestamp, signature, null);
             
@@ -450,36 +442,36 @@ public class SoapS3Service extends S3Service {
         return object;
     }
 
-    public void deleteObject(S3Bucket bucket, String objectKey) throws S3ServiceException {
+    public void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
             String signature = makeSignature("DeleteObject", timestamp);
-            s3SoapBinding.deleteObject(bucket.getName(), objectKey, 
+            s3SoapBinding.deleteObject(bucketName, objectKey, 
                 getAWSAccessKey(), timestamp, signature, null);
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Delete Object: " + objectKey, e);   
         } 
     }
 
-    public S3Object getObjectDetails(S3Bucket bucket, String objectKey, Calendar ifModifiedSince, 
+    public S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
         throws S3ServiceException
     {
-        return getObjectImpl(false, bucket, objectKey, ifModifiedSince, ifUnmodifiedSince,
+        return getObjectImpl(false, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
             ifMatchTags, ifNoneMatchTags, null, null);
     }
     
-    public S3Object getObject(S3Bucket bucket, String objectKey, Calendar ifModifiedSince, 
+    public S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, 
         Long byteRangeStart, Long byteRangeEnd)
         throws S3ServiceException 
     {
-        return getObjectImpl(true, bucket, objectKey, ifModifiedSince, ifUnmodifiedSince,
+        return getObjectImpl(true, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
             ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
     }    
 
-    private S3Object getObjectImpl(boolean withData, S3Bucket bucket, String objectKey, 
+    private S3Object getObjectImpl(boolean withData, String bucketName, String objectKey, 
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags, 
         String[] ifNoneMatchTags, Long byteRangeStart, Long byteRangeEnd)
         throws S3ServiceException
@@ -504,7 +496,7 @@ public class SoapS3Service extends S3Service {
                 
                 String signature = makeSignature("GetObjectExtended", timestamp);
                 result = s3SoapBinding.getObjectExtended(
-                    bucket.getName(), objectKey, true, true, false, byteRangeStart, byteRangeEnd,
+                    bucketName, objectKey, true, true, false, byteRangeStart, byteRangeEnd,
                     ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags,
                     Boolean.FALSE, getAWSAccessKey(), timestamp, signature, null);
                 
@@ -522,14 +514,14 @@ public class SoapS3Service extends S3Service {
                 log.debug("Using standard GET (no constraints to apply)");
                 String signature = makeSignature("GetObject", timestamp);
                 result = s3SoapBinding.getObject(
-                    bucket.getName(), objectKey, true, true, false,                
+                    bucketName, objectKey, true, true, false,                
                     getAWSAccessKey(), timestamp, signature, null);                
             }
             
             S3Object object = new S3Object();
             object.setETag(result.getETag());
             object.setLastModifiedDate(result.getLastModified());
-            object.setBucket(bucket);
+            object.setBucketName(bucketName);
             object.setKey(objectKey);
             
             // Get data details from the SOAP attachment.
@@ -566,57 +558,63 @@ public class SoapS3Service extends S3Service {
         } 
     }
 
-    public void putAcl(S3Bucket bucket, S3Object object) throws S3ServiceException {
-        assertValidBucket(bucket, "Set Access Control List");
+    public void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
+        throws S3ServiceException 
+    {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            Grant[] grants = null;
-            if (object != null) {
-                if (object.getAcl() != null) {
-                    grants = convertACLtoGrants(object.getAcl());
-                }
+            Grant[] grants = convertACLtoGrants(acl);
                 
-                String signature = makeSignature("SetObjectAccessControlPolicy", timestamp);
-                s3SoapBinding.setObjectAccessControlPolicy(bucket.getName(), object.getKey(), grants, 
-                    getAWSAccessKey(), timestamp, signature, null);
-            } else {
-                if (bucket.getAcl() != null) {
-                    grants = convertACLtoGrants(bucket.getAcl());
-                }
-    
-                String signature = makeSignature("SetBucketAccessControlPolicy", timestamp);
-                s3SoapBinding.setBucketAccessControlPolicy(bucket.getName(), grants, 
-                    getAWSAccessKey(), timestamp, signature, null);
-            }
+            String signature = makeSignature("SetObjectAccessControlPolicy", timestamp);
+            s3SoapBinding.setObjectAccessControlPolicy(bucketName, objectKey, grants, 
+                getAWSAccessKey(), timestamp, signature, null);
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Put ACL", e);   
+            throw new S3ServiceException("Unable to Put Object ACL", e);   
         }
     }
 
-    public AccessControlList getAcl(S3Bucket bucket, String objectKey) throws S3ServiceException {
-        assertValidBucket(bucket, "Get Access Control List");
+    public void putBucketAclImpl(String bucketName, AccessControlList acl) 
+        throws S3ServiceException 
+    {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            AccessControlPolicy result = null;
-            if (objectKey != null)
-            {
-                String signature = makeSignature("GetObjectAccessControlPolicy", timestamp);
-                result = s3SoapBinding.getObjectAccessControlPolicy(
-                    bucket.getName(), objectKey, getAWSAccessKey(), 
-                    timestamp, signature, null);
-            }
-            else
-            {
-                String signature = makeSignature("GetBucketAccessControlPolicy", timestamp);
-                result = s3SoapBinding.getBucketAccessControlPolicy(bucket.getName(), 
-                    getAWSAccessKey(), timestamp, signature, null);
-            }
+            Grant[] grants = convertACLtoGrants(acl);
+                
+            String signature = makeSignature("SetBucketAccessControlPolicy", timestamp);
+            s3SoapBinding.setBucketAccessControlPolicy(bucketName, grants, 
+                getAWSAccessKey(), timestamp, signature, null);
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to Put Bucket ACL", e);   
+        }        
+    }
+
+    public AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
+        try {
+            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            String signature = makeSignature("GetObjectAccessControlPolicy", timestamp);
+            AccessControlPolicy result = s3SoapBinding.getObjectAccessControlPolicy(
+                bucketName, objectKey, getAWSAccessKey(), 
+                timestamp, signature, null);
             return convertAccessControlTypes(result);
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get ACL", e);   
         }
     }
-    
+
+    public AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
+        try {
+            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            String signature = makeSignature("GetBucketAccessControlPolicy", timestamp);
+            AccessControlPolicy result = s3SoapBinding.getBucketAccessControlPolicy(bucketName, 
+                getAWSAccessKey(), timestamp, signature, null);
+            return convertAccessControlTypes(result);
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to Get ACL", e);   
+        }
+    }
+
 }

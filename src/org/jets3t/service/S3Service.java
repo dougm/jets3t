@@ -21,9 +21,9 @@ package org.jets3t.service;
 import java.util.Calendar;
 
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.executor.S3ServiceExecutor;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
@@ -35,14 +35,25 @@ import org.jets3t.service.utils.ServiceUtils;
  * a particular interface, such as REST or SOAP.
  * <p>
  * Implementations of <code>S3Service</code> must be thread-safe as they will probably be used by
- * the multi-threaded {@link S3ServiceExecutor}.
+ * the multi-threaded {@link S3ServiceMulti}.
+ * 
+ * <p><b>Properties</b></p>
+ * <p>The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
+ * <table>
+ * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
+ * <tr><td>s3service.https-only</td>
+ *   <td>If true, all communication with S3 will be via encrypted HTTPS connections, and will be
+ *   much slower. If false, communications will be unencrypted and faster</td> 
+ *   <td>false</td></tr>
+ * </table>
+ * 
  * 
  * @author James Murty
  */
 public abstract class S3Service {
 
     private AWSCredentials awsCredentials = null;
-    protected boolean isHttpsOnly = false;
+    private boolean isHttpsOnly = false;
 
     /**
      * Construct an <code>S3Service</code> identified by the given AWS Principal.
@@ -54,6 +65,7 @@ public abstract class S3Service {
      */
     protected S3Service(AWSCredentials awsPrincipal) throws S3ServiceException {
         this.awsCredentials = awsPrincipal;
+        isHttpsOnly = Jets3tProperties.getBoolProperty("s3service.https-only", false);        
     }
 
     /**
@@ -62,6 +74,10 @@ public abstract class S3Service {
      */
     public boolean isAuthenticatedConnection() {
         return awsCredentials != null;
+    }
+    
+    public boolean isHttpsOnly() {
+        return isHttpsOnly;
     }
 
     /**
@@ -112,6 +128,23 @@ public abstract class S3Service {
         } else {
             return "http://" + Constants.REST_SERVER_DNS + "/" + fullKey;            
         }
+    }
+    
+    /**
+     * Generates a URL string that will return a Torrent file for an object in S3, 
+     * which file can be downloaded and run in a BitTorrent client.  
+     * 
+     * @param bucketName
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the name of the object. 
+     * @return
+     * a URL to a Torrent file representing the object.
+     * @throws S3ServiceException
+     */
+    public static String createTorrentUrl(String bucketName, String objectKey) {
+        return "http://" + Constants.REST_SERVER_DNS + "/" +
+            bucketName + "/" + objectKey + "?torrent"; 
     }
     
     /////////////////////////////////////////////////////////////////////////////
@@ -225,38 +258,6 @@ public abstract class S3Service {
     }
 
     /**
-     * Retrieves the access control settings of a bucket. 
-     * <p>
-     * This method can be performed by anonymous services.
-     * 
-     * @param bucket
-     * the bucket whose access control settings will be returned.
-     * This must be a valid S3Bucket object that is non-null and contains a name.
-     * @return
-     * the access control settings for the bucket
-     * @throws S3ServiceException
-     */
-    public AccessControlList getAcl(S3Bucket bucket) throws S3ServiceException {
-        assertValidBucket(bucket, "getAcl");
-        return getAcl(bucket, null);
-    }
-
-    /**
-     * Sets the access control settings for the given bucket.
-     * <p>
-     * This method can be performed by anonymous services.
-     * 
-     * @param bucket
-     * the bucket whose access control settings will be updated.
-     * This must be a valid S3Bucket object that is non-null and contains a name.
-     * @throws S3ServiceException
-     */
-    public void putAcl(S3Bucket bucket) throws S3ServiceException {
-        assertValidBucket(bucket, "putAcl");
-        putAcl(bucket, null);
-    }
-
-    /**
      * Returns an object representing the details and data of an item in S3, without applying any
      * preconditions.
      * <p>
@@ -298,53 +299,26 @@ public abstract class S3Service {
     }
 
 
-    // /////////////////////////////////////////////////////////////////////////////////
-    // Abstract methods that must be implemented by interface-specific S3Service classes
-    // /////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Indicates whether a bucket exists and is accessible to a service user. 
-     * <p>
-     * This method can be performed by anonymous services.
-     * <p>
-     * <b>Implementation notes</b><p>
-     * This method can be implemented by attempting to list the objects in a bucket. If the listing
-     * is successful return true, if the listing failed for any reason return false. 
-     * 
-     * @return
-     * true if the bucket exists and is accessible to the service user, false otherwise.
-     * @throws S3ServiceException
-     */
-    public abstract boolean isBucketAvailable(String bucketName) throws S3ServiceException;
-
     /**
      * Lists the buckets belonging to the service user. 
      * <p>
-     * This method cannot be performed by anonymous services.
-     * <p>
-     * <b>Implementation notes</b><p>
-     * Implementations should use the {@link #assertAuthenticatedConnection} assertion
-     * before doing anything else, as this operation will fail in S3 without user credentials.
+     * This method cannot be performed by anonymous services, and will fail with an exception
+     * if the service is not authenticated.
      * 
      * @return
      * the list of buckets owned by the service user.
      * @throws S3ServiceException
      */
-    public abstract S3Bucket[] listAllBuckets() throws S3ServiceException;
+    public S3Bucket[] listAllBuckets() throws S3ServiceException {
+        assertAuthenticatedConnection("List all buckets");
+        return listAllBucketsImpl();
+    }
 
     /**
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
      * a given size.
      * <p>
      * This method can be performed by anonymous services.
-     * <p>
-     * <b>Implementation notes</b><p>
-     * The implementation of this method is expected to return <b>all</b> the objects
-     * in a bucket, not a subset. This may require repeating the S3 list operation if the
-     * first one doesn't include all the available objects, such as when the number of objects
-     * is greater than <code>maxListingLength</code>.
-     * <p>
-     * Implementations should also start with the {@link #assertValidBucket} assertion.
      * 
      * @param bucket
      * the bucket whose contents will be listed. 
@@ -357,21 +331,39 @@ public abstract class S3Service {
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
      */
-    public abstract S3Object[] listObjects(S3Bucket bucket, String prefix, 
-        String delimiter, long maxListingLength) throws S3ServiceException;
+    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter, long maxListingLength) 
+        throws S3ServiceException
+    {
+        assertValidBucket(bucket, "List objects in bucket");
+        return listObjects(bucket.getName(), prefix, delimiter, maxListingLength);
+    }
+
+    /**
+     * Lists the objects in a bucket matching a prefix, chunking the results into batches of
+     * a given size.
+     * <p>
+     * This method can be performed by anonymous services.
+     * 
+     * @param bucketName
+     * the name of the the bucket whose contents will be listed. 
+     * @param prefix
+     * only objects with a key that starts with this prefix will be listed
+     * @param maxListingLength
+     * the maximum number of objects to include in each result chunk
+     * @return
+     * the set of objects contained in a bucket whose keys start with the given prefix.
+     * @throws S3ServiceException
+     */
+    public S3Object[] listObjects(String bucketName, String prefix, String delimiter, long maxListingLength) 
+        throws S3ServiceException
+    {
+        return listObjectsImpl(bucketName, prefix, delimiter, maxListingLength);
+    }
 
     /**
      * Creates a bucket in S3 based on the provided bucket object.
      * <p>
      * This method cannot be performed by anonymous services.
-     * <p>
-     * <b>Implementation notes</b><p>
-     * The implementing method must populate the bucket object's metadata with the results of the 
-     * operation before returning the object. It must also apply any <code>AccessControlList</code> 
-     * settings included with the bucket. 
-     * <p>
-     * Implementations should use the {@link #assertAuthenticatedConnection} and 
-     * {@link #assertValidBucket} assertions.
      * 
      * @param bucket
      * an object representing the bucket to create which must be valid, and may contain ACL settings.
@@ -379,7 +371,25 @@ public abstract class S3Service {
      * the created bucket object, populated with all metadata made available by the creation operation. 
      * @throws S3ServiceException
      */
-    public abstract S3Bucket createBucket(S3Bucket bucket) throws S3ServiceException;
+    public S3Bucket createBucket(S3Bucket bucket) throws S3ServiceException {
+        assertAuthenticatedConnection("Create Bucket");
+        assertValidBucket(bucket, "Create Bucket");
+        return createBucketImpl(bucket.getName(), bucket.getAcl());
+    }
+
+    /**
+     * Deletes an S3 bucket.
+     * <p>
+     * This method can be performed by anonymous services.
+     * 
+     * @param bucket
+     * the bucket to delete.
+     * @throws S3ServiceException
+     */
+    public void deleteBucket(S3Bucket bucket) throws S3ServiceException {
+        assertValidBucket(bucket, "Delete bucket");
+        deleteBucketImpl(bucket.getName());
+    }
 
     /**
      * Deletes an S3 bucket.
@@ -390,16 +400,40 @@ public abstract class S3Service {
      * the name of the bucket to delete.
      * @throws S3ServiceException
      */
-    public abstract void deleteBucket(String bucketName) throws S3ServiceException;
+    public void deleteBucket(String bucketName) throws S3ServiceException {
+        deleteBucketImpl(bucketName);
+    }
 
     /**
      * Puts an object inside an existing bucket in S3, creating a new object or overwriting
      * an existing one with the same key.
      * <p>
      * This method can be performed by anonymous services.
+     * 
+     * @param bucketName
+     * the name of the bucket inside which the object will be put.
+     * @param object
+     * the object containing all information that will be written to S3. At very least this object must
+     * be valid. Beyond that it may contain: an input stream with the object's data content, metadata,
+     * and access control settings.<p>
+     * <b>Note:</b> It is very important to set the object's Content-Length to match the size of the 
+     * data input stream when possible, as this can remove the need to read data into memory to
+     * determine its size. 
+     * 
+     * @return
+     * the object populated with any metadata information made available by S3. 
+     * @throws S3ServiceException
+     */
+    public S3Object putObject(String bucketName, S3Object object) throws S3ServiceException {
+        assertValidObject(object, "Create Object in bucket " + bucketName);        
+        return putObjectImpl(bucketName, object);
+    }
+
+    /**
+     * Puts an object inside an existing bucket in S3, creating a new object or overwriting
+     * an existing one with the same key.
      * <p>
-     * <b>Implementation notes</b><p>
-     * Implementations should use {@link #assertValidBucket} and {@link #assertValidObject} assertions.
+     * This method can be performed by anonymous services.
      * 
      * @param bucket
      * the bucket inside which the object will be put, which must be valid.
@@ -415,16 +449,15 @@ public abstract class S3Service {
      * the object populated with any metadata information made available by S3. 
      * @throws S3ServiceException
      */
-    public abstract S3Object putObject(S3Bucket bucket, S3Object object)
-        throws S3ServiceException;
-
+    public S3Object putObject(S3Bucket bucket, S3Object object) throws S3ServiceException {
+        assertValidBucket(bucket, "Create Object in bucket");
+        return putObject(bucket.getName(), object);
+    }
+    
     /**
      * Deletes an object from a bucket in S3.
      * <p>
      * This method can be performed by anonymous services.
-     * <p>
-     * <b>Implementation notes</b><p>
-     * Implementations should use {@link #assertValidBucket} assertion.
      * 
      * @param bucket
      * the bucket containing the object to be deleted.
@@ -432,7 +465,25 @@ public abstract class S3Service {
      * the key representing the object in S3.
      * @throws S3ServiceException
      */
-    public abstract void deleteObject(S3Bucket bucket, String objectKey) throws S3ServiceException;
+    public void deleteObject(S3Bucket bucket, String objectKey) throws S3ServiceException {
+        assertValidBucket(bucket, "deleteObject");
+        deleteObject(bucket.getName(), objectKey);
+    }
+
+    /**
+     * Deletes an object from a bucket in S3.
+     * <p>
+     * This method can be performed by anonymous services.
+     * 
+     * @param bucket
+     * the bucket containing the object to be deleted.
+     * @param objectKey
+     * the key representing the object in S3.
+     * @throws S3ServiceException
+     */
+    public void deleteObject(String bucketName, String objectKey) throws S3ServiceException {
+        deleteObjectImpl(bucketName, objectKey);
+    }
 
     /**
      * Returns an object representing the details of an item in S3 that meets any given preconditions.
@@ -442,9 +493,6 @@ public abstract class S3Service {
      * Preconditions are only applied if they are non-null.
      * <p>
      * This method can be performed by anonymous services.
-     * <p>
-     * <b>Implementation notes</b><p>
-     * Implementations should use {@link #assertValidBucket} assertion.
      * 
      * @param bucket
      * the bucket containing the object.
@@ -464,9 +512,22 @@ public abstract class S3Service {
      * input stream)
      * @throws S3ServiceException
      */
-    public abstract S3Object getObjectDetails(S3Bucket bucket, String objectKey,
+    public S3Object getObjectDetails(S3Bucket bucket, String objectKey,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
-        String[] ifNoneMatchTags) throws S3ServiceException;
+        String[] ifNoneMatchTags) throws S3ServiceException
+    {
+        assertValidBucket(bucket, "Get Object Details");
+        return getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags);
+    }
+
+    public S3Object getObjectDetails(String bucketName, String objectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String[] ifNoneMatchTags) throws S3ServiceException
+    {
+        return getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags);
+    }
 
     /**
      * Returns an object representing the details of an item in S3 that meets any given preconditions.
@@ -502,32 +563,66 @@ public abstract class S3Service {
      * input stream)
      * @throws S3ServiceException
      */
-    public abstract S3Object getObject(S3Bucket bucket, String objectKey, Calendar ifModifiedSince,
+    public S3Object getObject(S3Bucket bucket, String objectKey, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
-        Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException;
+        Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException 
+    {
+        assertValidBucket(bucket, "Get Object");
+        return getObjectImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
+    }
+
+    public S3Object getObject(String bucketName, String objectKey, Calendar ifModifiedSince,
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException 
+    {
+        return getObjectImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
+    }
 
     /**
-     * Applies access control settings to a bucket or object. The ACL settings must be included
-     * with the object itself, that is inside the bucket or object.
-     * <p>
-     * <b>Implementation notes</b><p>
-     * Implementing methods must check whether <code>object</code> is null, and if so update
-     * the bucket's ACL settings. Otherwise the object's ACL settings are updated.
-     * <p>
-     * Implementations should use {@link #assertValidBucket} assertion in all cases, and
-     * {@link #assertValidObject} if <code>object</code> is non-null. 
+     * Applies access control settings to an object. The ACL settings must be included
+     * with the object.
      * 
      * @param bucket
-     * a bucket with ACL settings to apply (if object is null) or the bucket containing the object
-     * whose ACL settings will be updated (if object is non-null).
+     * the bucket containing the object to modify.
+     * @param object
+     * the object with ACL settings that will be applied.
+     * @throws S3ServiceException
+     */
+    public void putObjectAcl(S3Bucket bucket, S3Object object) throws S3ServiceException {
+        assertValidBucket(bucket, "Put Object Access Control List");
+        assertValidObject(object, "Put Object Access Control List");
+        putObjectAclImpl(bucket.getName(), object.getKey(), object.getAcl());
+    }
+
+    public void putObjectAcl(String bucketName, String objectKey, AccessControlList acl) 
+        throws S3ServiceException 
+    {
+        putObjectAclImpl(bucketName, objectKey, acl);
+    }
+
+    /**
+     * Applies access control settings to a bucket. The ACL settings must be included
+     * inside the bucket.
+     * 
+     * @param bucket
+     * a bucket with ACL settings to apply.
      * @param object
      * if non-null, the object with ACL settings that will be applied. Ignored if null.
      * @throws S3ServiceException
      */
-    public abstract void putAcl(S3Bucket bucket, S3Object object) throws S3ServiceException;
+    public void putBucketAcl(S3Bucket bucket) throws S3ServiceException {
+        assertValidBucket(bucket, "Put Bucket Access Control List");
+        putBucketAclImpl(bucket.getName(), bucket.getAcl());
+    }
+
+    public void putBucketAcl(String bucketName, AccessControlList acl) throws S3ServiceException {
+        putBucketAclImpl(bucketName, acl);
+    }
 
     /**
-     * Retrieves the acces control settings of a bucket or object.
+     * Retrieves the access control settings of an object.
      * 
      * @param bucket
      * the bucket whose ACL settings will be retrieved (if objectKey is null) or the bucket containing the 
@@ -538,7 +633,118 @@ public abstract class S3Service {
      * the ACL settings of the bucket or object.
      * @throws S3ServiceException
      */
-    public abstract AccessControlList getAcl(S3Bucket bucket, String objectKey)
+    public AccessControlList getObjectAcl(S3Bucket bucket, String objectKey) throws S3ServiceException {
+        assertValidBucket(bucket, "Get Object Access Control List");
+        return getObjectAclImpl(bucket.getName(), objectKey);
+    }
+
+    public AccessControlList getObjectAcl(String bucketName, String objectKey) throws S3ServiceException {
+        return getObjectAclImpl(bucketName, objectKey);
+    }
+
+    /**
+     * Retrieves the access control settings of a bucket.
+     * 
+     * @param bucket
+     * the bucket whose access control settings will be returned.
+     * This must be a valid S3Bucket object that is non-null and contains a name.
+     * @return
+     * the ACL settings of the bucket.
+     * @throws S3ServiceException
+     */
+    public AccessControlList getBucketAcl(S3Bucket bucket) throws S3ServiceException {
+        assertValidBucket(bucket, "Get Bucket Access Control List");
+        return getBucketAclImpl(bucket.getName());
+    }
+
+    public AccessControlList getBucketAcl(String bucketName) throws S3ServiceException {
+        return getBucketAclImpl(bucketName);
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////
+    // Abstract methods that must be implemented by interface-specific S3Service classes
+    // /////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Indicates whether a bucket exists and is accessible to a service user. 
+     * <p>
+     * This method can be performed by anonymous services.
+     * <p>
+     * <b>Implementation notes</b><p>
+     * This method can be implemented by attempting to list the objects in a bucket. If the listing
+     * is successful return true, if the listing failed for any reason return false. 
+     * 
+     * @return
+     * true if the bucket exists and is accessible to the service user, false otherwise.
+     * @throws S3ServiceException
+     */
+    public abstract boolean isBucketAccessible(String bucketName) throws S3ServiceException;
+    
+    /**
+     * 
+     * @return
+     * @throws S3ServiceException
+     */
+    protected abstract S3Bucket[] listAllBucketsImpl() throws S3ServiceException;
+    
+    /**
+     * <b>Implementation notes</b><p>
+     * The implementation of this method is expected to return <b>all</b> the objects
+     * in a bucket, not a subset. This may require repeating the S3 list operation if the
+     * first one doesn't include all the available objects, such as when the number of objects
+     * is greater than <code>maxListingLength</code>.
+     * <p>
+     * 
+     * @param bucket
+     * @param prefix
+     * @param delimiter
+     * @param maxListingLength
+     * @return
+     * @throws S3ServiceException
+     */
+    protected abstract S3Object[] listObjectsImpl(String bucketName, String prefix, 
+        String delimiter, long maxListingLength) throws S3ServiceException;
+
+    /**
+     * <b>Implementation notes</b><p>
+     * The implementing method must populate the bucket object's metadata with the results of the 
+     * operation before returning the object. It must also apply any <code>AccessControlList</code> 
+     * settings included with the bucket. 
+     * 
+     * @param bucketName
+     * the name of the bucket to create.
+     * @param acl
+     * an access control object representing the initial acl values for the bucket. 
+     * May be null, in which case the default permissions are applied.
+     * @return
+     * the created bucket object, populated with all metadata made available by the creation operation. 
+     * @throws S3ServiceException
+     */
+    protected abstract S3Bucket createBucketImpl(String bucketName, AccessControlList acl) throws S3ServiceException;
+
+    protected abstract void deleteBucketImpl(String bucketName) throws S3ServiceException;
+
+    protected abstract S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException;
+
+    protected abstract void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException;
+    
+    protected abstract S3Object getObjectDetailsImpl(String bucketName, String objectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String[] ifNoneMatchTags) throws S3ServiceException;
+
+    protected abstract S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince,
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException;
+
+    protected abstract void putBucketAclImpl(String bucketName, AccessControlList acl) 
         throws S3ServiceException;
 
+    protected abstract void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
+        throws S3ServiceException;
+
+    protected abstract AccessControlList getObjectAclImpl(String bucketName, String objectKey)
+        throws S3ServiceException;
+
+    protected abstract AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException;
+    
 }

@@ -108,11 +108,11 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
         s3Service.createBucket(bucketName);
 
-        boolean bucketExists = s3Service.isBucketAvailable(bucketName);
+        boolean bucketExists = s3Service.isBucketAccessible(bucketName);
         assertTrue("Bucket should exist", bucketExists);
 
         try {
-            s3Service.deleteBucket(null);
+            s3Service.deleteBucket((S3Bucket) null);
             fail("Cannot delete a bucket with name null");
         } catch (S3ServiceException e) {
         }
@@ -142,13 +142,13 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setKey("TestObject");
 
         try {
-            s3Service.putObject(null, null);
+            s3Service.putObject( (S3Bucket) null, null);
             fail("Cannot create an object without a valid bucket");
         } catch (S3ServiceException e) {
         }
 
         try {
-            s3Service.putObject(null, object);
+            s3Service.putObject( (S3Bucket) null, object);
             fail("Cannot create an object without a valid bucket");
         } catch (S3ServiceException e) {
         }
@@ -244,8 +244,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
         Calendar objectCreationTimeCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
         objectCreationTimeCal.setTime(dataObject.getLastModifiedDate());
         
-//        objectCreationTimeCal.add(Calendar.SECOND, 1);
-//        Calendar afterObjectCreation = (Calendar) objectCreationTimeCal.clone();
+        objectCreationTimeCal.add(Calendar.SECOND, 1);
+        Calendar afterObjectCreation = (Calendar) objectCreationTimeCal.clone();
         objectCreationTimeCal.add(Calendar.DAY_OF_YEAR, -1);
         Calendar yesterday = (Calendar) objectCreationTimeCal.clone();
         objectCreationTimeCal.add(Calendar.DAY_OF_YEAR, +2);
@@ -254,11 +254,10 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Precondition: Modified since yesterday
         s3Service.getObjectDetails(bucket, object.getKey(), yesterday, null, null, null);
         // Precondition: Mot modified since after creation date.
-        // TODO : This test fails for the REST service, why?
-//        try {
-//            s3Service.getObjectDetails(bucket, object.getKey(), afterObjectCreation, null, null, null);
-//            fail("Cannot have been modified since object was created");
-//        } catch (S3ServiceException e) { }
+        try {
+            s3Service.getObjectDetails(bucket, object.getKey(), afterObjectCreation, null, null, null);
+            fail("Cannot have been modified since object was created");
+        } catch (S3ServiceException e) { }
         // Precondition: Not modified since yesterday
         try {
             s3Service.getObjectDetails(bucket, object.getKey(), null, yesterday, null, null);
@@ -319,29 +318,29 @@ public abstract class BaseS3ServiceTest extends TestCase {
         
         // Access public "third-party" bucket
         S3Service anonymousS3Service = getS3Service(null);
-        anonymousS3Service.isBucketAvailable("jetS3T");
+        anonymousS3Service.isBucketAccessible("jetS3T");
 
         S3Service s3Service = getS3Service(awsCredentials);
 
         String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
         S3Bucket bucket = s3Service.createBucket(bucketName);
-        S3Object object = new S3Object();
+        S3Object object = null;
 
         // Create private object (default permissions).
         String privateKey = "PrivateObject";
-        object.setKey(privateKey);
+        object = new S3Object(bucket, privateKey, "Private object sample text");
         s3Service.putObject(bucket, object);
         URL url = new URL(s3Url + "/" + bucketName + "/" + privateKey);
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
         
         // Get ACL details for private object so we can determine the bucket owner.
-        AccessControlList bucketACL = s3Service.getAcl(bucket);
+        AccessControlList bucketACL = s3Service.getBucketAcl(bucket);
         S3Owner bucketOwner = bucketACL.getOwner();
 
         // Create a public object.
         String publicKey = "PublicObject";
-        object.setKey(publicKey);
+        object = new S3Object(bucket, publicKey, "Public object sample text");        
         AccessControlList acl = new AccessControlList();
         acl.setOwner(bucketOwner);
         acl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
@@ -352,18 +351,18 @@ public abstract class BaseS3ServiceTest extends TestCase {
                 200, ((HttpURLConnection)url.openConnection()).getResponseCode());
 
         // Update ACL to make private object public.
-        AccessControlList privateToPublicACL = s3Service.getAcl(bucket, privateKey);
+        AccessControlList privateToPublicACL = s3Service.getObjectAcl(bucket, privateKey);
         privateToPublicACL.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
         object.setKey(privateKey);
         object.setAcl(privateToPublicACL);
-        s3Service.putAcl(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + privateKey);
+        s3Service.putObjectAcl(bucket, object);
+        url = new URL(s3Url + "/" + bucketName + "/" + privateKey + "?"); // ? is hack to outsmart Web page caching at my ISP...
         assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
             .getResponseCode());
 
         // Create a non-standard uncanned public object.
         String publicKey2 = "PublicObject2";
-        object.setKey(publicKey2);
+        object = new S3Object(publicKey2);
         object.setAcl(privateToPublicACL); // This ACL has ALL_USERS READ permission set above.
         s3Service.putObject(bucket, object);
         url = new URL(s3Url + "/" + bucketName + "/" + publicKey2);
@@ -371,12 +370,12 @@ public abstract class BaseS3ServiceTest extends TestCase {
             .getResponseCode());
 
         // Update ACL to make public object private.
-        AccessControlList publicToPrivateACL = s3Service.getAcl(bucket, publicKey);
+        AccessControlList publicToPrivateACL = s3Service.getObjectAcl(bucket, publicKey);
         publicToPrivateACL.revokeAllPermissions(GroupGrantee.ALL_USERS);
         object.setKey(publicKey);
         object.setAcl(publicToPrivateACL);
-        s3Service.putAcl(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + publicKey);
+        s3Service.putObjectAcl(bucket, object);
+        url = new URL(s3Url + "/" + bucketName + "/" + publicKey + "?"); // ? is hack to outsmart Web page caching at my ISP...
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
 

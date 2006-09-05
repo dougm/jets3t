@@ -254,7 +254,6 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		this.getContentPane().add(container);
 		this.pack();
 
-		// TODO Does this have to be hard-coded?
 		this.setSize(new Dimension(700, 450));
 		this.setLocationRelativeTo(this.getOwner());
 		

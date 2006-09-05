@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.model;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -38,7 +39,7 @@ public class S3Object extends BaseS3Object {
 	public static final String METADATA_HEADER_STORAGE_CLASS = "Storage-Class";	
 	
 	private String key = null;
-	private S3Bucket bucket = null;
+	private String bucketName = null;
 	private InputStream dataInputStream = null;
 	private AccessControlList acl = null;
     private boolean isMetadataComplete = false;
@@ -51,18 +52,26 @@ public class S3Object extends BaseS3Object {
         setContentLength(file.length());
         setDataInputStream(new FileInputStream(file));
     }
+    
+    public S3Object(S3Bucket bucket, String key, String dataString) {
+        this(bucket, key);
+        ByteArrayInputStream bais = new ByteArrayInputStream(dataString.getBytes());
+        setDataInputStream(bais);
+        setContentLength(bais.available());
+        setContentType("text/plain");
+    }
 
     public S3Object(String key) {
         this.key = key;
     }
 
     public S3Object(S3Bucket bucket, String key) {
-        this.bucket = bucket;
+        this.bucketName = bucket.getName();
         this.key = key;
     }
 	
     public String toString() {
-		return "S3Object [key=" + getKey() + ",bucket=" + (getBucket() != null? getBucket().getName() : null) 
+		return "S3Object [key=" + getKey() + ",bucket=" + (bucketName == null ? "<Unknown>" : bucketName)  
 			+ ",lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream 
 			+ "] Metadata=" + getMetadata();
 	}
@@ -155,12 +164,12 @@ public class S3Object extends BaseS3Object {
         getMetadata().put(METADATA_HEADER_CONTENT_ENCODING, contentEncoding);
     }
 
-    public S3Bucket getBucket() {
-		return bucket;
+    public String getBucketName() {
+		return bucketName;
 	}
 
-	public void setBucket(S3Bucket bucket) {
-		this.bucket = bucket;
+	public void setBucketName(String bucketName) {
+		this.bucketName = bucketName;
 	}
 
 	public AccessControlList getAcl() {

@@ -169,7 +169,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             commonPropertiesContainer.add(new JLabel("Bucket:"), new GridBagConstraints(0, 5, 1, 1,
                 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-            JTextField bucketNameTF = new JTextField(object.getBucket().getName());
+            JTextField bucketNameTF = new JTextField(object.getBucketName());
             bucketNameTF.setEditable(false);
             commonPropertiesContainer.add(bucketNameTF, new GridBagConstraints(1, 5, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
@@ -252,7 +252,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
 
         this.pack();
         if (s3Item instanceof S3Object) {
-            this.setSize(this.getWidth(), 460); // TODO Is there a better way to decide on the initial size?
+            this.setSize(this.getWidth(), 460);
         }
         this.setLocationRelativeTo(this.getOwner());
     }
@@ -314,7 +314,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         bucket.setOwner(owner);
 
         S3Object object = new S3Object();
-        object.setBucket(bucket);
+        object.setBucketName(bucket.getName());
         object.setOwner(owner);
         object.setKey("src/org/jets3t/apps/cockpit/PropertiesDialog.java");
         object.setContentLength(54367);

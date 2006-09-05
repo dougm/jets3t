@@ -18,18 +18,17 @@
  */
 package org.jets3t.service.io;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
-// TODO Legal to use this code? Much of it was pinched from here: http://www.koders.com/java/fidE56B506DEAAC9F7FC1C841010C62BA43454CED49.aspx
+/**
+ * This code is based on example code from 
+ * {@link http://www.koders.com/java/fidE56B506DEAAC9F7FC1C841010C62BA43454CED49.aspx}.
+ */
 public class GZipInflatingOutputStream extends OutputStream {
     /*
      * GZIP header magic number.
@@ -61,7 +60,7 @@ public class GZipInflatingOutputStream extends OutputStream {
     private int headerFlag = 0;
     
     // Variables used to parse tail.
-    private byte[] trailerBytes = new byte[8]; // TODO Assume trailer can only ever be 8 bytes?    
+    private byte[] trailerBytes = new byte[8]; // Can we assume trailer is only ever 8 bytes...?    
     private int trailerOffset = 0;
     
     
@@ -225,7 +224,7 @@ public class GZipInflatingOutputStream extends OutputStream {
     public void flush() throws IOException {
         outputStream.flush();
     }
-            
+
     public void close() throws IOException {
         outputStream.close();
 
@@ -261,24 +260,4 @@ public class GZipInflatingOutputStream extends OutputStream {
             return ((long)high << 16) | low;
     }
     
-
-    // TODO Remove
-    public static void main(String[] args) throws Exception {
-        InputStream is = new BufferedInputStream(new FileInputStream("/Users/jmurty/Desktop/Test.gz"));
-        GZipInflatingOutputStream gios = new GZipInflatingOutputStream(new FileOutputStream("/Users/jmurty/Desktop/Test"));
-        int c = -1;
-        
-//        while ((c = is.read()) != -1) {
-//            gios.write(c);
-//        }
-        
-        byte[] b = new byte[8192];
-        while ((c = is.read(b)) != -1) {
-            gios.write(b, 0, c);
-        }
-        
-        gios.close();
-        is.close();
-    }
-            
 }

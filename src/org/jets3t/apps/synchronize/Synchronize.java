@@ -29,17 +29,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
-import org.jets3t.service.executor.S3ServiceEventAdaptor;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.GZipInflatingOutputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.multithread.S3ObjectAndOutputStream;
+import org.jets3t.service.multithread.S3ServiceEventAdaptor;
+import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.utils.FileComparer;
@@ -192,7 +195,7 @@ public class Synchronize {
             contentEncoding = null;
             newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
             newObject.addMetadata(Constants.METADATA_JETS3T_ENCRYPTED, 
-                encryptionPasswordUtil.getCipher().getAlgorithm()); 
+                encryptionPasswordUtil.getAlgorithm()); 
         }
         if (contentEncoding != null) {
             newObject.addMetadata("Content-Encoding", contentEncoding);
@@ -212,19 +215,15 @@ public class Synchronize {
     }
 
     /**
-     * Uploads a file to S3, creating an object with the given key and with some 
-     * jets3t-specific metadata items set.
+     * Prepares a file to be uploaded to S3, creating an S3Object with the 
+     * appropriate key and with some jets3t-specific metadata items set.
      * 
      * @param bucket    the bucket to create the object in 
      * @param targetKey the key name for the object
      * @param file      the file to upload to S3
      * @throws Exception
      */
-    private void uploadFileToS3(S3Bucket bucket, String targetKey, File file) throws Exception {
-        if (!doAction) {
-            return;
-        }
-        
+    private S3Object prepareUploadObject(String targetKey, File file) throws Exception {
         S3Object newObject = new S3Object();
         newObject.setKey(targetKey);
         newObject.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE, 
@@ -233,7 +232,6 @@ public class Synchronize {
         if (file.isDirectory()) {
             newObject.setContentLength(0);
             newObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-            s3Service.putObject(bucket, newObject);
         } else {
             newObject.setContentType(Mimetypes.getMimetype(file));
 
@@ -245,10 +243,10 @@ public class Synchronize {
             
             newObject.setContentLength(uploadFile.length());
             newObject.setDataInputStream(new FileInputStream(uploadFile));
-            s3Service.putObject(bucket, newObject);
             
             // TODO Delete temporary files created by this program, to free disk space ASAP.
-        }                            
+        }
+        return newObject;
     }
     
     /**
@@ -262,23 +260,23 @@ public class Synchronize {
      * @param fileTarget    the file to save the S3 object to (which may also become a directory) 
      * @throws Exception
      */
-    private void downloadFileFromS3(S3Bucket bucket, S3Object object, File fileTarget) 
+    private S3ObjectAndOutputStream prepareObjectForDownload(S3Object object, File fileTarget) 
         throws Exception 
     {
         if (!doAction) {
-            return;
+            return null;
         }
         
-        S3Object s3Object = s3Service.getObject(bucket, object.getKey());
-        if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(s3Object.getContentType())) {
+        if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(object.getContentType())) {
             fileTarget.mkdir();
+            return null;
         } else {
             if (fileTarget.getParentFile() != null) {
                 fileTarget.getParentFile().mkdirs();
             }            
             
             OutputStream outputStream = new FileOutputStream(fileTarget);
-            
+                        
             if (isGzipEnabled && 
                 ("gzip".equalsIgnoreCase(object.getContentEncoding())
                 || null != object.getMetadata().get(Constants.METADATA_JETS3T_COMPRESSED)))
@@ -292,16 +290,8 @@ public class Synchronize {
                 // Automatically decrypt encrypted files.
                 outputStream = encryptionPasswordUtil.decrypt(outputStream);                    
             }
-            outputStream = new BufferedOutputStream(outputStream);
-                        
-            BufferedInputStream bis = new BufferedInputStream(s3Object.getDataInputStream());
-            byte[] buffer = new byte[1024];
-            int byteCount = -1;
-            while ((byteCount = bis.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, byteCount);
-            }
-            bis.close();
-            outputStream.close();
+            
+            return new S3ObjectAndOutputStream(object, outputStream);                        
         }        
     }
     
@@ -350,6 +340,8 @@ public class Synchronize {
     public void uploadLocalDirectoryToS3(FileComparerResults disrepancyResults, Map filesMap, 
         Map s3ObjectsMap, S3Bucket bucket, String rootObjectPath) throws Exception 
     {        
+        List objectsToUpload = new ArrayList();
+        
         // Sort upload file candidates by path.
         ArrayList sortedFilesKeys = new ArrayList(filesMap.keySet());
         Collections.sort(sortedFilesKeys);
@@ -367,14 +359,14 @@ public class Synchronize {
 
             if (disrepancyResults.onlyOnClientKeys.contains(keyPath)) {
                 printLine("N " + keyPath);
-                uploadFileToS3(bucket, targetKey, file);
+                objectsToUpload.add(prepareUploadObject(targetKey, file));
             } else if (disrepancyResults.updatedOnClientKeys.contains(keyPath)) {
                 printLine("U " + keyPath);
-                uploadFileToS3(bucket, targetKey, file);
+                objectsToUpload.add(prepareUploadObject(targetKey, file));
             } else if (disrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
                 if (isForce) {
                     printLine("F " + keyPath);
-                    uploadFileToS3(bucket, targetKey, file);                    
+                    objectsToUpload.add(prepareUploadObject(targetKey, file));
                 } else {
                     printLine("- " + keyPath);
                 }
@@ -384,13 +376,27 @@ public class Synchronize {
                     printLine("r " + keyPath);                    
                 } else {
                     printLine("R " + keyPath);
-                    uploadFileToS3(bucket, targetKey, file);
+                    objectsToUpload.add(prepareUploadObject(targetKey, file));
                 }
             } else {
                 // Uh oh, program error here. The safest thing to do is abort!
                 throw new SynchronizeException("Invalid discrepancy comparison details for file " 
                     + file.getPath() 
                     + ". Sorry, this is a program error - aborting to keep your data safe");
+            }
+        }
+        
+        // Upload New/Updated/Forced/Replaced objects to S3.
+        if (doAction && objectsToUpload.size() > 0) {
+            S3Object[] objects = (S3Object[]) objectsToUpload.toArray(new S3Object[] {});
+            S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
+            (new S3ServiceMulti(s3Service, adaptor)).putObjects(bucket, objects);
+            if (adaptor.wasErrorThrown()) {
+                if (adaptor.getErrorThrown() instanceof Exception) {
+                    throw (Exception) adaptor.getErrorThrown();
+                } else {
+                    throw new Exception(adaptor.getErrorThrown());
+                }
             }
         }
         
@@ -454,6 +460,8 @@ public class Synchronize {
     public void restoreFromS3ToLocalDirectory(FileComparerResults disrepancyResults, Map filesMap, 
         Map s3ObjectsMap, String rootObjectPath, File localDirectory, S3Bucket bucket) throws Exception 
     {
+        List itemsToDownload = new ArrayList();
+        
         ArrayList sortedS3ObjectKeys = new ArrayList(s3ObjectsMap.keySet());
         Collections.sort(sortedS3ObjectKeys);
         
@@ -465,14 +473,26 @@ public class Synchronize {
             
             if (disrepancyResults.onlyOnServerKeys.contains(keyPath)) {
                 printLine("N " + keyPath);
-                downloadFileFromS3(bucket, s3Object, new File(localDirectory, keyPath));
+                S3ObjectAndOutputStream item = prepareObjectForDownload(
+                    s3Object, new File(localDirectory, keyPath));
+                if (item != null) {
+                    itemsToDownload.add(item);
+                }
             } else if (disrepancyResults.updatedOnServerKeys.contains(keyPath)) {
                 printLine("U " + keyPath);
-                downloadFileFromS3(bucket, s3Object, new File(localDirectory, keyPath));
+                S3ObjectAndOutputStream item = prepareObjectForDownload(
+                    s3Object, new File(localDirectory, keyPath));
+                if (item != null) {
+                    itemsToDownload.add(item);
+                }
             } else if (disrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
                 if (isForce) {
                     printLine("F " + keyPath);
-                    downloadFileFromS3(bucket, s3Object, new File(localDirectory, keyPath));                    
+                    S3ObjectAndOutputStream item = prepareObjectForDownload(
+                        s3Object, new File(localDirectory, keyPath));
+                    if (item != null) {
+                        itemsToDownload.add(item);
+                    }
                 } else {
                     printLine("- " + keyPath);
                 }
@@ -482,7 +502,11 @@ public class Synchronize {
                     printLine("r " + keyPath);                    
                 } else {
                     printLine("R " + keyPath);
-                    downloadFileFromS3(bucket, s3Object, new File(localDirectory, keyPath));
+                    S3ObjectAndOutputStream item = prepareObjectForDownload(
+                        s3Object, new File(localDirectory, keyPath));
+                    if (item != null) {
+                        itemsToDownload.add(item);
+                    }
                 }
             } else {
                 // Uh oh, program error here. The safest thing to do is abort!
@@ -492,6 +516,21 @@ public class Synchronize {
             }
         }
         
+        // Download New/Updated/Forced/Replaced objects from S3.
+        if (doAction && itemsToDownload.size() > 0) {
+            S3ObjectAndOutputStream[] items = (S3ObjectAndOutputStream[]) 
+                itemsToDownload.toArray(new S3ObjectAndOutputStream[] {});
+            S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
+            (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, items);
+            if (adaptor.wasErrorThrown()) {
+                if (adaptor.getErrorThrown() instanceof Exception) {
+                    throw (Exception) adaptor.getErrorThrown();
+                } else {
+                    throw new Exception(adaptor.getErrorThrown());
+                }
+            }
+        }
+
         // Delete local files that don't correspond with S3 objects.
         ArrayList dirsToDelete = new ArrayList();
         Iterator clientOnlyIter = disrepancyResults.onlyOnClientKeys.iterator();
@@ -755,8 +794,7 @@ public class Synchronize {
                 } else if (reqArgCount == 1) {
                     localDirectory = new File(arg);
                     if (!localDirectory.canRead() || !localDirectory.isDirectory()) {
-                        throw new SynchronizeException("Local directory does not exist or is a file: " 
-                                + localDirectory.getAbsolutePath());
+                        localDirectory.mkdirs();
                     }
                 } else if (reqArgCount == 2) {
                     s3Path = arg;

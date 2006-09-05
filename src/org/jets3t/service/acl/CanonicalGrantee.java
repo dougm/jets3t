@@ -31,7 +31,6 @@ public class CanonicalGrantee implements GranteeInterface {
 
 	public String toXml() {
 		return "<Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"CanonicalUser\"><ID>" + id + "</ID>"
-			+ (displayName != null? "<DisplayName>" + displayName + "</DisplayName>" : "")
 			+ "</Grantee>";
 	}
 

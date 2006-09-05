@@ -26,6 +26,9 @@ import java.io.File;
  * @author James Murty
  */
 public class Constants {
+    
+    public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
+    
     /**
      * The default preferences directory is &lt;user.home&gt;/.jets3t
      */
@@ -91,5 +94,12 @@ public class Constants {
     ///////////////////////////////////
 
     public static final String SOAP_SERVICE_NAME = "AmazonS3";
+    
+    /////////////////////
+    // Website references
+    /////////////////////
+    
+    public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.dev.java.net/cockpit.html";
+    public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
 
 }

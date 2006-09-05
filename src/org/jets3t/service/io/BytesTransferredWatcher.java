@@ -18,6 +18,6 @@
  */
 package org.jets3t.service.io;
 
-public interface BytesTransferredListener {
+public interface BytesTransferredWatcher {
 	public void bytesTransferredUpdate(long transferredBytes);
 }

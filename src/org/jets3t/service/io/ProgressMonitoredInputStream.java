@@ -24,13 +24,13 @@ import java.io.InputStream;
 
 public class ProgressMonitoredInputStream extends InputStream implements InputStreamWrapper {
     private InputStream inputStream = null;
-    private BytesTransferredListener bytesTransferredListener = null;
+    private BytesTransferredWatcher bytesTransferredListener = null;
     private long minimumBytesBeforeNotification = 1024;
     private long bytesTransferredTotal = 0;
     private long bytesTransferredLastUpdate = 0;
 
     public ProgressMonitoredInputStream(InputStream inputStream, 
-        BytesTransferredListener bytesTransferredListener, long minimumBytesBeforeNotification) 
+        BytesTransferredWatcher bytesTransferredListener, long minimumBytesBeforeNotification) 
     {
         if (inputStream == null) {
             throw new IllegalArgumentException(
@@ -42,12 +42,12 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
     }
 
     public ProgressMonitoredInputStream(InputStream inputStream, 
-        BytesTransferredListener bytesTransferredListener) 
+        BytesTransferredWatcher bytesTransferredListener) 
     {
         this(inputStream, bytesTransferredListener, 1024);
     }
 
-    public void setBytesTransferredListener(BytesTransferredListener bytesTransferredListener) {
+    public void setBytesTransferredListener(BytesTransferredWatcher bytesTransferredListener) {
         this.bytesTransferredListener = bytesTransferredListener;
     }
     

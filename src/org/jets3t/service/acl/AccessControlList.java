@@ -21,7 +21,6 @@ package org.jets3t.service.acl;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import org.jets3t.service.Constants;
@@ -29,7 +28,6 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Owner;
 
 public class AccessControlList {	
-	// TODO Warning, these are place-holders only.
 	public static final AccessControlList REST_CANNED_PRIVATE = new AccessControlList(); 
 	public static final AccessControlList REST_CANNED_PUBLIC_READ = new AccessControlList(); 
 	public static final AccessControlList REST_CANNED_PUBLIC_READ_WRITE = new AccessControlList(); 
@@ -76,7 +74,13 @@ public class AccessControlList {
 		return grants;
 	}	
 	
-	// TODO Fix this...
+    /**
+     * @return
+     * an XML representation of the Access Control List object suitable to send to S3.
+     */
+    /*
+     * This method is a nasty hack - we should build the XML document in a more professional way...
+     */
 	public String toXml() throws S3ServiceException {
         if (owner == null) {
             throw new S3ServiceException("Invalid AccessControlList: missing an S3Owner");

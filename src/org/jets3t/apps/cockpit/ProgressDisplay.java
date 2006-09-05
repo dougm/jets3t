@@ -35,7 +35,7 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 
-import org.jets3t.service.executor.CancelEventListener;
+import org.jets3t.service.multithread.CancelEventListener;
 
 /**
  * Class that provides access to and controls a dialog that shows progress information

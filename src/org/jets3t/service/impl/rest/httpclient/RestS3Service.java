@@ -48,6 +48,7 @@ import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -60,6 +61,38 @@ import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
+/**
+ * 
+ * <p><b>Properties</b></p>
+ * <p>This HttpClient-based implementation uses a small subset of the many 
+ * {@link options available for HttpClient}. 
+ * The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
+ * <table>
+ * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
+ * <tr><td>httpclient.connection-timeout-ms</td>
+ *   <td>How many milliseconds to wait before a connection times out. 0 means infinity</td>
+ *   <td>60000</td></tr>
+ * <tr><td>httpclient.socket-timeout-ms</td>
+ *   <td>How many milliseconds to wait before a socket connection times out. 0 means infinity</td>
+ *   <td>60000</td></tr>
+ * <tr><td>httpclient.max-connections</td>
+ *   <td>The maximum number of simultaneous connections to allow</td><td>20</td></tr>
+ * <tr><td>httpclient.stale-checking-enabled</td>
+ *   <td>"Determines whether stale connection check is to be used. Disabling stale connection check may  
+ *   result in slight performance improvement at the risk of getting an I/O error when executing a request 
+ *   over a connection that has been closed at the server side."</td><td>true</td></tr>
+ * <tr><td>httpclient.tcp-no-delay-enabled</td>
+ *   <td>"Determines whether Nagle's algorithm is to be used. The Nagle's algorithm tries to conserve 
+ *   bandwidth by minimizing the number of segments that are sent. When applications wish to decrease 
+ *   network latency and increase performance, they can disable Nagle's algorithm (by enabling 
+ *   TCP_NODELAY). Data will be sent earlier, at the cost of an increase in bandwidth consumption 
+ *   and number of packets.</td>
+ *   <td>true</td></tr>
+ * <tr><td>httpclient.retry-on-errors</td><td></td><td>true</td></tr>
+ * </table>
+ * 
+ * @author James Murty
+ */
 public class RestS3Service extends S3Service {
     private final Log log = LogFactory.getLog(RestS3Service.class);
 
@@ -76,28 +109,35 @@ public class RestS3Service extends S3Service {
     
     public RestS3Service(AWSCredentials awsCredentials, boolean isHttpsOnly) throws S3ServiceException {
         super(awsCredentials);
-        this.isHttpsOnly = isHttpsOnly;
         
+        // Set HttpClient properties based on Jets3t Properties.
         insecureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_INSECURE, PROTOCOL_INSECURE);
         secureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_SECURE, PROTOCOL_SECURE);
-                
+                        
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
-        connectionParams.setConnectionTimeout(60000); // TODO Properties
-        connectionParams.setSoTimeout(60000); // TODO Properties
-        connectionParams.setMaxConnectionsPerHost(insecureHostConfig, 8); // TODO Properties
-        connectionParams.setMaxConnectionsPerHost(secureHostConfig, 8); // TODO Properties
-        connectionParams.setStaleCheckingEnabled(true); // TODO Properties
-        connectionParams.setTcpNoDelay(true); // TODO Properties
-                
+        connectionParams.setConnectionTimeout(Jets3tProperties.
+            getIntProperty("httpclient.connection-timeout-ms", 60000));
+        connectionParams.setSoTimeout(Jets3tProperties.
+            getIntProperty("httpclient.socket-timeout-ms", 60000));
+        connectionParams.setMaxTotalConnections(Jets3tProperties.
+            getIntProperty("httpclient.max-connections-per-host", 20));
+        connectionParams.setStaleCheckingEnabled(Jets3tProperties.
+            getBoolProperty("httpclient.stale-checking-enabled", true));
+        connectionParams.setTcpNoDelay(Jets3tProperties.
+            getBoolProperty("httpclient.tcp-no-delay-enabled", true));
+                        
         connectionManager = new MultiThreadedHttpConnectionManager();
         connectionManager.setParams(connectionParams);
         
         HttpClientParams clientParams = new HttpClientParams();
-        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
-            public boolean retryMethod(HttpMethod arg0, IOException arg1, int arg2) {
-                return false;
-            }
-        });
+        
+        if (Jets3tProperties.getBoolProperty("httpclient.retry-on-errors", false)) {
+            clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
+                public boolean retryMethod(HttpMethod arg0, IOException arg1, int arg2) {
+                    return false;
+                }
+            });
+        }
         
         httpClient = new HttpClient(clientParams, connectionManager);
     }
@@ -361,7 +401,7 @@ public class RestS3Service extends S3Service {
         String resourceString = buildResourceStringFromPath(path);
 
         String url = null;
-        if (isHttpsOnly) {
+        if (isHttpsOnly()) {
             log.debug("SOAP service will use HTTPS for all communication");
             url = PROTOCOL_SECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_SECURE + resourceString;
         } else {
@@ -425,7 +465,7 @@ public class RestS3Service extends S3Service {
         httpMethod.setRequestHeader("Authorization", authorizationString);                                
     }
     
-    public boolean isBucketAvailable(String bucketName) throws S3ServiceException {
+    public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
         log.debug("Checking existence of bucket: " + bucketName);
 
         // Ensure bucket exists and is accessible by performing a HEAD request
@@ -447,8 +487,7 @@ public class RestS3Service extends S3Service {
         return true;
     }    
 
-    public S3Bucket[] listAllBuckets() throws S3ServiceException {
-        assertAuthenticatedConnection("List all buckets");
+    public S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
         log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
         
         String s3Path = ""; // Root path of S3 service lists the user's buckets.
@@ -465,11 +504,9 @@ public class RestS3Service extends S3Service {
         return buckets;
     }
 
-    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter, long maxListingLength) 
+    public S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, long maxListingLength) 
         throws S3ServiceException 
-    {
-        assertValidBucket(bucket, "List objects in bucket");
-        
+    {        
         HashMap parameters = new HashMap();
         if (prefix != null) {
             parameters.put("prefix", prefix);
@@ -492,9 +529,10 @@ public class RestS3Service extends S3Service {
                 parameters.remove("marker");
             }
             
-            HttpMethodBase httpMethod = performRestGet(bucket.getName(), parameters, null);
-            ListBucketHandler listBucketHandler = (new XmlResponsesSaxParser()).parseListBucketObjectsResponse(
-                    bucket, new HttpMethodReleaseInputStream(httpMethod));
+            HttpMethodBase httpMethod = performRestGet(bucketName, parameters, null);
+            ListBucketHandler listBucketHandler = 
+                (new XmlResponsesSaxParser()).parseListBucketObjectsResponse(
+                    new HttpMethodReleaseInputStream(httpMethod));
             
             S3Object[] partialObjects = listBucketHandler.getObjects();
             log.debug("Found " + partialObjects.length + " objects in one batch");
@@ -511,9 +549,8 @@ public class RestS3Service extends S3Service {
         return (S3Object[]) objects.toArray(new S3Object[] {});        
     }
     
-    public void deleteObject(S3Bucket bucket, String objectKey) throws S3ServiceException {
-        assertValidBucket(bucket, "deleteObject");
-        deleteObject(bucket.getName() + "/" + objectKey);
+    public void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {
+        deleteObject(bucketName + "/" + objectKey);
     }    
 
     protected void deleteObject(String path) throws S3ServiceException {
@@ -521,14 +558,9 @@ public class RestS3Service extends S3Service {
         performRestDelete(path);
     }
 
-    public AccessControlList getAcl(S3Bucket bucket, String objectKey) throws S3ServiceException {
-        assertValidBucket(bucket, "Get Access Control List");
-        
-        String fullKey = bucket.getName();
-        if (objectKey != null) {
-            fullKey += "/" + objectKey; 
-        }        
-        log.debug("Retrieving Access Control List for key: " + fullKey);
+    public AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
+        String fullKey = bucketName + "/" + objectKey; 
+        log.debug("Retrieving Access Control List for Object: " + fullKey);
         
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
@@ -538,23 +570,32 @@ public class RestS3Service extends S3Service {
             new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
     
-    public void putAcl(S3Bucket bucket, S3Object object) throws S3ServiceException 
-    {
-        assertValidBucket(bucket, "Set Access Control List");
+    public AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
+        String fullKey = bucketName;
+        log.debug("Retrieving Access Control List for Bucket: " + fullKey);
         
-        AccessControlList acl = null;
-        String fullKey = bucket.getName();
-        if (object != null) {
-            // ACL for object.
-            fullKey += "/" + object.getKey();
-            acl = object.getAcl();
-        } else {
-            // ACL for bucket.
-            acl = bucket.getAcl();
-        }
+        HashMap requestParameters = new HashMap();
+        requestParameters.put("acl","");
+
+        HttpMethodBase httpMethod = performRestGet(fullKey, requestParameters, null);
+        return (new XmlResponsesSaxParser()).parseAccessControlListResponse(
+            new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+    }
+
+    public void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
+        throws S3ServiceException 
+    {        
+        String fullKey = bucketName + "/" + objectKey;
         putAclImpl(fullKey, acl);
     }
     
+    public void putBucketAclImpl(String bucketName, AccessControlList acl) 
+        throws S3ServiceException 
+    {        
+        String fullKey = bucketName;
+        putAclImpl(fullKey, acl);
+    }
+
     protected void putAclImpl(String fullKey, AccessControlList acl) throws S3ServiceException 
     {
         log.debug("Setting Access Control List for key: " + fullKey);
@@ -575,20 +616,19 @@ public class RestS3Service extends S3Service {
         }
     }
     
-    public S3Bucket createBucket(S3Bucket bucket) 
+    public S3Bucket createBucketImpl(String bucketName, AccessControlList acl) 
         throws S3ServiceException 
-    {
-        assertAuthenticatedConnection("createBucket");
-        assertValidBucket(bucket, "createBucket");
+    {        
+        log.debug("Creating bucket with name: " + bucketName);
+        Map map = createObjectImpl(bucketName, null, null, null, null, acl);
         
-        log.debug("Creating bucket with name: " + bucket.getName());
-        Map map = createObjectImpl(bucket.getName(), null, null, null, null, bucket.getAcl());
-        
+        S3Bucket bucket = new S3Bucket(bucketName);
+        bucket.setAcl(acl);
         bucket.replaceAllMetadata(map);
         return bucket;
     }
     
-    public void deleteBucket(String bucketName) throws S3ServiceException {
+    public void deleteBucketImpl(String bucketName) throws S3ServiceException {
         deleteObject(bucketName);
     }    
     
@@ -596,17 +636,13 @@ public class RestS3Service extends S3Service {
      * Beware of high memory requirements when creating large S3 objects when the Content-Length
      * is not set in the object.
      */
-    public S3Object putObject(S3Bucket bucket, S3Object object) throws S3ServiceException 
-    {
-        assertValidBucket(bucket, "Create Object in bucket");
-        assertValidObject(object, "Create Object in bucket " + bucket.getName());
-        
-        log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucket.getName());        
+    public S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException 
+    {        
+        log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);
 
-        Map map = createObjectImpl(bucket.getName(), object.getKey(), object.getContentType(), 
+        Map map = createObjectImpl(bucketName, object.getKey(), object.getContentType(), 
             object.getDataInputStream(), object.getMetadata(), object.getAcl());
 
-        object.setBucket(bucket); // This should already be set, but do it just in case...
         object.replaceAllMetadata(map);
         return object;
     }
@@ -670,35 +706,34 @@ public class RestS3Service extends S3Service {
     private Map convertHeadersToMap(Header[] headers) {
         HashMap map = new HashMap();
         for (int i = 0; i < headers.length; i++) {
-            map.put(headers[i].getName(),
-                headers[i].getValue()); // TODO Only getting first item...
+            map.put(headers[i].getName(), headers[i].getValue());
         }
         return map;
     }    
 
-    public S3Object getObjectDetails(S3Bucket bucket, String objectKey, Calendar ifModifiedSince, 
+    public S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
         throws S3ServiceException 
     { 
-        return getObjectImpl(true, bucket, objectKey, 
+        return getObjectImpl(true, bucketName, objectKey, 
             ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null, null);
     }
     
-    public S3Object getObject(S3Bucket bucket, String objectKey, Calendar ifModifiedSince, 
+    public S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, 
         Long byteRangeStart, Long byteRangeEnd) 
         throws S3ServiceException 
     {
-        return getObjectImpl(false, bucket, objectKey, ifModifiedSince, ifUnmodifiedSince, 
+        return getObjectImpl(false, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
             ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
     }
 
-    private S3Object getObjectImpl(boolean headOnly, S3Bucket bucket, String objectKey, 
+    private S3Object getObjectImpl(boolean headOnly, String bucketName, String objectKey, 
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags, 
         String[] ifNoneMatchTags, Long byteRangeStart, Long byteRangeEnd) 
         throws S3ServiceException
     {
-        log.debug("Retrieving " + (headOnly? "Head" : "All") + " information for bucket " + bucket.getName() + " and object " + objectKey);
+        log.debug("Retrieving " + (headOnly? "Head" : "All") + " information for bucket " + bucketName + " and object " + objectKey);
         
         HashMap requestHeaders = new HashMap();
         if (ifModifiedSince != null) {
@@ -742,7 +777,7 @@ public class RestS3Service extends S3Service {
             log.debug("Only retrieve object if it is within range:" + range);
         }
         
-        String fullkey = bucket.getName() + (objectKey != null? "/" + objectKey : "");
+        String fullkey = bucketName + (objectKey != null? "/" + objectKey : "");
         
         HttpMethodBase httpMethod = null;        
         if (headOnly) {
@@ -755,7 +790,7 @@ public class RestS3Service extends S3Service {
         map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
 
         S3Object responseObject = new S3Object();
-        responseObject.setBucket(bucket);
+        responseObject.setBucketName(bucketName);
         responseObject.setKey(objectKey);
         responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
         responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.

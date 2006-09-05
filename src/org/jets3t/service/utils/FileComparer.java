@@ -41,12 +41,12 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.executor.GetObjectHeadsEvent;
-import org.jets3t.service.executor.S3ServiceEventAdaptor;
-import org.jets3t.service.executor.S3ServiceEventListener;
-import org.jets3t.service.executor.S3ServiceExecutor;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.multithread.GetObjectHeadsEvent;
+import org.jets3t.service.multithread.S3ServiceEventAdaptor;
+import org.jets3t.service.multithread.S3ServiceEventListener;
+import org.jets3t.service.multithread.S3ServiceMulti;
 
 public class FileComparer {
     private static final Log log = LogFactory.getLog(FileComparer.class);
@@ -202,14 +202,14 @@ public class FileComparer {
         // Retrieve the complete information about all objects listed via GetObjectsHeads.
         final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
         final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
-        S3ServiceExecutor executor = new S3ServiceExecutor(s3Service, new S3ServiceEventAdaptor() {
+        S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
             public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
-                if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventStatus()) {
-                    S3Object[] finishedObjects = event.getObjects();
+                if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                    S3Object[] finishedObjects = event.getCompletedObjects();
                     if (finishedObjects.length > 0) {
                         s3ObjectsCompleteList.addAll(Arrays.asList(finishedObjects));
                     }
-                } else if (GetObjectHeadsEvent.EVENT_ERROR == event.getEventStatus()) {
+                } else if (GetObjectHeadsEvent.EVENT_ERROR == event.getEventCode()) {
                     s3ServiceExceptions[0] = new S3ServiceException(
                         "Failed to retrieve detailed information about all S3 objects", 
                         event.getErrorCause());                    
@@ -217,9 +217,9 @@ public class FileComparer {
             }
         });
         if (s3ServiceEventListener != null) {
-            executor.addServiceEventListener(s3ServiceEventListener);
+            s3ServiceMulti.addServiceEventListener(s3ServiceEventListener);
         }
-        executor.getObjectsHeads(bucket, s3ObjectsIncomplete);
+        s3ServiceMulti.getObjectsHeads(bucket, s3ObjectsIncomplete);
         if (s3ServiceExceptions[0] != null) {
             throw s3ServiceExceptions[0];
         }        
@@ -279,7 +279,8 @@ public class FileComparer {
                     String objectHash = s3Object.getMd5Hash();
                     String objectETag = s3Object.getETag();
                     if (objectHash == null) {
-                        log.warn("Using S3 service's ETag as MD5 hash as the S3 object is missing "
+                        log.warn("Using S3 service's ETag as MD5 hash for the S3 object '" 
+                           + s3Object.getKey() + "' as it is missing "
                            + "the jetS3T-preferred metadata item " + S3Object.METADATA_HEADER_HASH_MD5);
                         objectHash = objectETag;
                     }
