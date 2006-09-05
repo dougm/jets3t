@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.service.executor;
+package org.jets3t.service.multithread;
 
 import java.util.EventListener;
 

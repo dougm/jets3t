@@ -16,35 +16,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.service.executor;
+package org.jets3t.service.multithread;
 
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
+public interface S3ServiceEventListener {
 
-public class UpdateACLEvent extends ServiceEvent {	
-	private S3Object[] objects = null;
-	private S3Bucket bucket = null;
+	public void s3ServiceEventPerformed(CreateObjectsEvent event);
+
+	public void s3ServiceEventPerformed(CreateBucketsEvent event);
 	
-	public UpdateACLEvent(Throwable t) {
-		super(t);
-	}
+	public void s3ServiceEventPerformed(DeleteObjectsEvent event);
 
-	public UpdateACLEvent(int eventStatus) {
-		super(eventStatus);
-	}
+	public void s3ServiceEventPerformed(GetObjectsEvent event);
 
-	public UpdateACLEvent(int eventStatus, ProgressStatus progressStatus, S3Bucket bucket, S3Object[] objects) {
-		super(eventStatus, progressStatus);
-		this.bucket = bucket;		
-		this.objects = objects;
-	}
+	public void s3ServiceEventPerformed(GetObjectHeadsEvent event);
 
-	public S3Bucket getBucket() {
-		return bucket;
-	}
+	public void s3ServiceEventPerformed(LookupACLEvent event);
 
-	public S3Object[] getObjects() {
-		return objects;
-	}
-	
+	public void s3ServiceEventPerformed(UpdateACLEvent event);
+
+	public void s3ServiceEventPerformed(DownloadObjectsEvent event);
+
 }

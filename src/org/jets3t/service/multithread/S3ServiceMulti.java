@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.service.executor;
+package org.jets3t.service.multithread;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.io.BytesTransferredListener;
+import org.jets3t.service.io.BytesTransferredWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
@@ -39,25 +39,25 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
-public class S3ServiceExecutor {
-    private final Log log = LogFactory.getLog(S3ServiceExecutor.class);
+public class S3ServiceMulti {
+    private final Log log = LogFactory.getLog(S3ServiceMulti.class);
     
     private static final long DEFAULT_SLEEP_TIME = 250;    
-    private final ThreadGroup threadGroup = new ThreadGroup("S3ServiceExecutor");    
+    private final ThreadGroup threadGroup = new ThreadGroup("S3ServiceMulti");    
     
     private S3Service s3Service = null;
     private ArrayList serviceEventListeners = new ArrayList();
     private final long sleepTime;
     
-    public S3ServiceExecutor(S3Service s3Service, S3ServiceEventListener listener) {
+    public S3ServiceMulti(S3Service s3Service, S3ServiceEventListener listener) {
         this(s3Service, listener, DEFAULT_SLEEP_TIME);
     }
 
-    public S3ServiceExecutor(
+    public S3ServiceMulti(
         S3Service s3Service, S3ServiceEventListener listener, long threadSleepTimeMS) 
     {
         this.s3Service = s3Service;
-        serviceEventListeners.add(listener);
+        addServiceEventListener(listener);
         this.sleepTime = threadSleepTimeMS;
     }    
 
@@ -66,26 +66,26 @@ public class S3ServiceExecutor {
     }
     
     public void addServiceEventListener(S3ServiceEventListener listener) {
-        serviceEventListeners.add(listener);
+        if (listener != null) {
+            serviceEventListeners.add(listener);
+        }
     }
 
     public void removeServiceEventListener(S3ServiceEventListener listener) {
-        serviceEventListeners.remove(listener);
+        if (listener != null) {
+            serviceEventListeners.remove(listener);
+        }
     }
 
     protected void fireServiceEvent(ServiceEvent event) {
         if (serviceEventListeners.size() == 0) {
-            log.warn("S3ServiceExecutor invoked without any S3ServiceEventListener objects, this is dangerous!");
+            log.warn("S3ServiceMulti invoked without any S3ServiceEventListener objects, this is dangerous!");
         }
-        Iterator listenerIter = new ArrayList(serviceEventListeners).iterator();
+        Iterator listenerIter = serviceEventListeners.iterator();
         while (listenerIter.hasNext()) {
             S3ServiceEventListener listener = (S3ServiceEventListener) listenerIter.next();
             
-            if (event instanceof ListAllBucketsEvent) {
-                listener.s3ServiceEventPerformed((ListAllBucketsEvent) event);
-            } else if (event instanceof ListObjectsEvent) {
-                listener.s3ServiceEventPerformed((ListObjectsEvent) event);
-            } else if (event instanceof CreateObjectsEvent) {
+            if (event instanceof CreateObjectsEvent) {
                 listener.s3ServiceEventPerformed((CreateObjectsEvent) event);
             } else if (event instanceof CreateBucketsEvent) {
                 listener.s3ServiceEventPerformed((CreateBucketsEvent) event);
@@ -116,40 +116,6 @@ public class S3ServiceExecutor {
         return s3Service.getAWSCredentials();
     }
     
-    public void listAllBuckets() {
-        fireServiceEvent(new ListAllBucketsEvent(ServiceEvent.EVENT_STARTED));
-        S3Bucket[] buckets = null;
-        try {
-            buckets = s3Service.listAllBuckets();
-            fireServiceEvent(new ListAllBucketsEvent(ServiceEvent.EVENT_IN_PROGRESS, buckets));
-            fireServiceEvent(new ListAllBucketsEvent(ServiceEvent.EVENT_COMPLETED));
-        } catch (Throwable t) {
-            fireServiceEvent(new ListAllBucketsEvent(t));
-        }
-    }
-    
-    public void listObjects(S3Bucket bucket) {
-        fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_STARTED, bucket, null));        
-        try {
-            S3Object[] objects = s3Service.listObjects(bucket);        
-            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, bucket, objects, null));
-            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_COMPLETED));
-        } catch (Throwable t) {
-            fireServiceEvent(new ListObjectsEvent(t));
-        }
-    }
-    
-    public void listObjects(S3Bucket bucket, String prefix, String delimiter) {
-        fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_STARTED, bucket, prefix));
-        try {
-            S3Object[] objects = s3Service.listObjects(bucket, prefix, delimiter);        
-            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, bucket, objects, prefix));
-            fireServiceEvent(new ListObjectsEvent(ServiceEvent.EVENT_COMPLETED));
-        } catch (Throwable t) {
-            fireServiceEvent(new ListObjectsEvent(t));
-        }
-    }
-    
     public void createBucket(String bucketName) {
         S3Bucket bucket = new S3Bucket();
         bucket.setName(bucketName);
@@ -161,11 +127,15 @@ public class S3ServiceExecutor {
     }
 
     public void createBuckets(final S3Bucket[] buckets) {
+        final List incompletedBucketList = new ArrayList();
+        
         // Start all queries in the background.
         Thread[] threads = new Thread[buckets.length];
         CreateBucketRunnable[] runnables = new CreateBucketRunnable[buckets.length];
         ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "createObjects");
         for (int i = 0; i < runnables.length; i++) {
+            incompletedBucketList.add(buckets[i]);
+            
             runnables[i] = new CreateBucketRunnable(buckets[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
             threads[i].start();                    
@@ -173,30 +143,33 @@ public class S3ServiceExecutor {
         
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new CreateBucketsEvent(ServiceEvent.EVENT_STARTED, progressStatus, buckets));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(CreateBucketsEvent.newStartedEvent(threadWatcher));        
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
-                S3Bucket[] resultBuckets = (S3Bucket[]) completedResults.toArray(new S3Bucket[] {});
-                fireServiceEvent(new CreateBucketsEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, resultBuckets));
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                incompletedBucketList.removeAll(completedResults);
+                S3Bucket[] completedBuckets = (S3Bucket[]) completedResults.toArray(new S3Bucket[] {});
+                fireServiceEvent(CreateBucketsEvent.newInProgressEvent(threadWatcher, completedBuckets));
             }
             public void fireCancelEvent() {
-                fireServiceEvent(new CreateBucketsEvent(ServiceEvent.EVENT_CANCELLED));
+                S3Bucket[] incompletedBuckets = (S3Bucket[]) incompletedBucketList.toArray(new S3Object[] {});                
+                fireServiceEvent(CreateBucketsEvent.newCancelledEvent(incompletedBuckets));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new CreateBucketsEvent(ServiceEvent.EVENT_COMPLETED));                    
+                fireServiceEvent(CreateBucketsEvent.newCompletedEvent());                    
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new CreateBucketsEvent(throwable));
+                fireServiceEvent(CreateBucketsEvent.newErrorEvent(throwable));
             }
         }).run();
     }
     
-    public void createObjects(final S3Bucket bucket, final S3Object[] objects) {       
+    public void putObjects(final S3Bucket bucket, final S3Object[] objects) {    
+        final List incompletedObjectsList = new ArrayList();
         final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
         final long bytesCompleted[] = new long[] {0};
         
-        BytesTransferredListener bytesTransferredListener = new BytesTransferredListener() {
+        BytesTransferredWatcher bytesTransferredListener = new BytesTransferredWatcher() {
             public void bytesTransferredUpdate(long transferredBytes) {
                 bytesCompleted[0] += transferredBytes;
             }
@@ -205,8 +178,9 @@ public class S3ServiceExecutor {
         // Start all queries in the background.
         Thread[] threads = new Thread[objects.length];
         CreateObjectRunnable[] runnables = new CreateObjectRunnable[objects.length];
-        ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "createObjects");
+        ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "putObjects");
         for (int i = 0; i < runnables.length; i++) {
+            incompletedObjectsList.add(objects[i]);
             runnables[i] = new CreateObjectRunnable(bucket, objects[i], bytesTransferredListener);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
             threads[i].start();                    
@@ -214,21 +188,25 @@ public class S3ServiceExecutor {
         
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new CreateObjectsEvent(ServiceEvent.EVENT_STARTED, progressStatus, bucket, new S3Object[] {}, 0, bytesTotal));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
+                fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher));        
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
-                S3Object[] resultObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
-                fireServiceEvent(new CreateObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, bucket, resultObjects, bytesCompleted[0], bytesTotal));
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
+                incompletedObjectsList.removeAll(completedResults);
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                fireServiceEvent(CreateObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                fireServiceEvent(new CreateObjectsEvent(ServiceEvent.EVENT_CANCELLED, bytesCompleted[0], bytesTotal));
+                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList.toArray(new S3Object[] {});
+                fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new CreateObjectsEvent(ServiceEvent.EVENT_COMPLETED, bytesCompleted[0], bytesTotal));
+                fireServiceEvent(CreateObjectsEvent.newCompletedEvent());
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new CreateBucketsEvent(throwable));
+                fireServiceEvent(CreateObjectsEvent.newErrorEvent(throwable));
             }
         }).run();
     }
@@ -238,11 +216,14 @@ public class S3ServiceExecutor {
     }
 
     public void deleteObjects(final S3Bucket bucket, final S3Object[] objects) {
+        final List objectsToDeleteList = new ArrayList();
+        
         // Start all queries in the background.
         Thread[] threads = new Thread[objects.length];
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[objects.length];
         ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "deleteObjects");
         for (int i = 0; i < runnables.length; i++) {
+            objectsToDeleteList.add(objects[i]);
             runnables[i] = new DeleteObjectRunnable(bucket, objects[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
             threads[i].start();
@@ -250,21 +231,23 @@ public class S3ServiceExecutor {
         
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new DeleteObjectsEvent(ServiceEvent.EVENT_STARTED, progressStatus, bucket, new S3Object[] {}));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                objectsToDeleteList.removeAll(completedResults);
                 S3Object[] deletedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});                    
-                fireServiceEvent(new DeleteObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, bucket, deletedObjects));
+                fireServiceEvent(DeleteObjectsEvent.newInProgressEvent(threadWatcher, deletedObjects));
             }
             public void fireCancelEvent() {
-                fireServiceEvent(new DeleteObjectsEvent(ServiceEvent.EVENT_CANCELLED));
+                S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList.toArray(new S3Object[] {});                    
+                fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new DeleteObjectsEvent(ServiceEvent.EVENT_COMPLETED));                    
+                fireServiceEvent(DeleteObjectsEvent.newCompletedEvent());                    
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new CreateBucketsEvent(throwable));
+                fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable));
             }
         }).run();
     }
@@ -278,32 +261,45 @@ public class S3ServiceExecutor {
     }
     
     public void getObjects(final S3Bucket bucket, final String[] objectKeys) {
+        final List pendingObjectKeysList = new ArrayList();
+
         // Start all queries in the background.
         Thread[] threads = new Thread[objectKeys.length];
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "getObjects");
         for (int i = 0; i < runnables.length; i++) {
+            pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], false);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
             threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new GetObjectsEvent(ServiceEvent.EVENT_STARTED, progressStatus, bucket, new S3Object[] {}));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
-                S3Object[] resultObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
-                fireServiceEvent(new GetObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, bucket, resultObjects));
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                for (int i = 0; i < completedObjects.length; i++) {
+                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                }
+                fireServiceEvent(GetObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                fireServiceEvent(new GetObjectsEvent(ServiceEvent.EVENT_CANCELLED));
+                List cancelledObjectsList = new ArrayList();
+                Iterator iter = pendingObjectKeysList.iterator();
+                while (iter.hasNext()) {
+                    String key = (String) iter.next();
+                    cancelledObjectsList.add(new S3Object(key));
+                }
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new GetObjectsEvent(ServiceEvent.EVENT_COMPLETED));                    
+                fireServiceEvent(GetObjectsEvent.newCompletedEvent());                    
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new CreateBucketsEvent(throwable));
+                fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable));
             }
         }).run();
     }
@@ -317,94 +313,117 @@ public class S3ServiceExecutor {
     }
 
     public void getObjectsHeads(final S3Bucket bucket, final String[] objectKeys) {
+        final List pendingObjectKeysList = new ArrayList();
+        
         // Start all queries in the background.
         Thread[] threads = new Thread[objectKeys.length];
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "getObjects");
         for (int i = 0; i < runnables.length; i++) {
+            pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], true);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
             threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new GetObjectHeadsEvent(ServiceEvent.EVENT_STARTED, progressStatus, bucket, new S3Object[] {}));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
-                S3Object[] resultObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
-                fireServiceEvent(new GetObjectHeadsEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, bucket, resultObjects));
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                for (int i = 0; i < completedObjects.length; i++) {
+                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                }
+                fireServiceEvent(GetObjectHeadsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                fireServiceEvent(new GetObjectHeadsEvent(ServiceEvent.EVENT_CANCELLED));
+                List cancelledObjectsList = new ArrayList();
+                Iterator iter = pendingObjectKeysList.iterator();
+                while (iter.hasNext()) {
+                    String key = (String) iter.next();
+                    cancelledObjectsList.add(new S3Object(key));
+                }
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new GetObjectHeadsEvent(ServiceEvent.EVENT_COMPLETED));                    
+                fireServiceEvent(GetObjectHeadsEvent.newCompletedEvent());                    
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new CreateBucketsEvent(throwable));
+                fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable));
             }
         }).run();
     }
     
-    public void getACLs(final S3Bucket bucket, final S3Object[] objects) {
+    public void getObjectACLs(final S3Bucket bucket, final S3Object[] objects) {
+        final List pendingObjectsList = new ArrayList();
+        
         // Start all queries in the background.
         Thread[] threads = new Thread[objects.length];
         GetACLRunnable[] runnables = new GetACLRunnable[objects.length];
         ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "getObjects");
         for (int i = 0; i < runnables.length; i++) {
+            pendingObjectsList.add(objects[i]);
             runnables[i] = new GetACLRunnable(bucket, objects[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
             threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new LookupACLEvent(ServiceEvent.EVENT_STARTED, progressStatus, bucket, new S3Object[] {}));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(LookupACLEvent.newStartedEvent(threadWatcher));        
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
-                S3Object[] resultObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
-                fireServiceEvent(new LookupACLEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, bucket, resultObjects));
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                pendingObjectsList.removeAll(completedResults);
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                fireServiceEvent(LookupACLEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                fireServiceEvent(new LookupACLEvent(ServiceEvent.EVENT_CANCELLED));
+                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList.toArray(new S3Object[] {});
+                fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new LookupACLEvent(ServiceEvent.EVENT_COMPLETED));
+                fireServiceEvent(LookupACLEvent.newCompletedEvent());
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new CreateBucketsEvent(throwable));
+                fireServiceEvent(LookupACLEvent.newErrorEvent(throwable));
             }
         }).run();
     }
 
     public void putACLs(final S3Bucket bucket, final S3Object[] objects) {
+        final List pendingObjectsList = new ArrayList();
+
         // Start all queries in the background.
         Thread[] threads = new Thread[objects.length];
         PutACLRunnable[] runnables = new PutACLRunnable[objects.length];
         ThreadGroup localThreadGroup = new ThreadGroup(threadGroup, "getObjects");
         for (int i = 0; i < runnables.length; i++) {
+            pendingObjectsList.add(objects[i]);
             runnables[i] = new PutACLRunnable(bucket, objects[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
             threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new UpdateACLEvent(ServiceEvent.EVENT_STARTED, progressStatus, bucket, new S3Object[] {}));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(UpdateACLEvent.newStartedEvent(threadWatcher));        
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
-                S3Object[] resultObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
-                fireServiceEvent(new UpdateACLEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, bucket, resultObjects));
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                pendingObjectsList.removeAll(completedResults);
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                fireServiceEvent(UpdateACLEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                fireServiceEvent(new UpdateACLEvent(ServiceEvent.EVENT_CANCELLED));
+                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList.toArray(new S3Object[] {});
+                fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new UpdateACLEvent(ServiceEvent.EVENT_COMPLETED));                    
+                fireServiceEvent(UpdateACLEvent.newCompletedEvent());                    
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new CreateBucketsEvent(throwable));
+                fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable));
             }
         }).run();
     }
@@ -412,7 +431,7 @@ public class S3ServiceExecutor {
     public void downloadObjects(final S3Bucket bucket, final S3ObjectAndOutputStream[] objectAndOutputStream) {
         // Initialise byte transfer monitoring variables.
         final long bytesCompleted[] = new long[] {0};
-        final BytesTransferredListener bytesTransferredListener = new BytesTransferredListener() {
+        final BytesTransferredWatcher bytesTransferredListener = new BytesTransferredWatcher() {
             public void bytesTransferredUpdate(long transferredBytes) {
                 bytesCompleted[0] += transferredBytes;
             }
@@ -439,43 +458,27 @@ public class S3ServiceExecutor {
         
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
-            public void fireStartEvent(ProgressStatus progressStatus) {
-                fireServiceEvent(new DownloadObjectsEvent(ServiceEvent.EVENT_STARTED, progressStatus, new S3Object[] {}, bytesCompleted[0], bytesTotal));        
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
+                fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher));
             }
-            public void fireProgressEvent(ProgressStatus progressStatus, List completedResults) {
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 incompleteObjectDownloadList.removeAll(completedResults);
-                S3Object[] resultObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
-                fireServiceEvent(new DownloadObjectsEvent(ServiceEvent.EVENT_IN_PROGRESS, progressStatus, resultObjects, bytesCompleted[0], bytesTotal));
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
+                fireServiceEvent(DownloadObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
                 S3Object[] incompleteObjects = (S3Object[]) incompleteObjectDownloadList.toArray(new S3Object[] {});
-                fireServiceEvent(new DownloadObjectsEvent(ServiceEvent.EVENT_CANCELLED, incompleteObjects));
+                fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects));
             }
             public void fireCompletedEvent() {
-                fireServiceEvent(new DownloadObjectsEvent(ServiceEvent.EVENT_COMPLETED));                    
+                fireServiceEvent(DownloadObjectsEvent.newCompletedEvent());                    
             }
             public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(new DownloadObjectsEvent(throwable));
+                fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable));
             }
         }).run();
-    }
-
-    public class S3ObjectAndOutputStream {
-        private S3Object object = null;
-        private OutputStream outputStream = null;
-        
-        public S3ObjectAndOutputStream(S3Object object, OutputStream outputStream) {
-            this.object = object;
-            this.outputStream = outputStream;
-        }
-        
-        public S3Object getObject() {
-            return object;
-        }
-        
-        public OutputStream getOuputStream() {
-            return outputStream;
-        }
     }
 
     ///////////////////////////////////////////////
@@ -514,7 +517,11 @@ public class S3ServiceExecutor {
 
         public void run() {
             try {
-                s3Service.putAcl(bucket, s3Object);
+                if (s3Object == null) {
+                    s3Service.putBucketAcl(bucket);                    
+                } else {
+                    s3Service.putObjectAcl(bucket, s3Object);                                        
+                }
                 result = s3Object;
             } catch (S3ServiceException e) {
                 result = e;
@@ -542,7 +549,7 @@ public class S3ServiceExecutor {
 
         public void run() {
             try {
-                AccessControlList acl = acl = s3Service.getAcl(bucket, object.getKey());
+                AccessControlList acl = s3Service.getObjectAcl(bucket, object.getKey());
                 object.setAcl(acl);
                 result = object;
             } catch (S3ServiceException e) {
@@ -616,11 +623,11 @@ public class S3ServiceExecutor {
         private S3Bucket bucket = null;
         private S3Object s3Object = null;    
         private InterruptableInputStream interruptableInputStream = null;
-        private BytesTransferredListener bytesTransferredListener = null;
+        private BytesTransferredWatcher bytesTransferredListener = null;
         
         private Object result = null;
         
-        public CreateObjectRunnable(S3Bucket bucket, S3Object s3Object, BytesTransferredListener bytesTransferredListener) {
+        public CreateObjectRunnable(S3Bucket bucket, S3Object s3Object, BytesTransferredWatcher bytesTransferredListener) {
             this.bucket = bucket;
             this.s3Object = s3Object;
             this.bytesTransferredListener = bytesTransferredListener;
@@ -698,11 +705,11 @@ public class S3ServiceExecutor {
         private S3Bucket bucket = null;
         private OutputStream outputStream = null;
         private InterruptableInputStream interruptableInputStream = null;
-        private BytesTransferredListener bytesTransferredListener = null;
+        private BytesTransferredWatcher bytesTransferredListener = null;
         
         private Object result = null;
 
-        public DownloadObjectRunnable(S3Bucket bucket, String objectKey, OutputStream outputStream, BytesTransferredListener bytesTransferredListener) {
+        public DownloadObjectRunnable(S3Bucket bucket, String objectKey, OutputStream outputStream, BytesTransferredWatcher bytesTransferredListener) {
             this.bucket = bucket;
             this.objectKey = objectKey;
             this.outputStream = outputStream;
@@ -713,6 +720,7 @@ public class S3ServiceExecutor {
             BufferedInputStream bufferedInputStream = null;
             BufferedOutputStream bufferedOutputStream = null;
             S3Object object = null;
+
             try {
                 object = s3Service.getObject(bucket, objectKey);
 
@@ -735,12 +743,12 @@ public class S3ServiceExecutor {
 
                 object.setDataInputStream(null);
                 result = object;
-            } catch (Throwable t) {                
+            } catch (Throwable t) {
                 result = t;
             } finally {
                 try {
                     bufferedInputStream.close();    
-                } catch (Exception e) {
+                } catch (Exception e) {                    
                     log.error("Unable to close Object input stream", e);
                 }
                 try {
@@ -819,8 +827,8 @@ public class S3ServiceExecutor {
             final boolean alreadyFired[] = new boolean[runnables.length]; // All values initialized to false.
 
             try {
-                ProgressStatus progressStatus = new ProgressStatus(0, runnables.length, cancelEventListener); 
-                fireStartEvent(progressStatus);
+                ThreadWatcher threadWatcher = new ThreadWatcher(0, runnables.length, cancelEventListener); 
+                fireStartEvent(threadWatcher);
                 
                 while (!interrupted[0] && localThreadGroup.activeCount() > 0) {
                     try {
@@ -831,9 +839,9 @@ public class S3ServiceExecutor {
                         } else {
                             // Fire progress event.
                             int completedThreads = runnables.length - localThreadGroup.activeCount();                    
-                            progressStatus = new ProgressStatus(completedThreads, runnables.length, cancelEventListener);
+                            threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventListener);
                             List completedResults = getNewlyCompletedResults(alreadyFired);                    
-                            fireProgressEvent(progressStatus, completedResults);
+                            fireProgressEvent(threadWatcher, completedResults);
                             
                             if (completedResults.size() > 0) {
                                 log.debug(completedResults.size() + " of " + threads.length + " have completed");
@@ -849,9 +857,9 @@ public class S3ServiceExecutor {
                     fireCancelEvent();
                 } else {
                     int completedThreads = localThreadGroup.activeCount();                    
-                    progressStatus = new ProgressStatus(completedThreads, runnables.length, cancelEventListener);
+                    threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventListener);
                     List completedResults = getNewlyCompletedResults(alreadyFired);                    
-                    fireProgressEvent(progressStatus, completedResults);
+                    fireProgressEvent(threadWatcher, completedResults);
                     if (completedResults.size() > 0) {
                         log.debug(completedResults.size() + " of " + threads.length + " have completed");
                     }                    
@@ -866,9 +874,9 @@ public class S3ServiceExecutor {
             }
         }
         
-        public abstract void fireStartEvent(ProgressStatus progressStatus);
+        public abstract void fireStartEvent(ThreadWatcher threadWatcher);
         
-        public abstract void fireProgressEvent(ProgressStatus progressStatus, List completedResults);
+        public abstract void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults);
         
         public abstract void fireCompletedEvent();
 

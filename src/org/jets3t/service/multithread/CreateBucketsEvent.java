@@ -1,0 +1,80 @@
+/*
+ * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
+ * This is a java.net project, see https://jets3t.dev.java.net/
+ * 
+ * Copyright 2006 James Murty
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
+ */
+package org.jets3t.service.multithread;
+
+import org.jets3t.service.model.S3Bucket;
+
+public class CreateBucketsEvent extends ServiceEvent {	
+	private S3Bucket[] buckets = null;
+    
+    private CreateBucketsEvent(int eventCode) {
+        super(eventCode);
+    }
+    
+
+    public static CreateBucketsEvent newErrorEvent(Throwable t) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_ERROR);
+        event.setErrorCause(t);
+        return event;
+    }
+
+    public static CreateBucketsEvent newStartedEvent(ThreadWatcher threadWatcher) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_STARTED);
+        event.setThreadWatcher(threadWatcher);
+        return event;
+    }
+
+    public static CreateBucketsEvent newInProgressEvent(ThreadWatcher threadWatcher, S3Bucket[] completedBuckets) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_IN_PROGRESS);
+        event.setThreadWatcher(threadWatcher);
+        event.setBuckets(completedBuckets);
+        return event;
+    }
+
+    public static CreateBucketsEvent newCompletedEvent() {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_COMPLETED);
+        return event;
+    }
+    
+    public static CreateBucketsEvent newCancelledEvent(S3Bucket[] incompletedBuckets) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_CANCELLED);
+        event.setBuckets(incompletedBuckets);
+        return event;
+    }
+    
+    private void setBuckets(S3Bucket[] buckets) {
+        this.buckets = buckets;
+    }
+    
+	
+    public S3Bucket[] getCreatedBuckets() throws IllegalStateException {
+        if (getEventCode() != EVENT_IN_PROGRESS) {
+            throw new IllegalStateException("Created Buckets are only available from EVENT_IN_PROGRESS events");
+        }                
+        return buckets;
+    }
+    
+    public S3Bucket[] getCancelledBuckets() throws IllegalStateException {
+        if (getEventCode() != EVENT_CANCELLED) {
+            throw new IllegalStateException("Cancelled Buckets are  only available from EVENT_CANCELLED events");
+        }                
+        return buckets;
+    }
+	
+}

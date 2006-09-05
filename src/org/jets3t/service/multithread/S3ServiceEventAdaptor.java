@@ -1,16 +1,8 @@
-package org.jets3t.service.executor;
+package org.jets3t.service.multithread;
 
 public class S3ServiceEventAdaptor implements S3ServiceEventListener {
     
     private Throwable t[] = new Throwable[1];
-
-    public void s3ServiceEventPerformed(ListAllBucketsEvent event) {
-        storeThrowable(event);
-    }
-
-    public void s3ServiceEventPerformed(ListObjectsEvent event) {
-        storeThrowable(event);
-    }
 
     public void s3ServiceEventPerformed(CreateObjectsEvent event) {
         storeThrowable(event);
@@ -45,7 +37,7 @@ public class S3ServiceEventAdaptor implements S3ServiceEventListener {
     }
     
     private void storeThrowable(ServiceEvent event) {
-        if (t[0] == null && event.getEventStatus() == ServiceEvent.EVENT_ERROR) {
+        if (t[0] == null && event.getEventCode() == ServiceEvent.EVENT_ERROR) {
             t[0] = event.getErrorCause();
         }
     }
