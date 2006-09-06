@@ -107,7 +107,7 @@ public class RestS3Service extends S3Service {
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
     
-    public RestS3Service(AWSCredentials awsCredentials, boolean isHttpsOnly) throws S3ServiceException {
+    public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         super(awsCredentials);
         
         // Set HttpClient properties based on Jets3t Properties.
@@ -119,8 +119,10 @@ public class RestS3Service extends S3Service {
             getIntProperty("httpclient.connection-timeout-ms", 60000));
         connectionParams.setSoTimeout(Jets3tProperties.
             getIntProperty("httpclient.socket-timeout-ms", 60000));
-        connectionParams.setMaxTotalConnections(Jets3tProperties.
-            getIntProperty("httpclient.max-connections-per-host", 20));
+        connectionParams.setMaxConnectionsPerHost(insecureHostConfig, Jets3tProperties.
+            getIntProperty("httpclient.max-connections", 20));
+        connectionParams.setMaxConnectionsPerHost(secureHostConfig, Jets3tProperties.
+            getIntProperty("httpclient.max-connections", 20));
         connectionParams.setStaleCheckingEnabled(Jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
         connectionParams.setTcpNoDelay(Jets3tProperties.
@@ -142,10 +144,6 @@ public class RestS3Service extends S3Service {
         httpClient = new HttpClient(clientParams, connectionManager);
     }
     
-    public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
-        this(awsCredentials, false);
-    }    
-            
     protected void performRequest(HttpMethodBase httpMethod, int expectedResponseCode) 
         throws S3ServiceException 
     {
