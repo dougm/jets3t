@@ -119,7 +119,6 @@
 	<target name="clean">
 		<delete dir="${dir.build}"/>
 		<delete dir="${dir.dist}"/>
-		<delete dir="${dir.apidocs}"/>
 	</target>
 
 	<target name="api-docs">		
