@@ -1,0 +1,14 @@
+org.jets3t.apps.cockpit
+org.jets3t.apps.synchronize
+org.jets3t.samples
+org.jets3t.service
+org.jets3t.service.acl
+org.jets3t.service.impl.rest
+org.jets3t.service.impl.rest.httpclient
+org.jets3t.service.impl.soap.axis
+org.jets3t.service.io
+org.jets3t.service.model
+org.jets3t.service.multithread
+org.jets3t.service.security
+org.jets3t.service.utils
+org.jets3t.tests
