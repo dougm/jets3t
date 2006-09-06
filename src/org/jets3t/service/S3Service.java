@@ -19,6 +19,7 @@
 package org.jets3t.service;
 
 import java.util.Calendar;
+import java.util.Date;
 
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.model.S3Bucket;
@@ -130,6 +131,13 @@ public abstract class S3Service {
         }
     }
     
+    public static String createSignedUrl(String bucketName, String objectKey, AWSCredentials awsCredentials, 
+        Date expiryTime, boolean isSecure) throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        return createSignedUrl(bucketName, objectKey, awsCredentials, secondsSinceEpoch, isSecure);
+    }
+        
     /**
      * Generates a URL string that will return a Torrent file for an object in S3, 
      * which file can be downloaded and run in a BitTorrent client.  
@@ -593,12 +601,16 @@ public abstract class S3Service {
     public void putObjectAcl(S3Bucket bucket, S3Object object) throws S3ServiceException {
         assertValidBucket(bucket, "Put Object Access Control List");
         assertValidObject(object, "Put Object Access Control List");
-        putObjectAclImpl(bucket.getName(), object.getKey(), object.getAcl());
+        putObjectAcl(bucket.getName(), object.getKey(), object.getAcl());
     }
 
     public void putObjectAcl(String bucketName, String objectKey, AccessControlList acl) 
         throws S3ServiceException 
     {
+        if (acl == null) {
+            throw new S3ServiceException("The object '" + objectKey +
+                "' does not include ACL information");
+        }
         putObjectAclImpl(bucketName, objectKey, acl);
     }
 
@@ -608,16 +620,18 @@ public abstract class S3Service {
      * 
      * @param bucket
      * a bucket with ACL settings to apply.
-     * @param object
-     * if non-null, the object with ACL settings that will be applied. Ignored if null.
      * @throws S3ServiceException
      */
     public void putBucketAcl(S3Bucket bucket) throws S3ServiceException {
         assertValidBucket(bucket, "Put Bucket Access Control List");
-        putBucketAclImpl(bucket.getName(), bucket.getAcl());
+        putBucketAcl(bucket.getName(), bucket.getAcl());
     }
 
     public void putBucketAcl(String bucketName, AccessControlList acl) throws S3ServiceException {
+        if (acl == null) {
+            throw new S3ServiceException("The bucket '" + bucketName +
+                "' does not include ACL information");
+        }
         putBucketAclImpl(bucketName, acl);
     }
 
