@@ -230,20 +230,20 @@ System.out.println("Deleted bucket " + testBucket.getName());
 </pre>
 
 <h2>Multi-threaded Examples</h2>
-<p>The jets3t Toolkit includes a utility service <tt>S3ServiceMulti</tt> that can perform an S3 operation on many objects at a time. This service allows you to use more of your available bandwidth and perform S3 operations much faster. S3ServiceMulti works with any thread-safe S3Service implementation, such as the HTTP/REST and SOAP implementations provided with jets3t.</p>
+<p>The jets3t Toolkit includes utility services, <tt>S3ServiceMulti</tt> and <tt>S3ServiceSimpleMulti</tt>, that can perform an S3 operation on many objects at a time. These services allow you to use more of your available bandwidth and perform S3 operations much faster. They work with any thread-safe S3Service implementation, such as the HTTP/REST and SOAP implementations provided with jets3t.</p>
 
-<p>The examples below demonstrate how to use some of the multi-threaded operations provided by S3ServiceMulti.</p>
+<p>The <tt>S3ServiceMulti</tt> service is intended for advanced developers. It is designed for use in graphical applications and uses an event-notification approach to communicate its results rather than standard method calls. This means the service can provide progress reports to an application during long-running operations. However, this approach makes the service complicated to use. See the code for the Cockpit application to see how this service is used to display progress updates.</p>
 
-<h3>Construct an S3ServiceMulti service</h3>
-<p>The S3ServiceMulti service is designed for using in graphical applications and uses an event-notification approach to communicate its results rather than standard method calls. This means the service can provide progress reports to an application during long-running operations. However, this approach makes the service a little harder to use.</p>
-<p>To use the S3ServiceMulti service you construct it with an object that implements the <tt>S3ServiceEventListener</tt> interface. This object will then receive event notifications from the service.</p>
-<p>The jets3t toolkit includes a basic implementation of this listener in <tt>S3ServiceEventAdaptor</tt> that can be used as a starting point. By default, the adaptor provides nothing more than a means of checking for errors.</p>
+<p>The <tt>S3ServiceSimpleMulti</tt> is a service that wraps around S3ServiceMulti and provides a simplified interface, so developers can take advantage of multi-threading without any extra work.</p>
+
+<p>The examples below demonstrate how to use some of the multi-threaded operations provided by S3ServiceSimpleMulti.</p>
+
+<h3>Construct an S3ServiceSimpleMulti service</h3>
+<p>To use the S3ServiceSimpleMulti service you construct it by providing an existing S3Service object.</p>
+
 <pre>
-// Use the default S3ServiceEventListener adaptor so we can check for errors.
-S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
-
-// Create a multi service with the default adaptor.
-S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, adaptor);
+// Create a simple multi-threading service based on our existing S3Service
+S3ServiceSimpleMulti simpleMulti = new S3ServiceSimpleMulti(s3Service);
 </pre>
 
 <h3>Upload multiple objects at once</h3>
@@ -251,6 +251,7 @@ S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, adaptor);
 <pre>
 // First, create a bucket.
 S3Bucket bucket = new S3Bucket(awsAccessKey + ".TestMulti");
+bucket = s3Service.createBucket(bucket);
 
 // Create an array of data objects to upload.
 S3Object[] objects = new S3Object[5];
@@ -261,72 +262,52 @@ objects[3] = new S3Object(bucket, "object4.txt", "Hello from object 4");
 objects[4] = new S3Object(bucket, "object5.txt", "Hello from object 5");
 </pre>
 
-<p>Now we have some sample objects, we can upload them. Notice that the multi service's <tt>putObjects</tt> method does not return a result. We must use the adaptor to check for errors.</p>
+<p>Now we have some sample objects, we can upload them.</p>
 <pre>
-// Create the bucket in S3.
-bucket = s3Service.createBucket(bucket);
-
 // Upload multiple objects.
-s3ServiceMulti.putObjects(bucket, objects);
-
-// Check for errors.
-if (adaptor.wasErrorThrown()) {
-            throw new Exception("Multi-object upload failed", adaptor.getErrorThrown());
-}
-System.out.println("Uploaded " + objects.length + " objects");
+S3Object[] createdObjects = simpleMulti.putObjects(bucket, objects);        
+System.out.println("Uploaded " + createdObjects.length + " objects");
 </pre>
 
 <h3>Retrieve the HEAD information of multiple objects</h3>
-<p>This example demonstrates how to write an <tt>S3ServiceEventListener</tt> to access useful information when running the multi-threaded service. To retrieve the HEAD information of multiple objects, we start with the adaptor used above but extend it to handle <tt>GetObjectHeadsEvent</tt> event notifications.</p>
-<p>Event notifications are based on the <tt>ServiceEvent</tt> class and every event object has an Event Code, which will be one of: EVENT_ERROR, EVENT_STARTED, EVENT_COMPLETED, EVENT_IN_PROGRESS, EVENT_CANCELLED. We are most interested in the EVENT_IN_PROGRESS events, as these relay all the response objects received from S3.</p>
 <pre>
-// List to store objects with HEAD information.
-final List objectsWithHead = new ArrayList();
-
-// Extend default adaptor to print information GetObjectHeadsEvent events.
-S3ServiceEventAdaptor headAdaptor = new S3ServiceEventAdaptor() {
-	public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
-		// Call the super's method to handle exceptions.
-		super.s3ServiceEventPerformed(event);
-		
-		// In Progress events include S3 responses.
-		if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-			S3Object[] completedObjects = event.getCompletedObjects();
-			for (int i = 0; i < completedObjects.length; i++) {
-				objectsWithHead.add(completedObjects[i]);
-			}
-		}
-	}            
-};
-
-// Create a new multi-threaded service with the new headAdaptor.
-s3ServiceMulti = new S3ServiceMulti(s3Service, headAdaptor);
-
 // Perform a Details/HEAD query for multiple objects.
-s3ServiceMulti.getObjectsHeads(bucket, objects);
-
-// Check for errors.
-if (headAdaptor.wasErrorThrown()) {
-	throw new Exception("Multi-object Details/HEAD request failed", headAdaptor.getErrorThrown());
-}
+S3Object[] objectsWithHeadDetails = simpleMulti.getObjectsHeads(bucket, objects);
 
 // Print out details about all the objects.
-System.out.println(objectsWithHead);
+System.out.println("Objects with HEAD Details...");
+for (int i = 0; i < objectsWithHeadDetails.length; i++) {
+	System.out.println(objectsWithHeadDetails[i]);
+}
+</pre>
+
+<h3>Download objects to local files</h3>
+<p>The multi-threading services provide a method to download multiple objects at a time, but to use this you must first prepare somewhere to put the data associated with each object. The most obvious place to put this data is into a file, so let's go through an example of downloading object data into files.</p>
+<p>To download our objects into files we first must create a <tt>S3ObjectAndOutputStream</tt> class for each object. This class is a simple container which merely associates an object with an output stream, to which the object's data will be written.</p>
+<pre>
+// Associate each object with a file output stream
+S3ObjectAndOutputStream[] streams = new S3ObjectAndOutputStream[5];
+streams[0] = new S3ObjectAndOutputStream(objects[0], 
+	new FileOutputStream(objects[0].getKey()));
+streams[1] = new S3ObjectAndOutputStream(objects[1], 
+	new FileOutputStream(objects[1].getKey()));
+streams[2] = new S3ObjectAndOutputStream(objects[2], 
+	new FileOutputStream(objects[2].getKey()));
+streams[3] = new S3ObjectAndOutputStream(objects[3], 
+	new FileOutputStream(objects[3].getKey()));
+streams[4] = new S3ObjectAndOutputStream(objects[4], 
+	new FileOutputStream(objects[4].getKey()));
+
+// Download the objects.
+simpleMulti.downloadObjects(bucket, streams);
+System.out.println("Downloaded objects to current working directory");
 </pre>
 
 <h3>Delete multiple objects</h3>
 <p>It's time to clean up, so let's get rid of our multiple objects and test bucket.</p>
-<p>It is possible, though <b>dangerous</b>, to avoid using a <tt>S3ServiceEventListener</tt> altogether and just hope everything works out OK by setting the listener to null. Well, are you feeling lucky, punk!?</p>
 <pre>
-// Create a new multi-threaded service with no listener (it's null, see).
-s3ServiceMulti = new S3ServiceMulti(s3Service, null);
-
-// Delete multiple objects.
-s3ServiceMulti.deleteObjects(bucket, objects);
-
-// Without an event listener we have no way of telling whether the delete
-// operation actually worked. However, as we are deleting the bucket and 
-// this will fail if the objects still exist, we will find out soon enough.
+// Delete multiple objects, then the bucket too.
+simpleMulti.deleteObjects(bucket, objects);
 s3Service.deleteBucket(bucket);
 System.out.println("Deleted bucket: " + bucket);
 </pre>
