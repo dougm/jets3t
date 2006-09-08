@@ -116,16 +116,6 @@ public class S3ServiceMulti {
         return s3Service.getAWSCredentials();
     }
     
-    public void createBucket(String bucketName) {
-        S3Bucket bucket = new S3Bucket();
-        bucket.setName(bucketName);
-        createBuckets(new S3Bucket[] { bucket } );
-    }
-    
-    public void createBucket(S3Bucket bucket) {
-        createBuckets(new S3Bucket[] { bucket } );
-    }
-
     public void createBuckets(final S3Bucket[] buckets) {
         final List incompletedBucketList = new ArrayList();
         
@@ -211,10 +201,6 @@ public class S3ServiceMulti {
         }).run();
     }
     
-    public void deleteObject(S3Bucket bucket, S3Object object) {
-        deleteObjects(bucket, new S3Object[] { object });
-    }
-
     public void deleteObjects(final S3Bucket bucket, final S3Object[] objects) {
         final List objectsToDeleteList = new ArrayList();
         
