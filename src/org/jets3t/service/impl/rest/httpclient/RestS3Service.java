@@ -76,7 +76,7 @@ import org.jets3t.service.utils.ServiceUtils;
  *   <td>How many milliseconds to wait before a socket connection times out. 0 means infinity</td>
  *   <td>60000</td></tr>
  * <tr><td>httpclient.max-connections</td>
- *   <td>The maximum number of simultaneous connections to allow</td><td>20</td></tr>
+ *   <td>The maximum number of simultaneous connections to allow</td><td>10</td></tr>
  * <tr><td>httpclient.stale-checking-enabled</td>
  *   <td>"Determines whether stale connection check is to be used. Disabling stale connection check may  
  *   result in slight performance improvement at the risk of getting an I/O error when executing a request 
@@ -120,22 +120,26 @@ public class RestS3Service extends S3Service {
         connectionParams.setSoTimeout(Jets3tProperties.
             getIntProperty("httpclient.socket-timeout-ms", 60000));
         connectionParams.setMaxConnectionsPerHost(insecureHostConfig, Jets3tProperties.
-            getIntProperty("httpclient.max-connections", 20));
+            getIntProperty("httpclient.max-connections", 10));
         connectionParams.setMaxConnectionsPerHost(secureHostConfig, Jets3tProperties.
-            getIntProperty("httpclient.max-connections", 20));
+            getIntProperty("httpclient.max-connections", 10));
         connectionParams.setStaleCheckingEnabled(Jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
         connectionParams.setTcpNoDelay(Jets3tProperties.
-            getBoolProperty("httpclient.tcp-no-delay-enabled", true));
+            getBoolProperty("httpclient.tcp-no-delay-enabled", true));        
+
+        connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
                         
         connectionManager = new MultiThreadedHttpConnectionManager();
         connectionManager.setParams(connectionParams);
         
         HttpClientParams clientParams = new HttpClientParams();
         
-        if (Jets3tProperties.getBoolProperty("httpclient.retry-on-errors", false)) {
+        boolean retryOnErrors = Jets3tProperties.getBoolProperty("httpclient.retry-on-errors", true);
+        if (!retryOnErrors) {
+            // Replace default error retry handler with one that never retries.
             clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
-                public boolean retryMethod(HttpMethod arg0, IOException arg1, int arg2) {
+                public boolean retryMethod(HttpMethod method, IOException ioe, int executionCount) {
                     return false;
                 }
             });
@@ -400,7 +404,7 @@ public class RestS3Service extends S3Service {
 
         String url = null;
         if (isHttpsOnly()) {
-            log.debug("SOAP service will use HTTPS for all communication");
+            log.debug("REST/HTTP service is using HTTPS for all communication");
             url = PROTOCOL_SECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_SECURE + resourceString;
         } else {
             url = PROTOCOL_INSECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_INSECURE + resourceString;        

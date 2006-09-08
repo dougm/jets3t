@@ -37,6 +37,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -655,20 +657,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * Stops/halts the progress display dialog and allows the user to interact with the application.
      */
     private void stopProgressDisplay() {
-        this.setEnabled(true);
-        if (progressDisplay != null) {
-            progressDisplay.haltDialog();
-        }
-        this.getContentPane().setCursor(null);
+        progressDisplay.dispose();
+        progressDisplay = null;
         
-        // Block until the progress dialog is stopped.
-        while (progressDisplay.isActive()) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }            
+        this.setEnabled(true);
+        this.getContentPane().setCursor(null);        
     }
         
     /**
@@ -682,6 +675,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             logoutEvent();
         } else if ("QuitEvent".equals(event.getActionCommand())) {
             ownerFrame.dispose();
+            System.exit(0);
         } 
         
         // Bucket Events.
@@ -868,6 +862,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         new Thread() {
             public void run() {
                 try {
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            startProgressDisplay("Listing buckets for " + s3ServiceMulti.getAWSCredentials().getAccessKey());
+                            cachedBuckets.clear();
+                            bucketsTable.clearSelection();       
+                            ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
+                            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();   
+                        }
+                    });                   
+                    
                     final S3Bucket[] buckets = s3ServiceMulti.getS3Service().listAllBuckets();
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -883,14 +887,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     stopProgressDisplay();                    
                 }
             };
-        }.start();
-        
-        startProgressDisplay("Listing buckets for " + s3ServiceMulti.getAWSCredentials().getAccessKey());
-
-        cachedBuckets.clear();
-        bucketsTable.clearSelection();       
-        ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
-        ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();   
+        }.start();        
     }
     
     /**
@@ -970,6 +967,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         new Thread() {
             public void run() {
                 try {
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            startProgressDisplay("Listing objects in " + getCurrentSelectedBucket().getName());
+                            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                                                
+                        }
+                    });
+                    
                     final S3Object[] objects = s3ServiceMulti.getS3Service().listObjects(
                         getCurrentSelectedBucket());
                     
@@ -991,11 +995,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     stopProgressDisplay();
                 }
             };
-        }.start();
-        
-        startProgressDisplay("Listing objects in " + getCurrentSelectedBucket().getName());
-        
-        ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                    
+        }.start();                
     }
     
     /**
@@ -1166,7 +1166,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         if (bucketName != null) {
             new Thread() {
                 public void run() {
-                    s3ServiceMulti.createBucket(bucketName);
+                    s3ServiceMulti.createBuckets(
+                        new S3Bucket[] { new S3Bucket(bucketName) });
                 }
             }.start();        
             
@@ -1856,7 +1857,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Show percentage of bytes transferred, if this info is available.
             if (watcher.isBytesTransferredInfoAvailable()) {
                 startProgressDisplay("Uploading files to " + getCurrentSelectedBucket().getName(), 
-                    watcher.getBytesTransferred(), watcher.getBytesTotal(), "Cancel file uploads", 
+                    0, 100, "Cancel file uploads", 
                     event.getThreadWatcher().getCancelEventListener());
             } 
             // ... otherwise show the number of completed threads.
@@ -1880,7 +1881,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             // Show percentage of bytes transferred, if this info is available.
             if (watcher.isBytesTransferredInfoAvailable()) {
-                if (watcher.getBytesTransferred() == watcher.getBytesTotal()) {
+                if (watcher.getBytesTransferred() >= watcher.getBytesTotal()) {
                     // Upload is completed, just waiting on resonse from S3.
                     String statusText = "Upload completed, awaiting confirmation";
                     updateProgressDisplay(statusText, 100);
@@ -2177,14 +2178,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             S3ServiceException s3se = (S3ServiceException) t;
             if (s3se.getErrorCode() != null) {
                 detailsText = "S3 Error Code: " + s3se.getErrorCode();
-            } else {
-                detailsText = s3se.getMessage();
-                
-                Throwable cause = s3se.getCause();
-                while (cause != null) {
-                    detailsText += "\nCaused by: " + cause;
-                    cause = cause.getCause();
-                }
+            } 
+            
+            if (s3se.getMessage() != null) {
+                detailsText += "\n" + s3se.getMessage();
+            }
+            
+            Throwable cause = s3se.getCause();
+            while (cause != null) {
+                detailsText += "\nCaused by: " + cause;
+                cause = cause.getCause();
             }
         } else {
             detailsText = "Error details: " + t.getMessage();
@@ -2359,6 +2362,23 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public static void main(String args[]) throws Exception {
         JFrame ownerFrame = new JFrame("jets3t Cockpit");
         ownerFrame.setName("jets3t Cockpit");
+        ownerFrame.addWindowListener(new WindowListener() {
+            public void windowOpened(WindowEvent e) {
+            }
+            public void windowClosing(WindowEvent e) {
+                e.getWindow().dispose();
+            }
+            public void windowClosed(WindowEvent e) {
+            }
+            public void windowIconified(WindowEvent e) {
+            }
+            public void windowDeiconified(WindowEvent e) {
+            }
+            public void windowActivated(WindowEvent e) {
+            }
+            public void windowDeactivated(WindowEvent e) {
+            }           
+        });
         
         Cockpit cockpit = new Cockpit(ownerFrame);
         ownerFrame.getContentPane().add(cockpit);

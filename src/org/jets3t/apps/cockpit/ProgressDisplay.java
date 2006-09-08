@@ -19,7 +19,6 @@
 package org.jets3t.apps.cockpit;
 
 import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -29,7 +28,6 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -131,21 +129,9 @@ public class ProgressDisplay {
     public boolean isActive() {
         return progressDialog.isActive();
     }
-    
-    /**
-     * Halts the progress dialog, returning control of the GUI to the user.
-     * <p>
-     * This method is also responsible for performing any dialog cleanup necessary.
-     */
-    public synchronized void haltDialog() {
-        SwingUtilities.invokeLater(new Runnable(){
-            public void run() {
-                if (progressDialog.isActive()) {
-                    progressDialog.hide();
-                }
-                progressDialog.dispose();
-            }
-        });
+        
+    public void dispose() {
+        progressDialog.dispose();
     }
     
     /**
@@ -271,51 +257,4 @@ public class ProgressDisplay {
         }        
     }
     
-        
-    /**
-     * Creates stand-alone dialog box for testing only.
-     * 
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {        
-        JFrame f = new JFrame();
-        f.setSize(new Dimension(800, 600));
-        f.setVisible(true);
-        
-        int iterCount = 20; // How many iterations to run?
-        int iterIndex = 0;
-        final boolean[] notCancelled = new boolean[] { true };
-        
-        ProgressDisplay progressDialog = 
-            new ProgressDisplay(f, "Testing", "Iteration " + iterIndex + " of " + iterCount, 0, iterCount,
-            "Cancel test task", new CancelEventListener() {
-                public void cancelTask(Object eventSource) {
-                    System.out.println("User hit the cancel button!");
-                    notCancelled[0] = false;
-                }
-            });
-        progressDialog.startDialog();
-        
-        // Update status every 1 seconds.
-        long startTime = System.currentTimeMillis();
-        while (notCancelled[0] && iterIndex < iterCount) {
-            System.out.println("Task running for " + (System.currentTimeMillis() - startTime) + " ms");
-            
-            Thread.sleep(1000);
-            ++iterIndex;
-
-            if (!progressDialog.getCancelClicked()) {
-                progressDialog.updateStatusText("Iteration " + iterIndex + " of " + iterCount);
-                progressDialog.updateProgress(iterIndex);
-            }
-        }
-        
-        System.out.println("Did the user cancel the dialog? " + progressDialog.getCancelClicked());
-        
-        progressDialog.haltDialog();
-        
-        f.dispose();
-    }
-
 }

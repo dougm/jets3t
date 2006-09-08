@@ -623,7 +623,7 @@ public class Synchronize {
             // Create/connect to the S3 bucket.
             bucket = s3Service.createBucket(bucketName);
         } catch (Exception e) {
-            throw new SynchronizeException("Unable to connect to S3 bucket: " + bucketName);
+            throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
         }
         
         if (objectPath.length() > 0) {
@@ -641,7 +641,7 @@ public class Synchronize {
                     currentDirPath += Constants.FILE_PATH_DELIM;
                 }
             } catch (Exception e) {
-                throw new SynchronizeException("Unable to create S3 path: " + objectPath);
+                throw new SynchronizeException("Unable to create S3 path: " + objectPath, e);
             }
         }
                 
