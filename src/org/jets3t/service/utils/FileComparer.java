@@ -277,15 +277,14 @@ public class FileComparer {
                     // Compare file hashes.
                     String fileHash = computeMD5Hash(new FileInputStream(file));
                     String objectHash = s3Object.getMd5Hash();
-                    String objectETag = s3Object.getETag();
                     if (objectHash == null) {
                         log.warn("Using S3 service's ETag as MD5 hash for the S3 object '" 
                            + s3Object.getKey() + "' as it is missing "
                            + "the jetS3T-preferred metadata item " + S3Object.METADATA_HEADER_HASH_MD5);
-                        objectHash = objectETag;
+                        objectHash = s3Object.getETag();
                     }
                     
-                    if (fileHash.equals(objectHash) || fileHash.equals(objectETag)) {
+                    if (fileHash.equals(objectHash)) {
                         // Hashes match so file is already synchronised.
                         alreadySynchronisedKeys.add(keyPath);
                     } else {
