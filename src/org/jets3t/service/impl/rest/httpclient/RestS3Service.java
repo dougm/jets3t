@@ -189,18 +189,21 @@ public class RestS3Service extends S3Service {
                             + " failed.", sb.toString());
                 } else {
                     // Consume response content and release connection.
-                    log.debug("Releasing error response without XML content");
-                    byte[] responseBody = httpMethod.getResponseBody(); 
-                    if (responseBody != null && responseBody.length > 0) 
-                        throw new S3ServiceException("Should do something useful with this error response body");                
+                    String responseText = null; 
+                    byte[] responseBody = httpMethod.getResponseBody();
+                    if (responseBody != null && responseBody.length > 0) {
+                        responseText = new String(responseBody);
+                    }
 
+                    log.debug("Releasing error response without XML content");
                     httpMethod.releaseConnection();
                     
                     // Throw exception containing the HTTP error fields.
                     throw new S3ServiceException("S3 " 
                         + httpMethod.getName() + " request failed. " 
                         + "ResponseCode=" + httpMethod.getStatusCode()
-                        + ", ResponseMessage=" + httpMethod.getStatusText());
+                        + ", ResponseMessage=" + httpMethod.getStatusText()
+                        + (responseText != null ? "\n" + responseText : ""));
                 }
             }
             
