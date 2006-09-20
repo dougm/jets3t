@@ -143,6 +143,13 @@
 			<fileset dir="${dir.dist}/jets3t-${version}">
 				<include name="**/jets3t.jar"/>
 				<include name="**/cockpit.jar"/>
+			</fileset>
+		</copy>
+		<copy 			
+			todir="${dir.dist}/jets3t-${version}-applet"
+			flatten="true"
+			>
+			<fileset dir="${dir.libs}">
 				<include name="**/commons-logging*.jar"/>
 				<include name="**/commons-codec*.jar"/>
 				<include name="**/commons-httpclient*.jar"/>
