@@ -18,7 +18,13 @@
  */
 package org.jets3t.service.acl;
 
-
+/**
+ * Represents an access permission, as granted to grantees in an {@link AccessControlList}.
+ * Only a limited set of permissions are available, each one is available as a public static
+ * variable of the form PERMISSION_XYZ.  
+ *  
+ * @author James Murty
+ */
 public class Permission {
     public static final Permission PERMISSION_FULL_CONTROL = new Permission("FULL_CONTROL");
     public static final Permission PERMISSION_READ = new Permission("READ");
@@ -32,6 +38,12 @@ public class Permission {
         this.permissionString = permissionString;
     }
     
+    /**
+     * @param str
+     *        a string representation of a permission, eg <tt>FULL_CONTROL</tt>
+     * @return
+     * the Permission object represented by the given permission string 
+     */
     public static Permission parsePermission(String str) {
         Permission permission = null;
         if (str == null) {
@@ -52,6 +64,10 @@ public class Permission {
         return permission;
     }    
 
+    /**
+     * @return
+     * the string representation of a permission object, eg <tt>FULL_CONTROL</tt>
+     */
     public String toString() {
         return permissionString;
     }

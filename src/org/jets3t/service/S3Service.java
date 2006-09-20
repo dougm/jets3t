@@ -33,11 +33,12 @@ import org.jets3t.service.utils.ServiceUtils;
  * A service that handles communication with S3, performing all available actions.
  * <p>
  * This class must be extended by implementation classes that perform the communication with S3 via
- * a particular interface, such as REST or SOAP.
+ * a particular interface, such as REST or SOAP. Implementations provided with jets3t include 
+ * {@link RestS3Service} and {@link SoapS3Service}.
  * <p>
  * Implementations of <code>S3Service</code> must be thread-safe as they will probably be used by
- * the multi-threaded {@link S3ServiceMulti}.
- * 
+ * the multi-threaded service class {@link S3ServiceMulti}. 
+ * <p>
  * <p><b>Properties</b></p>
  * <p>The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
  * <table>

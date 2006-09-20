@@ -18,12 +18,29 @@
  */
 package org.jets3t.service.acl;
 
+/**
+ * Represents an Email Grantee, that is a grantee identified by their email address and 
+ * authenticated by an Amazon system.
+ * 
+ * @author James Murty
+ *
+ */
 public class EmailAddressGrantee implements GranteeInterface {
 	private String emailAddress = null;
 	
+    /**
+     * Default construtor.
+     * <p>
+     * <b>Warning!</b> If this constructor is used the class will not represent
+     * a valid email grantee until the identifier has been set. 
+     */
 	public EmailAddressGrantee() {
 	}
 	
+    /**
+     * Constructs an email grantee with the given email address.
+     * @param emailAddress
+     */
 	public EmailAddressGrantee(String emailAddress) {
 		this.setIdentifier(emailAddress);
 	}

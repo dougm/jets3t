@@ -18,6 +18,16 @@
  */
 package org.jets3t.service.acl;
 
+/**
+ * Represents a Group grantee.
+ * <p>
+ * Only two groups are available in S3:<br>
+ * <tt>ALL_USERS</tt>: The general public<br>
+ * <tt>AUTHENTICATED_USERS</tt>: Authenticated Amazon S3 users<br> 
+ * 
+ * @author James Murty
+ *
+ */
 public class GroupGrantee implements GranteeInterface {
 	public static final GroupGrantee ALL_USERS = new GroupGrantee("http://acs.amazonaws.com/groups/global/AllUsers");
 	public static final GroupGrantee AUTHENTICATED_USERS = new GroupGrantee("http://acs.amazonaws.com/groups/global/AuthenticatedUsers");
@@ -27,6 +37,14 @@ public class GroupGrantee implements GranteeInterface {
 	public GroupGrantee() {
 	}
 
+    /**
+     * Constructs a group grantee object using the given group URI as an identifier.
+     * <p>
+     * <b>Note</b>: All possible group types are available as public static variables from this class,
+     * so this constructor should rarely be necessary.  
+     * 
+     * @param groupUri
+     */
 	public GroupGrantee(String groupUri) {
 		this.uri = groupUri;
 	}

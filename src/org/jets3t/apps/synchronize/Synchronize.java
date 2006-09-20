@@ -52,79 +52,8 @@ import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Console application to synchronize the local file system with Amazon S3.
- * <p>
- * Files are copied to S3 with an Upload operation, and copied from S3 with a Download.
- * Files are transferred only if they have changed on the server- or client-side.
- * <p>
- * Synchronize usage/help information is as follows:
- * <p>
- * <code>
- * Usage: Synchronize [options] UPLOAD &lt;Directory> &lt;S3Path> &lt;Properties File><br>
- *    or: Synchronize [options] DOWNLOAD &lt;Directory> &lt;S3Path> &lt;Properties File><br>
- * <br>
- * UPLOAD  : Synchronize the contents of the Local Directory with S3.<br>
- * DOWNLOAD : Synchronize the contents of S3 with the Local Directory<br>
- * S3Path  : A path to the resource in S3. This must include at least the<br>
- *           bucket name, but may also specify a path inside the bucket.<br>
- *           E.g. <bucketName>/Backups/Documents/20060623<br>
- * Directory : A directory on your computer<br>
- * Properties File : A properties file containing the following properties:<br>
- *           accesskey : Your AWS Access Key<br>
- *           secretkey : Your AWS Secret Key<br>
- *           password  : Encryption password (only required when using crypto)<br>
- * <br>
- * For more help : Synchronize --help
- * <br>
- * Options<br>
- * -------<br>
- * -h | --help<br>
- *    Displays this help message.<br>
- * <br>
- * -n | --noaction<br>
- *    No action taken. No files will be changed locally or on S3, instead<br>
- *    a report will be generating showing what will happen if the command<br>
- *    is run without the -n option.<br>
- * <br>
- * -q | --quiet<br>
- *    Runs quietly and does not report on each action performed. The action<br>
- *    summary is still displayed.<br>
- * <br>
- * -f | --force<br>
- *    Force tool to perform synchronization even when files are up-to-date.<br>
- *    This may be useful if you need to update metadata or timestamps in S3.<br>
- * <br>
- * -k | --keepold<br>
- *    Keep outdated files instead of replacing/removing them. This option<br>
- *    will prevent already backed-up files from being reverted or deleted.<br>
- * <br>
- * -g | --gzip<br>
- *    Compress (GZip) files when backing up and Decompress gzipped files<br>
- *    when restoring.<br>
- * <br>
- * -c | --crypto<br>
- *    Encrypt files when backing up and decrypt encrypted files when restoring. If<br>
- *    this option is specified the properties must contain a password.<br>
- * <br>
- * Report<br>
- * ------<br>
- * Report items are printed on a single line with an action flag followed by<br>
- * the relative path of the file or S3 object. The flag meanings are...<br>
- * N: A new file/object will be created<br>
- * U: An existing file/object has changed and will be updated<br>
- * D: A file/object existing on the target does not exist on the source and<br>
- *    will be deleted.<br>
- * d: A file/object existing on the target does not exist on the source but<br>
- *    because the --keepold option was set it was not deleted.<br>
- * R: An existing file/object has changed more recently on the target than on the<br>
- *    source. The target version will be reverted to the older source version<br>
- * r: An existing file/object has changed more recently on the target than on the<br>
- *    source but because the --keepold option was set it was not reverted.<br>
- * -: The file identical locally and in S3, no action is necessary.<br>
- * F: A file identical locally and in S3 was updated due to the Force option.<br>
- * </code>
- * <p>
- * This application should be useful in its own right, but is also intended to  
- * serve as an example of using the jets3t {@link S3Service} single-threaded interface.
+ * For more information and help please see the 
+ * <a href="http://jets3t.dev.java.net/synchronize.html">Synchronize Guide</a>.
  * 
  * @author James Murty
  */
@@ -135,7 +64,7 @@ public class Synchronize {
     private boolean doAction = false; // Files will only be transferred if true. 
     private boolean isQuiet = false; // Report will only include summary of actions if true.
     private boolean isForce = false; // Files will be overwritten when unchanged if true.
-    private boolean isKeepOld = false; // Obsolete files will not be deleted if true.
+    private boolean isKeepFiles = false; // Files will not be replaced/deleted if true.
     private boolean isGzipEnabled = false; // Files will be gzipped prior to upload if true.
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
     
@@ -146,18 +75,18 @@ public class Synchronize {
      * @param doAction      
      * @param isQuiet       
      * @param isForce       
-     * @param isKeepOld     
+     * @param isKeepFiles     
      * @param isGzipEnabled 
      * @param isEncryptionEnabled   
      */
     public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, boolean isForce, 
-        boolean isKeepOld, boolean isGzipEnabled, boolean isEncryptionEnabled) 
+        boolean isKeepFiles, boolean isGzipEnabled, boolean isEncryptionEnabled) 
     {
         this.s3Service = s3Service;
         this.doAction = doAction;
         this.isQuiet = isQuiet;
         this.isForce = isForce;
-        this.isKeepOld = isKeepOld;
+        this.isKeepFiles = isKeepFiles;
         this.isGzipEnabled = isGzipEnabled;
         this.isEncryptionEnabled = isEncryptionEnabled;
     }
@@ -372,7 +301,7 @@ public class Synchronize {
                 }
             } else if (disrepancyResults.updatedOnServerKeys.contains(keyPath)) {
                 // This file has been updated on the server-side.
-                if (isKeepOld) {
+                if (isKeepFiles) {
                     printLine("r " + keyPath);                    
                 } else {
                     printLine("R " + keyPath);
@@ -406,7 +335,7 @@ public class Synchronize {
             String keyPath = (String) serverOnlyIter.next();
             S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
 
-            if (isKeepOld) {
+            if (isKeepFiles) {
                 printLine("d " + keyPath);                
             } else {
                 printLine("D " + keyPath);
@@ -419,8 +348,8 @@ public class Synchronize {
         System.out.println(
             "New files: " + disrepancyResults.onlyOnClientKeys.size() +
             ", Updated: " + disrepancyResults.updatedOnClientKeys.size() +
-            (isKeepOld?
-                ", Kept though old: " + 
+            (isKeepFiles?
+                ", Kept: " + 
                 (disrepancyResults.updatedOnServerKeys.size() + disrepancyResults.onlyOnServerKeys.size())                    
                 :                 
                 ", Reverted: " + disrepancyResults.updatedOnServerKeys.size() +
@@ -498,7 +427,7 @@ public class Synchronize {
                 }
             } else if (disrepancyResults.updatedOnClientKeys.contains(keyPath)) {
                 // This file has been updated on the client-side.
-                if (isKeepOld) {
+                if (isKeepFiles) {
                     printLine("r " + keyPath);                    
                 } else {
                     printLine("R " + keyPath);
@@ -538,7 +467,7 @@ public class Synchronize {
             String keyPath = (String) clientOnlyIter.next();
             File file = (File) filesMap.get(keyPath);
             
-            if (isKeepOld) {
+            if (isKeepFiles) {
                 printLine("d " + keyPath);                
             } else {
                 printLine("D " + keyPath);
@@ -562,8 +491,8 @@ public class Synchronize {
         System.out.println(
             "New files: " + disrepancyResults.onlyOnServerKeys.size() +
             ", Updated: " + disrepancyResults.updatedOnServerKeys.size() +
-            (isKeepOld? 
-                ", Kept though old: " + 
+            (isKeepFiles? 
+                ", Kept: " + 
                 (disrepancyResults.updatedOnClientKeys.size() + disrepancyResults.onlyOnClientKeys.size())                    
                 : 
                 ", Reverted: " + disrepancyResults.updatedOnClientKeys.size() +
@@ -706,9 +635,8 @@ public class Synchronize {
         System.out.println("   Force tool to perform synchronization even when files are up-to-date.");
         System.out.println("   This may be useful if you need to update metadata or timestamps in S3.");
         System.out.println("");
-        System.out.println("-k | --keepold");
-        System.out.println("   Keep outdated files instead of replacing/removing them. This option");
-        System.out.println("   will prevent already backed-up files from being reverted or deleted.");
+        System.out.println("-k | --keepfiles");
+        System.out.println("   Keep files on destination instead of reverting/removing them.");
         System.out.println("");
         System.out.println("-g | --gzip");
         System.out.println("   Compress (GZip) files when backing up and Decompress gzipped files");
@@ -727,11 +655,11 @@ public class Synchronize {
         System.out.println("D: A file/object existing on the target does not exist on the source and");
         System.out.println("   will be deleted.");
         System.out.println("d: A file/object existing on the target does not exist on the source but");
-        System.out.println("   because the --keepold option was set it was not deleted.");
+        System.out.println("   because the --keepfiles option was set it was not deleted.");
         System.out.println("R: An existing file/object has changed more recently on the target than on the");
         System.out.println("   source. The target version will be reverted to the older source version");
         System.out.println("r: An existing file/object has changed more recently on the target than on the");
-        System.out.println("   source but because the --keepold option was set it was not reverted.");
+        System.out.println("   source but because the --keepfiles option was set it was not reverted.");
         System.out.println("-: The file identical locally and in S3, no action is necessary.");
         System.out.println("F: A file identical locally and in S3 was updated due to the Force option.");
         System.out.println();
@@ -755,7 +683,7 @@ public class Synchronize {
         boolean doAction = true;
         boolean isQuiet = false;
         boolean isForce = false;
-        boolean isKeepOld = false;
+        boolean isKeepFiles = false;
         boolean isGzipEnabled = false;
         boolean isEncryptionEnabled = false;
         
@@ -772,8 +700,8 @@ public class Synchronize {
                     isQuiet = true; 
                 } else if (arg.equalsIgnoreCase("-f") || arg.equalsIgnoreCase("--force")) {
                     isForce = true; 
-                } else if (arg.equalsIgnoreCase("-k") || arg.equalsIgnoreCase("--keepold")) {
-                    isKeepOld = true; 
+                } else if (arg.equalsIgnoreCase("-k") || arg.equalsIgnoreCase("--keepfiles")) {
+                    isKeepFiles = true; 
                 } else if (arg.equalsIgnoreCase("-g") || arg.equalsIgnoreCase("--gzip")) {
                     isGzipEnabled = true; 
                 } else if (arg.equalsIgnoreCase("-c") || arg.equalsIgnoreCase("--crypto")) {
@@ -835,7 +763,7 @@ public class Synchronize {
         // Perform the UPLOAD/DOWNLOAD.
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials),
-            doAction, isQuiet, isForce, isKeepOld, isGzipEnabled, isEncryptionEnabled);
+            doAction, isQuiet, isForce, isKeepFiles, isGzipEnabled, isEncryptionEnabled);
         client.run(s3Path, localDirectory, actionCommand, properties.getProperty("password"));
     }
         

@@ -18,6 +18,11 @@
  */
 package org.jets3t.service.acl;
 
+/**
+ * Simple container object to combine a grantee object with a permission object.
+ * 
+ * @author James Murty
+ */
 public class GrantAndPermission {
 	private GranteeInterface grantee = null;
 	private Permission permission = null;

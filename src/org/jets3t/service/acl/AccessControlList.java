@@ -27,10 +27,35 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Owner;
 
+/**
+ * Represents an Amazon S3 Access Control List (ACL), including the ACL's set of grantees and the
+ * permissions assigned to each grantee.
+ * 
+ * @author James Murty
+ *
+ */
 public class AccessControlList {	
+    /**
+     * A pre-canned REST ACL to set an object's permissions to Private (only owner can read/write)
+     */
 	public static final AccessControlList REST_CANNED_PRIVATE = new AccessControlList(); 
-	public static final AccessControlList REST_CANNED_PUBLIC_READ = new AccessControlList(); 
-	public static final AccessControlList REST_CANNED_PUBLIC_READ_WRITE = new AccessControlList(); 
+
+    /**
+     * A pre-canned REST ACL to set an object's permissions to Public Read (anyone can read, only owner 
+     * can write)
+     */
+	public static final AccessControlList REST_CANNED_PUBLIC_READ = new AccessControlList();
+    
+    /**
+     * A pre-canned REST ACL to set an object's permissions to Public Read and Write (anyone can 
+     * read/write)
+     */
+	public static final AccessControlList REST_CANNED_PUBLIC_READ_WRITE = new AccessControlList();
+    
+    /**
+     * A pre-canned REST ACL to set an object's permissions to Authenticated Read (authenticated Amazon 
+     * users can read, only owner can write)
+     */
 	public static final AccessControlList REST_CANNED_AUTHENTICATED_READ = new AccessControlList(); 
 	
 	private HashSet grants = new HashSet();
@@ -48,10 +73,26 @@ public class AccessControlList {
 		this.owner = owner;
 	}
 
+    /**
+     * Adds a grantee to the ACL with the given permission. If this ACL already contains the grantee
+     * (ie the same grantee object) the permission for the grantee will be updated.
+     * 
+     * @param grantee
+     *        the grantee to whom the permission will apply
+     * @param permission
+     *        the permission to apply to the grantee.
+     */
 	public void grantPermission(GranteeInterface grantee, Permission permission) {
 		grants.add(new GrantAndPermission(grantee, permission));
 	}
 	
+    /**
+     * Adds a set of grantee/permission pairs to the ACL, where each item in the set is a
+     * {@link GrantAndPermission} object.
+     *  
+     * @param grants
+     *        a set of {@link GranteeAndPermission} objects 
+     */
 	public void grantAllPermissions(Set grants) {
 		for (Iterator iter = grants.iterator(); iter.hasNext();) {
 			GrantAndPermission gap = (GrantAndPermission) iter.next();
@@ -59,6 +100,12 @@ public class AccessControlList {
 		}
 	}
 	
+    /**
+     * Revokes the permissions of a grantee by removing the grantee from the ACL. 
+     *  
+     * @param grantee
+     *        the grantee to remove from this ACL.
+     */
 	public void revokeAllPermissions(GranteeInterface grantee) {
 		ArrayList grantsToRemove = new ArrayList();
 		for (Iterator iter = grants.iterator(); iter.hasNext();) {
@@ -70,13 +117,17 @@ public class AccessControlList {
 		grants.removeAll(grantsToRemove);
 	}
 
+    /**
+     * @return 
+     * the set of {@link GrantAndPermission} objects in this ACL. 
+     */
 	public Set getGrants() {
 		return grants;
 	}	
 	
     /**
      * @return
-     * an XML representation of the Access Control List object suitable to send to S3.
+     * an XML representation of the Access Control List object, suitable to send in a request to S3. 
      */
     /*
      * This method is a nasty hack - we should build the XML document in a more professional way...
@@ -116,6 +167,10 @@ public class AccessControlList {
 		return sb.toString();
 	}
     
+    /**
+     * @return
+     * true if this ACL is a REST pre-canned one.
+     */
     public boolean isCannedRestACL() {
         return (this.equals(AccessControlList.REST_CANNED_AUTHENTICATED_READ)
             || this.equals(AccessControlList.REST_CANNED_PRIVATE)

@@ -18,8 +18,19 @@
  */
 package org.jets3t.service.acl;
 
+/**
+ * Represents a grantee (entity) who can be assigned access permissions in an {@link AccessControlList}.
+ * All grantees have an ID of some kind (though the format of the ID can differ depending on the kind
+ * of grantee) and can be represented as an XML fragment suitable for use by the S3 REST implementation.
+ *    
+ * @author James Murty
+ */
 public interface GranteeInterface {
 	
+    /**
+     * @return
+     * the grantee represented in and XML fragment compatible with the S3 REST interface.
+     */
 	public String toXml();
 	
 	public void setIdentifier(String id);

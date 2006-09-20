@@ -18,13 +18,34 @@
  */
 package org.jets3t.service.acl;
 
+/**
+ * Represents a grantee identified by their canonical Amazon ID, which is something along the lines
+ * of an Amazon-internal ID specific to a user. For example, Amazon can map a grantee identified
+ * by an email address to a canonical ID.
+ * <p>
+ * Canonical grantees may have an associated Display Name, which is a human-friendly name that
+ * Amazon has linked to the canonical ID (eg the user's login name).  
+ * 
+ * @author James Murty
+ *
+ */
 public class CanonicalGrantee implements GranteeInterface {
 	private String id = null;
 	private String displayName = null;
 	
+    /**
+     * Default constructor
+     * <p>
+     * <b>Warning!</b> If created with this constructor this class will not
+     * represent a valid grantee until the identifier is set. 
+     */
 	public CanonicalGrantee() {
 	}
 	
+    /**
+     * Constructs a grantee with the given canonical ID.
+     * @param identifier
+     */
 	public CanonicalGrantee(String identifier) {
 		this.setIdentifier(identifier);
 	}

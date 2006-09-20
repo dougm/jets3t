@@ -1,3 +1,21 @@
+/*
+ * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
+ * This is a java.net project, see https://jets3t.dev.java.net/
+ * 
+ * Copyright 2006 James Murty
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
+ */
 package org.jets3t.service;
 
 import java.io.ByteArrayInputStream;
@@ -12,11 +30,32 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+/**
+ * Utility class to locate jets3t-specific properties files and make them available from a central place.
+ * <p>
+ * Properties are loaded from sources in the following order. 
+ * <ol>
+ * <li><tt>jets3t.properties</tt> file in the classpath</li>
+ * <li><tt>jets3t.properties</tt> file in the current working directory</li>
+ * <li>System Properties</li>
+ * </ol>
+ * Properties sourced from later locations over-ride those sourced from prior locations. For example,
+ * if a property exists in <tt>jets3t.properties</tt> in the classpath and is also set as a system
+ * property, the system property version will be used.    
+ * 
+ * @author James Murty
+ */
 public class Jets3tProperties {
     private static final Log log = LogFactory.getLog(Jets3tProperties.class);
     
+    /**
+     * Stores the jets3t properties.
+     */
     private static Properties properties = new Properties();
 
+    /*
+     * Load properties from sources in order.
+     */
     static {       
         // Load properties from classpath.
         if (ClassLoader.getSystemResource(Constants.JETS3T_PROPERTIES_FILENAME) != null) {
@@ -56,6 +95,14 @@ public class Jets3tProperties {
         }
     }
     
+    /**
+     * Reads properties from an InputStream and stores them in this class's properties object. 
+     * If a new property already exists, the property value is replaced.
+     *  
+     * @param is
+     * @param propertiesSource
+     * @throws IOException
+     */
     private static void loadAndReplaceProperties(InputStream is, String propertiesSource) 
         throws IOException 
     {
@@ -74,12 +121,26 @@ public class Jets3tProperties {
         }
     }
     
+    /**
+     * @param propertyName
+     * @param defaultValue
+     * @return 
+     * the named Property value as a string if the property is set, otherwise returns the default value.
+     */
     public static String getStringProperty(String propertyName, String defaultValue) {
         String stringValue = properties.getProperty(propertyName, defaultValue);
         log.debug(propertyName + "=" + stringValue);
         return stringValue;
     }
-    
+
+    /**
+     * 
+     * @param propertyName
+     * @param defaultValue
+     * @return
+     * @throws NumberFormatException
+     * the named Property value as a long if the property is set, otherwise returns the default value.
+     */
     public static long getLongProperty(String propertyName, long defaultValue) 
         throws NumberFormatException 
     {
@@ -88,6 +149,14 @@ public class Jets3tProperties {
         return Long.parseLong(longValue);
     }
         
+    /**
+     * 
+     * @param propertyName
+     * @param defaultValue
+     * @return
+     * @throws NumberFormatException
+     * the named Property value as an int if the property is set, otherwise returns the default value.
+     */
     public static int getIntProperty(String propertyName, int defaultValue) 
         throws NumberFormatException 
     {
@@ -96,6 +165,14 @@ public class Jets3tProperties {
         return Integer.parseInt(intValue);
     }
 
+    /**
+     * 
+     * @param propertyName
+     * @param defaultValue
+     * @return
+     * @throws IllegalArgumentException
+     * the named Property value as a boolean if the property is set, otherwise returns the default value.
+     */
     public static boolean getBoolProperty(String propertyName, boolean defaultValue) 
         throws IllegalArgumentException 
     {

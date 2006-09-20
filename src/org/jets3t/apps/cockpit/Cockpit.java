@@ -124,24 +124,11 @@ import org.jets3t.service.utils.ServiceUtils;
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
- * Cockpit is a graphical application for viewing and managing the contents of an 
- * Amazon S3 account.
+ * Cockpit is a graphical Java application for viewing and managing the contents of an Amazon S3 account.
+ * For more information and help please see the 
+ * <a href="http://jets3t.dev.java.net/cockpit.html">Cockpit Guide</a>.
  * <p>
- * Cockpit offers the following capabilities:
- * <ul>
- * <li>Create and delete buckets in your account</li>
- * <li>Manage the contents of your own buckets, and publicly-accessibly third-party buckets</li>
- * <li>Upload files to S3 using drag-and-drop, download them using the menus</li>
- * <li>Change access permissions for S3 buckets and objects</li>
- * <li>Automatically gzip and/or encrypt files sent to S3</li>
- * <li>Automatically gunzip and/or decrypt files retrieved from S3</li>
- * <li>Store your AWS login credentials in encrypted files</li>
- * </ul>
- * <p>
- * The program can be run as a stand-alone application or deployed as an applet.
- * <p>
- * This application should be useful in its own right, but is also intended to  
- * serve as an example of using the jets3t {@link S3ServiceMulti} multi-threaded interface.
+ * This is the Cockpit application class; it may be run as a stand-alone application or as an Applet.
  * 
  * @author jmurty
  */
@@ -151,13 +138,17 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private static final Log log = LogFactory.getLog(Cockpit.class);
     
     public static final String APPLICATION_TITLE = "jets3t Cockpit";
-    private File preferencesDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
+    
+    private File rememberedLoginsDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
     
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     
+    /**
+     * Multi-threaded S3 service used by the application.
+     */
     private S3ServiceMulti s3ServiceMulti = null;
     
     private Frame ownerFrame = null;
@@ -219,16 +210,20 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private final String DOWNLOAD_NEW_AND_CHANGED_FILES = "Download new and changed file(s)";
     private final String DOWNLOAD_ALL_FILES = "Download all files";
     
+    /**
+     * Flag used to indicate the "viewing objects" application state.
+     */
     private boolean viewingObjectProperties = false;
     
+    
     /**
-     * Constructor used when this application is run as an Applet.
+     * Constructor to run this application as an Applet.
      */
     public Cockpit() {
     }
             
     /**
-     * Constructor used when this application is run in a stand-alone window.
+     * Constructor to run this application in a stand-alone window.
      * 
      * @param ownerFrame the frame the application will be displayed in
      * @throws S3ServiceException
@@ -240,9 +235,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     /**
-     * Initialises the application's GUI elements and Preferences directory.
-     * <p>
-     * When run as an applet a root owner frame is also found or created. 
+     * Prepares application to run as a GUI by finding/creating a root owner JFrame, and 
+     * (if necessary) creating a directory for storing remembered logins.
      */
     public void init() {
         super.init();
@@ -261,9 +255,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         
         // Ensure the preferences directory exists.
-        if (!preferencesDirectory.exists()) {
-            log.info("Creating preferences directory " + preferencesDirectory);
-            preferencesDirectory.mkdir();
+        if (!rememberedLoginsDirectory.exists()) {
+            log.info("Creating remembered logins directory " + rememberedLoginsDirectory);
+            rememberedLoginsDirectory.mkdir();
         }
         
         // Initialise the GUI.
@@ -642,7 +636,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @param statusText
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      * @param currentValue
-     *        value representing how far through the task we are
+     *        value representing how far through the task we are (relative to min and max values)
      */
     private void updateProgressDisplay(final String statusText, final long currentValue) {
         if (progressDisplay != null && progressDisplay.isActive()) {
@@ -665,7 +659,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
         
     /**
-     * Event handler for this application. 
+     * Event handler for this application, handles all menu items.
      */
     public void actionPerformed(ActionEvent event) {
         // Service Menu Events            
@@ -776,7 +770,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private void loginEvent() {
         try {
             final AWSCredentials awsCredentials = 
-                LoginDialog.showDialog(ownerFrame, preferencesDirectory);
+                LoginDialog.showDialog(ownerFrame, rememberedLoginsDirectory);
 
             s3ServiceMulti = new S3ServiceMulti(new RestS3Service(awsCredentials), this);
 
