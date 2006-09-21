@@ -34,7 +34,7 @@ public class CanonicalGrantee implements GranteeInterface {
 	private String displayName = null;
 	
     /**
-     * Default constructor
+     * Default constructor.
      * <p>
      * <b>Warning!</b> If created with this constructor this class will not
      * represent a valid grantee until the identifier is set. 

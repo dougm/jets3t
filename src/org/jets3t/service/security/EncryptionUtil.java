@@ -26,7 +26,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
-import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -39,6 +38,11 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESedeKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 
+/**
+ * Utility class to handle encryption and decryption in the jets3t toolkit. 
+ * 
+ * @author James Murty
+ */
 public class EncryptionUtil {
     private static final String KEY_BASE = "Ç È¾Ñr=™QÎ yªS4C.$SØñtûˆ‡Ií[ÆOè…€u@Ó©dFT«ŠÚ‡NhèvÇÑ£lž^uÓÌ¹+tÏ:ËK7Q¤°H>ã:iæuäïŸQî#Ý´1ÑzjµÚÜ)1oäÖM¯5DF’ÇÙ.#c;øáðöíB½Ævª";
     public static final String DEFAULT_ENCRYPTION_SCHEME = "DESede";
@@ -50,6 +54,24 @@ public class EncryptionUtil {
     private SecretKey key = null;
     private IvParameterSpec ivSpec = null;
 
+    /**
+     * Constructs class configured with the provided password, and set up to use the encryption
+     * method specified.  
+     * 
+     * @param encryptionKey
+     *        the password to use for encryption/decryption.
+     * @param encryptionScheme
+     *        the Java name of an encryption scheme to use, such as DESede
+     * @param blockMode
+     *        the Java name of an encryption block mode to use, such as CBC
+     * @param paddingMode
+     *        the Java name of an encryption padding mode to use, such as PKCS5Padding.
+     * 
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     * @throws InvalidKeySpecException
+     */
     public EncryptionUtil(String encryptionKey, String encryptionScheme, String blockMode,
         String paddingMode) throws InvalidKeyException, NoSuchAlgorithmException,
         NoSuchPaddingException, InvalidKeySpecException {
@@ -68,11 +90,38 @@ public class EncryptionUtil {
         algorithm = encryptionScheme + "/" + blockMode + "/" + paddingMode;
     }
 
+    /**
+     * Constructs class configured with the provided password, and set up to use the default encryption
+     * method: Triple DES (DESede/CBC/PKCS5Padding)
+     * 
+     * @param encryptionKey
+     *        the password to use for encryption/decryption.
+     *        
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     * @throws InvalidKeySpecException
+     */
     public EncryptionUtil(String encryptionKey) throws InvalidKeyException,
         NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException {
         this(encryptionKey, DEFAULT_ENCRYPTION_SCHEME, DEFAULT_BLOCK_MODE, DEFAULT_PADDING_MODE);
     }
 
+    /**
+     * Encrypts a UTF8 string to byte data.
+     * 
+     * @param data
+     * @return
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws UnsupportedEncodingException
+     * @throws InvalidKeySpecException
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public byte[] encrypt(String data) throws IllegalStateException, IllegalBlockSizeException,
         BadPaddingException, UnsupportedEncodingException, InvalidKeySpecException,
         InvalidKeyException, InvalidAlgorithmParameterException, 
@@ -83,6 +132,20 @@ public class EncryptionUtil {
         return cipher.doFinal(data.getBytes(UNICODE_FORMAT));
     }
 
+    /**
+     * Decrypts byte data to a UTF8 string.
+     * 
+     * @param data
+     * @return
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws UnsupportedEncodingException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public String decryptString(byte[] data) throws InvalidKeyException,
         InvalidAlgorithmParameterException, UnsupportedEncodingException, IllegalStateException,
         IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
@@ -92,6 +155,22 @@ public class EncryptionUtil {
         return new String(cipher.doFinal(data), UNICODE_FORMAT);
     }
 
+    /**
+     * Decrypts a UTF8 string.
+     * 
+     * @param data
+     * @param startIndex
+     * @param endIndex
+     * @return
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws UnsupportedEncodingException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public String decryptString(byte[] data, int startIndex, int endIndex)
         throws InvalidKeyException, InvalidAlgorithmParameterException,
         UnsupportedEncodingException, IllegalStateException, IllegalBlockSizeException,
@@ -102,6 +181,19 @@ public class EncryptionUtil {
         return new String(cipher.doFinal(data, startIndex, endIndex), UNICODE_FORMAT);
     }
 
+    /**
+     * Encrypts byte data to bytes.
+     * 
+     * @param data
+     * @return
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public byte[] encrypt(byte[] data) throws IllegalStateException, IllegalBlockSizeException,
         BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, 
         NoSuchAlgorithmException, NoSuchPaddingException
@@ -111,6 +203,20 @@ public class EncryptionUtil {
         return cipher.doFinal(data);
     }
 
+    /**
+     * Decrypts byte data to bytes.
+     * 
+     * @param data
+     * @return
+     * decrypted data.
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public byte[] decrypt(byte[] data) throws InvalidKeyException,
         InvalidAlgorithmParameterException, IllegalStateException, IllegalBlockSizeException,
         BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
@@ -120,6 +226,22 @@ public class EncryptionUtil {
         return cipher.doFinal(data);
     }
 
+    /**
+     * Decrypts a byte data range to bytes.
+     *  
+     * @param data
+     * @param startIndex
+     * @param endIndex
+     * @return
+     * decrypted data.
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public byte[] decrypt(byte[] data, int startIndex, int endIndex) throws InvalidKeyException,
         InvalidAlgorithmParameterException, IllegalStateException, IllegalBlockSizeException,
         BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
@@ -129,6 +251,17 @@ public class EncryptionUtil {
         return cipher.doFinal(data, startIndex, endIndex);
     }
 
+    /**
+     * Wraps an input stream in an encrypting cipher stream. 
+     * 
+     * @param is
+     * @return
+     * encrypting cipher input stream.
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public CipherInputStream encrypt(InputStream is) throws InvalidKeyException,
         InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
     {
@@ -137,6 +270,17 @@ public class EncryptionUtil {
         return new CipherInputStream(is, cipher);
     }
 
+    /**
+     * Wraps an input stream in an decrypting cipher stream.
+     * 
+     * @param is
+     * @return
+     * decrypting cipher input stream.
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public CipherInputStream decrypt(InputStream is) throws InvalidKeyException,
         InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
     {
@@ -145,6 +289,17 @@ public class EncryptionUtil {
         return new CipherInputStream(is, cipher);
     }
 
+    /**
+     * Wraps an output stream in an encrypting cipher stream.
+     * 
+     * @param os
+     * @return
+     * encrypting cipher output stream.
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public CipherOutputStream encrypt(OutputStream os) throws InvalidKeyException,
         InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
     {
@@ -153,6 +308,17 @@ public class EncryptionUtil {
         return new CipherOutputStream(os, cipher);
     }
 
+    /**
+     * Wraps an output stream in a decrypting cipher stream.
+     * 
+     * @param os
+     * @return
+     * decrypting cipher output stream.
+     * @throws InvalidKeyException
+     * @throws InvalidAlgorithmParameterException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     */
     public CipherOutputStream decrypt(OutputStream os) throws InvalidKeyException,
         InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
     {
@@ -161,19 +327,23 @@ public class EncryptionUtil {
         return new CipherOutputStream(os, cipher);
     }
 
+    /**
+     * @return
+     * the Java name of the cipher algorithm being used by this class.
+     */
     public String getAlgorithm() {
         return algorithm;
     }
 
-    public static String generateRandomKeyBase(int length) {
-        Random random = new Random();
-        byte keyBaseBytes[] = new byte[length];
-        random.nextBytes(keyBaseBytes);
-        String keyBase = new String(keyBaseBytes);
-        // Replace troublesome characters.
-        keyBase.replace('\n', '-');
-        keyBase.replace('\\', '/');
-        return keyBase;
-    }
+//    protected static String generateRandomKeyBase(int length) {
+//        Random random = new Random();
+//        byte keyBaseBytes[] = new byte[length];
+//        random.nextBytes(keyBaseBytes);
+//        String keyBase = new String(keyBaseBytes);
+//        // Replace troublesome characters.
+//        keyBase.replace('\n', '-');
+//        keyBase.replace('\\', '/');
+//        return keyBase;
+//    }
 
 }

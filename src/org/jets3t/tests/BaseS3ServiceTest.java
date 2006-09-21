@@ -46,6 +46,12 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.Mimetypes;
 
+/**
+ * Runs S3Service-related tests. S3Service implementations should implement more specific
+ * versions of this class.
+ * 
+ * @author James Murty
+ */
 public abstract class BaseS3ServiceTest extends TestCase {
     protected String TEST_PROPERTIES_FILENAME = "test.properties";
     protected AWSCredentials awsCredentials = null;

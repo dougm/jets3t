@@ -20,6 +20,14 @@ package org.jets3t.service.utils;
 
 import java.io.File;
 
+/**
+ * Utility class to contain known Mimetypes, and determine the mimetypes of files based on the file's
+ * extension.
+ *
+ * TODO There is much work to do here.
+ * 
+ * @author James Murty
+ */
 public class Mimetypes {
     // Public mimetypes.
     public static String MIMETYPE_XML = "application/xml";
@@ -30,7 +38,12 @@ public class Mimetypes {
     // Mimetypes specific to jetS3T.
     public static String MIMETYPE_JETS3T_DIRECTORY = "application/x-directory";
     
-
+    /**
+     * Guesses the mimetype of file data based on the file's extension. 
+     *  
+     * @param file
+     * @return
+     */
     public static String getMimetype(File file) {
         if (file.getName().endsWith(".html") || file.getName().endsWith(".htm")) {
             return MIMETYPE_HTML;

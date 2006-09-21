@@ -34,7 +34,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * <p>
  * This class must be extended by implementation classes that perform the communication with S3 via
  * a particular interface, such as REST or SOAP. Implementations provided with jets3t include 
- * {@link RestS3Service} and {@link SoapS3Service}.
+ * {@link org.jets3t.service.impl.rest.httpclient.RestS3Service} and 
+ * {@link org.jets3t.service.impl.soap.axis.SoapS3Service}.
  * <p>
  * Implementations of <code>S3Service</code> must be thread-safe as they will probably be used by
  * the multi-threaded service class {@link S3ServiceMulti}. 
@@ -484,8 +485,8 @@ public abstract class S3Service {
      * <p>
      * This method can be performed by anonymous services.
      * 
-     * @param bucket
-     * the bucket containing the object to be deleted.
+     * @param bucketName
+     * the name of the bucket containing the object to be deleted.
      * @param objectKey
      * the key representing the object in S3.
      * @throws S3ServiceException
@@ -703,6 +704,8 @@ public abstract class S3Service {
     protected abstract S3Bucket[] listAllBucketsImpl() throws S3ServiceException;
     
     /**
+     * Lists objects in a bucket.
+     * 
      * <b>Implementation notes</b><p>
      * The implementation of this method is expected to return <b>all</b> the objects
      * in a bucket, not a subset. This may require repeating the S3 list operation if the
@@ -710,7 +713,7 @@ public abstract class S3Service {
      * is greater than <code>maxListingLength</code>.
      * <p>
      * 
-     * @param bucket
+     * @param bucketName
      * @param prefix
      * @param delimiter
      * @param maxListingLength
@@ -721,6 +724,8 @@ public abstract class S3Service {
         String delimiter, long maxListingLength) throws S3ServiceException;
 
     /**
+     * Creates a bucket.
+     * 
      * <b>Implementation notes</b><p>
      * The implementing method must populate the bucket object's metadata with the results of the 
      * operation before returning the object. It must also apply any <code>AccessControlList</code> 

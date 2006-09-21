@@ -138,8 +138,8 @@ public class Jets3tProperties {
      * @param propertyName
      * @param defaultValue
      * @return
-     * @throws NumberFormatException
      * the named Property value as a long if the property is set, otherwise returns the default value.
+     * @throws NumberFormatException
      */
     public static long getLongProperty(String propertyName, long defaultValue) 
         throws NumberFormatException 
@@ -154,8 +154,8 @@ public class Jets3tProperties {
      * @param propertyName
      * @param defaultValue
      * @return
-     * @throws NumberFormatException
      * the named Property value as an int if the property is set, otherwise returns the default value.
+     * @throws NumberFormatException
      */
     public static int getIntProperty(String propertyName, int defaultValue) 
         throws NumberFormatException 
@@ -170,8 +170,8 @@ public class Jets3tProperties {
      * @param propertyName
      * @param defaultValue
      * @return
-     * @throws IllegalArgumentException
      * the named Property value as a boolean if the property is set, otherwise returns the default value.
+     * @throws IllegalArgumentException
      */
     public static boolean getBoolProperty(String propertyName, boolean defaultValue) 
         throws IllegalArgumentException 

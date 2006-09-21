@@ -18,6 +18,11 @@
  */
 package org.jets3t.service.multithread;
 
+/**
+ * Listener for events produced by {@link S3ServiceMulti}.
+ * 
+ * @author James Murty
+ */
 public interface S3ServiceEventListener {
 
 	public void s3ServiceEventPerformed(CreateObjectsEvent event);

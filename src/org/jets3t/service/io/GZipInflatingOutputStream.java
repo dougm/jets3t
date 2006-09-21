@@ -26,10 +26,13 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 /**
- * This code is based on example code from 
- * {@link http://www.koders.com/java/fidE56B506DEAAC9F7FC1C841010C62BA43454CED49.aspx}.
+ * Output stream that wraps another stream and inflates (de-compresses) the underlying stream's
+ * data on-the-fly. This class provides only a basic implementation of GZip functionality.
+ * <p>
+ * This code is based on an example from: 
+ * http://www.koders.com/java/fidE56B506DEAAC9F7FC1C841010C62BA43454CED49.aspx.
  */
-public class GZipInflatingOutputStream extends OutputStream {
+public class GZipInflatingOutputStream extends OutputStream implements OutputStreamWrapper {
     /*
      * GZIP header magic number.
      */
@@ -258,6 +261,10 @@ public class GZipInflatingOutputStream extends OutputStream {
             int low = bytesToShort(b, offset);
             int high = bytesToShort(b, offset + 2);
             return ((long)high << 16) | low;
+    }
+
+    public OutputStream getWrappedOutputStream() {
+        return this.outputStream;
     }
     
 }

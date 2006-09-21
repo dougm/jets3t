@@ -20,8 +20,18 @@ package org.jets3t.service.io;
 
 import java.io.InputStream;
 
+/**
+ * Interface used by input streams that wrap other input streams, so that the underlying input
+ * stream can be retrieved.
+ * 
+ * @author James Murty
+ */
 public interface InputStreamWrapper {
 
+    /**
+     * @return
+     * the underlying input stream wrapped by a class. 
+     */
 	public InputStream getWrappedInputStream();
 	
 }

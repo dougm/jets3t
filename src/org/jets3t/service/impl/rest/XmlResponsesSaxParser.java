@@ -47,11 +47,21 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
 
+/**
+ * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these 
+ * documents into jets3t objects.
+ * 
+ * @author James Murty
+ */
 public class XmlResponsesSaxParser {
     private static final Log log = LogFactory.getLog(XmlResponsesSaxParser.class);
 
     private XMLReader xr = null;
 
+    /**
+     * Constructs the XML SAX parser.  
+     * @throws S3ServiceException
+     */
     public XmlResponsesSaxParser() throws S3ServiceException {
         // Ensure we can load the XML Reader.
         try {
@@ -68,7 +78,16 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    public void parseXmlInputStream(DefaultHandler handler, InputStream inputStream)
+    /**
+     * Parses an XML document from an input stream using a document handler.
+     * @param handler
+     *        the handler for the XML document
+     * @param inputStream
+     *        an input stream containing the XML document to parse
+     * @throws S3ServiceException
+     *        any parsing, IO or other exceptions are wrapped in an S3ServiceException.
+     */
+    protected void parseXmlInputStream(DefaultHandler handler, InputStream inputStream)
         throws S3ServiceException
     {
         try {
@@ -89,6 +108,12 @@ public class XmlResponsesSaxParser {
         }
     }
 
+    /**
+     * Parses a ListBucket response XML document from an input stream.
+     * @param inputStream
+     * @return
+     * @throws S3ServiceException
+     */
     public ListBucketHandler parseListBucketObjectsResponse(InputStream inputStream)
         throws S3ServiceException
     {
@@ -97,6 +122,12 @@ public class XmlResponsesSaxParser {
         return handler;
     }
 
+    /**
+     * Parses a ListAllMyBuckets response XML document from an input stream.
+     * @param inputStream
+     * @return
+     * @throws S3ServiceException
+     */
     public ListAllMyBucketsHandler parseListMyBucketsResponse(InputStream inputStream)
         throws S3ServiceException
     {
@@ -105,6 +136,12 @@ public class XmlResponsesSaxParser {
         return handler;
     }
 
+    /**
+     * Parses an AccessControlListHandler response XML document from an input stream.
+     * @param inputStream
+     * @return
+     * @throws S3ServiceException
+     */
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream)
         throws S3ServiceException
     {
@@ -117,26 +154,23 @@ public class XmlResponsesSaxParser {
     // Handlers //
     // ////////////
 
+    /**
+     * Handler for ListBucket response XML documents.
+     * The document is parsed into {@link S3Object}s available via the {@link #getObjects()} method.
+     */
     public class ListBucketHandler extends DefaultHandler {
         private S3Object currentObject = null;
-
         private S3Owner currentOwner = null;
+        private StringBuffer currText = null;
 
         private List objects = new ArrayList();
 
-        private StringBuffer currText = null;
-
         // Listing properties.
         private String bucketName = null;
-
         private String requestPrefix = null;
-
         private String requestMarker = null;
-
         private long requestMaxKeys = 0;
-
         private boolean listingTruncated = false;
-
         private String lastKey = null;
 
         public ListBucketHandler() {
@@ -144,14 +178,27 @@ public class XmlResponsesSaxParser {
             this.currText = new StringBuffer();
         }
 
+        /**
+         * @return
+         * the last object key in the listing.
+         */
         public String getLastKey() {
             return lastKey;
         }
 
+        /**
+         * @return
+         * true if the listing document was truncated, and therefore only contained a subset of the
+         * available S3 objects.
+         */
         public boolean isListingTruncated() {
             return listingTruncated;
         }
 
+        /**
+         * @return
+         * the S3 objects contained in the listing.
+         */
         public S3Object[] getObjects() {
             return (S3Object[]) objects.toArray(new S3Object[] {});
         }
@@ -240,14 +287,19 @@ public class XmlResponsesSaxParser {
         }
     }
 
+    /**
+     * Handler for ListAllMyBuckets response XML documents.
+     * The document is parsed into {@link S3Bucket}s available via the {@link #getBuckets()} method.
+     * 
+     * @author James Murty
+     *
+     */
     public class ListAllMyBucketsHandler extends DefaultHandler {
         private S3Owner bucketsOwner = null;
-
         private S3Bucket currentBucket = null;
-
-        private List buckets = null;
-
         private StringBuffer currText = null;
+        
+        private List buckets = null;
 
         public ListAllMyBucketsHandler() {
             super();
@@ -255,6 +307,10 @@ public class XmlResponsesSaxParser {
             this.currText = new StringBuffer();
         }
 
+        /**
+         * @return
+         * the buckets listed in the document.
+         */
         public S3Bucket[] getBuckets() {
             return (S3Bucket[]) buckets.toArray(new S3Bucket[] {});
         }
@@ -303,15 +359,20 @@ public class XmlResponsesSaxParser {
         }
     }
 
+    /**
+     * Handler for AccessControlList response XML documents.
+     * The document is parsed into an {@link AccessControlList} object available via the 
+     * {@link #getAccessControlList()} method.
+     * 
+     * @author James Murty
+     *
+     */
     public class AccessControlListHandler extends DefaultHandler {
         private AccessControlList accessControlList = null;
 
         private S3Owner owner = null;
-
         private GranteeInterface currentGrantee = null;
-
         private Permission currentPermission = null;
-
         private StringBuffer currText = null;
 
         private boolean insideACL = false;
@@ -321,6 +382,10 @@ public class XmlResponsesSaxParser {
             this.currText = new StringBuffer();
         }
 
+        /**
+         * @return
+         * an object representing the ACL document.
+         */
         public AccessControlList getAccessControlList() {
             return accessControlList;
         }

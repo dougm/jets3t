@@ -37,6 +37,13 @@ import javax.crypto.NoSuchPaddingException;
 
 import org.jets3t.service.S3ServiceException;
 
+/**
+ * Class to contain the Amazon Web Services (AWS) credentials of a user. 
+ * This class also includes utility methods to store credentials to password-encrypted files, and
+ * retrieve credentials from these files.
+ * 
+ * @author James Murty
+ */
 public class AWSCredentials {
 	private static String KEYS_DELIMITER = "AWSKEYS"; 
 	
@@ -44,11 +51,29 @@ public class AWSCredentials {
 	private String awsSecretAccessKey = null;
 	private String friendlyName = null;
 	
+    /**
+     * Construct credentials.
+     * 
+     * @param awsAccessKey
+     *        AWS access key for an Amazon S3 account.
+     * @param awsSecretAccessKey
+     *        AWS secret key for an Amazon S3 acount.
+     */
 	public AWSCredentials(String awsAccessKey, String awsSecretAccessKey) {
 		this.awsAccessKey = awsAccessKey;
 		this.awsSecretAccessKey = awsSecretAccessKey;		
 	}
 
+    /**
+     * Construct credentials, and associate them with a human-friendly name.
+     * 
+     * @param awsAccessKey
+     *        AWS access key for an Amazon S3 account.
+     * @param awsSecretAccessKey
+     *        AWS secret key for an Amazon S3 acount.
+     * @param friendlyName
+     *        a name identifying the owner of the credentials, such as 'James'.
+     */
 	public AWSCredentials(String awsAccessKey, String awsSecretAccessKey, String friendlyName) {
 		this(awsAccessKey, awsSecretAccessKey);
 		this.friendlyName = friendlyName;
@@ -66,6 +91,24 @@ public class AWSCredentials {
 		return friendlyName;
 	}
 	
+    /**
+     * Encrypts files with the given password and saves them to a file.
+     * 
+     * @param password
+     *        the password used to encrypt the credentials.
+     * @param file
+     *        the file to write the encrypted credentials data to.
+     * 
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     * @throws InvalidKeySpecException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws InvalidAlgorithmParameterException
+     * @throws IOException
+     */
 	public void save(String password, File file) 
 		throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, 
 		IllegalStateException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, IOException 
@@ -95,6 +138,17 @@ public class AWSCredentials {
 		}
 	}
 	
+    /**
+     * Loads encrypted credentials from a file.
+     * 
+     * @param password
+     *        the password used to decrypt the credentials.
+     * @param file
+     *        the file in which encrypted credential data is stored.
+     * @return
+     * the decrypted credentials in an object.
+     * @throws S3ServiceException
+     */
 	public static AWSCredentials load(String password, File file) throws S3ServiceException {
 		BufferedInputStream fileIS = null;
 		try {
@@ -190,6 +244,9 @@ public class AWSCredentials {
 		System.out.println("Successfully saved AWS Credentials to " + encryptedFile);
 	}
 	
+    /**
+     * Prints help for the use of this class from the console (via the main method).
+     */
 	private static void printHelp() {
 		System.out.println("AWSCredentials <User Name> <File Path>");
 		System.out.println();

@@ -60,10 +60,27 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 
+/**
+ * SOAP implementation of an {@link S3Service} based on the 
+ * <a href="http://ws.apache.org/axis/">Apache Axis 1.4</a> library.  
+ * <p>
+ * <b>Note</b> This SOAP implementation does <b>not</b> support IO streaming uploads to S3. Any 
+ * documents uploaded by this implementation must fit inside memory allocated to the Java program
+ * running this class if OutOfMemory errors are to be avoided. 
+ * 
+ * @author James Murty
+ */
 public class SoapS3Service extends S3Service {
     private final Log log = LogFactory.getLog(SoapS3Service.class);
     private AmazonS3_ServiceLocator locator = null;
 
+    /**
+     * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
+     * sets the SOAP endpoint to use HTTP or HTTPS protocols.
+     * 
+     * @param awsCredentials
+     * @throws S3ServiceException
+     */
     public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         super(awsCredentials);
         
@@ -93,6 +110,14 @@ public class SoapS3Service extends S3Service {
         }
     }
     
+    /**
+     * Creates a HMAC/SHA1 signature for the given method and time.
+     * 
+     * @param method
+     * @param timestamp
+     * @return
+     * @throws ParseException
+     */
     private String makeSignature(String method, Calendar timestamp) throws ParseException {
         if (getAWSCredentials() == null) {
             return null;
@@ -144,6 +169,13 @@ public class SoapS3Service extends S3Service {
         return owner;
     }
     
+    /**
+     * Converts a SOAP object AccessControlPolicy to a jets3t AccessControlList.
+     * 
+     * @param policy
+     * @return
+     * @throws S3ServiceException
+     */
     private AccessControlList convertAccessControlTypes(AccessControlPolicy policy) 
         throws S3ServiceException 
     {
@@ -179,6 +211,13 @@ public class SoapS3Service extends S3Service {
         return acl;
     }
     
+    /**
+     * Converts a jets3t AccessControlList object to an array of SOAP Grant objects.
+     * 
+     * @param acl
+     * @return
+     * @throws S3ServiceException
+     */
     private Grant[] convertACLtoGrants(AccessControlList acl) throws S3ServiceException {
         if (acl == null) {
             return null;
@@ -223,6 +262,12 @@ public class SoapS3Service extends S3Service {
         return grants;
     }
 
+    /**
+     * Converts metadata information from a standard map to SOAP objects.
+     * 
+     * @param metadataMap
+     * @return
+     */
     private MetadataEntry[] convertMetadata(Map metadataMap) {
         MetadataEntry[] metadata = new MetadataEntry[metadataMap.size()];
         Iterator keyIter = metadataMap.keySet().iterator();
@@ -239,6 +284,9 @@ public class SoapS3Service extends S3Service {
         return metadata;
     }
     
+    ////////////////////////////////////////////////////////////////
+    // Methods below this point implement S3Service abstract methods
+    ////////////////////////////////////////////////////////////////    
     
     public S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
         log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());

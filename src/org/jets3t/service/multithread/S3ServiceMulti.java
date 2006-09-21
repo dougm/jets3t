@@ -39,20 +39,57 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
+/**
+ * S3 service wrapper that performs multiple S3 requests at a time using multi-threading and an
+ * underlying thread-safe {@link S3Service} implementation. 
+ * <p>
+ * This service is designed to be run in non-blocking threads that therefore communicates
+ * information about its progress by firing {@link ServiceEvent} events. It is the responsiblity
+ * of applications using this service to correctly handle these events - see the jets3t application 
+ * {@link org.jets3t.apps.cockpit.Cockpit} for examples of how an application can use these events.
+ * <p>
+ * For cases where the full power, and complexity, of the event notification mechanism is not required
+ * the simplified multi-threaded service {@link S3ServiceSimpleMulti} can be used.
+ * 
+ * @author James Murty
+ */
 public class S3ServiceMulti {
     private final Log log = LogFactory.getLog(S3ServiceMulti.class);
     
-    private static final long DEFAULT_SLEEP_TIME = 250;    
     private final ThreadGroup threadGroup = new ThreadGroup("S3ServiceMulti");    
     
     private S3Service s3Service = null;
     private ArrayList serviceEventListeners = new ArrayList();
     private final long sleepTime;
     
+    /**
+     * Construct a multi-threaded service based on an S3Service and which sends event notifications
+     * to an event listening class. EVENT_IN_PROGRESS events are sent at the default time interval
+     * of 250ms. 
+     * 
+     * @param s3Service
+     *        an S3Service implementation that will be used to perform S3 requests. This implementation
+     *        <b>must</b> be thread-safe.
+     * @param listener
+     *        the event listener which will handle event notifications.
+     */
     public S3ServiceMulti(S3Service s3Service, S3ServiceEventListener listener) {
-        this(s3Service, listener, DEFAULT_SLEEP_TIME);
+        this(s3Service, listener, 250);
     }
 
+    /**
+     * Construct a multi-threaded service based on an S3Service and which sends event notifications
+     * to an event listening class, and which will send EVENT_IN_PROGRESS events at the specified 
+     * time interval. 
+     * 
+     * @param s3Service
+     *        an S3Service implementation that will be used to perform S3 requests. This implementation
+     *        <b>must</b> be thread-safe.
+     * @param listener
+     *        the event listener which will handle event notifications.
+     * @param threadSleepTimeMS
+     *        how many milliseconds to wait before sending each EVENT_IN_PROGRESS notification event.
+     */
     public S3ServiceMulti(
         S3Service s3Service, S3ServiceEventListener listener, long threadSleepTimeMS) 
     {
@@ -61,22 +98,39 @@ public class S3ServiceMulti {
         this.sleepTime = threadSleepTimeMS;
     }    
 
+    /**
+     * @return
+     * the underlying S3 service implementation.
+     */
     public S3Service getS3Service() {
         return s3Service;
     }
     
+    /**
+     * @param listener
+     * an event listener to add to the event notification chain.
+     */
     public void addServiceEventListener(S3ServiceEventListener listener) {
         if (listener != null) {
             serviceEventListeners.add(listener);
         }
     }
 
+    /**
+     * @param listener
+     * an event listener to remove from the event notification chain.
+     */
     public void removeServiceEventListener(S3ServiceEventListener listener) {
         if (listener != null) {
             serviceEventListeners.remove(listener);
         }
     }
 
+    /**
+     * Sends a service event to each of the listeners registered with this service.
+     * @param event
+     * the event to send to this service's registered event listeners.
+     */
     protected void fireServiceEvent(ServiceEvent event) {
         if (serviceEventListeners.size() == 0) {
             log.warn("S3ServiceMulti invoked without any S3ServiceEventListener objects, this is dangerous!");
@@ -116,6 +170,12 @@ public class S3ServiceMulti {
         return s3Service.getAWSCredentials();
     }
     
+    /**
+     * Creates multiple buckets, and sends {@link CreateBucketsEvent} notification events.
+     * 
+     * @param buckets
+     * the buckets to create.
+     */
     public void createBuckets(final S3Bucket[] buckets) {
         final List incompletedBucketList = new ArrayList();
         
@@ -154,6 +214,14 @@ public class S3ServiceMulti {
         }).run();
     }
     
+    /**
+     * Creates multiple objects in a bucket, and sends {@link CreateObjectsEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket to create the objects in 
+     * @param objects
+     * the objects to create/upload.
+     */
     public void putObjects(final S3Bucket bucket, final S3Object[] objects) {    
         final List incompletedObjectsList = new ArrayList();
         final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
@@ -201,6 +269,14 @@ public class S3ServiceMulti {
         }).run();
     }
     
+    /**
+     * Deletes multiple objects from a bucket, and sends {@link DeleteObjectsEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects to be deleted
+     * @param objects
+     * the objects to delete
+     */
     public void deleteObjects(final S3Bucket bucket, final S3Object[] objects) {
         final List objectsToDeleteList = new ArrayList();
         
@@ -238,6 +314,15 @@ public class S3ServiceMulti {
         }).run();
     }
     
+    /**
+     * Retrieves multiple objects (details and data) from a bucket, and sends 
+     * {@link GetObjectsEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects to retrieve.
+     * @param objects
+     * the objects to retrieve.
+     */
     public void getObjects(S3Bucket bucket, S3Object[] objects) {
         String[] objectKeys = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
@@ -246,6 +331,15 @@ public class S3ServiceMulti {
         getObjects(bucket, objectKeys);
     }
     
+    /**
+     * Retrieves multiple objects (details and data) from a bucket, and sends 
+     * {@link GetObjectsEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects to retrieve.
+     * @param objectKeys
+     * the key names of the objects to retrieve.
+     */
     public void getObjects(final S3Bucket bucket, final String[] objectKeys) {
         final List pendingObjectKeysList = new ArrayList();
 
@@ -290,6 +384,15 @@ public class S3ServiceMulti {
         }).run();
     }
     
+    /**
+     * Retrieves details (but no data) about multiple objects from a bucket, and sends 
+     * {@link GetObjectHeadsEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects whose details will be retrieved.
+     * @param objects
+     * the objects with details to retrieve.
+     */
     public void getObjectsHeads(S3Bucket bucket, S3Object[] objects) {
         String[] objectKeys = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
@@ -298,6 +401,15 @@ public class S3ServiceMulti {
         getObjectsHeads(bucket, objectKeys);
     }
 
+    /**
+     * Retrieves details (but no data) about multiple objects from a bucket, and sends 
+     * {@link GetObjectHeadsEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects whose details will be retrieved.
+     * @param objectKeys
+     * the key names of the objects with details to retrieve.
+     */
     public void getObjectsHeads(final S3Bucket bucket, final String[] objectKeys) {
         final List pendingObjectKeysList = new ArrayList();
         
@@ -342,6 +454,15 @@ public class S3ServiceMulti {
         }).run();
     }
     
+    /**
+     * Retrieves Acess Control List (ACL) information for multiple objects from a bucket, and sends 
+     * {@link LookupACLEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects
+     * @param objects
+     * the objects to retrieve ACL details for.
+     */
     public void getObjectACLs(final S3Bucket bucket, final S3Object[] objects) {
         final List pendingObjectsList = new ArrayList();
         
@@ -378,6 +499,15 @@ public class S3ServiceMulti {
         }).run();
     }
 
+    /**
+     * Updates/sets Acess Control List (ACL) information for multiple objects in a bucket, and sends 
+     * {@link UpdateACLEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects
+     * @param objects
+     * the objects to update/set ACL details for.
+     */
     public void putACLs(final S3Bucket bucket, final S3Object[] objects) {
         final List pendingObjectsList = new ArrayList();
 
@@ -413,7 +543,18 @@ public class S3ServiceMulti {
             }
         }).run();
     }
-    
+
+    /**
+     * A convenience method to download multiple objects from S3 to pre-existing output streams, which
+     * is particularly useful for downloading objects to files. This method sends 
+     * {@link DownloadObjectsEvent} notification events.
+     * 
+     * @param bucket
+     * the bucket containing the objects
+     * @param objectAndOutputStream
+     * an array of S3Object/OutputStream pairs indicating the object to be downloaded, and the output 
+     * stream where the object's contents will be written.
+     */
     public void downloadObjects(final S3Bucket bucket, final S3ObjectAndOutputStream[] objectAndOutputStream) {
         // Initialise byte transfer monitoring variables.
         final long bytesCompleted[] = new long[] {0};
@@ -471,6 +612,11 @@ public class S3ServiceMulti {
     // Private classes used by the methods above //
     ///////////////////////////////////////////////
     
+    /**
+     * All the operation threads used by this service extend this class, which provides common
+     * methods used to retrieve the result object from a completed thread (via {@link #getResult()}
+     * or force a thread to be interrupted (via {@link #forceInterrupt}. 
+     */
     private abstract class AbstractThread implements Runnable {
         private boolean forceInterrupt = false;
 
@@ -491,6 +637,9 @@ public class S3ServiceMulti {
         }        
     }
     
+    /**
+     * Thread for performing the update/set of Access Control List information for an object.
+     */
     private class PutACLRunnable extends AbstractThread {
         private S3Bucket bucket = null;
         private S3Object s3Object = null;        
@@ -523,6 +672,9 @@ public class S3ServiceMulti {
         }
     }
 
+    /**
+     * Thread for retrieving Access Control List information for an object.
+     */
     private class GetACLRunnable extends AbstractThread {
         private S3Bucket bucket = null;
         private S3Object object = null;        
@@ -552,6 +704,9 @@ public class S3ServiceMulti {
         }
     }
 
+    /**
+     * Thread for deleting an object.
+     */
     private class DeleteObjectRunnable extends AbstractThread {
         private S3Bucket bucket = null;
         private S3Object object = null;        
@@ -580,6 +735,9 @@ public class S3ServiceMulti {
         }
     }
 
+    /**
+     * Thread for creating a bucket.
+     */
     private class CreateBucketRunnable extends AbstractThread {
         private S3Bucket bucket = null;
         private Object result = null;
@@ -605,6 +763,11 @@ public class S3ServiceMulti {
         }
     }
 
+    /**
+     * Thread for creating/uploading an object. The upload of any object data is monitored with a
+     * {@link ProgressMonitoredInputStream} and can be can cancelled as the input stream is wrapped in
+     * an {@link InterruptableInputStream}.
+     */
     private class CreateObjectRunnable extends AbstractThread {
         private S3Bucket bucket = null;
         private S3Object s3Object = null;    
@@ -652,6 +815,9 @@ public class S3ServiceMulti {
         }
     }
 
+    /**
+     * Thread for retrieving an object.
+     */
     private class GetObjectRunnable extends AbstractThread {
         private S3Bucket bucket = null;
         private String objectKey = null;
@@ -686,6 +852,11 @@ public class S3ServiceMulti {
         }
     }
     
+    /**
+     * Thread for downloading an object. The download of any object data is monitored with a
+     * {@link ProgressMonitoredInputStream} and can be can cancelled as the input stream is wrapped in
+     * an {@link InterruptableInputStream}.
+     */
     private class DownloadObjectRunnable extends AbstractThread {
         private String objectKey = null;
         private S3Bucket bucket = null;
@@ -755,6 +926,14 @@ public class S3ServiceMulti {
     }
     
 
+    /**
+     * The thread group manager is responsible for starting, running and stopping the set of threads
+     * required to perform an S3 operation.
+     * <p>
+     * The manager starts all the threads, monitors their progress and stops threads when they are   
+     * cancelled or an error occurs - all the while firing the appropriate {@link ServiceEvent} event
+     * notifications.
+     */
     private abstract class ThreadGroupManager {
         private final Log log = LogFactory.getLog(ThreadGroupManager.class);
         
@@ -768,6 +947,18 @@ public class S3ServiceMulti {
             this.runnables = runnables;            
         }
         
+        /**
+         * Determine which threads, if any, have finished since the last time an In Progress event
+         * was fired.
+         * 
+         * @param alreadyFired
+         *        set of flags indicating which threads have already had In Progress events fired on
+         *        their behalf.
+         * @return
+         * a list of the threads that finished since the last In Progress event was fired. This list may
+         * be empty.
+         * @throws Throwable
+         */
         private List getNewlyCompletedResults(boolean alreadyFired[]) throws Throwable {
             ArrayList completedResults = new ArrayList();
             
@@ -786,6 +977,10 @@ public class S3ServiceMulti {
             return completedResults;
         }
         
+        /**
+         * Invokes the {@link AbstractThread#forceInterrupt} on all threads being managed.
+         *
+         */
         private void forceInterruptAllRunnables() {
             log.debug("Setting force interrupt flag on all runnables");
             for (int i = 0; i < runnables.length; i++) {
@@ -793,12 +988,19 @@ public class S3ServiceMulti {
             }
         }
         
+        /**
+         * Runs and manages all the threads involved in an S3 multi-operation.
+         *
+         */
         public void run() {
             log.debug("Started ThreadManager for thread group: " + threadGroup.getName());
             
             final boolean[] interrupted = new boolean[] { false };
             
-            final CancelEventListener cancelEventListener = new CancelEventListener() {
+            /*
+             * Create a cancel event trigger, so all the managed threads can be cancelled if required.
+             */
+            final CancelEventTrigger cancelEventTrigger = new CancelEventTrigger() {
                 public void cancelTask(Object eventSource) {
                     log.debug("Cancel task invoked on ThreadManager");
                     
@@ -810,12 +1012,15 @@ public class S3ServiceMulti {
                 }
             };
             
+            // Flags to indicate which threads have had In Progress events fired on their behalf.
             final boolean alreadyFired[] = new boolean[runnables.length]; // All values initialized to false.
 
             try {
-                ThreadWatcher threadWatcher = new ThreadWatcher(0, runnables.length, cancelEventListener); 
+                ThreadWatcher threadWatcher = new ThreadWatcher(0, runnables.length, cancelEventTrigger); 
                 fireStartEvent(threadWatcher);
                 
+                // Loop while threads haven't been interrupted/cancelled, and at least one thread is 
+                // still active (ie hasn't finished its work)
                 while (!interrupted[0] && localThreadGroup.activeCount() > 0) {
                     try {
                         Thread.sleep(sleepTime);
@@ -825,7 +1030,7 @@ public class S3ServiceMulti {
                         } else {
                             // Fire progress event.
                             int completedThreads = runnables.length - localThreadGroup.activeCount();                    
-                            threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventListener);
+                            threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventTrigger);
                             List completedResults = getNewlyCompletedResults(alreadyFired);                    
                             fireProgressEvent(threadWatcher, completedResults);
                             
@@ -843,7 +1048,7 @@ public class S3ServiceMulti {
                     fireCancelEvent();
                 } else {
                     int completedThreads = localThreadGroup.activeCount();                    
-                    threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventListener);
+                    threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventTrigger);
                     List completedResults = getNewlyCompletedResults(alreadyFired);                    
                     fireProgressEvent(threadWatcher, completedResults);
                     if (completedResults.size() > 0) {

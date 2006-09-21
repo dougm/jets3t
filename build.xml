@@ -190,9 +190,17 @@
 			<classpath refid="classpath"/>
 			<fileset 
 				dir="src" 
-				includes="**/*.java"
-				excludes="org/jets3t/service/impl/soap/axis/_2006_03_01/**/*.java"/>
+				includes="**/*.java"/>
 		</javadoc>
+	</target>
+	
+	<target name="junit-tests">
+		<junit>
+			<classpath refid="classpath"/>
+			<fileset 
+				dir="${dir.src}/org/jets3t/tests" 
+				includes="**/*.java"/>
+		</junit>
 	</target>
 
 </project>

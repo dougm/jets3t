@@ -20,6 +20,19 @@ package org.jets3t.service.multithread;
 
 import org.jets3t.service.model.S3Object;
 
+/**
+ * Multi-threaded service event fired by {@link S3ServiceMulti#downloadObjects(S3Bucket, S3ObjectAndOutputStream[])}.
+ * <p>
+ * EVENT_IN_PROGRESS events include an array of the {@link S3Object}s that have finished downloading
+ * since the last progress event was fired. These objects are available via 
+ * {@link #getDownloadedObjects()}.
+ * <p>
+ * EVENT_CANCELLED events include an array of the {@link S3Object}s that were not downloaded
+ * before the operation was cancelled. These objects are available via 
+ * {@link #getCancelledObjects()}.   
+ *  
+ * @author James Murty
+ */
 public class DownloadObjectsEvent extends ServiceEvent {	
 	private S3Object[] objects = null;
     
@@ -62,6 +75,12 @@ public class DownloadObjectsEvent extends ServiceEvent {
         this.objects = objects;
     }
     
+    /**
+     * @return
+     * the S3Objects that have finished downloading since the last progress event was fired.
+     * @throws IllegalStateException
+     * downloaded objects are only available from EVENT_IN_PROGRESS events.
+     */
     public S3Object[] getDownloadedObjects() throws IllegalStateException {
         if (getEventCode() != EVENT_IN_PROGRESS) {
             throw new IllegalStateException("Downloaded Objects are only available from EVENT_IN_PROGRESS events");
@@ -69,6 +88,12 @@ public class DownloadObjectsEvent extends ServiceEvent {
         return objects;
     }
 	
+    /**
+     * @return
+     * the S3Objects that were not downloaded before the operation was cancelled.
+     * @throws IllegalStateException
+     * cancelled objects are only available from EVENT_CANCELLED events.
+     */
     public S3Object[] getCancelledObjects() throws IllegalStateException {
         if (getEventCode() != EVENT_CANCELLED) {
             throw new IllegalStateException("Cancelled Objects are  only available from EVENT_CANCELLED events");

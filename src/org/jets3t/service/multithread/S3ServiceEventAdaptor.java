@@ -1,5 +1,14 @@
 package org.jets3t.service.multithread;
 
+/**
+ * Simple implementation of {@link S3ServiceEventListener} to listen for events produced by
+ * {@link S3ServiceMulti}.
+ * <p>
+ * This adaptor does nothing but store the first Error event it comes across, if any,
+ * and make it available through {@link #getErrorThrown}.
+ * 
+ * @author James Murty
+ */
 public class S3ServiceEventAdaptor implements S3ServiceEventListener {
     
     private Throwable t[] = new Throwable[1];
@@ -42,10 +51,18 @@ public class S3ServiceEventAdaptor implements S3ServiceEventListener {
         }
     }
     
+    /**
+     * @return
+     * true if an event has resulted in an exception.
+     */
     public boolean wasErrorThrown() {
         return t[0] != null;
     }
     
+    /**
+     * @return
+     * the first error thrown by an event, or null if no error has been thrown.
+     */
     public Throwable getErrorThrown() {
         return t[0];
     }

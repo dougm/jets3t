@@ -16,10 +16,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.tests;
+package org.jets3t.service.io;
 
-import junit.framework.TestCase;
+import java.io.OutputStream;
 
-public class XmlResponsesSaxParserTest extends TestCase {
+/**
+ * Interface used by output streams that wrap other output streams, so that the underlying output
+ * stream can be retrieved.
+ * 
+ * @author James Murty
+ */
+public interface OutputStreamWrapper {
 
+    /**
+     * @return
+     * the underlying input stream wrapped by a class. 
+     */
+    public OutputStream getWrappedOutputStream();
+    
 }

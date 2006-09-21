@@ -27,6 +27,11 @@ import java.util.Date;
 
 import org.jets3t.service.acl.AccessControlList;
 
+/**
+ * Represents an S3 object.
+ * 
+ * @author James Murty
+ */
 public class S3Object extends BaseS3Object {
 	public static final String METADATA_HEADER_LAST_MODIFIED_DATE = "Last-Modified";
 	public static final String METADATA_HEADER_DATE = "Date";

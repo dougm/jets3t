@@ -20,6 +20,19 @@ package org.jets3t.service.multithread;
 
 import org.jets3t.service.model.S3Object;
 
+/**
+ * Multi-threaded service event fired by {@link S3ServiceMulti#putACLs}.
+ * <p>
+ * EVENT_IN_PROGRESS events include an array of the {@link S3Object}s that have had their ACLs updated
+ * since the last progress event was fired. These objects are available via 
+ * {@link #getObjectsWithUpdatedACL()}.
+ * <p>
+ * EVENT_CANCELLED events include an array of the {@link S3Object}s that did not have their ACLs updated
+ * before the operation was cancelled. These objects are available via 
+ * {@link #getCancelledObjects()}.   
+ *  
+ * @author James Murty
+ */
 public class UpdateACLEvent extends ServiceEvent {	
     private S3Object[] objects = null;
     
@@ -62,6 +75,12 @@ public class UpdateACLEvent extends ServiceEvent {
         this.objects = objects;
     }
     
+    /**
+     * @return
+     * the S3Objects that have had their ACLs updated since the last progress event was fired.
+     * @throws IllegalStateException
+     * updated objects are only available from EVENT_IN_PROGRESS events.
+     */
     public S3Object[] getObjectsWithUpdatedACL() throws IllegalStateException {
         if (getEventCode() != EVENT_IN_PROGRESS) {
             throw new IllegalStateException("Completed Objects are only available from EVENT_IN_PROGRESS events");
@@ -69,6 +88,12 @@ public class UpdateACLEvent extends ServiceEvent {
         return objects;
     }
     
+    /**
+     * @return
+     * the S3Objects that did not have ACLs updated before the operation was cancelled.
+     * @throws IllegalStateException
+     * cancelled objects are only available from EVENT_CANCELLED events.
+     */
     public S3Object[] getCancelledObjects() throws IllegalStateException {
         if (getEventCode() != EVENT_CANCELLED) {
             throw new IllegalStateException("Cancelled Objects are  only available from EVENT_CANCELLED events");

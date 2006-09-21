@@ -100,7 +100,7 @@ import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.GZipInflatingOutputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.multithread.CancelEventListener;
+import org.jets3t.service.multithread.CancelEventTrigger;
 import org.jets3t.service.multithread.CreateBucketsEvent;
 import org.jets3t.service.multithread.CreateObjectsEvent;
 import org.jets3t.service.multithread.DeleteObjectsEvent;
@@ -620,7 +620,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      *        a cancel event listener is provided.
      */
     private void startProgressDisplay(final String statusText, final long minValue, final long maxValue, 
-        final String cancelButtonText, final CancelEventListener cancelEventListener) 
+        final String cancelButtonText, final CancelEventTrigger cancelEventListener) 
     {
        if (progressDisplay == null || !progressDisplay.isActive()) {
            progressDisplay = new ProgressDisplay(ownerFrame, "Please wait...", statusText, 

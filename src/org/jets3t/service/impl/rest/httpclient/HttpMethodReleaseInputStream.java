@@ -28,6 +28,16 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.InterruptableInputStream;
 
+/**
+ * Utility class to wrap InputStreams obtained from an HttpClient library's HttpMethod object, and
+ * ensure the stream and HTTP connection is cleaned up properly. 
+ * <p>
+ * <b>Important!</b> This input stream must be completely consumed or closed to ensure the necessary
+ * cleanup operations can be performed.
+ * 
+ * @author James Murty
+ *
+ */
 public class HttpMethodReleaseInputStream extends InputStream implements InputStreamWrapper {
     private final Log log = LogFactory.getLog(HttpMethodReleaseInputStream.class);
     
@@ -36,6 +46,14 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
     private boolean alreadyReleased = false;
     private boolean underlyingStreamConsumed = false;
 
+    /**
+     * Constructs an input stream based on an {@link HttpMethod} object representing an HTTP connection.
+     * If a connection input stream is available, this constructor wraps the underlying input stream
+     * in an {@link InterruptableInputStream} and makes that stream available. If no underlying connection 
+     * is available, an empty {@link ByteArrayInputStream} is made available.
+     * 
+     * @param httpMethod
+     */
     public HttpMethodReleaseInputStream(HttpMethod httpMethod) {
         this.httpMethod = httpMethod;
         try {
@@ -47,11 +65,21 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         }
     }
     
+    /**
+     * Returns the underlying HttpMethod object that contains/manages the actual HTTP connection.
+     * @return
+     */
     public HttpMethod getHttpMethod() {
         return httpMethod;
     }
     
-    private void releaseConnection() throws IOException {
+    /**
+     * Forces the release of an HttpMethod's connection in a way that will perform all the necessary
+     * cleanup through the correct use of HttpClient methods. 
+     * 
+     * @throws IOException
+     */
+    protected void releaseConnection() throws IOException {
         if (!alreadyReleased) {
             if (!underlyingStreamConsumed) {
                 // Underlying input stream has not been consumed, abort method 
@@ -63,6 +91,10 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         }
     }
     
+    /**
+     * Standard input stream read method, except it calls {@link #releaseConnection} when the underlying
+     * input stream is consumed.
+     */
     public int read() throws IOException {
         int read = inputStream.read();
         if (read == -1) {
@@ -75,6 +107,10 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         return read;
     }
     
+    /**
+     * Standard input stream read method, except it calls {@link #releaseConnection} when the underlying
+     * input stream is consumed.
+     */
     public int read(byte[] b, int off, int len) throws IOException {        
         int read = inputStream.read(b, off, len);
         if (read == -1) {
@@ -91,6 +127,10 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         return inputStream.available();
     }
     
+    /**
+     * Standard input stream close method, except it ensures that {@link #releaseConnection()} is called
+     * before the input stream is closed.
+     */
     public void close() throws IOException {
         if (!alreadyReleased) {        
             releaseConnection();
@@ -99,6 +139,14 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         inputStream.close();
     }
     
+    /**
+     * Tries to ensure a connection is always cleaned-up correctly by calling {@link #releaseConnection()}
+     * on class destruction if the cleanup hasn't already been done. 
+     * <p>
+     * This desperate cleanup act will only be necessary if the user of this class does not completely
+     * consume or close this input stream prior to object destruction. This method will log Warning 
+     * messages if cleanup is required berating the caller. 
+     */
     protected void finalize() throws Throwable {
         if (!alreadyReleased) {
             releaseConnection();
@@ -108,6 +156,10 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         super.finalize();
     }
     
+    /**
+     * @return
+     * the underlying input stream wrapped by this class.
+     */
     public InputStream getWrappedInputStream() {
         return inputStream;
     }

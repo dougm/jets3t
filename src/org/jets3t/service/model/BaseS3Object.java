@@ -21,6 +21,12 @@ package org.jets3t.service.model;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Base class to represent S3 objects (bucket or object). Buckets and objects
+ * both contain metadata.
+ * 
+ * @author James Murty
+ */
 public abstract class BaseS3Object {
 	private Map metadata = new HashMap();
 

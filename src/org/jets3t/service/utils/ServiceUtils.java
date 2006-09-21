@@ -45,6 +45,11 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Object;
 
+/**
+ * General utility methods used throughout the jets3t project.
+ * 
+ * @author James Murty
+ */
 public class ServiceUtils {
     private static final Log log = LogFactory.getLog(ServiceUtils.class);
 
@@ -86,18 +91,12 @@ public class ServiceUtils {
     /**
      * Calculate the HMAC/SHA1 on a string.
      * 
-     * (c) 2006 Amazon Digital Services, Inc. or its affiliates.
-     * 
-     * @param data
-     * Data to sign
-     * @param passcode
-     * Passcode to sign it with
+     * @param awsSecretKey
+     * AWS secret key.
+     * @param canonicalString
+     * canonical string representing the request to sign.
      * @return Signature
-     * @throws UnsupportedEncodingException
-     * @throws NoSuchAlgorithmException
-     * If the algorithm does not exist. Unlikely
-     * @throws InvalidKeyException
-     * If the key is invalid.
+     * @throws S3ServiceException
      */
     public static String signWithHmacSha1(String awsSecretKey, String canonicalString)
         throws S3ServiceException
@@ -134,6 +133,13 @@ public class ServiceUtils {
         return new String(b64);
     }
 
+    /**
+     * Reads text data from an input stream and returns it as a String.
+     * 
+     * @param is
+     * @return
+     * @throws IOException
+     */
     public static String readInputStreamToString(InputStream is) throws IOException {
         StringBuffer sb = new StringBuffer();
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -148,6 +154,14 @@ public class ServiceUtils {
         return sb.toString();
     }
     
+    /**
+     * Counts the total number of bytes in a set of S3Objects by summing the
+     * content length of each. 
+     * 
+     * @param objects
+     * @return
+     * total number of bytes in all S3Objects.
+     */
     public static long countBytesInObjects(S3Object[] objects) {
         long byteTotal = 0;
         for (int i = 0; objects != null && i < objects.length; i++) {
@@ -156,6 +170,14 @@ public class ServiceUtils {
         return byteTotal;
     }
             
+    /**
+     * From a map of metadata returned from a REST Get Object or Get Object Head request, returns a map
+     * of metadata with the HTTP-connection-specific metadata items removed.    
+     * 
+     * @param metadata
+     * @return
+     * metadata map with HTTP-connection-specific items removed.
+     */
     public static Map cleanRestMetadataMap(Map metadata) {
         log.debug("Cleaning up REST metadata items");
         HashMap cleanMap = new HashMap();

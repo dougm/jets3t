@@ -22,6 +22,11 @@ import java.util.Date;
 
 import org.jets3t.service.acl.AccessControlList;
 
+/**
+ * Represents an S3 bucket.
+ *  
+ * @author James Murty
+ */
 public class S3Bucket extends BaseS3Object {
 	public static final String METADATA_HEADER_CREATION_DATE = "Date";
 	public static final String METADATA_HEADER_OWNER = "Owner";

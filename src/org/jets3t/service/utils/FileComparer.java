@@ -48,9 +48,20 @@ import org.jets3t.service.multithread.S3ServiceEventAdaptor;
 import org.jets3t.service.multithread.S3ServiceEventListener;
 import org.jets3t.service.multithread.S3ServiceMulti;
 
+/**
+ * Utilities to compare files based on MD5 hashes of the files' contents. 
+ * 
+ * @author James Murty
+ */
 public class FileComparer {
     private static final Log log = LogFactory.getLog(FileComparer.class);
 
+    /**
+     * Converts byte data to a Hex-encoded string.
+     * 
+     * @param data
+     * @return
+     */
     public static String toHex(byte[] data) {
         StringBuffer sb = new StringBuffer(data.length * 2);
         for (int i = 0; i < data.length; i++) {
@@ -72,6 +83,7 @@ public class FileComparer {
      * 
      * @param is
      * @return
+     * MD5 hash
      * @throws NoSuchAlgorithmException
      * @throws IOException
      */
@@ -100,6 +112,7 @@ public class FileComparer {
      * 
      * @param data
      * @return
+     * MD5 hash.
      * @throws NoSuchAlgorithmException
      * @throws IOException
      */
@@ -113,8 +126,8 @@ public class FileComparer {
      * 
      * File keys are delimited with '/' characters.
      * 
-     * @see buildDiscrepancyLists
-     * @see buildS3ObjectMap
+     * @see #buildDiscrepancyLists(Map, Map)
+     * @see #buildS3ObjectMap(S3Service, S3Bucket, String, S3Object[], S3ServiceEventListener)
      * 
      * @param rootDirectory
      * The root directory containing the files/directories of interest. The root directory is <b>not</b>
@@ -141,7 +154,7 @@ public class FileComparer {
     }
     
     /**
-     * Recursive function to build a file map.
+     * Recursive function to build a file map for all files in a nested directory structure.
      * 
      * @param dir
      * @param currentPath
@@ -163,13 +176,14 @@ public class FileComparer {
      * Builds an S3 Object Map containing all the objects within the given target path,
      * where the map's key for each object is the relative path to the object.
      * 
-     * @see buildDiscrepancyLists
-     * @see buildFileMap
+     * @see #buildDiscrepancyLists(Map, Map)
+     * @see #buildFileMap(File, String)
      * 
      * @param s3Service
      * @param bucket
      * @param targetPath
      * @return
+     * maping of keys/S3Objects
      * @throws S3ServiceException
      */
     public static Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath,
@@ -182,17 +196,19 @@ public class FileComparer {
 
 
     /**
-     * Builds an S3 Object Map containing all the given objects,
-     * where the map's key for each object is the relative path to the object.
+     * Builds an S3 Object Map containing all the given objects, by retrieving HEAD details about
+     * all the objects and using {@link #populateS3ObjectMap(String, S3Object[])} to product an object/key 
+     * map.
      * 
-     * @see buildDiscrepancyLists
-     * @see buildFileMap
+     * @see #buildDiscrepancyLists(Map, Map)
+     * @see #buildFileMap(File, String)
      * 
      * @param s3Service
      * @param bucket
      * @param targetPath
      * @param s3ObjectsIncomplete
      * @return
+     * mapping of keys/S3Objects
      * @throws S3ServiceException
      */
     public static Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,  String targetPath, 
@@ -228,6 +244,14 @@ public class FileComparer {
         return populateS3ObjectMap(targetPath, s3Objects);
     }
 
+    /**
+     * Builds a map of key/object pairs each object is associated with a key based on its location
+     * in the S3 target path. 
+     * 
+     * @param targetPath
+     * @param s3Objects
+     * @return
+     */
     public static Map populateS3ObjectMap(String targetPath, S3Object[] s3Objects) {
         HashMap map = new HashMap();
         for (int i = 0; i < s3Objects.length; i++) {
@@ -250,6 +274,24 @@ public class FileComparer {
         return map;
     }
 
+    /**
+     * Compares the contents of a directory on the local file system with the contents of an
+     * S3 resource. This comparison is performed on a map of files and a map of S3 objects previously
+     * generated using other methods in this class.
+     * 
+     * @param filesMap
+     *        a map of keys/Files built using the method {@link #buildFileMap(File, String)}
+     * @param s3ObjectsMap
+     *        a map of keys/S3Objects built using the method 
+     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3ServiceEventListener)}
+     * @return
+     * an object containing the results of the file comparison.
+     * 
+     * @throws NoSuchAlgorithmException
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws ParseException
+     */
     public static FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {

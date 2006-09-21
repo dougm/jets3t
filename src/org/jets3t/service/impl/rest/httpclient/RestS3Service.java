@@ -62,10 +62,12 @@ import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
- * 
+ * REST/HTTP implementation of an {@link S3Service} based on the 
+ * <a href="http://jakarta.apache.org/commons/httpclient/">HttpClient</a> library.  
+ * <p>
  * <p><b>Properties</b></p>
  * <p>This HttpClient-based implementation uses a small subset of the many 
- * {@link options available for HttpClient}. 
+ * <a href="http://jakarta.apache.org/commons/httpclient/preference-api.html">options available for HttpClient</a>. 
  * The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
  * <table>
  * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
@@ -107,6 +109,12 @@ public class RestS3Service extends S3Service {
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
     
+    /**
+     * Constructs the service and initialises the properties.
+     * 
+     * @param awsCredentials
+     * @throws S3ServiceException
+     */
     public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         super(awsCredentials);
         
@@ -148,6 +156,21 @@ public class RestS3Service extends S3Service {
         httpClient = new HttpClient(clientParams, connectionManager);
     }
     
+    /**
+     * Performs an HTTP/S request by invoking the provided HttpMethod object. If the HTTP
+     * response code doesn't match the expected value, an exception is thrown.
+     * 
+     * @param httpMethod
+     *        the object containing a request target and all other information necessary to perform the 
+     *        request
+     * @param expectedResponseCode
+     *        the HTTP response code that indicates a successful request. If the response code received
+     *        does not match this value an error must have occurred, so an exception is thrown.
+     * @throws S3ServiceException
+     *        all exceptions are wrapped in an S3ServiceException. Depending on the kind of error that 
+     *        occurred, this exception may contain additional error information available from an XML
+     *        error response document.  
+     */
     protected void performRequest(HttpMethodBase httpMethod, int expectedResponseCode) 
         throws S3ServiceException 
     {
@@ -229,6 +252,17 @@ public class RestS3Service extends S3Service {
         } 
     }
     
+    /**
+     * Adds all the provided request parameters to a URL in GET request format. 
+     * 
+     * @param urlPath
+     *        the target URL
+     * @param requestParameters
+     *        the parameters to add to the URL as GET request params.
+     * @return
+     * the target URL including the parameters.
+     * @throws S3ServiceException
+     */
     protected String addRequestParametersToUrlPath(String urlPath, Map requestParameters) 
         throws S3ServiceException 
     {
@@ -251,6 +285,14 @@ public class RestS3Service extends S3Service {
         return urlPath;
     }
     
+    /**
+     * Adds the provided request headers to the connection.
+     * 
+     * @param httpMethod
+     *        the connection object 
+     * @param requestHeaders
+     *        the request headers to add as name/value pairs.
+     */
     protected void addRequestHeadersToConnection(
             HttpMethodBase httpMethod, Map requestHeaders) 
     {
@@ -266,15 +308,33 @@ public class RestS3Service extends S3Service {
         }                        
     }
     
-    protected Map buildMapOfHeaders(Header[] headers) {
-        Map headersMap = new HashMap();
+    /**
+     * Converts an array of Header objects to a map of name/value pairs.
+     * 
+     * @param headers
+     * @return
+     */
+    private Map convertHeadersToMap(Header[] headers) {
+        HashMap map = new HashMap();
         for (int i = 0; headers != null && i < headers.length; i++) {
-            Header header = headers[i];
-            headersMap.put(header.getName(), header.getValue());
+            map.put(headers[i].getName(), headers[i].getValue());
         }
-        return headersMap;
-    }
+        return map;
+    }    
     
+    
+    /**
+     * Performs an HTTP HEAD request using the {@link #performRequest} method.
+     *  
+     * @param path
+     *        the URL request target
+     * @param requestParameters
+     *        parameters to add to the request URL as GET params
+     * @param requestHeaders
+     *        headers to add to the request
+     * @return
+     * @throws S3ServiceException
+     */
     protected HttpMethodBase performRestHead(
         String path, Map requestParameters, Map requestHeaders) throws S3ServiceException 
     {
@@ -294,7 +354,18 @@ public class RestS3Service extends S3Service {
         return httpMethod;
     }
 
-    
+    /**
+     * Performs an HTTP GET request using the {@link #performRequest} method.
+     *  
+     * @param path
+     *        the URL request target
+     * @param requestParameters
+     *        parameters to add to the request URL as GET params
+     * @param requestHeaders
+     *        headers to add to the request
+     * @return
+     * @throws S3ServiceException
+     */
     protected HttpMethodBase performRestGet(String path, Map requestParameters, Map requestHeaders) throws S3ServiceException 
     {
         // Add any request parameters.
@@ -318,6 +389,20 @@ public class RestS3Service extends S3Service {
         return httpMethod;
     }
     
+    /**
+     * Performs an HTTP PUT request using the {@link #performRequest} method.
+     *  
+     * @param path
+     *        the URL request target
+     * @param metadata
+     *        map of name/value pairs to add as metadata to any S3 objects created.  
+     * @param requestParameters
+     *        parameters to add to the request URL as GET params
+     * @param dataInputStream
+     *        input stream containing object's data contents. If null, created objects are empty.
+     * @return
+     * @throws S3ServiceException
+     */
     protected HttpMethodAndByteCount performRestPut(String path, Map metadata, 
             Map requestParameters, InputStream dataInputStream) throws S3ServiceException 
     {        
@@ -384,6 +469,14 @@ public class RestS3Service extends S3Service {
         return new HttpMethodAndByteCount(httpMethod, contentLength);
     }
 
+    /**
+     * Performs an HTTP DELETE request using the {@link #performRequest} method.
+     *  
+     * @param path
+     *        the URL target to delete
+     * @return
+     * @throws S3ServiceException
+     */
     protected HttpMethodBase performRestDelete(String path) throws S3ServiceException {        
         HttpMethodBase httpMethod = setupConnection("DELETE", path);
         buildAuthorizationString(httpMethod, path);
@@ -397,6 +490,16 @@ public class RestS3Service extends S3Service {
         return httpMethod;
     }
     
+    /**
+     * Creates an {@link HttpMethod} object to handle a particular connection method.
+     * 
+     * @param method
+     *        the HTTP method/connection-type to use, must be one of: PUT, HEAD, GET, DELETE
+     * @param path
+     *        the target URL.
+     * @return
+     * @throws S3ServiceException
+     */
     protected HttpMethodBase setupConnection(String method, String path) throws S3ServiceException 
     {
         if (path == null) {
@@ -437,6 +540,14 @@ public class RestS3Service extends S3Service {
         return httpMethod;
     }
     
+    /**
+     * Encodes the resource target component of a URL, leaving GET parameters unchanged.
+     * 
+     * @param path
+     *        URL to encode.
+     * @return
+     * @throws S3ServiceException
+     */
     private String buildResourceStringFromPath(String path) throws S3ServiceException {
         String resourceString = "/";            
         int paramsIndex = path.indexOf("?");
@@ -449,6 +560,16 @@ public class RestS3Service extends S3Service {
         return resourceString;
     }
     
+    /**
+     * Authorizes an HTTP request by signing it. The signature is based on the target URL, and the
+     * signed authorization string is added to the {@link HttpMethod} object as an Authorization header.
+     * 
+     * @param httpMethod
+     *        the request object
+     * @param path
+     *        the target URL of the request
+     * @throws S3ServiceException
+     */
     protected void buildAuthorizationString(HttpMethodBase httpMethod, String path) throws S3ServiceException {
         if (isAuthenticatedConnection()) {
             log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
@@ -459,7 +580,7 @@ public class RestS3Service extends S3Service {
         
         String canonicalString = RestUtils.makeCanonicalString(
                 httpMethod.getName(), buildResourceStringFromPath(path), 
-                buildMapOfHeaders(httpMethod.getRequestHeaders()), null);
+                convertHeadersToMap(httpMethod.getRequestHeaders()), null);
         log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
         
         String signedCanonical = ServiceUtils.signWithHmacSha1(
@@ -469,6 +590,22 @@ public class RestS3Service extends S3Service {
         String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signedCanonical;
         httpMethod.setRequestHeader("Authorization", authorizationString);                                
     }
+
+    /**
+     * Deletes an S3 object or bucket.
+     * 
+     * @param path
+     * @throws S3ServiceException
+     */
+    protected void deleteObject(String path) throws S3ServiceException {
+        log.debug("Deleting object with path: " + path);
+        performRestDelete(path);
+    }
+
+    
+    ////////////////////////////////////////////////////////////////
+    // Methods below this point implement S3Service abstract methods
+    ////////////////////////////////////////////////////////////////    
     
     public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
         log.debug("Checking existence of bucket: " + bucketName);
@@ -557,11 +694,6 @@ public class RestS3Service extends S3Service {
     public void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {
         deleteObject(bucketName + "/" + objectKey);
     }    
-
-    protected void deleteObject(String path) throws S3ServiceException {
-        log.debug("Deleting object with path: " + path);
-        performRestDelete(path);
-    }
 
     public AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
         String fullKey = bucketName + "/" + objectKey; 
@@ -708,14 +840,6 @@ public class RestS3Service extends S3Service {
         return map;
     }
     
-    private Map convertHeadersToMap(Header[] headers) {
-        HashMap map = new HashMap();
-        for (int i = 0; i < headers.length; i++) {
-            map.put(headers[i].getName(), headers[i].getValue());
-        }
-        return map;
-    }    
-
     public S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
         throws S3ServiceException 
@@ -811,6 +935,15 @@ public class RestS3Service extends S3Service {
         return responseObject;
     }
     
+    /**
+     * Simple container object to store an HttpMethod object representing a request connection, and a 
+     * count of the byte size of the S3 object associated with the request.
+     * <p>
+     * This object is used when S3 objects are created to associate the connection and the actual size
+     * of the object as reported back by S3.
+     * 
+     * @author James Murty
+     */
     private class HttpMethodAndByteCount {
         private HttpMethodBase httpMethod = null;
         private long byteCount = 0;

@@ -33,7 +33,7 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 
-import org.jets3t.service.multithread.CancelEventListener;
+import org.jets3t.service.multithread.CancelEventTrigger;
 
 /**
  * Class that provides access to and controls a dialog that shows progress information
@@ -66,7 +66,7 @@ public class ProgressDisplay {
      *        a cancel event listener is provided.
      */
     public ProgressDisplay(Frame owner, String title, String statusText, int minTaskValue, 
-        int maxTaskValue, String cancelButtonText, CancelEventListener cancelEventListener) 
+        int maxTaskValue, String cancelButtonText, CancelEventTrigger cancelEventListener) 
     {
         progressDialog = new ProgressDialog(owner, title, statusText, minTaskValue, maxTaskValue, 
             cancelEventListener, cancelButtonText);
@@ -74,9 +74,6 @@ public class ProgressDisplay {
     
     /**
      * Displays the progress dialog.
-     * <p>
-     * After the progress dialog has been started it <b>must</b> be stopped eventually
-     * by calling {@link #haltDialog}.
      */
     public synchronized void startDialog() {
         SwingUtilities.invokeLater(new Runnable(){
@@ -137,7 +134,7 @@ public class ProgressDisplay {
     /**
      * A modal dialog box to display progress information to the user when a long-lived task
      * is running. If the long-lived task can be cancelled by the user, this dialog will invoke
-     * the {@link CancelEventListener} when the user clicks the cancel button.
+     * the {@link CancelEventTrigger} when the user clicks the cancel button.
      * 
      * @author James Murty
      */
@@ -147,7 +144,7 @@ public class ProgressDisplay {
         private JLabel statusMessageLabel = null;
         private JProgressBar progressBar = null;
         private boolean wasCancelClicked = false;
-        private CancelEventListener cancelEventListener = null;
+        private CancelEventTrigger cancelEventListener = null;
         private int longestStatusTextLength = 0;
 
         /**
@@ -168,7 +165,7 @@ public class ProgressDisplay {
          *        text displayed in the cancel button if a task can be cancelled
          */
         public ProgressDialog(Frame owner, String title, String statusMessage, int minTaskValue, 
-            int maxTaskValue, CancelEventListener cancelEventListener, String cancelButtonText) 
+            int maxTaskValue, CancelEventTrigger cancelEventListener, String cancelButtonText) 
         {
             super(owner, title, true);
             this.cancelEventListener = cancelEventListener;

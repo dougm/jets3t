@@ -24,6 +24,19 @@ import java.io.InputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+/**
+ * Input stream wrapper that allows the underlying wrapped input stream to be interrupted.
+ * Every time a blocking stream operation is invoked on this class, the interrupt flag is
+ * checked first. If this flag is set, the underlying stream is closed and an IOException
+ * "Input Stream Interrupted" is thrown.
+ * <p>
+ * <b>Note</b>: This hacky class does not really solve the problem of interrupting blocking 
+ * Java input streams, as it cannot unblock a blocked read operation. It really just serves
+ * as a convenient way to stop and check the interrupt flag before any potentially blocking
+ * operations.
+ * 
+ * @author James Murty
+ */
 public class InterruptableInputStream extends InputStream implements InputStreamWrapper {
     private final Log log = LogFactory.getLog(InterruptableInputStream.class);
 

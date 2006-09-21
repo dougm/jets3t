@@ -18,6 +18,20 @@
  */
 package org.jets3t.service.io;
 
+/**
+ * Interface that provides notifications of the count of bytes transferred in some process.  
+ * 
+ * @author James Murty
+ */
 public interface BytesTransferredWatcher {
+    
+    /**
+     * Method used to notify classes implementing this interface that some number of
+     * bytes have been transferred.
+     * 
+     * @param transferredBytes
+     *        the count of bytes transferred.
+     */
 	public void bytesTransferredUpdate(long transferredBytes);
+    
 }

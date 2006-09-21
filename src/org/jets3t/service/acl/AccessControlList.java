@@ -91,7 +91,7 @@ public class AccessControlList {
      * {@link GrantAndPermission} object.
      *  
      * @param grants
-     *        a set of {@link GranteeAndPermission} objects 
+     *        a set of {@link GrantAndPermission} objects 
      */
 	public void grantAllPermissions(Set grants) {
 		for (Iterator iter = grants.iterator(); iter.hasNext();) {

@@ -20,6 +20,19 @@ package org.jets3t.service.multithread;
 
 import org.jets3t.service.model.S3Bucket;
 
+/**
+ * Multi-threaded service event fired by {@link S3ServiceMulti#createBuckets(S3Bucket[])}.
+ * <p>
+ * EVENT_IN_PROGRESS events include an array of the {@link S3Bucket}s that have been created
+ * since the last progress event was fired. These objects are available via 
+ * {@link #getCreatedBuckets()}.
+ * <p>
+ * EVENT_CANCELLED events include an array of the {@link S3Bucket}s that had not been created
+ * before the operation was cancelled. These objects are available via 
+ * {@link #getCancelledBuckets()}.   
+ *  
+ * @author James Murty
+ */
 public class CreateBucketsEvent extends ServiceEvent {	
 	private S3Bucket[] buckets = null;
     
@@ -63,6 +76,12 @@ public class CreateBucketsEvent extends ServiceEvent {
     }
     
 	
+    /**
+     * @return
+     * the S3Buckets that have been created since the last progress event was fired.
+     * @throws IllegalStateException
+     * created buckets are only available from EVENT_IN_PROGRESS events.
+     */
     public S3Bucket[] getCreatedBuckets() throws IllegalStateException {
         if (getEventCode() != EVENT_IN_PROGRESS) {
             throw new IllegalStateException("Created Buckets are only available from EVENT_IN_PROGRESS events");
@@ -70,6 +89,12 @@ public class CreateBucketsEvent extends ServiceEvent {
         return buckets;
     }
     
+    /**
+     * @return
+     * the S3Buckets that had not been created before the operation was cancelled.
+     * @throws IllegalStateException
+     * cancelled buckets are only available from EVENT_CANCELLED events.
+     */
     public S3Bucket[] getCancelledBuckets() throws IllegalStateException {
         if (getEventCode() != EVENT_CANCELLED) {
             throw new IllegalStateException("Cancelled Buckets are  only available from EVENT_CANCELLED events");

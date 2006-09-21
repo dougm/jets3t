@@ -28,8 +28,21 @@ import java.util.TreeMap;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 
+/**
+ * Utilities useful for REST/HTTP S3Service implementations.
+ * 
+ * @author James Murty
+ */
 public class RestUtils {
 
+    /**
+     * Encodes a URL string.
+     * 
+     * @param path
+     * @return
+     * encoded URL.
+     * @throws S3ServiceException
+     */
     public static String encodeUrlString(String path) throws S3ServiceException {
         try {
             String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
@@ -39,6 +52,15 @@ public class RestUtils {
         }
     }
 
+    /**
+     * Encodes a URL string but leaves a delimiter string unencoded.
+     * 
+     * @param path
+     * @param delimiter
+     * @return
+     * encoded URL string.
+     * @throws S3ServiceException
+     */
     public static String encodeUrlPath(String path, String delimiter) throws S3ServiceException {
         StringBuffer result = new StringBuffer();
         String tokens[] = path.split(delimiter);

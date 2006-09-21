@@ -20,6 +20,20 @@ package org.jets3t.service.multithread;
 
 import java.util.EventListener;
 
-public interface CancelEventListener extends EventListener {
+/**
+ * Interface implemented by multi-threaded S3 operations that can be cancelled prior to finishing.
+ * 
+ * @author James Murty
+ */
+public interface CancelEventTrigger extends EventListener {
+    
+    /**
+     * Triggers a cancellation of some operation.
+     * 
+     * @param eventSource
+     * the object source that triggered the cancellation, useful for logging purposes.
+     * 
+     */
 	public abstract void cancelTask(Object eventSource);
+    
 }

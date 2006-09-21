@@ -21,7 +21,14 @@ package org.jets3t.service.io;
 import java.io.IOException;
 import java.io.InputStream;
 
-
+/**
+ * Input stream wrapper that tracks the number of bytes that have been read through the stream.
+ * When data is read through this stream the count of bytes is increased, and at a set minimum 
+ * interval (eg after at least 1024 bytes) a {@link BytesTransferredWatcher} implementation
+ * is notified of the count of bytes read since the last notification.  
+ *  
+ * @author James Murty
+ */
 public class ProgressMonitoredInputStream extends InputStream implements InputStreamWrapper {
     private InputStream inputStream = null;
     private BytesTransferredWatcher bytesTransferredListener = null;
@@ -29,6 +36,17 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
     private long bytesTransferredTotal = 0;
     private long bytesTransferredLastUpdate = 0;
 
+    /**
+     * Construts the input stream around an underlying stream and sends notification messages
+     * to a listener at intervals.
+     * 
+     * @param inputStream
+     *        the input stream to wrap, whose byte transfer count will be monitored.
+     * @param bytesTransferredListener
+     *        a notification listener
+     * @param minimumBytesBeforeNotification
+     *        the minimum number of bytes that must be transferred before a notification will be triggered
+     */
     public ProgressMonitoredInputStream(InputStream inputStream, 
         BytesTransferredWatcher bytesTransferredListener, long minimumBytesBeforeNotification) 
     {
@@ -41,16 +59,27 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         this.minimumBytesBeforeNotification = minimumBytesBeforeNotification;
     }
 
+    /**
+     * Construts the input stream around an underlying stream and sends notification messages
+     * to a listener at minimum byte intervals of 1024.
+     * 
+     * @param inputStream
+     *        the input stream to wrap, whose byte transfer count will be monitored.
+     * @param bytesTransferredListener
+     *        a notification listener
+     */
     public ProgressMonitoredInputStream(InputStream inputStream, 
         BytesTransferredWatcher bytesTransferredListener) 
     {
         this(inputStream, bytesTransferredListener, 1024);
     }
 
-    public void setBytesTransferredListener(BytesTransferredWatcher bytesTransferredListener) {
-        this.bytesTransferredListener = bytesTransferredListener;
-    }
-    
+    /**
+     * Checks how many bytes have been transferred since the last notification, and sends a notification
+     * message if this number exceeds the minimum bytes transferred value.
+     * 
+     * @param bytesTransmitted
+     */
     private void maybeNotifyListener(long bytesTransmitted) {
         bytesTransferredTotal += bytesTransmitted;
         if (bytesTransferredListener != null) {
