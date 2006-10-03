@@ -1,0 +1,15 @@
+Version 0.4.1
+-------------
+
+* Toolkit 
+- Support for getting/setting Server Access Logging for buckets.
+
+* Cockpit
+
+- Third-party buckets can be added without first logging in.
+
+* Known issues
+
+Version 0.4.0
+-------------
+Initial public release.
