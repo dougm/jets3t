@@ -37,6 +37,7 @@ import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.utils.ServiceUtils;
@@ -146,6 +147,20 @@ public class XmlResponsesSaxParser {
         throws S3ServiceException
     {
         AccessControlListHandler handler = new AccessControlListHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler;
+    }
+
+    /**
+     * Parses a LoggingStatus response XML document for a bucket from an input stream.
+     * @param inputStream
+     * @return
+     * @throws S3ServiceException
+     */
+    public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream)
+        throws S3ServiceException
+    {
+        BucketLoggingStatusHandler handler = new BucketLoggingStatusHandler();
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
@@ -446,4 +461,62 @@ public class XmlResponsesSaxParser {
         }
     }
 
+    /**
+     * Handler for LoggingStatus response XML documents for a bucket.
+     * The document is parsed into an {@link S3BucketLoggingStatus} object available via the 
+     * {@link #getBucketLoggingStatus()} method.
+     * 
+     * @author James Murty
+     *
+     */
+    public class BucketLoggingStatusHandler extends DefaultHandler {
+        private S3BucketLoggingStatus bucketLoggingStatus = null;
+
+        private String targetBucket = null;
+        private String targetPrefix = null;
+        private StringBuffer currText = null;
+
+        public BucketLoggingStatusHandler() {
+            super();
+            this.currText = new StringBuffer();
+        }
+
+        /**
+         * @return
+         * an object representing the bucket's LoggingStatus document.
+         */
+        public S3BucketLoggingStatus getBucketLoggingStatus() {
+            return bucketLoggingStatus;
+        }
+
+        public void startDocument() {
+        }
+
+        public void endDocument() {
+        }
+
+        public void startElement(String uri, String name, String qName, Attributes attrs) {
+            if (name.equals("BucketLoggingStatus")) {
+                bucketLoggingStatus = new S3BucketLoggingStatus();
+            } 
+        }
+
+        public void endElement(String uri, String name, String qName) {
+            String elementText = this.currText.toString();
+            if (name.equals("TargetBucket")) {
+                targetBucket = elementText;
+            } else if (name.equals("TargetPrefix")) {
+                targetPrefix = elementText;
+            } else if (name.equals("LoggingEnabled")) {
+                bucketLoggingStatus.setTargetBucketName(targetBucket);
+                bucketLoggingStatus.setLogfilePrefix(targetPrefix);
+            } 
+            this.currText = new StringBuffer();
+        }
+
+        public void characters(char ch[], int start, int length) {
+            this.currText.append(ch, start, length);
+        }
+    }
+    
 }

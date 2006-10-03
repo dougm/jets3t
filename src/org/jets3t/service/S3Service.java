@@ -23,6 +23,7 @@ import java.util.Date;
 
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.security.AWSCredentials;
@@ -676,6 +677,34 @@ public abstract class S3Service {
     public AccessControlList getBucketAcl(String bucketName) throws S3ServiceException {
         return getBucketAclImpl(bucketName);
     }
+    
+    /**
+     * Retrieves the logging status settings of a bucket.
+     * 
+     * @param bucketName
+     * the name of the bucket whose logging status settings will be returned.
+     * @return
+     * the Logging Status settings of the bucket.
+     * @throws S3ServiceException
+     */
+    public S3BucketLoggingStatus getBucketLoggingStatus(String bucketName) throws S3ServiceException {
+        return getBucketLoggingStatusImpl(bucketName);
+    }
+    
+    /**
+     * Applies logging settings to a bucket. 
+     * 
+     * @param bucketName
+     * the name of the bucket the logging settings will apply to.
+     * @param status
+     * the logging status settings to apply to the bucket.
+     * @throws S3ServiceException
+     */
+    public void setBucketLoggingStatus(String bucketName, S3BucketLoggingStatus status) 
+        throws S3ServiceException
+    {
+        setBucketLoggingStatusImpl(bucketName, status);
+    }
 
     // /////////////////////////////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by interface-specific S3Service classes
@@ -695,6 +724,12 @@ public abstract class S3Service {
      * @throws S3ServiceException
      */
     public abstract boolean isBucketAccessible(String bucketName) throws S3ServiceException;
+    
+    public abstract S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) 
+        throws S3ServiceException;
+    
+    public abstract void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
+        throws S3ServiceException;
     
     /**
      * 

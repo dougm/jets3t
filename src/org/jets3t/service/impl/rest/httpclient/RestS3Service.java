@@ -55,6 +55,7 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.Mimetypes;
@@ -746,6 +747,7 @@ public class RestS3Service extends S3Service {
         try {
             ByteArrayInputStream bais = new ByteArrayInputStream(
                     acl.toXml().getBytes(Constants.DEFAULT_ENCODING));
+            metadata.put("Content-Length", String.valueOf(bais.available()));
             performRestPut(fullKey, metadata, requestParameters, bais);
             bais.close();
         } catch (Exception e) {
@@ -934,6 +936,41 @@ public class RestS3Service extends S3Service {
         
         return responseObject;
     }
+    
+    public S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) 
+        throws S3ServiceException
+    {
+        log.debug("Retrieving Logging Status for Bucket: " + bucketName);
+        
+        HashMap requestParameters = new HashMap();
+        requestParameters.put("logging","");
+
+        HttpMethodBase httpMethod = performRestGet(bucketName, requestParameters, null);
+        return (new XmlResponsesSaxParser()).parseLoggingStatusResponse(
+            new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();        
+    }
+
+    public void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
+        throws S3ServiceException
+    {
+        log.debug("Setting Logging Status for bucket: " + bucketName);
+
+        HashMap requestParameters = new HashMap();
+        requestParameters.put("logging","");
+        
+        HashMap metadata = new HashMap();
+        metadata.put("Content-Type", "text/plain");
+
+        try {
+            ByteArrayInputStream bais = new ByteArrayInputStream(
+                status.toXml().getBytes(Constants.DEFAULT_ENCODING));
+            metadata.put("Content-Length", String.valueOf(bais.available()));
+            performRestPut(bucketName, metadata, requestParameters, bais);                
+            bais.close();
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
+        }    
+    }    
     
     /**
      * Simple container object to store an HttpMethod object representing a request connection, and a 
