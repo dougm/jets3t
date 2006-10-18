@@ -351,10 +351,11 @@ public class SoapS3Service extends S3Service {
                     delimiter, getAWSAccessKey(), timestamp, signature, null);
                 
                 ListEntry[] entries = result.getContents();
-                S3Object[] partialObjects = new S3Object[entries.length];
+                S3Object[] partialObjects = new S3Object[
+                   (entries == null? 0 : entries.length)];
                 
                 log.debug("Found " + partialObjects.length + " objects in one batch");
-                for (int i = 0; i < entries.length; i++) {
+                for (int i = 0; entries != null && i < entries.length; i++) {
                     ListEntry entry = entries[i];
                     S3Object object = new S3Object();
                     object.setKey(entry.getKey());
@@ -680,7 +681,7 @@ public class SoapS3Service extends S3Service {
                 return new S3BucketLoggingStatus();
             }
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Get ACL", e);   
+            throw new S3ServiceException("Unable to Get Bucket logging status for " + bucketName, e);   
         }        
     }
 
@@ -699,7 +700,8 @@ public class SoapS3Service extends S3Service {
                 bucketName, getAWSAccessKey(), timestamp, signature, null, 
                 new BucketLoggingStatus(loggingSettings)); 
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Get ACL", e);   
+            throw new S3ServiceException("Unable to Set Bucket logging status for " + bucketName
+                + ": " + status, e);   
         }        
     }
 
