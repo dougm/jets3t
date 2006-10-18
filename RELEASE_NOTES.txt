@@ -2,13 +2,25 @@ Version 0.4.1
 -------------
 
 * Toolkit 
+- Properties for many aspects of jets3t behaviour can be set by the user
 - Support for getting/setting Server Access Logging for buckets.
+- Improved encryption mechanism, which now uses PBE-based encryption and allows users to set 
+  their preferred algorithm. 
+  NOTE: All changes *should* be backwards compatible, but due to these changes there may be 
+  an increased risk of data loss for encrypted items.
+- New methods to chunk bucket listings, allowing for better handling of buckets with many objects.
 
 * Cockpit
 
+- Remembered login credentials are automatically updated to the new encryption version.
 - Third-party buckets can be added without first logging in.
+- User can cancel the listing of objects in large buckets
+
+* Synchronize
+
 
 * Known issues
+
 
 Version 0.4.0
 -------------
