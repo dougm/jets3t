@@ -36,7 +36,8 @@ import org.apache.commons.logging.LogFactory;
  * Properties are loaded from sources in the following order. 
  * <ol>
  * <li><tt>jets3t.properties</tt> file in the classpath</li>
- * <li><tt>jets3t.properties</tt> file in the current working directory</li>
+ * <li><tt>jets3t.properties</tt> file in the default jets3t home directory: 
+ *     {@link Constants#DEFAULT_PREFERENCES_DIRECTORY}</li>
  * <li>System Properties</li>
  * </ol>
  * Properties sourced from later locations over-ride those sourced from prior locations. For example,
@@ -71,8 +72,9 @@ public class Jets3tProperties {
             }
         } 
         
-        // Load properties from file in current working directory.
-        File file = new File(Constants.JETS3T_PROPERTIES_FILENAME);
+        // Load properties from file in jets3t home directory.
+        File file = new File(Constants.DEFAULT_PREFERENCES_DIRECTORY, 
+            Constants.JETS3T_PROPERTIES_FILENAME);
         if (file.canRead()) {
             log.debug("Loading properties from file: " + file.getAbsolutePath());  
             try {
@@ -115,9 +117,9 @@ public class Jets3tProperties {
             if (properties.containsKey(key)) {
                 log.debug("Over-riding jets3t property [" + key + "=" + properties.getProperty(key)
                     + "] with value from properties source " + propertiesSource 
-                    + ". New value: [" + key + "=" + newProperties.getProperty(key) + "]");
+                    + ". New value: [" + key + "=" + newProperties.getProperty(key).trim() + "]");
             } 
-            properties.put(key, newProperties.getProperty(key));                
+            properties.put(key, newProperties.getProperty(key).trim());                
         }
     }
     
@@ -128,7 +130,7 @@ public class Jets3tProperties {
      * the named Property value as a string if the property is set, otherwise returns the default value.
      */
     public static String getStringProperty(String propertyName, String defaultValue) {
-        String stringValue = properties.getProperty(propertyName, defaultValue);
+        String stringValue = properties.getProperty(propertyName, defaultValue).trim();
         log.debug(propertyName + "=" + stringValue);
         return stringValue;
     }
@@ -144,7 +146,7 @@ public class Jets3tProperties {
     public static long getLongProperty(String propertyName, long defaultValue) 
         throws NumberFormatException 
     {
-        String longValue = properties.getProperty(propertyName, String.valueOf(defaultValue));
+        String longValue = properties.getProperty(propertyName, String.valueOf(defaultValue)).trim();
         log.debug(propertyName + "=" + longValue);
         return Long.parseLong(longValue);
     }
@@ -160,7 +162,7 @@ public class Jets3tProperties {
     public static int getIntProperty(String propertyName, int defaultValue) 
         throws NumberFormatException 
     {
-        String intValue = properties.getProperty(propertyName, String.valueOf(defaultValue));
+        String intValue = properties.getProperty(propertyName, String.valueOf(defaultValue)).trim();
         log.debug(propertyName + "=" + intValue);
         return Integer.parseInt(intValue);
     }
@@ -176,7 +178,7 @@ public class Jets3tProperties {
     public static boolean getBoolProperty(String propertyName, boolean defaultValue) 
         throws IllegalArgumentException 
     {
-        String boolValue = properties.getProperty(propertyName, String.valueOf(defaultValue));
+        String boolValue = properties.getProperty(propertyName, String.valueOf(defaultValue)).trim();
         log.debug(propertyName + "=" + boolValue);
         if ("true".equalsIgnoreCase(boolValue)) {
             return true;
