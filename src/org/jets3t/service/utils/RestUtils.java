@@ -141,11 +141,13 @@ public class RestUtils {
             buf.append(resource.substring(0, queryIndex));
         }
 
-        // ...unless there is an acl or torrent parameter
+        // ...unless there is an acl, torrent or logging parameter
         if (resource.matches(".*[&?]acl($|=|&).*")) {
             buf.append("?acl");
         } else if (resource.matches(".*[&?]torrent($|=|&).*")) {
             buf.append("?torrent");
+        } else if (resource.matches(".*[&?]logging($|=|&).*")) {
+            buf.append("?logging");
         }
 
         return buf.toString();
