@@ -1,176 +1,155 @@
-/*
- * This class was automatically generated with 
- * <a href="http://www.castor.org">Castor 0.9.9.1</a>, using an XML
- * Schema.
- * $Id: Grant.java,v 1.1 2006/07/18 05:15:19 jmurty Exp $
+/**
+ * Grant.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-  //---------------------------------/
- //- Imported classes and packages -/
-//---------------------------------/
+public class Grant  implements java.io.Serializable {
+    private org.jets3t.service.impl.soap.axis._2006_03_01.Grantee grantee;
 
-import org.jets3t.service.impl.soap.axis._2006_03_01.types.Permission;
+    private org.jets3t.service.impl.soap.axis._2006_03_01.Permission permission;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.Writer;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.Marshaller;
-import org.exolab.castor.xml.Unmarshaller;
-import org.exolab.castor.xml.ValidationException;
-import org.xml.sax.ContentHandler;
+    public Grant() {
+    }
 
-/**
- * Class Grant.
- * 
- * @version $Revision: 1.1 $ $Date: 2006/07/18 05:15:19 $
- */
-public class Grant implements java.io.Serializable {
+    public Grant(
+           org.jets3t.service.impl.soap.axis._2006_03_01.Grantee grantee,
+           org.jets3t.service.impl.soap.axis._2006_03_01.Permission permission) {
+           this.grantee = grantee;
+           this.permission = permission;
+    }
 
-
-      //--------------------------/
-     //- Class/Member Variables -/
-    //--------------------------/
 
     /**
-     * Field _grantee
+     * Gets the grantee value for this Grant.
+     * 
+     * @return grantee
      */
-    private org.jets3t.service.impl.soap.axis._2006_03_01.Grantee _grantee;
+    public org.jets3t.service.impl.soap.axis._2006_03_01.Grantee getGrantee() {
+        return grantee;
+    }
+
 
     /**
-     * Field _permission
+     * Sets the grantee value for this Grant.
+     * 
+     * @param grantee
      */
-    private org.jets3t.service.impl.soap.axis._2006_03_01.types.Permission _permission;
+    public void setGrantee(org.jets3t.service.impl.soap.axis._2006_03_01.Grantee grantee) {
+        this.grantee = grantee;
+    }
 
-
-      //----------------/
-     //- Constructors -/
-    //----------------/
-
-    public Grant() 
-     {
-        super();
-    } //-- org.jets3t.service.soap._2006_03_01.Grant()
-
-
-      //-----------/
-     //- Methods -/
-    //-----------/
 
     /**
-     * Returns the value of field 'grantee'.
+     * Gets the permission value for this Grant.
      * 
-     * @return Grantee
-     * @return the value of field 'grantee'.
+     * @return permission
      */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.Grantee getGrantee()
-    {
-        return this._grantee;
-    } //-- org.jets3t.service.soap._2006_03_01.Grantee getGrantee() 
+    public org.jets3t.service.impl.soap.axis._2006_03_01.Permission getPermission() {
+        return permission;
+    }
+
 
     /**
-     * Returns the value of field 'permission'.
+     * Sets the permission value for this Grant.
      * 
-     * @return Permission
-     * @return the value of field 'permission'.
+     * @param permission
      */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.types.Permission getPermission()
-    {
-        return this._permission;
-    } //-- org.jets3t.service.soap._2006_03_01.types.Permission getPermission() 
+    public void setPermission(org.jets3t.service.impl.soap.axis._2006_03_01.Permission permission) {
+        this.permission = permission;
+    }
 
-    /**
-     * Method isValid
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean isValid()
-    {
-        try {
-            validate();
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof Grant)) return false;
+        Grant other = (Grant) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
         }
-        catch (org.exolab.castor.xml.ValidationException vex) {
-            return false;
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = true && 
+            ((this.grantee==null && other.getGrantee()==null) || 
+             (this.grantee!=null &&
+              this.grantee.equals(other.getGrantee()))) &&
+            ((this.permission==null && other.getPermission()==null) || 
+             (this.permission!=null &&
+              this.permission.equals(other.getPermission())));
+        __equalsCalc = null;
+        return _equals;
+    }
+
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
         }
-        return true;
-    } //-- boolean isValid() 
+        __hashCodeCalc = true;
+        int _hashCode = 1;
+        if (getGrantee() != null) {
+            _hashCode += getGrantee().hashCode();
+        }
+        if (getPermission() != null) {
+            _hashCode += getPermission().hashCode();
+        }
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(Grant.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Grant"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("grantee");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Grantee"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Grantee"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("permission");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Permission"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Permission"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param out
+     * Return type metadata object
      */
-    public void marshal(java.io.Writer out)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, out);
-    } //-- void marshal(java.io.Writer) 
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param handler
+     * Get Custom Serializer
      */
-    public void marshal(org.xml.sax.ContentHandler handler)
-        throws java.io.IOException, org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, handler);
-    } //-- void marshal(org.xml.sax.ContentHandler) 
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
     /**
-     * Sets the value of field 'grantee'.
-     * 
-     * @param grantee the value of field 'grantee'.
+     * Get Custom Deserializer
      */
-    public void setGrantee(org.jets3t.service.impl.soap.axis._2006_03_01.Grantee grantee)
-    {
-        this._grantee = grantee;
-    } //-- void setGrantee(org.jets3t.service.soap._2006_03_01.Grantee) 
-
-    /**
-     * Sets the value of field 'permission'.
-     * 
-     * @param permission the value of field 'permission'.
-     */
-    public void setPermission(org.jets3t.service.impl.soap.axis._2006_03_01.types.Permission permission)
-    {
-        this._permission = permission;
-    } //-- void setPermission(org.jets3t.service.soap._2006_03_01.types.Permission) 
-
-    /**
-     * Method unmarshalGrant
-     * 
-     * 
-     * 
-     * @param reader
-     * @return Grant
-     */
-    public static org.jets3t.service.impl.soap.axis._2006_03_01.Grant unmarshalGrant(java.io.Reader reader)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.Grant) Unmarshaller.unmarshal(org.jets3t.service.impl.soap.axis._2006_03_01.Grant.class, reader);
-    } //-- org.jets3t.service.soap._2006_03_01.Grant unmarshalGrant(java.io.Reader) 
-
-    /**
-     * Method validate
-     * 
-     */
-    public void validate()
-        throws org.exolab.castor.xml.ValidationException
-    {
-        org.exolab.castor.xml.Validator validator = new org.exolab.castor.xml.Validator();
-        validator.validate(this);
-    } //-- void validate() 
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
 }

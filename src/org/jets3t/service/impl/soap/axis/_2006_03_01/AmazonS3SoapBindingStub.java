@@ -2,7 +2,7 @@
  * AmazonS3SoapBindingStub.java
  *
  * This file was auto-generated from WSDL
- * by the Apache Axis 1.3 Oct 05, 2005 (05:23:37 EDT) WSDL2Java emitter.
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
@@ -16,7 +16,7 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
     static org.apache.axis.description.OperationDesc [] _operations;
 
     static {
-        _operations = new org.apache.axis.description.OperationDesc[13];
+        _operations = new org.apache.axis.description.OperationDesc[15];
         _initOperationDesc1();
         _initOperationDesc2();
     }
@@ -412,6 +412,52 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
         oper.setUse(org.apache.axis.constants.Use.LITERAL);
         _operations[12] = oper;
 
+        oper = new org.apache.axis.description.OperationDesc();
+        oper.setName("SetBucketLoggingStatus");
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Bucket"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "AWSAccessKeyId"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Timestamp"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"), java.util.Calendar.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Signature"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Credential"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "BucketLoggingStatus"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "BucketLoggingStatus"), org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus.class, false, false);
+        oper.addParameter(param);
+        oper.setReturnType(org.apache.axis.encoding.XMLType.AXIS_VOID);
+        oper.setStyle(org.apache.axis.constants.Style.WRAPPED);
+        oper.setUse(org.apache.axis.constants.Use.LITERAL);
+        _operations[13] = oper;
+
+        oper = new org.apache.axis.description.OperationDesc();
+        oper.setName("GetBucketLoggingStatus");
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Bucket"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "AWSAccessKeyId"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Timestamp"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"), java.util.Calendar.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Signature"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Credential"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        oper.setReturnType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "BucketLoggingStatus"));
+        oper.setReturnClass(org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus.class);
+        oper.setReturnQName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "GetBucketLoggingStatusResponse"));
+        oper.setStyle(org.apache.axis.constants.Style.WRAPPED);
+        oper.setUse(org.apache.axis.constants.Use.LITERAL);
+        _operations[14] = oper;
+
     }
 
     public AmazonS3SoapBindingStub() throws org.apache.axis.AxisFault {
@@ -433,9 +479,8 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
             java.lang.Class cls;
             javax.xml.namespace.QName qName;
             javax.xml.namespace.QName qName2;
-
-            java.lang.Class beansf = org.apache.axis.encoding.ser.castor.CastorSerializerFactory.class;
-            java.lang.Class beandf = org.apache.axis.encoding.ser.castor.CastorDeserializerFactory.class;
+            java.lang.Class beansf = org.apache.axis.encoding.ser.BeanSerializerFactory.class;
+            java.lang.Class beandf = org.apache.axis.encoding.ser.BeanDeserializerFactory.class;
             java.lang.Class enumsf = org.apache.axis.encoding.ser.EnumSerializerFactory.class;
             java.lang.Class enumdf = org.apache.axis.encoding.ser.EnumDeserializerFactory.class;
             java.lang.Class arraysf = org.apache.axis.encoding.ser.ArraySerializerFactory.class;
@@ -463,6 +508,13 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
             qName = new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "AmazonCustomerByEmail");
             cachedSerQNames.add(qName);
             cls = org.jets3t.service.impl.soap.axis._2006_03_01.AmazonCustomerByEmail.class;
+            cachedSerClasses.add(cls);
+            cachedSerFactories.add(beansf);
+            cachedDeserFactories.add(beandf);
+
+            qName = new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "BucketLoggingStatus");
+            cachedSerQNames.add(qName);
+            cls = org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus.class;
             cachedSerClasses.add(cls);
             cachedSerFactories.add(beansf);
             cachedDeserFactories.add(beandf);
@@ -542,6 +594,13 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
             qName = new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ListEntry");
             cachedSerQNames.add(qName);
             cls = org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry.class;
+            cachedSerClasses.add(cls);
+            cachedSerFactories.add(beansf);
+            cachedDeserFactories.add(beandf);
+
+            qName = new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "LoggingSettings");
+            cachedSerQNames.add(qName);
+            cls = org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings.class;
             cachedSerClasses.add(cls);
             cachedSerFactories.add(beansf);
             cachedDeserFactories.add(beandf);
@@ -1089,6 +1148,67 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
                 return (org.jets3t.service.impl.soap.axis._2006_03_01.ListAllMyBucketsResult) _resp;
             } catch (java.lang.Exception _exception) {
                 return (org.jets3t.service.impl.soap.axis._2006_03_01.ListAllMyBucketsResult) org.apache.axis.utils.JavaUtils.convert(_resp, org.jets3t.service.impl.soap.axis._2006_03_01.ListAllMyBucketsResult.class);
+            }
+        }
+  } catch (org.apache.axis.AxisFault axisFaultException) {
+  throw axisFaultException;
+}
+    }
+
+    public void setBucketLoggingStatus(java.lang.String bucket, java.lang.String AWSAccessKeyId, java.util.Calendar timestamp, java.lang.String signature, java.lang.String credential, org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus bucketLoggingStatus) throws java.rmi.RemoteException {
+        if (super.cachedEndpoint == null) {
+            throw new org.apache.axis.NoEndPointException();
+        }
+        org.apache.axis.client.Call _call = createCall();
+        _call.setOperation(_operations[13]);
+        _call.setUseSOAPAction(true);
+        _call.setSOAPActionURI("");
+        _call.setEncodingStyle(null);
+        _call.setProperty(org.apache.axis.client.Call.SEND_TYPE_ATTR, Boolean.FALSE);
+        _call.setProperty(org.apache.axis.AxisEngine.PROP_DOMULTIREFS, Boolean.FALSE);
+        _call.setSOAPVersion(org.apache.axis.soap.SOAPConstants.SOAP11_CONSTANTS);
+        _call.setOperationName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "SetBucketLoggingStatus"));
+
+        setRequestHeaders(_call);
+        setAttachments(_call);
+ try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {bucket, AWSAccessKeyId, timestamp, signature, credential, bucketLoggingStatus});
+
+        if (_resp instanceof java.rmi.RemoteException) {
+            throw (java.rmi.RemoteException)_resp;
+        }
+        extractAttachments(_call);
+  } catch (org.apache.axis.AxisFault axisFaultException) {
+  throw axisFaultException;
+}
+    }
+
+    public org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus getBucketLoggingStatus(java.lang.String bucket, java.lang.String AWSAccessKeyId, java.util.Calendar timestamp, java.lang.String signature, java.lang.String credential) throws java.rmi.RemoteException {
+        if (super.cachedEndpoint == null) {
+            throw new org.apache.axis.NoEndPointException();
+        }
+        org.apache.axis.client.Call _call = createCall();
+        _call.setOperation(_operations[14]);
+        _call.setUseSOAPAction(true);
+        _call.setSOAPActionURI("");
+        _call.setEncodingStyle(null);
+        _call.setProperty(org.apache.axis.client.Call.SEND_TYPE_ATTR, Boolean.FALSE);
+        _call.setProperty(org.apache.axis.AxisEngine.PROP_DOMULTIREFS, Boolean.FALSE);
+        _call.setSOAPVersion(org.apache.axis.soap.SOAPConstants.SOAP11_CONSTANTS);
+        _call.setOperationName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "GetBucketLoggingStatus"));
+
+        setRequestHeaders(_call);
+        setAttachments(_call);
+ try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {bucket, AWSAccessKeyId, timestamp, signature, credential});
+
+        if (_resp instanceof java.rmi.RemoteException) {
+            throw (java.rmi.RemoteException)_resp;
+        }
+        else {
+            extractAttachments(_call);
+            try {
+                return (org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus) _resp;
+            } catch (java.lang.Exception _exception) {
+                return (org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus) org.apache.axis.utils.JavaUtils.convert(_resp, org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus.class);
             }
         }
   } catch (org.apache.axis.AxisFault axisFaultException) {

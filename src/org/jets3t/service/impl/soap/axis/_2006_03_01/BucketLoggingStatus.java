@@ -1,5 +1,5 @@
 /**
- * Group.java
+ * BucketLoggingStatus.java
  *
  * This file was auto-generated from WSDL
  * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
@@ -7,41 +7,41 @@
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-public class Group  extends org.jets3t.service.impl.soap.axis._2006_03_01.Grantee  implements java.io.Serializable {
-    private java.lang.String URI;
+public class BucketLoggingStatus  implements java.io.Serializable {
+    private org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings loggingEnabled;
 
-    public Group() {
+    public BucketLoggingStatus() {
     }
 
-    public Group(
-           java.lang.String URI) {
-        this.URI = URI;
-    }
-
-
-    /**
-     * Gets the URI value for this Group.
-     * 
-     * @return URI
-     */
-    public java.lang.String getURI() {
-        return URI;
+    public BucketLoggingStatus(
+           org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings loggingEnabled) {
+           this.loggingEnabled = loggingEnabled;
     }
 
 
     /**
-     * Sets the URI value for this Group.
+     * Gets the loggingEnabled value for this BucketLoggingStatus.
      * 
-     * @param URI
+     * @return loggingEnabled
      */
-    public void setURI(java.lang.String URI) {
-        this.URI = URI;
+    public org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings getLoggingEnabled() {
+        return loggingEnabled;
+    }
+
+
+    /**
+     * Sets the loggingEnabled value for this BucketLoggingStatus.
+     * 
+     * @param loggingEnabled
+     */
+    public void setLoggingEnabled(org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings loggingEnabled) {
+        this.loggingEnabled = loggingEnabled;
     }
 
     private java.lang.Object __equalsCalc = null;
     public synchronized boolean equals(java.lang.Object obj) {
-        if (!(obj instanceof Group)) return false;
-        Group other = (Group) obj;
+        if (!(obj instanceof BucketLoggingStatus)) return false;
+        BucketLoggingStatus other = (BucketLoggingStatus) obj;
         if (obj == null) return false;
         if (this == obj) return true;
         if (__equalsCalc != null) {
@@ -49,10 +49,10 @@ public class Group  extends org.jets3t.service.impl.soap.axis._2006_03_01.Grante
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = super.equals(obj) && 
-            ((this.URI==null && other.getURI()==null) || 
-             (this.URI!=null &&
-              this.URI.equals(other.getURI())));
+        _equals = true && 
+            ((this.loggingEnabled==null && other.getLoggingEnabled()==null) || 
+             (this.loggingEnabled!=null &&
+              this.loggingEnabled.equals(other.getLoggingEnabled())));
         __equalsCalc = null;
         return _equals;
     }
@@ -63,9 +63,9 @@ public class Group  extends org.jets3t.service.impl.soap.axis._2006_03_01.Grante
             return 0;
         }
         __hashCodeCalc = true;
-        int _hashCode = super.hashCode();
-        if (getURI() != null) {
-            _hashCode += getURI().hashCode();
+        int _hashCode = 1;
+        if (getLoggingEnabled() != null) {
+            _hashCode += getLoggingEnabled().hashCode();
         }
         __hashCodeCalc = false;
         return _hashCode;
@@ -73,14 +73,15 @@ public class Group  extends org.jets3t.service.impl.soap.axis._2006_03_01.Grante
 
     // Type metadata
     private static org.apache.axis.description.TypeDesc typeDesc =
-        new org.apache.axis.description.TypeDesc(Group.class, true);
+        new org.apache.axis.description.TypeDesc(BucketLoggingStatus.class, true);
 
     static {
-        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Group"));
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "BucketLoggingStatus"));
         org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
-        elemField.setFieldName("URI");
-        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "URI"));
-        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setFieldName("loggingEnabled");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "LoggingEnabled"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "LoggingSettings"));
+        elemField.setMinOccurs(0);
         elemField.setNillable(false);
         typeDesc.addFieldDesc(elemField);
     }

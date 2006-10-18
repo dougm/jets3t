@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.Map;
@@ -40,20 +39,22 @@ import org.jets3t.service.impl.soap.axis._2006_03_01.AccessControlPolicy;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonCustomerByEmail;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonS3SoapBindingStub;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonS3_ServiceLocator;
+import org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus;
 import org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser;
 import org.jets3t.service.impl.soap.axis._2006_03_01.GetObjectResult;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Grant;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Grantee;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Group;
 import org.jets3t.service.impl.soap.axis._2006_03_01.ListAllMyBucketsEntry;
-import org.jets3t.service.impl.soap.axis._2006_03_01.ListAllMyBucketsList;
 import org.jets3t.service.impl.soap.axis._2006_03_01.ListAllMyBucketsResult;
 import org.jets3t.service.impl.soap.axis._2006_03_01.ListBucketResult;
 import org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry;
+import org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings;
 import org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry;
+import org.jets3t.service.impl.soap.axis._2006_03_01.Permission;
 import org.jets3t.service.impl.soap.axis._2006_03_01.PutObjectResult;
-import org.jets3t.service.impl.soap.axis._2006_03_01.types.Permission;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
@@ -182,9 +183,9 @@ public class SoapS3Service extends S3Service {
         AccessControlList acl = new AccessControlList();
         acl.setOwner(convertOwner(policy.getOwner()));
         
-        Enumeration enumeration = policy.getAccessControlList().enumerateGrant();
-        while (enumeration.hasMoreElements()) {
-            Grant grant = (Grant) enumeration.nextElement();
+        Grant[] grants = policy.getAccessControlList();
+        for (int i = 0; i < grants.length; i++) {
+            Grant grant = (Grant) grants[i];
             org.jets3t.service.acl.Permission permission =
                 org.jets3t.service.acl.Permission.parsePermission(grant.getPermission().toString());            
             
@@ -255,7 +256,7 @@ public class SoapS3Service extends S3Service {
                 throw new S3ServiceException("Unrecognised jets3t grantee type: " 
                     + jets3tGrantee.getClass());
             }
-            Permission permission = Permission.valueOf(jets3tGaP.getPermission().toString());
+            Permission permission = Permission.fromString(jets3tGaP.getPermission().toString());
             grant.setPermission(permission);
             grants[index++] = grant;
         }
@@ -299,15 +300,14 @@ public class SoapS3Service extends S3Service {
             ListAllMyBucketsResult result = s3SoapBinding.listAllMyBuckets(
                 getAWSAccessKey(), timestamp, signature);
 
-            ListAllMyBucketsList list = result.getBuckets();            
-            buckets = new S3Bucket[list.getBucketCount()];
-            Enumeration enumeration = list.enumerateBucket();
+            ListAllMyBucketsEntry[] entries = result.getBuckets();            
+            buckets = new S3Bucket[entries.length];
             int index = 0;
-            while (enumeration.hasMoreElements()) {
-                ListAllMyBucketsEntry entry = (ListAllMyBucketsEntry) enumeration.nextElement();
+            for (int i = 0; i < entries.length; i++) {
+                ListAllMyBucketsEntry entry = (ListAllMyBucketsEntry) entries[i];
                 S3Bucket bucket = new S3Bucket();
                 bucket.setName(entry.getName());
-                bucket.setCreationDate(entry.getCreationDate());
+                bucket.setCreationDate(entry.getCreationDate().getTime());
                 buckets[index++] = bucket;
             }
         } catch (Exception e) {
@@ -350,15 +350,15 @@ public class SoapS3Service extends S3Service {
                     bucketName, prefix, marker, new Integer((int)maxListingLength), 
                     delimiter, getAWSAccessKey(), timestamp, signature, null);
                 
-                S3Object[] partialObjects = new S3Object[result.getContentsCount()];
                 ListEntry[] entries = result.getContents();
+                S3Object[] partialObjects = new S3Object[entries.length];
                 
                 log.debug("Found " + partialObjects.length + " objects in one batch");
                 for (int i = 0; i < entries.length; i++) {
                     ListEntry entry = entries[i];
                     S3Object object = new S3Object();
                     object.setKey(entry.getKey());
-                    object.setLastModifiedDate(entry.getLastModified());
+                    object.setLastModifiedDate(entry.getLastModified().getTime());
                     object.setETag(entry.getETag());
                     object.setContentLength(entry.getSize());
                     object.setStorageClass(entry.getStorageClass().toString());
@@ -371,7 +371,7 @@ public class SoapS3Service extends S3Service {
                 
                 objects.addAll(Arrays.asList(partialObjects));
                 
-                incompleteListing = result.getIsTruncated();
+                incompleteListing = result.isIsTruncated();
                 if (incompleteListing) {
                     // Why doesn't result.getMarker() return the next marker?
                     // marker = result.getMarker();
@@ -568,7 +568,7 @@ public class SoapS3Service extends S3Service {
             
             S3Object object = new S3Object();
             object.setETag(result.getETag());
-            object.setLastModifiedDate(result.getLastModified());
+            object.setLastModifiedDate(result.getLastModified().getTime());
             object.setBucketName(bucketName);
             object.setKey(objectKey);
             
@@ -663,6 +663,44 @@ public class SoapS3Service extends S3Service {
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get ACL", e);   
         }
+    }
+
+    public S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) throws S3ServiceException {
+        try {
+            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            String signature = makeSignature("GetBucketLoggingStatus", timestamp);
+            
+            BucketLoggingStatus loggingStatus = s3SoapBinding.getBucketLoggingStatus(                
+                bucketName, getAWSAccessKey(), timestamp, signature, null);            
+            LoggingSettings loggingSettings = loggingStatus.getLoggingEnabled();
+            if (loggingSettings != null) {
+                return new S3BucketLoggingStatus(loggingSettings.getTargetBucket(), loggingSettings.getTargetPrefix());                
+            } else {
+                return new S3BucketLoggingStatus();
+            }
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to Get ACL", e);   
+        }        
+    }
+
+    public void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) throws S3ServiceException {
+        try {
+            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            String signature = makeSignature("SetBucketLoggingStatus", timestamp);
+            
+            LoggingSettings loggingSettings = null;
+            if (status.isLoggingEnabled()) {
+                loggingSettings = new LoggingSettings(status.getTargetBucketName(), status.getLogfilePrefix());                
+            }
+            
+            s3SoapBinding.setBucketLoggingStatus(
+                bucketName, getAWSAccessKey(), timestamp, signature, null, 
+                new BucketLoggingStatus(loggingSettings)); 
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to Get ACL", e);   
+        }        
     }
 
 }

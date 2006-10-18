@@ -1,148 +1,119 @@
-/*
- * This class was automatically generated with 
- * <a href="http://www.castor.org">Castor 0.9.9.1</a>, using an XML
- * Schema.
- * $Id: CreateBucketResult.java,v 1.1 2006/07/18 05:15:24 jmurty Exp $
+/**
+ * CreateBucketResult.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-  //---------------------------------/
- //- Imported classes and packages -/
-//---------------------------------/
+public class CreateBucketResult  implements java.io.Serializable {
+    private java.lang.String bucketName;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.Writer;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.Marshaller;
-import org.exolab.castor.xml.Unmarshaller;
-import org.exolab.castor.xml.ValidationException;
-import org.xml.sax.ContentHandler;
+    public CreateBucketResult() {
+    }
 
-/**
- * Class CreateBucketResult.
- * 
- * @version $Revision: 1.1 $ $Date: 2006/07/18 05:15:24 $
- */
-public class CreateBucketResult implements java.io.Serializable {
+    public CreateBucketResult(
+           java.lang.String bucketName) {
+           this.bucketName = bucketName;
+    }
 
-
-      //--------------------------/
-     //- Class/Member Variables -/
-    //--------------------------/
 
     /**
-     * Field _bucketName
+     * Gets the bucketName value for this CreateBucketResult.
+     * 
+     * @return bucketName
      */
-    private java.lang.String _bucketName;
+    public java.lang.String getBucketName() {
+        return bucketName;
+    }
 
-
-      //----------------/
-     //- Constructors -/
-    //----------------/
-
-    public CreateBucketResult() 
-     {
-        super();
-    } //-- org.jets3t.service.soap._2006_03_01.CreateBucketResult()
-
-
-      //-----------/
-     //- Methods -/
-    //-----------/
 
     /**
-     * Returns the value of field 'bucketName'.
+     * Sets the bucketName value for this CreateBucketResult.
      * 
-     * @return String
-     * @return the value of field 'bucketName'.
+     * @param bucketName
      */
-    public java.lang.String getBucketName()
-    {
-        return this._bucketName;
-    } //-- java.lang.String getBucketName() 
+    public void setBucketName(java.lang.String bucketName) {
+        this.bucketName = bucketName;
+    }
 
-    /**
-     * Method isValid
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean isValid()
-    {
-        try {
-            validate();
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof CreateBucketResult)) return false;
+        CreateBucketResult other = (CreateBucketResult) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
         }
-        catch (org.exolab.castor.xml.ValidationException vex) {
-            return false;
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = true && 
+            ((this.bucketName==null && other.getBucketName()==null) || 
+             (this.bucketName!=null &&
+              this.bucketName.equals(other.getBucketName())));
+        __equalsCalc = null;
+        return _equals;
+    }
+
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
         }
-        return true;
-    } //-- boolean isValid() 
+        __hashCodeCalc = true;
+        int _hashCode = 1;
+        if (getBucketName() != null) {
+            _hashCode += getBucketName().hashCode();
+        }
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(CreateBucketResult.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CreateBucketResult"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("bucketName");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "BucketName"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param out
+     * Return type metadata object
      */
-    public void marshal(java.io.Writer out)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, out);
-    } //-- void marshal(java.io.Writer) 
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param handler
+     * Get Custom Serializer
      */
-    public void marshal(org.xml.sax.ContentHandler handler)
-        throws java.io.IOException, org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, handler);
-    } //-- void marshal(org.xml.sax.ContentHandler) 
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
     /**
-     * Sets the value of field 'bucketName'.
-     * 
-     * @param bucketName the value of field 'bucketName'.
+     * Get Custom Deserializer
      */
-    public void setBucketName(java.lang.String bucketName)
-    {
-        this._bucketName = bucketName;
-    } //-- void setBucketName(java.lang.String) 
-
-    /**
-     * Method unmarshalCreateBucketResult
-     * 
-     * 
-     * 
-     * @param reader
-     * @return CreateBucketResult
-     */
-    public static org.jets3t.service.impl.soap.axis._2006_03_01.CreateBucketResult unmarshalCreateBucketResult(java.io.Reader reader)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.CreateBucketResult) Unmarshaller.unmarshal(org.jets3t.service.impl.soap.axis._2006_03_01.CreateBucketResult.class, reader);
-    } //-- org.jets3t.service.soap._2006_03_01.CreateBucketResult unmarshalCreateBucketResult(java.io.Reader) 
-
-    /**
-     * Method validate
-     * 
-     */
-    public void validate()
-        throws org.exolab.castor.xml.ValidationException
-    {
-        org.exolab.castor.xml.Validator validator = new org.exolab.castor.xml.Validator();
-        validator.validate(this);
-    } //-- void validate() 
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
 }

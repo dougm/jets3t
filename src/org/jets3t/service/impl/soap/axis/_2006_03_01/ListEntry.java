@@ -1,308 +1,296 @@
-/*
- * This class was automatically generated with 
- * <a href="http://www.castor.org">Castor 0.9.9.1</a>, using an XML
- * Schema.
- * $Id: ListEntry.java,v 1.1 2006/07/18 05:15:26 jmurty Exp $
+/**
+ * ListEntry.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-  //---------------------------------/
- //- Imported classes and packages -/
-//---------------------------------/
+public class ListEntry  implements java.io.Serializable {
+    private java.lang.String key;
 
-import org.jets3t.service.impl.soap.axis._2006_03_01.types.StorageClass;
+    private java.util.Calendar lastModified;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.Writer;
-import java.util.Date;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.Marshaller;
-import org.exolab.castor.xml.Unmarshaller;
-import org.exolab.castor.xml.ValidationException;
-import org.xml.sax.ContentHandler;
+    private java.lang.String ETag;
 
-/**
- * Class ListEntry.
- * 
- * @version $Revision: 1.1 $ $Date: 2006/07/18 05:15:26 $
- */
-public class ListEntry implements java.io.Serializable {
+    private long size;
 
+    private org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser owner;
 
-      //--------------------------/
-     //- Class/Member Variables -/
-    //--------------------------/
+    private org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass storageClass;
+
+    public ListEntry() {
+    }
+
+    public ListEntry(
+           java.lang.String key,
+           java.util.Calendar lastModified,
+           java.lang.String ETag,
+           long size,
+           org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser owner,
+           org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass storageClass) {
+           this.key = key;
+           this.lastModified = lastModified;
+           this.ETag = ETag;
+           this.size = size;
+           this.owner = owner;
+           this.storageClass = storageClass;
+    }
+
 
     /**
-     * Field _key
-     */
-    private java.lang.String _key;
-
-    /**
-     * Field _lastModified
-     */
-    private java.util.Date _lastModified;
-
-    /**
-     * Field _ETag
-     */
-    private java.lang.String _ETag;
-
-    /**
-     * Field _size
-     */
-    private long _size;
-
-    /**
-     * keeps track of state for field: _size
-     */
-    private boolean _has_size;
-
-    /**
-     * Field _owner
-     */
-    private org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser _owner;
-
-    /**
-     * Field _storageClass
-     */
-    private org.jets3t.service.impl.soap.axis._2006_03_01.types.StorageClass _storageClass;
-
-
-      //----------------/
-     //- Constructors -/
-    //----------------/
-
-    public ListEntry() 
-     {
-        super();
-    } //-- org.jets3t.service.soap._2006_03_01.ListEntry()
-
-
-      //-----------/
-     //- Methods -/
-    //-----------/
-
-    /**
-     * Method deleteSize
+     * Gets the key value for this ListEntry.
      * 
+     * @return key
      */
-    public void deleteSize()
-    {
-        this._has_size= false;
-    } //-- void deleteSize() 
+    public java.lang.String getKey() {
+        return key;
+    }
+
 
     /**
-     * Returns the value of field 'ETag'.
+     * Sets the key value for this ListEntry.
      * 
-     * @return String
-     * @return the value of field 'ETag'.
+     * @param key
      */
-    public java.lang.String getETag()
-    {
-        return this._ETag;
-    } //-- java.lang.String getETag() 
+    public void setKey(java.lang.String key) {
+        this.key = key;
+    }
+
 
     /**
-     * Returns the value of field 'key'.
+     * Gets the lastModified value for this ListEntry.
      * 
-     * @return String
-     * @return the value of field 'key'.
+     * @return lastModified
      */
-    public java.lang.String getKey()
-    {
-        return this._key;
-    } //-- java.lang.String getKey() 
+    public java.util.Calendar getLastModified() {
+        return lastModified;
+    }
+
 
     /**
-     * Returns the value of field 'lastModified'.
+     * Sets the lastModified value for this ListEntry.
      * 
-     * @return Date
-     * @return the value of field 'lastModified'.
+     * @param lastModified
      */
-    public java.util.Date getLastModified()
-    {
-        return this._lastModified;
-    } //-- java.util.Date getLastModified() 
+    public void setLastModified(java.util.Calendar lastModified) {
+        this.lastModified = lastModified;
+    }
+
 
     /**
-     * Returns the value of field 'owner'.
+     * Gets the ETag value for this ListEntry.
      * 
-     * @return CanonicalUser
-     * @return the value of field 'owner'.
+     * @return ETag
      */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser getOwner()
-    {
-        return this._owner;
-    } //-- org.jets3t.service.soap._2006_03_01.CanonicalUser getOwner() 
+    public java.lang.String getETag() {
+        return ETag;
+    }
+
 
     /**
-     * Returns the value of field 'size'.
+     * Sets the ETag value for this ListEntry.
      * 
-     * @return long
-     * @return the value of field 'size'.
+     * @param ETag
      */
-    public long getSize()
-    {
-        return this._size;
-    } //-- long getSize() 
+    public void setETag(java.lang.String ETag) {
+        this.ETag = ETag;
+    }
+
 
     /**
-     * Returns the value of field 'storageClass'.
+     * Gets the size value for this ListEntry.
      * 
-     * @return StorageClass
-     * @return the value of field 'storageClass'.
+     * @return size
      */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.types.StorageClass getStorageClass()
-    {
-        return this._storageClass;
-    } //-- org.jets3t.service.soap._2006_03_01.types.StorageClass getStorageClass() 
+    public long getSize() {
+        return size;
+    }
+
 
     /**
-     * Method hasSize
+     * Sets the size value for this ListEntry.
      * 
-     * 
-     * 
-     * @return boolean
+     * @param size
      */
-    public boolean hasSize()
-    {
-        return this._has_size;
-    } //-- boolean hasSize() 
+    public void setSize(long size) {
+        this.size = size;
+    }
+
 
     /**
-     * Method isValid
+     * Gets the owner value for this ListEntry.
      * 
-     * 
-     * 
-     * @return boolean
+     * @return owner
      */
-    public boolean isValid()
-    {
-        try {
-            validate();
+    public org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser getOwner() {
+        return owner;
+    }
+
+
+    /**
+     * Sets the owner value for this ListEntry.
+     * 
+     * @param owner
+     */
+    public void setOwner(org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser owner) {
+        this.owner = owner;
+    }
+
+
+    /**
+     * Gets the storageClass value for this ListEntry.
+     * 
+     * @return storageClass
+     */
+    public org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass getStorageClass() {
+        return storageClass;
+    }
+
+
+    /**
+     * Sets the storageClass value for this ListEntry.
+     * 
+     * @param storageClass
+     */
+    public void setStorageClass(org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass storageClass) {
+        this.storageClass = storageClass;
+    }
+
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof ListEntry)) return false;
+        ListEntry other = (ListEntry) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
         }
-        catch (org.exolab.castor.xml.ValidationException vex) {
-            return false;
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = true && 
+            ((this.key==null && other.getKey()==null) || 
+             (this.key!=null &&
+              this.key.equals(other.getKey()))) &&
+            ((this.lastModified==null && other.getLastModified()==null) || 
+             (this.lastModified!=null &&
+              this.lastModified.equals(other.getLastModified()))) &&
+            ((this.ETag==null && other.getETag()==null) || 
+             (this.ETag!=null &&
+              this.ETag.equals(other.getETag()))) &&
+            this.size == other.getSize() &&
+            ((this.owner==null && other.getOwner()==null) || 
+             (this.owner!=null &&
+              this.owner.equals(other.getOwner()))) &&
+            ((this.storageClass==null && other.getStorageClass()==null) || 
+             (this.storageClass!=null &&
+              this.storageClass.equals(other.getStorageClass())));
+        __equalsCalc = null;
+        return _equals;
+    }
+
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
         }
-        return true;
-    } //-- boolean isValid() 
+        __hashCodeCalc = true;
+        int _hashCode = 1;
+        if (getKey() != null) {
+            _hashCode += getKey().hashCode();
+        }
+        if (getLastModified() != null) {
+            _hashCode += getLastModified().hashCode();
+        }
+        if (getETag() != null) {
+            _hashCode += getETag().hashCode();
+        }
+        _hashCode += new Long(getSize()).hashCode();
+        if (getOwner() != null) {
+            _hashCode += getOwner().hashCode();
+        }
+        if (getStorageClass() != null) {
+            _hashCode += getStorageClass().hashCode();
+        }
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(ListEntry.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ListEntry"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("key");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Key"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("lastModified");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "LastModified"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("ETag");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ETag"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("size");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Size"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "long"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("owner");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Owner"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CanonicalUser"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("storageClass");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "StorageClass"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "StorageClass"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param out
+     * Return type metadata object
      */
-    public void marshal(java.io.Writer out)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, out);
-    } //-- void marshal(java.io.Writer) 
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param handler
+     * Get Custom Serializer
      */
-    public void marshal(org.xml.sax.ContentHandler handler)
-        throws java.io.IOException, org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, handler);
-    } //-- void marshal(org.xml.sax.ContentHandler) 
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
     /**
-     * Sets the value of field 'ETag'.
-     * 
-     * @param ETag the value of field 'ETag'.
+     * Get Custom Deserializer
      */
-    public void setETag(java.lang.String ETag)
-    {
-        this._ETag = ETag;
-    } //-- void setETag(java.lang.String) 
-
-    /**
-     * Sets the value of field 'key'.
-     * 
-     * @param key the value of field 'key'.
-     */
-    public void setKey(java.lang.String key)
-    {
-        this._key = key;
-    } //-- void setKey(java.lang.String) 
-
-    /**
-     * Sets the value of field 'lastModified'.
-     * 
-     * @param lastModified the value of field 'lastModified'.
-     */
-    public void setLastModified(java.util.Date lastModified)
-    {
-        this._lastModified = lastModified;
-    } //-- void setLastModified(java.util.Date) 
-
-    /**
-     * Sets the value of field 'owner'.
-     * 
-     * @param owner the value of field 'owner'.
-     */
-    public void setOwner(org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser owner)
-    {
-        this._owner = owner;
-    } //-- void setOwner(org.jets3t.service.soap._2006_03_01.CanonicalUser) 
-
-    /**
-     * Sets the value of field 'size'.
-     * 
-     * @param size the value of field 'size'.
-     */
-    public void setSize(long size)
-    {
-        this._size = size;
-        this._has_size = true;
-    } //-- void setSize(long) 
-
-    /**
-     * Sets the value of field 'storageClass'.
-     * 
-     * @param storageClass the value of field 'storageClass'.
-     */
-    public void setStorageClass(org.jets3t.service.impl.soap.axis._2006_03_01.types.StorageClass storageClass)
-    {
-        this._storageClass = storageClass;
-    } //-- void setStorageClass(org.jets3t.service.soap._2006_03_01.types.StorageClass) 
-
-    /**
-     * Method unmarshalListEntry
-     * 
-     * 
-     * 
-     * @param reader
-     * @return ListEntry
-     */
-    public static org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry unmarshalListEntry(java.io.Reader reader)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry) Unmarshaller.unmarshal(org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry.class, reader);
-    } //-- org.jets3t.service.soap._2006_03_01.ListEntry unmarshalListEntry(java.io.Reader) 
-
-    /**
-     * Method validate
-     * 
-     */
-    public void validate()
-        throws org.exolab.castor.xml.ValidationException
-    {
-        org.exolab.castor.xml.Validator validator = new org.exolab.castor.xml.Validator();
-        validator.validate(this);
-    } //-- void validate() 
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
 }

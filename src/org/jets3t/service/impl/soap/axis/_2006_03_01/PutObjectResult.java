@@ -1,175 +1,155 @@
-/*
- * This class was automatically generated with 
- * <a href="http://www.castor.org">Castor 0.9.9.1</a>, using an XML
- * Schema.
- * $Id: PutObjectResult.java,v 1.1 2006/07/18 05:15:46 jmurty Exp $
+/**
+ * PutObjectResult.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-  //---------------------------------/
- //- Imported classes and packages -/
-//---------------------------------/
+public class PutObjectResult  implements java.io.Serializable {
+    private java.lang.String ETag;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.Writer;
-import java.util.Date;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.Marshaller;
-import org.exolab.castor.xml.Unmarshaller;
-import org.exolab.castor.xml.ValidationException;
-import org.xml.sax.ContentHandler;
+    private java.util.Calendar lastModified;
 
-/**
- * Class PutObjectResult.
- * 
- * @version $Revision: 1.1 $ $Date: 2006/07/18 05:15:46 $
- */
-public class PutObjectResult implements java.io.Serializable {
+    public PutObjectResult() {
+    }
 
+    public PutObjectResult(
+           java.lang.String ETag,
+           java.util.Calendar lastModified) {
+           this.ETag = ETag;
+           this.lastModified = lastModified;
+    }
 
-      //--------------------------/
-     //- Class/Member Variables -/
-    //--------------------------/
 
     /**
-     * Field _ETag
+     * Gets the ETag value for this PutObjectResult.
+     * 
+     * @return ETag
      */
-    private java.lang.String _ETag;
+    public java.lang.String getETag() {
+        return ETag;
+    }
+
 
     /**
-     * Field _lastModified
+     * Sets the ETag value for this PutObjectResult.
+     * 
+     * @param ETag
      */
-    private java.util.Date _lastModified;
+    public void setETag(java.lang.String ETag) {
+        this.ETag = ETag;
+    }
 
-
-      //----------------/
-     //- Constructors -/
-    //----------------/
-
-    public PutObjectResult() 
-     {
-        super();
-    } //-- org.jets3t.service.soap._2006_03_01.PutObjectResult()
-
-
-      //-----------/
-     //- Methods -/
-    //-----------/
 
     /**
-     * Returns the value of field 'ETag'.
+     * Gets the lastModified value for this PutObjectResult.
      * 
-     * @return String
-     * @return the value of field 'ETag'.
+     * @return lastModified
      */
-    public java.lang.String getETag()
-    {
-        return this._ETag;
-    } //-- java.lang.String getETag() 
+    public java.util.Calendar getLastModified() {
+        return lastModified;
+    }
+
 
     /**
-     * Returns the value of field 'lastModified'.
+     * Sets the lastModified value for this PutObjectResult.
      * 
-     * @return Date
-     * @return the value of field 'lastModified'.
+     * @param lastModified
      */
-    public java.util.Date getLastModified()
-    {
-        return this._lastModified;
-    } //-- java.util.Date getLastModified() 
+    public void setLastModified(java.util.Calendar lastModified) {
+        this.lastModified = lastModified;
+    }
 
-    /**
-     * Method isValid
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean isValid()
-    {
-        try {
-            validate();
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof PutObjectResult)) return false;
+        PutObjectResult other = (PutObjectResult) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
         }
-        catch (org.exolab.castor.xml.ValidationException vex) {
-            return false;
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = true && 
+            ((this.ETag==null && other.getETag()==null) || 
+             (this.ETag!=null &&
+              this.ETag.equals(other.getETag()))) &&
+            ((this.lastModified==null && other.getLastModified()==null) || 
+             (this.lastModified!=null &&
+              this.lastModified.equals(other.getLastModified())));
+        __equalsCalc = null;
+        return _equals;
+    }
+
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
         }
-        return true;
-    } //-- boolean isValid() 
+        __hashCodeCalc = true;
+        int _hashCode = 1;
+        if (getETag() != null) {
+            _hashCode += getETag().hashCode();
+        }
+        if (getLastModified() != null) {
+            _hashCode += getLastModified().hashCode();
+        }
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(PutObjectResult.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "PutObjectResult"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("ETag");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ETag"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("lastModified");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "LastModified"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param out
+     * Return type metadata object
      */
-    public void marshal(java.io.Writer out)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, out);
-    } //-- void marshal(java.io.Writer) 
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param handler
+     * Get Custom Serializer
      */
-    public void marshal(org.xml.sax.ContentHandler handler)
-        throws java.io.IOException, org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, handler);
-    } //-- void marshal(org.xml.sax.ContentHandler) 
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
     /**
-     * Sets the value of field 'ETag'.
-     * 
-     * @param ETag the value of field 'ETag'.
+     * Get Custom Deserializer
      */
-    public void setETag(java.lang.String ETag)
-    {
-        this._ETag = ETag;
-    } //-- void setETag(java.lang.String) 
-
-    /**
-     * Sets the value of field 'lastModified'.
-     * 
-     * @param lastModified the value of field 'lastModified'.
-     */
-    public void setLastModified(java.util.Date lastModified)
-    {
-        this._lastModified = lastModified;
-    } //-- void setLastModified(java.util.Date) 
-
-    /**
-     * Method unmarshalPutObjectResult
-     * 
-     * 
-     * 
-     * @param reader
-     * @return PutObjectResult
-     */
-    public static org.jets3t.service.impl.soap.axis._2006_03_01.PutObjectResult unmarshalPutObjectResult(java.io.Reader reader)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.PutObjectResult) Unmarshaller.unmarshal(org.jets3t.service.impl.soap.axis._2006_03_01.PutObjectResult.class, reader);
-    } //-- org.jets3t.service.soap._2006_03_01.PutObjectResult unmarshalPutObjectResult(java.io.Reader) 
-
-    /**
-     * Method validate
-     * 
-     */
-    public void validate()
-        throws org.exolab.castor.xml.ValidationException
-    {
-        org.exolab.castor.xml.Validator validator = new org.exolab.castor.xml.Validator();
-        validator.validate(this);
-    } //-- void validate() 
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
 }

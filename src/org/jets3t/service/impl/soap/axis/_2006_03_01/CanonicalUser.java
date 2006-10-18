@@ -1,176 +1,156 @@
-/*
- * This class was automatically generated with 
- * <a href="http://www.castor.org">Castor 0.9.9.1</a>, using an XML
- * Schema.
- * $Id: CanonicalUser.java,v 1.1 2006/07/18 05:15:20 jmurty Exp $
+/**
+ * CanonicalUser.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-  //---------------------------------/
- //- Imported classes and packages -/
-//---------------------------------/
+public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_01.User  implements java.io.Serializable {
+    private java.lang.String ID;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.Writer;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.Marshaller;
-import org.exolab.castor.xml.Unmarshaller;
-import org.exolab.castor.xml.ValidationException;
-import org.xml.sax.ContentHandler;
+    private java.lang.String displayName;
 
-/**
- * Class CanonicalUser.
- * 
- * @version $Revision: 1.1 $ $Date: 2006/07/18 05:15:20 $
- */
-public class CanonicalUser extends org.jets3t.service.impl.soap.axis._2006_03_01.User 
-implements java.io.Serializable
-{
+    public CanonicalUser() {
+    }
 
+    public CanonicalUser(
+           java.lang.String ID,
+           java.lang.String displayName) {
+        this.ID = ID;
+        this.displayName = displayName;
+    }
 
-      //--------------------------/
-     //- Class/Member Variables -/
-    //--------------------------/
 
     /**
-     * Field _ID
+     * Gets the ID value for this CanonicalUser.
+     * 
+     * @return ID
      */
-    private java.lang.String _ID;
+    public java.lang.String getID() {
+        return ID;
+    }
+
 
     /**
-     * Field _displayName
+     * Sets the ID value for this CanonicalUser.
+     * 
+     * @param ID
      */
-    private java.lang.String _displayName;
+    public void setID(java.lang.String ID) {
+        this.ID = ID;
+    }
 
-
-      //----------------/
-     //- Constructors -/
-    //----------------/
-
-    public CanonicalUser() 
-     {
-        super();
-    } //-- org.jets3t.service.soap._2006_03_01.CanonicalUser()
-
-
-      //-----------/
-     //- Methods -/
-    //-----------/
 
     /**
-     * Returns the value of field 'displayName'.
+     * Gets the displayName value for this CanonicalUser.
      * 
-     * @return String
-     * @return the value of field 'displayName'.
+     * @return displayName
      */
-    public java.lang.String getDisplayName()
-    {
-        return this._displayName;
-    } //-- java.lang.String getDisplayName() 
+    public java.lang.String getDisplayName() {
+        return displayName;
+    }
+
 
     /**
-     * Returns the value of field 'ID'.
+     * Sets the displayName value for this CanonicalUser.
      * 
-     * @return String
-     * @return the value of field 'ID'.
+     * @param displayName
      */
-    public java.lang.String getID()
-    {
-        return this._ID;
-    } //-- java.lang.String getID() 
+    public void setDisplayName(java.lang.String displayName) {
+        this.displayName = displayName;
+    }
 
-    /**
-     * Method isValid
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean isValid()
-    {
-        try {
-            validate();
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof CanonicalUser)) return false;
+        CanonicalUser other = (CanonicalUser) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
         }
-        catch (org.exolab.castor.xml.ValidationException vex) {
-            return false;
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = super.equals(obj) && 
+            ((this.ID==null && other.getID()==null) || 
+             (this.ID!=null &&
+              this.ID.equals(other.getID()))) &&
+            ((this.displayName==null && other.getDisplayName()==null) || 
+             (this.displayName!=null &&
+              this.displayName.equals(other.getDisplayName())));
+        __equalsCalc = null;
+        return _equals;
+    }
+
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
         }
-        return true;
-    } //-- boolean isValid() 
+        __hashCodeCalc = true;
+        int _hashCode = super.hashCode();
+        if (getID() != null) {
+            _hashCode += getID().hashCode();
+        }
+        if (getDisplayName() != null) {
+            _hashCode += getDisplayName().hashCode();
+        }
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(CanonicalUser.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CanonicalUser"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("ID");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ID"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("displayName");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "DisplayName"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param out
+     * Return type metadata object
      */
-    public void marshal(java.io.Writer out)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, out);
-    } //-- void marshal(java.io.Writer) 
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
 
     /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param handler
+     * Get Custom Serializer
      */
-    public void marshal(org.xml.sax.ContentHandler handler)
-        throws java.io.IOException, org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, handler);
-    } //-- void marshal(org.xml.sax.ContentHandler) 
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
     /**
-     * Sets the value of field 'displayName'.
-     * 
-     * @param displayName the value of field 'displayName'.
+     * Get Custom Deserializer
      */
-    public void setDisplayName(java.lang.String displayName)
-    {
-        this._displayName = displayName;
-    } //-- void setDisplayName(java.lang.String) 
-
-    /**
-     * Sets the value of field 'ID'.
-     * 
-     * @param ID the value of field 'ID'.
-     */
-    public void setID(java.lang.String ID)
-    {
-        this._ID = ID;
-    } //-- void setID(java.lang.String) 
-
-    /**
-     * Method unmarshalCanonicalUser
-     * 
-     * 
-     * 
-     * @param reader
-     * @return Grantee
-     */
-    public static org.jets3t.service.impl.soap.axis._2006_03_01.Grantee unmarshalCanonicalUser(java.io.Reader reader)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.Grantee) Unmarshaller.unmarshal(org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser.class, reader);
-    } //-- org.jets3t.service.soap._2006_03_01.Grantee unmarshalCanonicalUser(java.io.Reader) 
-
-    /**
-     * Method validate
-     * 
-     */
-    public void validate()
-        throws org.exolab.castor.xml.ValidationException
-    {
-        org.exolab.castor.xml.Validator validator = new org.exolab.castor.xml.Validator();
-        validator.validate(this);
-    } //-- void validate() 
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
 }

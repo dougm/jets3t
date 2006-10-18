@@ -1,355 +1,256 @@
-/*
- * This class was automatically generated with 
- * <a href="http://www.castor.org">Castor 0.9.9.1</a>, using an XML
- * Schema.
- * $Id: GetObjectResult.java,v 1.1 2006/07/18 05:15:27 jmurty Exp $
+/**
+ * GetObjectResult.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-  //---------------------------------/
- //- Imported classes and packages -/
-//---------------------------------/
+public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03_01.Result  implements java.io.Serializable {
+    private org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.Marshaller;
-import org.exolab.castor.xml.Unmarshaller;
-import org.exolab.castor.xml.ValidationException;
-import org.xml.sax.ContentHandler;
+    private byte[] data;
 
-/**
- * Class GetObjectResult.
- * 
- * @version $Revision: 1.1 $ $Date: 2006/07/18 05:15:27 $
- */
-public class GetObjectResult extends org.jets3t.service.impl.soap.axis._2006_03_01.Result 
-implements java.io.Serializable
-{
+    private java.util.Calendar lastModified;
 
+    private java.lang.String ETag;
 
-      //--------------------------/
-     //- Class/Member Variables -/
-    //--------------------------/
+    public GetObjectResult() {
+    }
+
+    public GetObjectResult(
+           org.jets3t.service.impl.soap.axis._2006_03_01.Status status,
+           org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata,
+           byte[] data,
+           java.util.Calendar lastModified,
+           java.lang.String ETag) {
+        super(
+            status);
+        this.metadata = metadata;
+        this.data = data;
+        this.lastModified = lastModified;
+        this.ETag = ETag;
+    }
+
 
     /**
-     * Field _metadataList
+     * Gets the metadata value for this GetObjectResult.
+     * 
+     * @return metadata
      */
-    private java.util.ArrayList _metadataList;
+    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] getMetadata() {
+        return metadata;
+    }
+
 
     /**
-     * Field _data
+     * Sets the metadata value for this GetObjectResult.
+     * 
+     * @param metadata
      */
-    private byte[] _data;
+    public void setMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata) {
+        this.metadata = metadata;
+    }
+
+    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry getMetadata(int i) {
+        return this.metadata[i];
+    }
+
+    public void setMetadata(int i, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry _value) {
+        this.metadata[i] = _value;
+    }
+
 
     /**
-     * Field _lastModified
+     * Gets the data value for this GetObjectResult.
+     * 
+     * @return data
      */
-    private java.util.Date _lastModified;
+    public byte[] getData() {
+        return data;
+    }
+
 
     /**
-     * Field _ETag
+     * Sets the data value for this GetObjectResult.
+     * 
+     * @param data
      */
-    private java.lang.String _ETag;
+    public void setData(byte[] data) {
+        this.data = data;
+    }
 
-
-      //----------------/
-     //- Constructors -/
-    //----------------/
-
-    public GetObjectResult() 
-     {
-        super();
-        _metadataList = new ArrayList();
-    } //-- org.jets3t.service.soap._2006_03_01.GetObjectResult()
-
-
-      //-----------/
-     //- Methods -/
-    //-----------/
 
     /**
-     * Method addMetadata
+     * Gets the lastModified value for this GetObjectResult.
      * 
-     * 
-     * 
-     * @param vMetadata
+     * @return lastModified
      */
-    public void addMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _metadataList.add(vMetadata);
-    } //-- void addMetadata(org.jets3t.service.soap._2006_03_01.MetadataEntry) 
+    public java.util.Calendar getLastModified() {
+        return lastModified;
+    }
+
 
     /**
-     * Method addMetadata
+     * Sets the lastModified value for this GetObjectResult.
      * 
-     * 
-     * 
-     * @param index
-     * @param vMetadata
+     * @param lastModified
      */
-    public void addMetadata(int index, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _metadataList.add(index, vMetadata);
-    } //-- void addMetadata(int, org.jets3t.service.soap._2006_03_01.MetadataEntry) 
+    public void setLastModified(java.util.Calendar lastModified) {
+        this.lastModified = lastModified;
+    }
+
 
     /**
-     * Method clearMetadata
+     * Gets the ETag value for this GetObjectResult.
      * 
+     * @return ETag
      */
-    public void clearMetadata()
-    {
-        _metadataList.clear();
-    } //-- void clearMetadata() 
+    public java.lang.String getETag() {
+        return ETag;
+    }
+
 
     /**
-     * Method enumerateMetadata
+     * Sets the ETag value for this GetObjectResult.
      * 
-     * 
-     * 
-     * @return Enumeration
+     * @param ETag
      */
-    public java.util.Enumeration enumerateMetadata()
-    {
-        return new org.exolab.castor.util.IteratorEnumeration(_metadataList.iterator());
-    } //-- java.util.Enumeration enumerateMetadata() 
+    public void setETag(java.lang.String ETag) {
+        this.ETag = ETag;
+    }
 
-    /**
-     * Returns the value of field 'data'.
-     * 
-     * @return byte
-     * @return the value of field 'data'.
-     */
-    public byte[] getData()
-    {
-        return this._data;
-    } //-- byte[] getData() 
-
-    /**
-     * Returns the value of field 'ETag'.
-     * 
-     * @return String
-     * @return the value of field 'ETag'.
-     */
-    public java.lang.String getETag()
-    {
-        return this._ETag;
-    } //-- java.lang.String getETag() 
-
-    /**
-     * Returns the value of field 'lastModified'.
-     * 
-     * @return Date
-     * @return the value of field 'lastModified'.
-     */
-    public java.util.Date getLastModified()
-    {
-        return this._lastModified;
-    } //-- java.util.Date getLastModified() 
-
-    /**
-     * Method getMetadata
-     * 
-     * 
-     * 
-     * @param index
-     * @return MetadataEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry getMetadata(int index)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _metadataList.size())) {
-            throw new IndexOutOfBoundsException();
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof GetObjectResult)) return false;
+        GetObjectResult other = (GetObjectResult) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
         }
-        
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry) _metadataList.get(index);
-    } //-- org.jets3t.service.soap._2006_03_01.MetadataEntry getMetadata(int) 
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = super.equals(obj) && 
+            ((this.metadata==null && other.getMetadata()==null) || 
+             (this.metadata!=null &&
+              java.util.Arrays.equals(this.metadata, other.getMetadata()))) &&
+            ((this.data==null && other.getData()==null) || 
+             (this.data!=null &&
+              java.util.Arrays.equals(this.data, other.getData()))) &&
+            ((this.lastModified==null && other.getLastModified()==null) || 
+             (this.lastModified!=null &&
+              this.lastModified.equals(other.getLastModified()))) &&
+            ((this.ETag==null && other.getETag()==null) || 
+             (this.ETag!=null &&
+              this.ETag.equals(other.getETag())));
+        __equalsCalc = null;
+        return _equals;
+    }
 
-    /**
-     * Method getMetadata
-     * 
-     * 
-     * 
-     * @return MetadataEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] getMetadata()
-    {
-        int size = _metadataList.size();
-        org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] mArray = new org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[size];
-        for (int index = 0; index < size; index++) {
-            mArray[index] = (org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry) _metadataList.get(index);
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
         }
-        return mArray;
-    } //-- org.jets3t.service.soap._2006_03_01.MetadataEntry[] getMetadata() 
-
-    /**
-     * Method getMetadataCount
-     * 
-     * 
-     * 
-     * @return int
-     */
-    public int getMetadataCount()
-    {
-        return _metadataList.size();
-    } //-- int getMetadataCount() 
-
-    /**
-     * Method isValid
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean isValid()
-    {
-        try {
-            validate();
+        __hashCodeCalc = true;
+        int _hashCode = super.hashCode();
+        if (getMetadata() != null) {
+            for (int i=0;
+                 i<java.lang.reflect.Array.getLength(getMetadata());
+                 i++) {
+                java.lang.Object obj = java.lang.reflect.Array.get(getMetadata(), i);
+                if (obj != null &&
+                    !obj.getClass().isArray()) {
+                    _hashCode += obj.hashCode();
+                }
+            }
         }
-        catch (org.exolab.castor.xml.ValidationException vex) {
-            return false;
+        if (getData() != null) {
+            for (int i=0;
+                 i<java.lang.reflect.Array.getLength(getData());
+                 i++) {
+                java.lang.Object obj = java.lang.reflect.Array.get(getData(), i);
+                if (obj != null &&
+                    !obj.getClass().isArray()) {
+                    _hashCode += obj.hashCode();
+                }
+            }
         }
-        return true;
-    } //-- boolean isValid() 
-
-    /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param out
-     */
-    public void marshal(java.io.Writer out)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, out);
-    } //-- void marshal(java.io.Writer) 
-
-    /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param handler
-     */
-    public void marshal(org.xml.sax.ContentHandler handler)
-        throws java.io.IOException, org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, handler);
-    } //-- void marshal(org.xml.sax.ContentHandler) 
-
-    /**
-     * Method removeMetadata
-     * 
-     * 
-     * 
-     * @param vMetadata
-     * @return boolean
-     */
-    public boolean removeMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-    {
-        boolean removed = _metadataList.remove(vMetadata);
-        return removed;
-    } //-- boolean removeMetadata(org.jets3t.service.soap._2006_03_01.MetadataEntry) 
-
-    /**
-     * Sets the value of field 'data'.
-     * 
-     * @param data the value of field 'data'.
-     */
-    public void setData(byte[] data)
-    {
-        this._data = data;
-    } //-- void setData(byte) 
-
-    /**
-     * Sets the value of field 'ETag'.
-     * 
-     * @param ETag the value of field 'ETag'.
-     */
-    public void setETag(java.lang.String ETag)
-    {
-        this._ETag = ETag;
-    } //-- void setETag(java.lang.String) 
-
-    /**
-     * Sets the value of field 'lastModified'.
-     * 
-     * @param lastModified the value of field 'lastModified'.
-     */
-    public void setLastModified(java.util.Date lastModified)
-    {
-        this._lastModified = lastModified;
-    } //-- void setLastModified(java.util.Date) 
-
-    /**
-     * Method setMetadata
-     * 
-     * 
-     * 
-     * @param index
-     * @param vMetadata
-     */
-    public void setMetadata(int index, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _metadataList.size())) {
-            throw new IndexOutOfBoundsException();
+        if (getLastModified() != null) {
+            _hashCode += getLastModified().hashCode();
         }
-        _metadataList.set(index, vMetadata);
-    } //-- void setMetadata(int, org.jets3t.service.soap._2006_03_01.MetadataEntry) 
-
-    /**
-     * Method setMetadata
-     * 
-     * 
-     * 
-     * @param metadataArray
-     */
-    public void setMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadataArray)
-    {
-        //-- copy array
-        _metadataList.clear();
-        for (int i = 0; i < metadataArray.length; i++) {
-            _metadataList.add(metadataArray[i]);
+        if (getETag() != null) {
+            _hashCode += getETag().hashCode();
         }
-    } //-- void setMetadata(org.jets3t.service.soap._2006_03_01.MetadataEntry) 
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(GetObjectResult.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "GetObjectResult"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("metadata");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Metadata"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "MetadataEntry"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        elemField.setMaxOccursUnbounded(true);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("data");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Data"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "base64Binary"));
+        elemField.setNillable(true);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("lastModified");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "LastModified"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("ETag");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ETag"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+    }
 
     /**
-     * Method unmarshalGetObjectResult
-     * 
-     * 
-     * 
-     * @param reader
-     * @return Result
+     * Return type metadata object
      */
-    public static org.jets3t.service.impl.soap.axis._2006_03_01.Result unmarshalGetObjectResult(java.io.Reader reader)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.Result) Unmarshaller.unmarshal(org.jets3t.service.impl.soap.axis._2006_03_01.GetObjectResult.class, reader);
-    } //-- org.jets3t.service.soap._2006_03_01.Result unmarshalGetObjectResult(java.io.Reader) 
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
 
     /**
-     * Method validate
-     * 
+     * Get Custom Serializer
      */
-    public void validate()
-        throws org.exolab.castor.xml.ValidationException
-    {
-        org.exolab.castor.xml.Validator validator = new org.exolab.castor.xml.Validator();
-        validator.validate(this);
-    } //-- void validate() 
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
+
+    /**
+     * Get Custom Deserializer
+     */
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
 }

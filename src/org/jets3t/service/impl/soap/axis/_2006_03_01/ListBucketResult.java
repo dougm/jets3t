@@ -1,810 +1,491 @@
-/*
- * This class was automatically generated with 
- * <a href="http://www.castor.org">Castor 0.9.9.1</a>, using an XML
- * Schema.
- * $Id: ListBucketResult.java,v 1.1 2006/07/18 05:15:37 jmurty Exp $
+/**
+ * ListBucketResult.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-  //---------------------------------/
- //- Imported classes and packages -/
-//---------------------------------/
+public class ListBucketResult  implements java.io.Serializable {
+    private org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.Marshaller;
-import org.exolab.castor.xml.Unmarshaller;
-import org.exolab.castor.xml.ValidationException;
-import org.xml.sax.ContentHandler;
+    private java.lang.String name;
 
-/**
- * Class ListBucketResult.
- * 
- * @version $Revision: 1.1 $ $Date: 2006/07/18 05:15:37 $
- */
-public class ListBucketResult implements java.io.Serializable {
+    private java.lang.String prefix;
 
+    private java.lang.String marker;
 
-      //--------------------------/
-     //- Class/Member Variables -/
-    //--------------------------/
+    private java.lang.String nextMarker;
+
+    private int maxKeys;
+
+    private java.lang.String delimiter;
+
+    private boolean isTruncated;
+
+    private org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] contents;
+
+    private org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] commonPrefixes;
+
+    public ListBucketResult() {
+    }
+
+    public ListBucketResult(
+           org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata,
+           java.lang.String name,
+           java.lang.String prefix,
+           java.lang.String marker,
+           java.lang.String nextMarker,
+           int maxKeys,
+           java.lang.String delimiter,
+           boolean isTruncated,
+           org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] contents,
+           org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] commonPrefixes) {
+           this.metadata = metadata;
+           this.name = name;
+           this.prefix = prefix;
+           this.marker = marker;
+           this.nextMarker = nextMarker;
+           this.maxKeys = maxKeys;
+           this.delimiter = delimiter;
+           this.isTruncated = isTruncated;
+           this.contents = contents;
+           this.commonPrefixes = commonPrefixes;
+    }
+
 
     /**
-     * Field _metadataList
+     * Gets the metadata value for this ListBucketResult.
+     * 
+     * @return metadata
      */
-    private java.util.ArrayList _metadataList;
+    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] getMetadata() {
+        return metadata;
+    }
+
 
     /**
-     * Field _name
+     * Sets the metadata value for this ListBucketResult.
+     * 
+     * @param metadata
      */
-    private java.lang.String _name;
+    public void setMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata) {
+        this.metadata = metadata;
+    }
+
+    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry getMetadata(int i) {
+        return this.metadata[i];
+    }
+
+    public void setMetadata(int i, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry _value) {
+        this.metadata[i] = _value;
+    }
+
 
     /**
-     * Field _prefix
+     * Gets the name value for this ListBucketResult.
+     * 
+     * @return name
      */
-    private java.lang.String _prefix;
+    public java.lang.String getName() {
+        return name;
+    }
+
 
     /**
-     * Field _marker
+     * Sets the name value for this ListBucketResult.
+     * 
+     * @param name
      */
-    private java.lang.String _marker;
+    public void setName(java.lang.String name) {
+        this.name = name;
+    }
+
 
     /**
-     * Field _nextMarker
+     * Gets the prefix value for this ListBucketResult.
+     * 
+     * @return prefix
      */
-    private java.lang.String _nextMarker;
+    public java.lang.String getPrefix() {
+        return prefix;
+    }
+
 
     /**
-     * Field _maxKeys
+     * Sets the prefix value for this ListBucketResult.
+     * 
+     * @param prefix
      */
-    private int _maxKeys;
+    public void setPrefix(java.lang.String prefix) {
+        this.prefix = prefix;
+    }
+
 
     /**
-     * keeps track of state for field: _maxKeys
+     * Gets the marker value for this ListBucketResult.
+     * 
+     * @return marker
      */
-    private boolean _has_maxKeys;
+    public java.lang.String getMarker() {
+        return marker;
+    }
+
 
     /**
-     * Field _delimiter
+     * Sets the marker value for this ListBucketResult.
+     * 
+     * @param marker
      */
-    private java.lang.String _delimiter;
+    public void setMarker(java.lang.String marker) {
+        this.marker = marker;
+    }
+
 
     /**
-     * Field _isTruncated
+     * Gets the nextMarker value for this ListBucketResult.
+     * 
+     * @return nextMarker
      */
-    private boolean _isTruncated;
+    public java.lang.String getNextMarker() {
+        return nextMarker;
+    }
+
 
     /**
-     * keeps track of state for field: _isTruncated
+     * Sets the nextMarker value for this ListBucketResult.
+     * 
+     * @param nextMarker
      */
-    private boolean _has_isTruncated;
+    public void setNextMarker(java.lang.String nextMarker) {
+        this.nextMarker = nextMarker;
+    }
+
 
     /**
-     * Field _contentsList
+     * Gets the maxKeys value for this ListBucketResult.
+     * 
+     * @return maxKeys
      */
-    private java.util.ArrayList _contentsList;
+    public int getMaxKeys() {
+        return maxKeys;
+    }
+
 
     /**
-     * Field _commonPrefixesList
+     * Sets the maxKeys value for this ListBucketResult.
+     * 
+     * @param maxKeys
      */
-    private java.util.ArrayList _commonPrefixesList;
+    public void setMaxKeys(int maxKeys) {
+        this.maxKeys = maxKeys;
+    }
 
-
-      //----------------/
-     //- Constructors -/
-    //----------------/
-
-    public ListBucketResult() 
-     {
-        super();
-        _metadataList = new ArrayList();
-        _contentsList = new ArrayList();
-        _commonPrefixesList = new ArrayList();
-    } //-- org.jets3t.service.soap._2006_03_01.ListBucketResult()
-
-
-      //-----------/
-     //- Methods -/
-    //-----------/
 
     /**
-     * Method addCommonPrefixes
+     * Gets the delimiter value for this ListBucketResult.
      * 
-     * 
-     * 
-     * @param vCommonPrefixes
+     * @return delimiter
      */
-    public void addCommonPrefixes(org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry vCommonPrefixes)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _commonPrefixesList.add(vCommonPrefixes);
-    } //-- void addCommonPrefixes(org.jets3t.service.soap._2006_03_01.PrefixEntry) 
+    public java.lang.String getDelimiter() {
+        return delimiter;
+    }
+
 
     /**
-     * Method addCommonPrefixes
+     * Sets the delimiter value for this ListBucketResult.
      * 
-     * 
-     * 
-     * @param index
-     * @param vCommonPrefixes
+     * @param delimiter
      */
-    public void addCommonPrefixes(int index, org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry vCommonPrefixes)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _commonPrefixesList.add(index, vCommonPrefixes);
-    } //-- void addCommonPrefixes(int, org.jets3t.service.soap._2006_03_01.PrefixEntry) 
+    public void setDelimiter(java.lang.String delimiter) {
+        this.delimiter = delimiter;
+    }
+
 
     /**
-     * Method addContents
+     * Gets the isTruncated value for this ListBucketResult.
      * 
-     * 
-     * 
-     * @param vContents
+     * @return isTruncated
      */
-    public void addContents(org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry vContents)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _contentsList.add(vContents);
-    } //-- void addContents(org.jets3t.service.soap._2006_03_01.ListEntry) 
+    public boolean isIsTruncated() {
+        return isTruncated;
+    }
+
 
     /**
-     * Method addContents
+     * Sets the isTruncated value for this ListBucketResult.
      * 
-     * 
-     * 
-     * @param index
-     * @param vContents
+     * @param isTruncated
      */
-    public void addContents(int index, org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry vContents)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _contentsList.add(index, vContents);
-    } //-- void addContents(int, org.jets3t.service.soap._2006_03_01.ListEntry) 
+    public void setIsTruncated(boolean isTruncated) {
+        this.isTruncated = isTruncated;
+    }
+
 
     /**
-     * Method addMetadata
+     * Gets the contents value for this ListBucketResult.
      * 
-     * 
-     * 
-     * @param vMetadata
+     * @return contents
      */
-    public void addMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _metadataList.add(vMetadata);
-    } //-- void addMetadata(org.jets3t.service.soap._2006_03_01.MetadataEntry) 
+    public org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] getContents() {
+        return contents;
+    }
+
 
     /**
-     * Method addMetadata
+     * Sets the contents value for this ListBucketResult.
      * 
-     * 
-     * 
-     * @param index
-     * @param vMetadata
+     * @param contents
      */
-    public void addMetadata(int index, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        _metadataList.add(index, vMetadata);
-    } //-- void addMetadata(int, org.jets3t.service.soap._2006_03_01.MetadataEntry) 
+    public void setContents(org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] contents) {
+        this.contents = contents;
+    }
+
+    public org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry getContents(int i) {
+        return this.contents[i];
+    }
+
+    public void setContents(int i, org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry _value) {
+        this.contents[i] = _value;
+    }
+
 
     /**
-     * Method clearCommonPrefixes
+     * Gets the commonPrefixes value for this ListBucketResult.
      * 
+     * @return commonPrefixes
      */
-    public void clearCommonPrefixes()
-    {
-        _commonPrefixesList.clear();
-    } //-- void clearCommonPrefixes() 
+    public org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] getCommonPrefixes() {
+        return commonPrefixes;
+    }
+
 
     /**
-     * Method clearContents
+     * Sets the commonPrefixes value for this ListBucketResult.
      * 
+     * @param commonPrefixes
      */
-    public void clearContents()
-    {
-        _contentsList.clear();
-    } //-- void clearContents() 
+    public void setCommonPrefixes(org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] commonPrefixes) {
+        this.commonPrefixes = commonPrefixes;
+    }
 
-    /**
-     * Method clearMetadata
-     * 
-     */
-    public void clearMetadata()
-    {
-        _metadataList.clear();
-    } //-- void clearMetadata() 
+    public org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry getCommonPrefixes(int i) {
+        return this.commonPrefixes[i];
+    }
 
-    /**
-     * Method deleteIsTruncated
-     * 
-     */
-    public void deleteIsTruncated()
-    {
-        this._has_isTruncated= false;
-    } //-- void deleteIsTruncated() 
+    public void setCommonPrefixes(int i, org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry _value) {
+        this.commonPrefixes[i] = _value;
+    }
 
-    /**
-     * Method deleteMaxKeys
-     * 
-     */
-    public void deleteMaxKeys()
-    {
-        this._has_maxKeys= false;
-    } //-- void deleteMaxKeys() 
-
-    /**
-     * Method enumerateCommonPrefixes
-     * 
-     * 
-     * 
-     * @return Enumeration
-     */
-    public java.util.Enumeration enumerateCommonPrefixes()
-    {
-        return new org.exolab.castor.util.IteratorEnumeration(_commonPrefixesList.iterator());
-    } //-- java.util.Enumeration enumerateCommonPrefixes() 
-
-    /**
-     * Method enumerateContents
-     * 
-     * 
-     * 
-     * @return Enumeration
-     */
-    public java.util.Enumeration enumerateContents()
-    {
-        return new org.exolab.castor.util.IteratorEnumeration(_contentsList.iterator());
-    } //-- java.util.Enumeration enumerateContents() 
-
-    /**
-     * Method enumerateMetadata
-     * 
-     * 
-     * 
-     * @return Enumeration
-     */
-    public java.util.Enumeration enumerateMetadata()
-    {
-        return new org.exolab.castor.util.IteratorEnumeration(_metadataList.iterator());
-    } //-- java.util.Enumeration enumerateMetadata() 
-
-    /**
-     * Method getCommonPrefixes
-     * 
-     * 
-     * 
-     * @param index
-     * @return PrefixEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry getCommonPrefixes(int index)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _commonPrefixesList.size())) {
-            throw new IndexOutOfBoundsException();
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof ListBucketResult)) return false;
+        ListBucketResult other = (ListBucketResult) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
         }
-        
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry) _commonPrefixesList.get(index);
-    } //-- org.jets3t.service.soap._2006_03_01.PrefixEntry getCommonPrefixes(int) 
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = true && 
+            ((this.metadata==null && other.getMetadata()==null) || 
+             (this.metadata!=null &&
+              java.util.Arrays.equals(this.metadata, other.getMetadata()))) &&
+            ((this.name==null && other.getName()==null) || 
+             (this.name!=null &&
+              this.name.equals(other.getName()))) &&
+            ((this.prefix==null && other.getPrefix()==null) || 
+             (this.prefix!=null &&
+              this.prefix.equals(other.getPrefix()))) &&
+            ((this.marker==null && other.getMarker()==null) || 
+             (this.marker!=null &&
+              this.marker.equals(other.getMarker()))) &&
+            ((this.nextMarker==null && other.getNextMarker()==null) || 
+             (this.nextMarker!=null &&
+              this.nextMarker.equals(other.getNextMarker()))) &&
+            this.maxKeys == other.getMaxKeys() &&
+            ((this.delimiter==null && other.getDelimiter()==null) || 
+             (this.delimiter!=null &&
+              this.delimiter.equals(other.getDelimiter()))) &&
+            this.isTruncated == other.isIsTruncated() &&
+            ((this.contents==null && other.getContents()==null) || 
+             (this.contents!=null &&
+              java.util.Arrays.equals(this.contents, other.getContents()))) &&
+            ((this.commonPrefixes==null && other.getCommonPrefixes()==null) || 
+             (this.commonPrefixes!=null &&
+              java.util.Arrays.equals(this.commonPrefixes, other.getCommonPrefixes())));
+        __equalsCalc = null;
+        return _equals;
+    }
 
-    /**
-     * Method getCommonPrefixes
-     * 
-     * 
-     * 
-     * @return PrefixEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] getCommonPrefixes()
-    {
-        int size = _commonPrefixesList.size();
-        org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] mArray = new org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[size];
-        for (int index = 0; index < size; index++) {
-            mArray[index] = (org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry) _commonPrefixesList.get(index);
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
         }
-        return mArray;
-    } //-- org.jets3t.service.soap._2006_03_01.PrefixEntry[] getCommonPrefixes() 
-
-    /**
-     * Method getCommonPrefixesCount
-     * 
-     * 
-     * 
-     * @return int
-     */
-    public int getCommonPrefixesCount()
-    {
-        return _commonPrefixesList.size();
-    } //-- int getCommonPrefixesCount() 
-
-    /**
-     * Method getContents
-     * 
-     * 
-     * 
-     * @param index
-     * @return ListEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry getContents(int index)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _contentsList.size())) {
-            throw new IndexOutOfBoundsException();
+        __hashCodeCalc = true;
+        int _hashCode = 1;
+        if (getMetadata() != null) {
+            for (int i=0;
+                 i<java.lang.reflect.Array.getLength(getMetadata());
+                 i++) {
+                java.lang.Object obj = java.lang.reflect.Array.get(getMetadata(), i);
+                if (obj != null &&
+                    !obj.getClass().isArray()) {
+                    _hashCode += obj.hashCode();
+                }
+            }
         }
-        
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry) _contentsList.get(index);
-    } //-- org.jets3t.service.soap._2006_03_01.ListEntry getContents(int) 
-
-    /**
-     * Method getContents
-     * 
-     * 
-     * 
-     * @return ListEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] getContents()
-    {
-        int size = _contentsList.size();
-        org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] mArray = new org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[size];
-        for (int index = 0; index < size; index++) {
-            mArray[index] = (org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry) _contentsList.get(index);
+        if (getName() != null) {
+            _hashCode += getName().hashCode();
         }
-        return mArray;
-    } //-- org.jets3t.service.soap._2006_03_01.ListEntry[] getContents() 
-
-    /**
-     * Method getContentsCount
-     * 
-     * 
-     * 
-     * @return int
-     */
-    public int getContentsCount()
-    {
-        return _contentsList.size();
-    } //-- int getContentsCount() 
-
-    /**
-     * Returns the value of field 'delimiter'.
-     * 
-     * @return String
-     * @return the value of field 'delimiter'.
-     */
-    public java.lang.String getDelimiter()
-    {
-        return this._delimiter;
-    } //-- java.lang.String getDelimiter() 
-
-    /**
-     * Returns the value of field 'isTruncated'.
-     * 
-     * @return boolean
-     * @return the value of field 'isTruncated'.
-     */
-    public boolean getIsTruncated()
-    {
-        return this._isTruncated;
-    } //-- boolean getIsTruncated() 
-
-    /**
-     * Returns the value of field 'marker'.
-     * 
-     * @return String
-     * @return the value of field 'marker'.
-     */
-    public java.lang.String getMarker()
-    {
-        return this._marker;
-    } //-- java.lang.String getMarker() 
-
-    /**
-     * Returns the value of field 'maxKeys'.
-     * 
-     * @return int
-     * @return the value of field 'maxKeys'.
-     */
-    public int getMaxKeys()
-    {
-        return this._maxKeys;
-    } //-- int getMaxKeys() 
-
-    /**
-     * Method getMetadata
-     * 
-     * 
-     * 
-     * @param index
-     * @return MetadataEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry getMetadata(int index)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _metadataList.size())) {
-            throw new IndexOutOfBoundsException();
+        if (getPrefix() != null) {
+            _hashCode += getPrefix().hashCode();
         }
-        
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry) _metadataList.get(index);
-    } //-- org.jets3t.service.soap._2006_03_01.MetadataEntry getMetadata(int) 
-
-    /**
-     * Method getMetadata
-     * 
-     * 
-     * 
-     * @return MetadataEntry
-     */
-    public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] getMetadata()
-    {
-        int size = _metadataList.size();
-        org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] mArray = new org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[size];
-        for (int index = 0; index < size; index++) {
-            mArray[index] = (org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry) _metadataList.get(index);
+        if (getMarker() != null) {
+            _hashCode += getMarker().hashCode();
         }
-        return mArray;
-    } //-- org.jets3t.service.soap._2006_03_01.MetadataEntry[] getMetadata() 
-
-    /**
-     * Method getMetadataCount
-     * 
-     * 
-     * 
-     * @return int
-     */
-    public int getMetadataCount()
-    {
-        return _metadataList.size();
-    } //-- int getMetadataCount() 
-
-    /**
-     * Returns the value of field 'name'.
-     * 
-     * @return String
-     * @return the value of field 'name'.
-     */
-    public java.lang.String getName()
-    {
-        return this._name;
-    } //-- java.lang.String getName() 
-
-    /**
-     * Returns the value of field 'nextMarker'.
-     * 
-     * @return String
-     * @return the value of field 'nextMarker'.
-     */
-    public java.lang.String getNextMarker()
-    {
-        return this._nextMarker;
-    } //-- java.lang.String getNextMarker() 
-
-    /**
-     * Returns the value of field 'prefix'.
-     * 
-     * @return String
-     * @return the value of field 'prefix'.
-     */
-    public java.lang.String getPrefix()
-    {
-        return this._prefix;
-    } //-- java.lang.String getPrefix() 
-
-    /**
-     * Method hasIsTruncated
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean hasIsTruncated()
-    {
-        return this._has_isTruncated;
-    } //-- boolean hasIsTruncated() 
-
-    /**
-     * Method hasMaxKeys
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean hasMaxKeys()
-    {
-        return this._has_maxKeys;
-    } //-- boolean hasMaxKeys() 
-
-    /**
-     * Method isValid
-     * 
-     * 
-     * 
-     * @return boolean
-     */
-    public boolean isValid()
-    {
-        try {
-            validate();
+        if (getNextMarker() != null) {
+            _hashCode += getNextMarker().hashCode();
         }
-        catch (org.exolab.castor.xml.ValidationException vex) {
-            return false;
+        _hashCode += getMaxKeys();
+        if (getDelimiter() != null) {
+            _hashCode += getDelimiter().hashCode();
         }
-        return true;
-    } //-- boolean isValid() 
-
-    /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param out
-     */
-    public void marshal(java.io.Writer out)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, out);
-    } //-- void marshal(java.io.Writer) 
-
-    /**
-     * Method marshal
-     * 
-     * 
-     * 
-     * @param handler
-     */
-    public void marshal(org.xml.sax.ContentHandler handler)
-        throws java.io.IOException, org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        
-        Marshaller.marshal(this, handler);
-    } //-- void marshal(org.xml.sax.ContentHandler) 
-
-    /**
-     * Method removeCommonPrefixes
-     * 
-     * 
-     * 
-     * @param vCommonPrefixes
-     * @return boolean
-     */
-    public boolean removeCommonPrefixes(org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry vCommonPrefixes)
-    {
-        boolean removed = _commonPrefixesList.remove(vCommonPrefixes);
-        return removed;
-    } //-- boolean removeCommonPrefixes(org.jets3t.service.soap._2006_03_01.PrefixEntry) 
-
-    /**
-     * Method removeContents
-     * 
-     * 
-     * 
-     * @param vContents
-     * @return boolean
-     */
-    public boolean removeContents(org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry vContents)
-    {
-        boolean removed = _contentsList.remove(vContents);
-        return removed;
-    } //-- boolean removeContents(org.jets3t.service.soap._2006_03_01.ListEntry) 
-
-    /**
-     * Method removeMetadata
-     * 
-     * 
-     * 
-     * @param vMetadata
-     * @return boolean
-     */
-    public boolean removeMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-    {
-        boolean removed = _metadataList.remove(vMetadata);
-        return removed;
-    } //-- boolean removeMetadata(org.jets3t.service.soap._2006_03_01.MetadataEntry) 
-
-    /**
-     * Method setCommonPrefixes
-     * 
-     * 
-     * 
-     * @param index
-     * @param vCommonPrefixes
-     */
-    public void setCommonPrefixes(int index, org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry vCommonPrefixes)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _commonPrefixesList.size())) {
-            throw new IndexOutOfBoundsException();
+        _hashCode += (isIsTruncated() ? Boolean.TRUE : Boolean.FALSE).hashCode();
+        if (getContents() != null) {
+            for (int i=0;
+                 i<java.lang.reflect.Array.getLength(getContents());
+                 i++) {
+                java.lang.Object obj = java.lang.reflect.Array.get(getContents(), i);
+                if (obj != null &&
+                    !obj.getClass().isArray()) {
+                    _hashCode += obj.hashCode();
+                }
+            }
         }
-        _commonPrefixesList.set(index, vCommonPrefixes);
-    } //-- void setCommonPrefixes(int, org.jets3t.service.soap._2006_03_01.PrefixEntry) 
-
-    /**
-     * Method setCommonPrefixes
-     * 
-     * 
-     * 
-     * @param commonPrefixesArray
-     */
-    public void setCommonPrefixes(org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] commonPrefixesArray)
-    {
-        //-- copy array
-        _commonPrefixesList.clear();
-        for (int i = 0; i < commonPrefixesArray.length; i++) {
-            _commonPrefixesList.add(commonPrefixesArray[i]);
+        if (getCommonPrefixes() != null) {
+            for (int i=0;
+                 i<java.lang.reflect.Array.getLength(getCommonPrefixes());
+                 i++) {
+                java.lang.Object obj = java.lang.reflect.Array.get(getCommonPrefixes(), i);
+                if (obj != null &&
+                    !obj.getClass().isArray()) {
+                    _hashCode += obj.hashCode();
+                }
+            }
         }
-    } //-- void setCommonPrefixes(org.jets3t.service.soap._2006_03_01.PrefixEntry) 
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(ListBucketResult.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ListBucketResult"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("metadata");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Metadata"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "MetadataEntry"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        elemField.setMaxOccursUnbounded(true);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("name");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Name"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("prefix");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Prefix"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("marker");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Marker"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("nextMarker");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "NextMarker"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("maxKeys");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "MaxKeys"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "int"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("delimiter");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Delimiter"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("isTruncated");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "IsTruncated"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "boolean"));
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("contents");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Contents"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ListEntry"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        elemField.setMaxOccursUnbounded(true);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("commonPrefixes");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CommonPrefixes"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "PrefixEntry"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        elemField.setMaxOccursUnbounded(true);
+        typeDesc.addFieldDesc(elemField);
+    }
 
     /**
-     * Method setContents
-     * 
-     * 
-     * 
-     * @param index
-     * @param vContents
+     * Return type metadata object
      */
-    public void setContents(int index, org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry vContents)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _contentsList.size())) {
-            throw new IndexOutOfBoundsException();
-        }
-        _contentsList.set(index, vContents);
-    } //-- void setContents(int, org.jets3t.service.soap._2006_03_01.ListEntry) 
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
 
     /**
-     * Method setContents
-     * 
-     * 
-     * 
-     * @param contentsArray
+     * Get Custom Serializer
      */
-    public void setContents(org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] contentsArray)
-    {
-        //-- copy array
-        _contentsList.clear();
-        for (int i = 0; i < contentsArray.length; i++) {
-            _contentsList.add(contentsArray[i]);
-        }
-    } //-- void setContents(org.jets3t.service.soap._2006_03_01.ListEntry) 
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
     /**
-     * Sets the value of field 'delimiter'.
-     * 
-     * @param delimiter the value of field 'delimiter'.
+     * Get Custom Deserializer
      */
-    public void setDelimiter(java.lang.String delimiter)
-    {
-        this._delimiter = delimiter;
-    } //-- void setDelimiter(java.lang.String) 
-
-    /**
-     * Sets the value of field 'isTruncated'.
-     * 
-     * @param isTruncated the value of field 'isTruncated'.
-     */
-    public void setIsTruncated(boolean isTruncated)
-    {
-        this._isTruncated = isTruncated;
-        this._has_isTruncated = true;
-    } //-- void setIsTruncated(boolean) 
-
-    /**
-     * Sets the value of field 'marker'.
-     * 
-     * @param marker the value of field 'marker'.
-     */
-    public void setMarker(java.lang.String marker)
-    {
-        this._marker = marker;
-    } //-- void setMarker(java.lang.String) 
-
-    /**
-     * Sets the value of field 'maxKeys'.
-     * 
-     * @param maxKeys the value of field 'maxKeys'.
-     */
-    public void setMaxKeys(int maxKeys)
-    {
-        this._maxKeys = maxKeys;
-        this._has_maxKeys = true;
-    } //-- void setMaxKeys(int) 
-
-    /**
-     * Method setMetadata
-     * 
-     * 
-     * 
-     * @param index
-     * @param vMetadata
-     */
-    public void setMetadata(int index, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry vMetadata)
-        throws java.lang.IndexOutOfBoundsException
-    {
-        //-- check bounds for index
-        if ((index < 0) || (index > _metadataList.size())) {
-            throw new IndexOutOfBoundsException();
-        }
-        _metadataList.set(index, vMetadata);
-    } //-- void setMetadata(int, org.jets3t.service.soap._2006_03_01.MetadataEntry) 
-
-    /**
-     * Method setMetadata
-     * 
-     * 
-     * 
-     * @param metadataArray
-     */
-    public void setMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadataArray)
-    {
-        //-- copy array
-        _metadataList.clear();
-        for (int i = 0; i < metadataArray.length; i++) {
-            _metadataList.add(metadataArray[i]);
-        }
-    } //-- void setMetadata(org.jets3t.service.soap._2006_03_01.MetadataEntry) 
-
-    /**
-     * Sets the value of field 'name'.
-     * 
-     * @param name the value of field 'name'.
-     */
-    public void setName(java.lang.String name)
-    {
-        this._name = name;
-    } //-- void setName(java.lang.String) 
-
-    /**
-     * Sets the value of field 'nextMarker'.
-     * 
-     * @param nextMarker the value of field 'nextMarker'.
-     */
-    public void setNextMarker(java.lang.String nextMarker)
-    {
-        this._nextMarker = nextMarker;
-    } //-- void setNextMarker(java.lang.String) 
-
-    /**
-     * Sets the value of field 'prefix'.
-     * 
-     * @param prefix the value of field 'prefix'.
-     */
-    public void setPrefix(java.lang.String prefix)
-    {
-        this._prefix = prefix;
-    } //-- void setPrefix(java.lang.String) 
-
-    /**
-     * Method unmarshalListBucketResult
-     * 
-     * 
-     * 
-     * @param reader
-     * @return ListBucketResult
-     */
-    public static org.jets3t.service.impl.soap.axis._2006_03_01.ListBucketResult unmarshalListBucketResult(java.io.Reader reader)
-        throws org.exolab.castor.xml.MarshalException, org.exolab.castor.xml.ValidationException
-    {
-        return (org.jets3t.service.impl.soap.axis._2006_03_01.ListBucketResult) Unmarshaller.unmarshal(org.jets3t.service.impl.soap.axis._2006_03_01.ListBucketResult.class, reader);
-    } //-- org.jets3t.service.soap._2006_03_01.ListBucketResult unmarshalListBucketResult(java.io.Reader) 
-
-    /**
-     * Method validate
-     * 
-     */
-    public void validate()
-        throws org.exolab.castor.xml.ValidationException
-    {
-        org.exolab.castor.xml.Validator validator = new org.exolab.castor.xml.Validator();
-        validator.validate(this);
-    } //-- void validate() 
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
 
 }

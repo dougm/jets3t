@@ -1,5 +1,5 @@
 /**
- * ListAllMyBucketsEntry.java
+ * LoggingSettings.java
  *
  * This file was auto-generated from WSDL
  * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
@@ -7,65 +7,65 @@
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-public class ListAllMyBucketsEntry  implements java.io.Serializable {
-    private java.lang.String name;
+public class LoggingSettings  implements java.io.Serializable {
+    private java.lang.String targetBucket;
 
-    private java.util.Calendar creationDate;
+    private java.lang.String targetPrefix;
 
-    public ListAllMyBucketsEntry() {
+    public LoggingSettings() {
     }
 
-    public ListAllMyBucketsEntry(
-           java.lang.String name,
-           java.util.Calendar creationDate) {
-           this.name = name;
-           this.creationDate = creationDate;
-    }
-
-
-    /**
-     * Gets the name value for this ListAllMyBucketsEntry.
-     * 
-     * @return name
-     */
-    public java.lang.String getName() {
-        return name;
+    public LoggingSettings(
+           java.lang.String targetBucket,
+           java.lang.String targetPrefix) {
+           this.targetBucket = targetBucket;
+           this.targetPrefix = targetPrefix;
     }
 
 
     /**
-     * Sets the name value for this ListAllMyBucketsEntry.
+     * Gets the targetBucket value for this LoggingSettings.
      * 
-     * @param name
+     * @return targetBucket
      */
-    public void setName(java.lang.String name) {
-        this.name = name;
+    public java.lang.String getTargetBucket() {
+        return targetBucket;
     }
 
 
     /**
-     * Gets the creationDate value for this ListAllMyBucketsEntry.
+     * Sets the targetBucket value for this LoggingSettings.
      * 
-     * @return creationDate
+     * @param targetBucket
      */
-    public java.util.Calendar getCreationDate() {
-        return creationDate;
+    public void setTargetBucket(java.lang.String targetBucket) {
+        this.targetBucket = targetBucket;
     }
 
 
     /**
-     * Sets the creationDate value for this ListAllMyBucketsEntry.
+     * Gets the targetPrefix value for this LoggingSettings.
      * 
-     * @param creationDate
+     * @return targetPrefix
      */
-    public void setCreationDate(java.util.Calendar creationDate) {
-        this.creationDate = creationDate;
+    public java.lang.String getTargetPrefix() {
+        return targetPrefix;
+    }
+
+
+    /**
+     * Sets the targetPrefix value for this LoggingSettings.
+     * 
+     * @param targetPrefix
+     */
+    public void setTargetPrefix(java.lang.String targetPrefix) {
+        this.targetPrefix = targetPrefix;
     }
 
     private java.lang.Object __equalsCalc = null;
     public synchronized boolean equals(java.lang.Object obj) {
-        if (!(obj instanceof ListAllMyBucketsEntry)) return false;
-        ListAllMyBucketsEntry other = (ListAllMyBucketsEntry) obj;
+        if (!(obj instanceof LoggingSettings)) return false;
+        LoggingSettings other = (LoggingSettings) obj;
         if (obj == null) return false;
         if (this == obj) return true;
         if (__equalsCalc != null) {
@@ -74,12 +74,12 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
         __equalsCalc = obj;
         boolean _equals;
         _equals = true && 
-            ((this.name==null && other.getName()==null) || 
-             (this.name!=null &&
-              this.name.equals(other.getName()))) &&
-            ((this.creationDate==null && other.getCreationDate()==null) || 
-             (this.creationDate!=null &&
-              this.creationDate.equals(other.getCreationDate())));
+            ((this.targetBucket==null && other.getTargetBucket()==null) || 
+             (this.targetBucket!=null &&
+              this.targetBucket.equals(other.getTargetBucket()))) &&
+            ((this.targetPrefix==null && other.getTargetPrefix()==null) || 
+             (this.targetPrefix!=null &&
+              this.targetPrefix.equals(other.getTargetPrefix())));
         __equalsCalc = null;
         return _equals;
     }
@@ -91,11 +91,11 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
         }
         __hashCodeCalc = true;
         int _hashCode = 1;
-        if (getName() != null) {
-            _hashCode += getName().hashCode();
+        if (getTargetBucket() != null) {
+            _hashCode += getTargetBucket().hashCode();
         }
-        if (getCreationDate() != null) {
-            _hashCode += getCreationDate().hashCode();
+        if (getTargetPrefix() != null) {
+            _hashCode += getTargetPrefix().hashCode();
         }
         __hashCodeCalc = false;
         return _hashCode;
@@ -103,20 +103,20 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
 
     // Type metadata
     private static org.apache.axis.description.TypeDesc typeDesc =
-        new org.apache.axis.description.TypeDesc(ListAllMyBucketsEntry.class, true);
+        new org.apache.axis.description.TypeDesc(LoggingSettings.class, true);
 
     static {
-        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "ListAllMyBucketsEntry"));
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "LoggingSettings"));
         org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
-        elemField.setFieldName("name");
-        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Name"));
+        elemField.setFieldName("targetBucket");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "TargetBucket"));
         elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
         elemField.setNillable(false);
         typeDesc.addFieldDesc(elemField);
         elemField = new org.apache.axis.description.ElementDesc();
-        elemField.setFieldName("creationDate");
-        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CreationDate"));
-        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"));
+        elemField.setFieldName("targetPrefix");
+        elemField.setXmlName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "TargetPrefix"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
         elemField.setNillable(false);
         typeDesc.addFieldDesc(elemField);
     }

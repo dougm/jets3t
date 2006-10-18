@@ -2,7 +2,7 @@
  * StorageClass.java
  *
  * This file was auto-generated from WSDL
- * by the Apache Axis 1.3 Oct 05, 2005 (05:23:37 EDT) WSDL2Java emitter.
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
@@ -17,8 +17,10 @@ public class StorageClass implements java.io.Serializable {
         _table_.put(_value_,this);
     }
 
+    public static final java.lang.String _TEMP = "TEMP";
     public static final java.lang.String _STANDARD = "STANDARD";
     public static final java.lang.String _UNKNOWN = "UNKNOWN";
+    public static final StorageClass TEMP = new StorageClass(_TEMP);
     public static final StorageClass STANDARD = new StorageClass(_STANDARD);
     public static final StorageClass UNKNOWN = new StorageClass(_UNKNOWN);
     public java.lang.String getValue() { return _value_;}
