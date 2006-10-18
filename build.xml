@@ -203,5 +203,17 @@
 		</junit>
 	</target>
 
+	<target name="wsdl2java">
+		<java classname="org.apache.axis.wsdl.WSDL2Java">
+			<classpath refid="classpath"/>
+			
+			<arg value="--package"/>
+			<arg value="org.jets3t.service.impl.soap.axis._2006_03_01"/>
+			<arg value="--output"/>
+			<arg value="${dir.src}"/>
+			<arg value="wsdl/AmazonS3.wsdl"/>
+		</java>
+	</target>
+
 </project>
 
