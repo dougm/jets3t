@@ -57,6 +57,8 @@ import org.jets3t.service.security.AWSCredentials;
  * @author James Murty
  */
 public class PropertiesDialog extends JDialog implements ActionListener {
+    private static final long serialVersionUID = -5001163487616690221L;
+    
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
     private final Insets insetsVerticalSpace = new Insets(5, 0, 5, 0);
@@ -323,7 +325,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         object.setLastModifiedDate(new Date());
         object.setStorageClass("STANDARD");
         object.addMetadata("sample-metadata", "Valuable");
-        object.addMetadata(Constants.METADATA_JETS3T_ENCRYPTED, "true");
+        object.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, "exampleAlgorithmName");
 
         PropertiesDialog.showDialog(f, bucket);
         PropertiesDialog.showDialog(f, object);

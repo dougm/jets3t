@@ -139,7 +139,7 @@ public class AccessControlList {
         
 		StringBuffer sb = new StringBuffer();
 		sb.append(
-			"<AccessControlPolicy xmlns=\"" + Constants.ACL_NAMESPACE + "\">" +
+			"<AccessControlPolicy xmlns=\"" + Constants.XML_NAMESPACE + "\">" +
                 "<Owner>" +
                     "<ID>" + owner.getId() + "</ID>" +
                     "<DisplayName>" + owner.getDisplayName() + "</DisplayName>" +

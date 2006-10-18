@@ -119,8 +119,8 @@ public class LoginDialog extends JDialog implements ActionListener, ListSelectio
 		}
 		try {
 			for (int i = 0; i < rememberedLoginFiles.length; i++) {
-				BufferedReader br = new BufferedReader(new FileReader(rememberedLoginFiles[i]));
-				String friendlyName = br.readLine();
+                 String fileName = rememberedLoginFiles[i].getName();
+				String friendlyName = fileName.substring(0, fileName.length() - ".enc".length());
 				savedLoginTableModel.addSavedLogin(friendlyName, rememberedLoginFiles[i]);
 			}
 			savedLoginTable.setRowSelectionInterval(0, 0);

@@ -92,6 +92,7 @@ import javax.swing.text.NumberFormatter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -195,7 +196,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     // Preferences selected.
     private String preferenceEncryptionPassword = null;
-    private EncryptionUtil encryptionPasswordUtil = null;    
     
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
@@ -261,7 +261,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         
         // Initialise the GUI.
-        initGui();        
+        initGui();      
+
+        // Initialise a non-authenticated service.
+        try {
+            // Revert to anonymous service.
+            s3ServiceMulti = new S3ServiceMulti(new RestS3Service(null), this);
+        } catch (S3ServiceException e2) {
+            reportException(ownerFrame, "Unable to start anonymous service", e2);
+        }
     }    
     
     /**
@@ -712,11 +720,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if ("PreferenceEncryptFiles".equals(event.getActionCommand())) {
             prefEncryptionPassword.setEnabled(prefAutomaticEncryption.isSelected());
         } else if ("PreferenceSetEncryptionPassword".equals(event.getActionCommand())) {
-            try {
-                initEncryptionUtility();
-            } catch (Exception ex) {
-                reportException(ownerFrame, "Unable to initialise encryption library", ex);
-            }            
+            promptForPassword();
         }                        
         
         // Ooops...
@@ -751,16 +755,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @throws NoSuchPaddingException
      * @throws InvalidKeySpecException
      */
-    private boolean initEncryptionUtility() throws InvalidKeyException, NoSuchAlgorithmException, 
-        NoSuchPaddingException, InvalidKeySpecException 
-    {
+    private void promptForPassword() {
         preferenceEncryptionPassword = PasswordDialog.showDialog(
             ownerFrame, "Enter encryption password", 
             "Please enter your file encryption password", true);
-        if (preferenceEncryptionPassword != null) {
-            encryptionPasswordUtil = new EncryptionUtil(preferenceEncryptionPassword);
-        }
-        return (encryptionPasswordUtil != null);
     }
             
     /**
@@ -1558,17 +1556,34 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     log.debug("Inflating gzipped data for object: " + objects[i].getKey());                    
                     outputStream = new GZipInflatingOutputStream(outputStream);
                 }
-                if (objects[i].getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED) != null) 
+                if (objects[i].getMetadata().get(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM) != null 
+                    || objects[i].getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null)
                 {
-                    log.debug("Decrypting encrypted data for object: " + objects[i].getKey());                    
-                    // Automatically decrypt encrypt files.
-                    if (encryptionPasswordUtil == null) {
-                        if (!initEncryptionUtility()) {
+                    log.debug("Decrypting encrypted data for object: " + objects[i].getKey());
+                    
+                    // Prompt user for the password, if necessary.
+                    if (preferenceEncryptionPassword == null) {
+                        promptForPassword();
+                        if (preferenceEncryptionPassword == null) {
                             throw new S3ServiceException(
                                 "Cannot download encrypted files without a password");
                         }
                     }
-                    outputStream = encryptionPasswordUtil.decrypt(outputStream);                    
+
+                    if (objects[i].getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null) {
+                        // Item is encrypted with obsolete crypto.
+                        log.warn("Object is encrypted with out-dated crypto version, please update it when possible: " 
+                            + objects[i].getKey());
+                        outputStream = EncryptionUtil.getObsoleteEncryptionUtil(
+                            preferenceEncryptionPassword).decrypt(outputStream);                                            
+                    } else {
+                        String algorithm = (String) objects[i].getMetadata().get(
+                            Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
+                        String version = (String) objects[i].getMetadata().get(
+                            Constants.METADATA_JETS3T_CRYPTO_VERSION);
+                        outputStream = new EncryptionUtil(preferenceEncryptionPassword, algorithm).
+                            decrypt(outputStream);                                            
+                    }                    
                 }
 
                 objAndOutList.add(new S3ObjectAndOutputStream(objects[i], outputStream));            
@@ -1684,11 +1699,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             actionText += "Compressing";                
         } 
         if (prefAutomaticEncryption.isSelected()) {
-            inputStream = encryptionPasswordUtil.encrypt(inputStream);
+            EncryptionUtil encryptionUtil = new EncryptionUtil(preferenceEncryptionPassword);
+            inputStream = encryptionUtil.encrypt(inputStream);
             contentEncoding = null;
             newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
-            newObject.addMetadata(Constants.METADATA_JETS3T_ENCRYPTED, 
-                encryptionPasswordUtil.getAlgorithm()); 
+            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, 
+                encryptionUtil.getAlgorithm()); 
+            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_VERSION, 
+                EncryptionUtil.VERSION); 
             actionText += (actionText.length() == 0? "Encrypting" : " and encrypting");                
         }
         if (contentEncoding != null) {
@@ -1801,8 +1819,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
             
             // Make sure we have an encryption password, in case it's required.
-            if (encryptionPasswordUtil == null && prefAutomaticEncryption.isSelected()) {
-                if (!initEncryptionUtility()) {
+            if (preferenceEncryptionPassword == null && prefAutomaticEncryption.isSelected()) {
+                promptForPassword();
+                if (preferenceEncryptionPassword == null) {
                     throw new S3ServiceException(
                         "Cannot encrypt files for upload without a password");
                 }
@@ -1827,7 +1846,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     
                     // Store hash of original file data in metadata.
                     log.debug("Computing MD5 hash for file: " + file);
-                    newObject.setMd5Hash(FileComparer.computeMD5Hash(
+                    newObject.setMd5Hash(ServiceUtils.computeMD5Hash(
                         new FileInputStream(file)));
                     
                     // Do any necessary file pre-processing.

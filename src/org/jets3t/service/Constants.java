@@ -62,8 +62,19 @@ public class Constants {
     
     /**
      * Metadata header for storing information about data encryption applied by jets3t tools.
+     * @deprecated Obsolete after version 0.4.0
      */
-    public static String METADATA_JETS3T_ENCRYPTED = "jets3t-encryption";
+    public static String METADATA_JETS3T_ENCRYPTED_OBSOLETE = "jets3t-encryption";
+
+    /**
+     * Metadata header for storing information about the data encryption algorithm applied by jets3t tools.
+     */
+    public static String METADATA_JETS3T_CRYPTO_ALGORITHM = "jets3t-crypto-alg";
+
+    /**
+     * Metadata header for storing information about the jets3t version of encryption applied (to keep encryption compatibility between versions).
+     */
+    public static String METADATA_JETS3T_CRYPTO_VERSION = "jets3t-crypto-ver";
 
     /**
      * Metadata header for storing information about data compression applied by jets3t tools.
@@ -87,7 +98,7 @@ public class Constants {
     public static String REST_METADATA_PREFIX = "x-amz-meta-";
     public static String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
     public static String REST_SERVER_DNS = "s3.amazonaws.com";
-    public static String ACL_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
+    public static String XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
 
     ///////////////////////////////////
     // Headers used by SOAP S3 Services

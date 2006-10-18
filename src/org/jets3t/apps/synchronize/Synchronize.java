@@ -59,7 +59,6 @@ import org.jets3t.service.utils.ServiceUtils;
  */
 public class Synchronize {
     private S3Service s3Service = null;
-    private EncryptionUtil encryptionPasswordUtil = null;
     
     private boolean doAction = false; // Files will only be transferred if true. 
     private boolean isQuiet = false; // Report will only include summary of actions if true.
@@ -67,6 +66,7 @@ public class Synchronize {
     private boolean isKeepFiles = false; // Files will not be replaced/deleted if true.
     private boolean isGzipEnabled = false; // Files will be gzipped prior to upload if true.
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
+    private String cryptoPassword = null;
     
     /**
      * Constructs the application with a pre-initialised S3Service and the user-specified options.
@@ -101,7 +101,9 @@ public class Synchronize {
      *          temporary file with encrypted and/or gzipped data from the original file. 
      * @throws Exception    exceptions could include IO failures, gzipping and encryption failures.
      */
-    private File prepareUploadFile(final File originalFile, final S3Object newObject) throws Exception {
+    private File prepareUploadFile(final File originalFile, final S3Object newObject, 
+        EncryptionUtil encryptionUtil) throws Exception 
+    {
         if (!isGzipEnabled && !isEncryptionEnabled) {
             // No file pre-processing required.
             return originalFile;
@@ -120,11 +122,13 @@ public class Synchronize {
             newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
         } 
         if (isEncryptionEnabled) {
-            inputStream = encryptionPasswordUtil.encrypt(inputStream);
+            inputStream = encryptionUtil.encrypt(inputStream);
             contentEncoding = null;
             newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
-            newObject.addMetadata(Constants.METADATA_JETS3T_ENCRYPTED, 
-                encryptionPasswordUtil.getAlgorithm()); 
+            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, 
+                encryptionUtil.getAlgorithm()); 
+            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_VERSION, 
+                EncryptionUtil.VERSION); 
         }
         if (contentEncoding != null) {
             newObject.addMetadata("Content-Encoding", contentEncoding);
@@ -165,10 +169,14 @@ public class Synchronize {
             newObject.setContentType(Mimetypes.getMimetype(file));
 
             // Compute the file's MD5 hash.
-            newObject.setMd5Hash(FileComparer.computeMD5Hash(
+            newObject.setMd5Hash(ServiceUtils.computeMD5Hash(
                 new FileInputStream(file)));   
             
-            File uploadFile = prepareUploadFile(file, newObject);
+            EncryptionUtil encryptionUtil = null;
+            if (isEncryptionEnabled) {
+                encryptionUtil = new EncryptionUtil(cryptoPassword);
+            }
+            File uploadFile = prepareUploadFile(file, newObject, encryptionUtil);
             
             newObject.setContentLength(uploadFile.length());
             newObject.setDataInputStream(new FileInputStream(uploadFile));
@@ -214,10 +222,23 @@ public class Synchronize {
                 outputStream = new GZipInflatingOutputStream(outputStream);
             }
             if (isEncryptionEnabled 
-                && object.getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED) != null)
+                && (object.getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null
+                    || object.getMetadata().get(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM) != null))
             {
                 // Automatically decrypt encrypted files.
-                outputStream = encryptionPasswordUtil.decrypt(outputStream);                    
+                
+                if (object.getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null) {
+                    // Item is encrypted with obsolete crypto.
+                    outputStream = EncryptionUtil.getObsoleteEncryptionUtil(
+                        cryptoPassword).decrypt(outputStream);                                            
+                } else {
+                    String algorithm = (String) object.getMetadata().get(
+                        Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
+                    String version = (String) object.getMetadata().get(
+                        Constants.METADATA_JETS3T_CRYPTO_VERSION);
+                    outputStream = new EncryptionUtil(cryptoPassword, algorithm).
+                        decrypt(outputStream);                                            
+                }                    
             }
             
             return new S3ObjectAndOutputStream(object, outputStream);                        
@@ -543,9 +564,7 @@ public class Synchronize {
             throw new SynchronizeException("Action string must be 'UPLOAD' or 'DOWNLOAD'");
         }        
         
-        if (cryptoPassword != null) {
-            encryptionPasswordUtil = new EncryptionUtil(cryptoPassword);
-        } 
+        this.cryptoPassword = cryptoPassword;
                 
         S3Bucket bucket = null;
         try {
