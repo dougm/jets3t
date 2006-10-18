@@ -40,11 +40,13 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.Mimetypes;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Runs S3Service-related tests. S3Service implementations should implement more specific
@@ -202,7 +204,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Update/overwrite object with real data content and some metadata.
         contentType = "text/plain";
         String objectData = "Just some rubbish text to include as data";
-        String dataHash = FileComparer.computeMD5Hash(objectData.getBytes());
+        String dataHash = ServiceUtils.computeMD5Hash(objectData.getBytes());
         HashMap metadata = new HashMap();
         metadata.put("creator", "S3ServiceTest");
         metadata.put("purpose", "For testing purposes");
@@ -478,6 +480,46 @@ public abstract class BaseS3ServiceTest extends TestCase {
             S3Object object = (S3Object) iter.next();
             s3Service.deleteObject(bucket, object.getKey());
         }
+        s3Service.deleteBucket(bucket.getName());
+    }
+
+    public void testBucketLogging() throws Exception {
+        S3Service s3Service = getS3Service(awsCredentials);
+
+        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
+
+        S3Bucket bucket = s3Service.createBucket(bucketName);
+        
+        // Check logging status is false
+        S3BucketLoggingStatus loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
+        assertFalse("Expected logging to be disabled for bucket " + bucketName, 
+            loggingStatus.isLoggingEnabled());
+        
+        // Enable logging (non-existent target bucket)
+        try {
+            S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(
+                awsCredentials.getAccessKey() + ".NonExistentBucketName", "access-log-");
+            s3Service.setBucketLoggingStatusImpl(bucket.getName(), newLoggingStatus);
+            fail("Using non-existent target bucket should have caused an exception");            
+        } catch (Exception e) {            
+        }
+        
+        // Enable logging (in same bucket)
+        S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(bucketName, "access-log-");
+        s3Service.setBucketLoggingStatusImpl(bucket.getName(), newLoggingStatus);
+        loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
+        assertTrue("Expected logging to be enabled for bucket " + bucketName, 
+            loggingStatus.isLoggingEnabled());
+        assertEquals("Target bucket", bucketName, loggingStatus.getTargetBucketName());
+        assertEquals("Log file prefix", "access-log-", loggingStatus.getLogfilePrefix());
+        
+        // Disable logging
+        newLoggingStatus = new S3BucketLoggingStatus();
+        s3Service.setBucketLoggingStatusImpl(bucket.getName(), newLoggingStatus);
+        loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
+        assertFalse("Expected logging to be disabled for bucket " + bucketName, 
+            loggingStatus.isLoggingEnabled());
+
         s3Service.deleteBucket(bucket.getName());
     }
 
