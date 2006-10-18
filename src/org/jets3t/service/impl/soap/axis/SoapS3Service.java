@@ -27,6 +27,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -333,11 +334,22 @@ public class SoapS3Service extends S3Service {
             throw new S3ServiceException("Unable to Get Bucket: " + bucketName, e);   
         }
     }
-
-    public S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, long maxListingLength)
+    
+    protected S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, long maxListingLength)
         throws S3ServiceException
     {
-        String marker = null;
+        return listObjectsInternalImpl(bucketName, prefix, delimiter, maxListingLength, true, null)
+            .getObjects();            
+    }
+    
+    protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter, long maxListingLength, String priorLastKey) throws S3ServiceException {
+        return listObjectsInternalImpl(bucketName, prefix, delimiter, maxListingLength, false, priorLastKey);
+    }    
+
+    protected S3ObjectsChunk listObjectsInternalImpl(String bucketName, String prefix, 
+        String delimiter, long maxListingLength, boolean automaticallyMergeChunks, String priorLastKey)
+        throws S3ServiceException
+    {
         ArrayList objects = new ArrayList();        
         boolean incompleteListing = true;            
 
@@ -347,7 +359,7 @@ public class SoapS3Service extends S3Service {
                 Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
                 String signature = makeSignature("ListBucket", timestamp);
                 ListBucketResult result = s3SoapBinding.listBucket(
-                    bucketName, prefix, marker, new Integer((int)maxListingLength), 
+                    bucketName, prefix, priorLastKey, new Integer((int)maxListingLength), 
                     delimiter, getAWSAccessKey(), timestamp, signature, null);
                 
                 ListEntry[] entries = result.getContents();
@@ -367,24 +379,34 @@ public class SoapS3Service extends S3Service {
                     partialObjects[i] = object;
                     
                     // This shouldn't be necessary, but result.getMarker() doesn't work as expected.
-                    marker = object.getKey();
+                    priorLastKey = object.getKey();
                 }
                 
                 objects.addAll(Arrays.asList(partialObjects));
                 
                 incompleteListing = result.isIsTruncated();
                 if (incompleteListing) {
-                    // Why doesn't result.getMarker() return the next marker?
-                    // marker = result.getMarker();
+                    // TODO: Why doesn't result.getMarker() actually return the marker value?
+                    // priorLastKey = result.getMarker();
                     log.debug("Yet to receive complete listing of bucket contents, "
-                            + "querying for next batch of objects with marker: " + marker);
+                        + "last key for prior chunk: " + priorLastKey);
+                } else {
+                    priorLastKey = null;
                 }
+                if (!automaticallyMergeChunks)
+                    break;
             }
         } catch (Exception e) {
             throw new S3ServiceException("Unable to List Objects in bucket: " + bucketName, e);   
         }
-        log.debug("Found " + objects.size() + " objects in total");
-        return (S3Object[]) objects.toArray(new S3Object[] {});        
+        if (automaticallyMergeChunks) {
+            log.debug("Found " + objects.size() + " objects in total");
+            return new S3ObjectsChunk(
+                (S3Object[]) objects.toArray(new S3Object[] {}), null);
+        } else {
+            return new S3ObjectsChunk(
+                (S3Object[]) objects.toArray(new S3Object[] {}), priorLastKey);            
+        }
     }
 
     public S3Bucket createBucketImpl(String bucketName, AccessControlList acl) throws S3ServiceException {

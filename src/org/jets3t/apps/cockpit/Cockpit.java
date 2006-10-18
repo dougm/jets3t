@@ -54,6 +54,7 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -93,6 +94,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -139,13 +141,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private static final Log log = LogFactory.getLog(Cockpit.class);
     
     public static final String APPLICATION_TITLE = "jets3t Cockpit";
+    private static final int BUCKET_LIST_CHUNKING_SIZE = 500;
     
     private File rememberedLoginsDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
     
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
 
-    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    private final SimpleDateFormat yearAndTimeSDF = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    private final SimpleDateFormat timeSDF = new SimpleDateFormat("HH:mm:ss");
     
     /**
      * Multi-threaded S3 service used by the application.
@@ -302,7 +306,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 if (value instanceof Date) {
                     Date date = (Date) value;
-                    return super.getTableCellRendererComponent(table, sdf.format(date), isSelected, hasFocus, row, column);                    
+                    return super.getTableCellRendererComponent(table, yearAndTimeSDF.format(date), isSelected, hasFocus, row, column);                    
                 } else {
                     return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 }
@@ -778,7 +782,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             } 
 
             listAllBuckets(); // Doubles as check for valid credentials.            
-            updateObjectsSummary();
+            updateObjectsSummary(false);
             
             ownerFrame.setTitle(APPLICATION_TITLE + " : " + awsCredentials.getAccessKey());
             loginMenuItem.setEnabled(false);
@@ -811,7 +815,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
             ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();
                         
-            updateObjectsSummary();
+            updateObjectsSummary(false);
 
             ownerFrame.setTitle(APPLICATION_TITLE);
             loginMenuItem.setEnabled(true);
@@ -930,7 +934,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                    
             ((ObjectTableModel)objectsTable.getModel()).addObjects(objects, false);
-            updateObjectsSummary();
+            updateObjectsSummary(false);
         } else {        
             listObjects();
         }
@@ -959,23 +963,50 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         new Thread() {
             public void run() {
                 try {
+                    final boolean listingCancelled[] = new boolean[1]; // Default to false.
+                    final CancelEventTrigger cancelListener = new CancelEventTrigger() {
+                        public void cancelTask(Object eventSource) {
+                            listingCancelled[0] = true;                            
+                        }                        
+                    };
+                    
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            startProgressDisplay("Listing objects in " + getCurrentSelectedBucket().getName());
+                            startProgressDisplay("Listing objects in " + getCurrentSelectedBucket().getName(),
+                                0, 0, "Cancel bucket listing", cancelListener);
                             ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                                                
                         }
                     });
-                    
-                    final S3Object[] objects = s3ServiceMulti.getS3Service().listObjects(
-                        getCurrentSelectedBucket());
-                    
+
+                    final ArrayList allObjects = new ArrayList();
+                    String priorLastKey = null;
+                    do {
+                        S3ObjectsChunk chunk = s3ServiceMulti.getS3Service().listObjectsChunked(
+                            getCurrentSelectedBucket().getName(), null, null, 
+                            BUCKET_LIST_CHUNKING_SIZE, priorLastKey);
+                        
+                        final S3Object[] objects = chunk.getObjects();
+                        priorLastKey = chunk.getPriorLastKey();
+                        allObjects.addAll(Arrays.asList(objects));
+
+                        SwingUtilities.invokeLater(new Runnable() {
+                            public void run() {
+                                ((ObjectTableModel)objectsTable.getModel()).addObjects(objects, false);
+                                updateObjectsSummary(true);
+                                updateProgressDisplay("Listed " + allObjects.size() + " objects in " 
+                                    + getCurrentSelectedBucket().getName(), 0);
+                            }
+                        });                        
+                    } while (!listingCancelled[0] && priorLastKey != null);
+
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            ((ObjectTableModel)objectsTable.getModel()).addObjects(objects, false);
-                            updateObjectsSummary();
-                            cachedBuckets.put(getCurrentSelectedBucket().getName(), objects);            
+                            updateObjectsSummary(listingCancelled[0]);
+                            S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+                            cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
                         }
-                    });
+                    });                        
+
                 } catch (final Exception e) {
                     logoutEvent();
                     SwingUtilities.invokeLater(new Runnable() {
@@ -995,7 +1026,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * number and total size of the objects. 
      *
      */
-    private void updateObjectsSummary() {
+    private void updateObjectsSummary(boolean isIncompleteListing) {
         S3Object[] objects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
         
         try {
@@ -1009,6 +1040,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
                 if (totalBytes > 0) {
                     summary += ", " + formatByteSize(totalBytes);
+                }
+                summary += "  @ " + timeSDF.format(new Date());
+                if (isIncompleteListing) {
+                    summary += " - INCOMPLETE";
                 }
             }        
             
@@ -1930,7 +1965,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    updateObjectsSummary();
+                    updateObjectsSummary(false);
                     S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
                     cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
                 }
@@ -1941,7 +1976,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    updateObjectsSummary();
+                    updateObjectsSummary(false);
                 }
             });
 
@@ -2065,7 +2100,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    updateObjectsSummary();
+                    updateObjectsSummary(false);
                     S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
                     cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
                 }

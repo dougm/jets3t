@@ -327,7 +327,7 @@ public abstract class S3Service {
 
     /**
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
-     * a given size.
+     * a given size. 
      * <p>
      * This method can be performed by anonymous services.
      * 
@@ -342,8 +342,8 @@ public abstract class S3Service {
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
      */
-    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter, long maxListingLength) 
-        throws S3ServiceException
+    public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter, 
+        long maxListingLength) throws S3ServiceException
     {
         assertValidBucket(bucket, "List objects in bucket");
         return listObjects(bucket.getName(), prefix, delimiter, maxListingLength);
@@ -351,7 +351,7 @@ public abstract class S3Service {
 
     /**
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
-     * a given size.
+     * a given size. 
      * <p>
      * This method can be performed by anonymous services.
      * 
@@ -365,10 +365,38 @@ public abstract class S3Service {
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
      */
-    public S3Object[] listObjects(String bucketName, String prefix, String delimiter, long maxListingLength) 
-        throws S3ServiceException
+    public S3Object[] listObjects(String bucketName, String prefix, String delimiter, 
+        long maxListingLength) throws S3ServiceException
     {
         return listObjectsImpl(bucketName, prefix, delimiter, maxListingLength);
+    }
+
+    /**
+     * Lists the objects in a bucket matching a prefix, chunking the results into batches of
+     * a given size, and returning each chunk separately. It is the responsility of the caller 
+     * to building a complete bucket object listing from .
+     * <p>
+     * This method can be performed by anonymous services.
+     * 
+     * @param bucketName
+     * the name of the the bucket whose contents will be listed. 
+     * @param prefix
+     * only objects with a key that starts with this prefix will be listed
+     * @param maxListingLength
+     * the maximum number of objects to include in each result chunk
+     * @param priorLastKey
+     * the last object key received in a prior call to this method. The next chunk of objects
+     * listed will start with the next object in the bucket <b>after</b> this key name.
+     * This paramater may be null, in which case the listing will start at the beginning of the
+     * bucket's object contents.
+     * @return
+     * the set of objects contained in a bucket whose keys start with the given prefix.
+     * @throws S3ServiceException
+     */
+    public S3ObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter, 
+        long maxListingLength, String priorLastKey) throws S3ServiceException
+    {
+        return listObjectsChunkedImpl(bucketName, prefix, delimiter, maxListingLength, priorLastKey);
     }
 
     /**
@@ -757,6 +785,26 @@ public abstract class S3Service {
      */
     protected abstract S3Object[] listObjectsImpl(String bucketName, String prefix, 
         String delimiter, long maxListingLength) throws S3ServiceException;
+
+    /**
+     * Lists objects in a bucket up to the maximum listing length specified.
+     * 
+     * <b>Implementation notes</b><p>
+     * The implementation of this method returns only as many objects as requested in the chunk
+     * size. It is the responsibility of the caller to build a complete object listing from 
+     * multiple chunks, should this be necessary.
+     * <p>
+     * 
+     * @param bucketName
+     * @param prefix
+     * @param delimiter
+     * @param maxListingLength
+     * @param priorLastKey
+     * @return
+     * @throws S3ServiceException
+     */
+    protected abstract S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, 
+        String delimiter, long maxListingLength, String priorLastKey) throws S3ServiceException;
 
     /**
      * Creates a bucket.

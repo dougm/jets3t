@@ -49,6 +49,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -647,8 +648,21 @@ public class RestS3Service extends S3Service {
         return buckets;
     }
 
-    public S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, long maxListingLength) 
-        throws S3ServiceException 
+    public S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, 
+        long maxListingLength) throws S3ServiceException 
+    {        
+        return listObjectsInternal(bucketName, prefix, delimiter, maxListingLength, true, null)
+            .getObjects();
+    }
+    
+    public S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter, 
+        long maxListingLength, String priorLastKey) throws S3ServiceException 
+    {        
+        return listObjectsInternal(bucketName, prefix, delimiter, maxListingLength, false, priorLastKey);
+    }
+
+    protected S3ObjectsChunk listObjectsInternal(String bucketName, String prefix, String delimiter, 
+        long maxListingLength, boolean automaticallyMergeChunks, String priorLastKey) throws S3ServiceException 
     {        
         HashMap parameters = new HashMap();
         if (prefix != null) {
@@ -662,7 +676,6 @@ public class RestS3Service extends S3Service {
         }
 
         ArrayList objects = new ArrayList();        
-        String priorLastKey = null;
         boolean incompleteListing = true;            
             
         while (incompleteListing) {
@@ -681,15 +694,26 @@ public class RestS3Service extends S3Service {
             log.debug("Found " + partialObjects.length + " objects in one batch");
             objects.addAll(Arrays.asList(partialObjects));
             
-            incompleteListing = listBucketHandler.isListingTruncated();
+            incompleteListing = listBucketHandler.isListingTruncated();            
             if (incompleteListing) {
                 priorLastKey = listBucketHandler.getLastKey();                
                 log.debug("Yet to receive complete listing of bucket contents, "
-                        + "querying for next batch of objects with marker: " + priorLastKey);
+                        + "last key for prior chunk: " + priorLastKey);
+            } else {
+                priorLastKey = null;
             }
+            
+            if (!automaticallyMergeChunks)
+                break;
         }
-        log.debug("Found " + objects.size() + " objects in total");
-        return (S3Object[]) objects.toArray(new S3Object[] {});        
+        if (automaticallyMergeChunks) {
+            log.debug("Found " + objects.size() + " objects in total");
+            return new S3ObjectsChunk(
+                (S3Object[]) objects.toArray(new S3Object[] {}), null);
+        } else {
+            return new S3ObjectsChunk(
+                (S3Object[]) objects.toArray(new S3Object[] {}), priorLastKey);            
+        }
     }
     
     public void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {

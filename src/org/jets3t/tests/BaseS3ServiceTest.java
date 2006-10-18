@@ -34,6 +34,7 @@ import java.util.TimeZone;
 
 import junit.framework.TestCase;
 
+import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -113,7 +114,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         } catch (S3ServiceException e) {
         }
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
+        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest1";
         s3Service.createBucket(bucketName);
 
         boolean bucketExists = s3Service.isBucketAccessible(bucketName);
@@ -143,7 +144,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
     public void testObjectManagement() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
+        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest2";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
         S3Object object = new S3Object();
@@ -330,7 +331,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
 
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
+        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest3";
         S3Bucket bucket = s3Service.createBucket(bucketName);
         S3Object object = null;
 
@@ -411,7 +412,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
     public void testObjectListing() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
+        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest4";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
         
@@ -437,6 +438,20 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // List all items in directory.
         objects = s3Service.listObjects(bucket);        
         assertEquals("Incorrect number of objects in directory structure", 7, objects.length);
+        
+        // List items in chunks of size 2, ensure we get a total of seven.
+        int chunkedObjectsCount = 0;
+        int chunkedIterationsCount = 0;
+        String priorLastKey = null;
+        do {
+            S3ObjectsChunk chunk = s3Service.listObjectsChunked(
+                bucket.getName(), null, null, 2, priorLastKey);
+            priorLastKey = chunk.getPriorLastKey();
+            chunkedObjectsCount += chunk.getObjects().length;
+            chunkedIterationsCount++;
+        } while (priorLastKey != null);
+        assertEquals("Chunked bucket listing retreived incorrect number of objects", 7, chunkedObjectsCount);
+        assertEquals("Chunked bucket listing ran for an unexpected number of iterations", 4, chunkedIterationsCount);
         
         // List the same items with a prefix.
         objects = s3Service.listObjects(bucket, "dir1", null);        
@@ -486,7 +501,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
     public void testBucketLogging() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest";
+        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest5";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
         
