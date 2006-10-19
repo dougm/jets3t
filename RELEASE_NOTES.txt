@@ -9,6 +9,8 @@ Version 0.4.1
   NOTE: All changes *should* be backwards compatible, but due to these changes there may be 
   an increased risk of data loss for encrypted items.
 - New methods to chunk bucket listings, allowing for better handling of buckets with many objects.
+- A limit to the maximum number of simultaneous communication threads (ie those interacting with S3) 
+  is now imposed. This limit can be set in the properties file, and defaults to 50.
 
 * Cockpit
 

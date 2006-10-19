@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -50,6 +51,16 @@ import org.jets3t.service.utils.ServiceUtils;
  * <p>
  * For cases where the full power, and complexity, of the event notification mechanism is not required
  * the simplified multi-threaded service {@link S3ServiceSimpleMulti} can be used.
+ * <p>
+ * <p><b>Properties</b></p>
+ * <p>The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
+ * <table>
+ * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
+ * <tr><td>s3service.max-thread-count</td>
+ *   <td>The maximum number of concurrent communication threads that will be started by the 
+ *   multi-threaded service.</td> 
+ *   <td>50</td></tr>
+ * </table>
  * 
  * @author James Murty
  */
@@ -188,7 +199,6 @@ public class S3ServiceMulti {
             
             runnables[i] = new CreateBucketRunnable(buckets[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();                    
         }
         
         // Wait for threads to finish, or be cancelled.        
@@ -241,7 +251,6 @@ public class S3ServiceMulti {
             incompletedObjectsList.add(objects[i]);
             runnables[i] = new CreateObjectRunnable(bucket, objects[i], bytesTransferredListener);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();                    
         }        
         
         // Wait for threads to finish, or be cancelled.        
@@ -288,7 +297,6 @@ public class S3ServiceMulti {
             objectsToDeleteList.add(objects[i]);
             runnables[i] = new DeleteObjectRunnable(bucket, objects[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();
         }
         
         // Wait for threads to finish, or be cancelled.        
@@ -351,7 +359,6 @@ public class S3ServiceMulti {
             pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], false);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
@@ -421,7 +428,6 @@ public class S3ServiceMulti {
             pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], true);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
@@ -474,7 +480,6 @@ public class S3ServiceMulti {
             pendingObjectsList.add(objects[i]);
             runnables[i] = new GetACLRunnable(bucket, objects[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
@@ -519,7 +524,6 @@ public class S3ServiceMulti {
             pendingObjectsList.add(objects[i]);
             runnables[i] = new PutACLRunnable(bucket, objects[i]);
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();
         }
         // Wait for threads to finish, or be cancelled.        
         (new ThreadGroupManager(localThreadGroup, threads, runnables) {
@@ -577,7 +581,6 @@ public class S3ServiceMulti {
             runnables[i] = new DownloadObjectRunnable(bucket, objects[i].getKey(), 
                 objectAndOutputStream[i].getOuputStream(), bytesTransferredListener);    
             threads[i] = new Thread(localThreadGroup, runnables[i]);
-            threads[i].start();
         }
 
         // Set total bytes to 0 to flag the fact we cannot monitor the bytes transferred. 
@@ -936,6 +939,8 @@ public class S3ServiceMulti {
      */
     private abstract class ThreadGroupManager {
         private final Log log = LogFactory.getLog(ThreadGroupManager.class);
+        private final int MaxThreadCount = Jets3tProperties
+            .getIntProperty("s3service.max-thread-count", 50);
         
         private ThreadGroup localThreadGroup = null;
         private Thread[] threads = null;
@@ -951,6 +956,8 @@ public class S3ServiceMulti {
          * Determine which threads, if any, have finished since the last time an In Progress event
          * was fired.
          * 
+         * @param started
+         *        set of flags indicating which threads have been started
          * @param alreadyFired
          *        set of flags indicating which threads have already had In Progress events fired on
          *        their behalf.
@@ -959,11 +966,11 @@ public class S3ServiceMulti {
          * be empty.
          * @throws Throwable
          */
-        private List getNewlyCompletedResults(boolean alreadyFired[]) throws Throwable {
+        private List getNewlyCompletedResults(boolean started[], boolean alreadyFired[]) throws Throwable {
             ArrayList completedResults = new ArrayList();
             
             for (int i = 0; i < threads.length; i++) {
-                if (!alreadyFired[i] && !threads[i].isAlive()) {
+                if (!alreadyFired[i] && started[i] && !threads[i].isAlive()) {
                     alreadyFired[i] = true;
                     log.debug("Thread " + (i+1) + " of " + threads.length + " has recently completed");
 
@@ -975,6 +982,40 @@ public class S3ServiceMulti {
                 }
             }
             return completedResults;
+        }
+        
+        /**
+         * Starts pending threads such that the total of running threads never exceeds the 
+         * maximum count set in the jets3t property <i>s3service.max-thread-count</i>.
+         * 
+         * @param started
+         *        set of flags indicating which threads have been started
+         * @param alreadyFired
+         *        set of flags indicating which threads have already had In Progress events fired on
+         *        their behalf. These threads have finished running.
+         *        
+         * @throws Throwable
+         */
+        private void startPendingThreads(boolean started[], boolean alreadyFired[]) 
+            throws Throwable 
+        {
+            // Count active threads that are running (ie have been started but final event not fired)
+            int runningThreadCount = 0;
+            for (int i = 0; i < threads.length; i++) {
+                if (started[i] && !alreadyFired[i]) {
+                    runningThreadCount++;
+                }
+            }
+
+            // Start threads until we are running the maximum number allowed.
+            for (int i = 0; runningThreadCount <= MaxThreadCount && i < started.length; i++) {
+                if (!started[i]) {
+                    threads[i].start();
+                    started[i] = true;
+                    runningThreadCount++;
+                    log.debug("Thread " + (i+1) + " of " + threads.length + " has started");
+                }
+            }
         }
         
         /**
@@ -1014,8 +1055,15 @@ public class S3ServiceMulti {
             
             // Flags to indicate which threads have had In Progress events fired on their behalf.
             final boolean alreadyFired[] = new boolean[runnables.length]; // All values initialized to false.
-
+            
+            // Flags to indicate which threads are yet to be started, these are the Pending threads.
+            final boolean started[] = new boolean[runnables.length]; // All values initialized to false.
+            
+            // Actual thread management happens in the code block below.
             try {
+                // Start some threads
+                startPendingThreads(started, alreadyFired);                
+                
                 ThreadWatcher threadWatcher = new ThreadWatcher(0, runnables.length, cancelEventTrigger); 
                 fireStartEvent(threadWatcher);
                 
@@ -1031,12 +1079,15 @@ public class S3ServiceMulti {
                             // Fire progress event.
                             int completedThreads = runnables.length - localThreadGroup.activeCount();                    
                             threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventTrigger);
-                            List completedResults = getNewlyCompletedResults(alreadyFired);                    
+                            List completedResults = getNewlyCompletedResults(started, alreadyFired);                    
                             fireProgressEvent(threadWatcher, completedResults);
                             
                             if (completedResults.size() > 0) {
                                 log.debug(completedResults.size() + " of " + threads.length + " have completed");
                             }
+                            
+                            // Start more threads.
+                            startPendingThreads(started, alreadyFired);                
                         }
                     } catch (InterruptedException e) {
                         interrupted[0] = true;
@@ -1049,7 +1100,7 @@ public class S3ServiceMulti {
                 } else {
                     int completedThreads = localThreadGroup.activeCount();                    
                     threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventTrigger);
-                    List completedResults = getNewlyCompletedResults(alreadyFired);                    
+                    List completedResults = getNewlyCompletedResults(started, alreadyFired);                    
                     fireProgressEvent(threadWatcher, completedResults);
                     if (completedResults.size() > 0) {
                         log.debug(completedResults.size() + " of " + threads.length + " have completed");
