@@ -328,8 +328,10 @@ public class RestS3Service extends S3Service {
     /**
      * Performs an HTTP HEAD request using the {@link #performRequest} method.
      *  
-     * @param path
-     *        the URL request target
+     * @param bucketName
+     *        the bucket's name
+	 * @param objectKey
+     *        the object's key name, may be null if the operation is on a bucket only.
      * @param requestParameters
      *        parameters to add to the request URL as GET params
      * @param requestHeaders
@@ -337,16 +339,13 @@ public class RestS3Service extends S3Service {
      * @return
      * @throws S3ServiceException
      */
-    protected HttpMethodBase performRestHead(
-        String path, Map requestParameters, Map requestHeaders) throws S3ServiceException 
+    protected HttpMethodBase performRestHead(String bucketName, String objectKey, 
+        Map requestParameters, Map requestHeaders) throws S3ServiceException 
     {
-        // Add any request parameters.
-        path = addRequestParametersToUrlPath(path, requestParameters);
-                
-        HttpMethodBase httpMethod = setupConnection("HEAD", path);
+        HttpMethodBase httpMethod = setupConnection("HEAD", bucketName, objectKey, requestParameters);
         
         // Add authorization header.
-        buildAuthorizationString(httpMethod, path);
+        buildAuthorizationString(httpMethod);
         
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
@@ -359,8 +358,10 @@ public class RestS3Service extends S3Service {
     /**
      * Performs an HTTP GET request using the {@link #performRequest} method.
      *  
-     * @param path
-     *        the URL request target
+     * @param bucketName
+     *        the bucket's name
+	 * @param objectKey
+     *        the object's key name, may be null if the operation is on a bucket only.
      * @param requestParameters
      *        parameters to add to the request URL as GET params
      * @param requestHeaders
@@ -368,15 +369,13 @@ public class RestS3Service extends S3Service {
      * @return
      * @throws S3ServiceException
      */
-    protected HttpMethodBase performRestGet(String path, Map requestParameters, Map requestHeaders) throws S3ServiceException 
+    protected HttpMethodBase performRestGet(String bucketName, String objectKey, 
+        Map requestParameters, Map requestHeaders) throws S3ServiceException 
     {
-        // Add any request parameters.
-        path = addRequestParametersToUrlPath(path, requestParameters);
-                
-        HttpMethodBase httpMethod = setupConnection("GET", path);
+        HttpMethodBase httpMethod = setupConnection("GET", bucketName, objectKey, requestParameters);
         
         // Add authorization header.
-        buildAuthorizationString(httpMethod, path);
+        buildAuthorizationString(httpMethod);
         
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
@@ -405,13 +404,11 @@ public class RestS3Service extends S3Service {
      * @return
      * @throws S3ServiceException
      */
-    protected HttpMethodAndByteCount performRestPut(String path, Map metadata, 
-            Map requestParameters, InputStream dataInputStream) throws S3ServiceException 
+    protected HttpMethodAndByteCount performRestPut(String bucketName, String objectKey, 
+        Map metadata, Map requestParameters, InputStream dataInputStream) throws S3ServiceException 
     {        
         // Add any request parameters.
-        path = addRequestParametersToUrlPath(path, requestParameters);
-
-        HttpMethodBase httpMethod = setupConnection("PUT", path);
+        HttpMethodBase httpMethod = setupConnection("PUT", bucketName, objectKey, requestParameters);
         
         // Add all meta-data headers.
         if (metadata != null) {
@@ -438,8 +435,9 @@ public class RestS3Service extends S3Service {
                 httpMethod.setRequestHeader(key, value.toString());
             }
         }
-        
-        buildAuthorizationString(httpMethod, path);
+
+		// Build the authorization string for the method.        
+        buildAuthorizationString(httpMethod);
 
         long contentLength = 0;
         
@@ -474,14 +472,16 @@ public class RestS3Service extends S3Service {
     /**
      * Performs an HTTP DELETE request using the {@link #performRequest} method.
      *  
-     * @param path
-     *        the URL target to delete
+     * @param bucketName
+     *        the bucket's name
+	 * @param objectKey
+     *        the object's key name, may be null if the operation is on a bucket only.
      * @return
      * @throws S3ServiceException
      */
-    protected HttpMethodBase performRestDelete(String path) throws S3ServiceException {        
-        HttpMethodBase httpMethod = setupConnection("DELETE", path);
-        buildAuthorizationString(httpMethod, path);
+    protected HttpMethodBase performRestDelete(String bucketName, String objectKey) throws S3ServiceException {        
+        HttpMethodBase httpMethod = setupConnection("DELETE", bucketName, objectKey, null);
+        buildAuthorizationString(httpMethod);
 
         performRequest(httpMethod, 204);
 
@@ -497,19 +497,24 @@ public class RestS3Service extends S3Service {
      * 
      * @param method
      *        the HTTP method/connection-type to use, must be one of: PUT, HEAD, GET, DELETE
-     * @param path
-     *        the target URL.
+     * @param bucketName
+     *        the bucket's name
+	 * @param objectKey
+     *        the object's key name, may be null if the operation is on a bucket only.
      * @return
      * @throws S3ServiceException
      */
-    protected HttpMethodBase setupConnection(String method, String path) throws S3ServiceException 
+    protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey, Map requestParameters) throws S3ServiceException 
     {
-        if (path == null) {
+        if (bucketName == null) {
             throw new S3ServiceException("Cannot connect to S3 Service with a null path");
         }
 
-        String resourceString = buildResourceStringFromPath(path);
+		// Determine the resource string (ie the item's path in S3, including the bucket name)
+        String resourceString = "/" + bucketName + 
+            (objectKey != null? "/" + RestUtils.encodeUrlString(objectKey) : "");
 
+		// Construct a URL representing a connection for the S3 resource.
         String url = null;
         if (isHttpsOnly()) {
             log.debug("REST/HTTP service is using HTTPS for all communication");
@@ -518,6 +523,9 @@ public class RestS3Service extends S3Service {
             url = PROTOCOL_INSECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_INSECURE + resourceString;        
         }
         
+        // Add additional request parameters to the URL for special cases (eg ACL operations)
+        url = addRequestParametersToUrlPath(url, requestParameters);
+
         HttpMethodBase httpMethod = null;
         if ("PUT".equals(method)) {
             httpMethod = new PutMethod(url);
@@ -543,65 +551,41 @@ public class RestS3Service extends S3Service {
     }
     
     /**
-     * Encodes the resource target component of a URL, leaving GET parameters unchanged.
-     * 
-     * @param path
-     *        URL to encode.
-     * @return
-     * @throws S3ServiceException
-     */
-    private String buildResourceStringFromPath(String path) throws S3ServiceException {
-        String resourceString = "/";            
-        int paramsIndex = path.indexOf("?");
-        if (paramsIndex >= 0) {
-            resourceString += RestUtils.encodeUrlPath(path.substring(0, paramsIndex), "/")
-                + path.substring(paramsIndex, path.length());            
-        } else {
-            resourceString += RestUtils.encodeUrlPath(path, "/");
-        }
-        return resourceString;
-    }
-    
-    /**
      * Authorizes an HTTP request by signing it. The signature is based on the target URL, and the
      * signed authorization string is added to the {@link HttpMethod} object as an Authorization header.
      * 
      * @param httpMethod
      *        the request object
-     * @param path
-     *        the target URL of the request
      * @throws S3ServiceException
      */
-    protected void buildAuthorizationString(HttpMethodBase httpMethod, String path) throws S3ServiceException {
+    protected void buildAuthorizationString(HttpMethodBase httpMethod) throws S3ServiceException {
         if (isAuthenticatedConnection()) {
             log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
         } else {
             log.warn("Service has no AWS Credential and is un-authenticated, skipping authorization");
             return;
         }
+
+		// Determine the complete URL for the S3 resource, including any S3-specific parameters.        
+        String fullUrl = httpMethod.getPath();
+        String queryString = httpMethod.getQueryString();
+        if (queryString != null && queryString.length() > 0) {
+            fullUrl += "?" + queryString;
+        }
         
+        // Generate a canonical string representing the operation.
         String canonicalString = RestUtils.makeCanonicalString(
-                httpMethod.getName(), buildResourceStringFromPath(path), 
+                httpMethod.getName(), fullUrl,
                 convertHeadersToMap(httpMethod.getRequestHeaders()), null);
         log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
         
+        // Sign the canonical string.
         String signedCanonical = ServiceUtils.signWithHmacSha1(
                 getAWSCredentials().getSecretKey(), canonicalString);
         
         // Add encoded authorization to connection as HTTP Authorization header. 
         String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signedCanonical;
         httpMethod.setRequestHeader("Authorization", authorizationString);                                
-    }
-
-    /**
-     * Deletes an S3 object or bucket.
-     * 
-     * @param path
-     * @throws S3ServiceException
-     */
-    protected void deleteObject(String path) throws S3ServiceException {
-        log.debug("Deleting object with path: " + path);
-        performRestDelete(path);
     }
 
     
@@ -613,7 +597,7 @@ public class RestS3Service extends S3Service {
         log.debug("Checking existence of bucket: " + bucketName);
 
         // Ensure bucket exists and is accessible by performing a HEAD request
-        HttpMethodBase httpMethod = performRestHead(bucketName, null, null);
+        HttpMethodBase httpMethod = performRestHead(bucketName, null, null, null);
         
         // This request may return an XML document that we're not interested in. Clean this up.
         try {
@@ -634,8 +618,8 @@ public class RestS3Service extends S3Service {
     public S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
         log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
         
-        String s3Path = ""; // Root path of S3 service lists the user's buckets.
-        HttpMethodBase httpMethod =  performRestGet(s3Path, null, null);
+        String bucketName = ""; // Root path of S3 service lists the user's buckets.
+        HttpMethodBase httpMethod =  performRestGet(bucketName, null, null, null);
         String contentType = httpMethod.getResponseHeader("Content-Type").getValue();
             
         if (!Mimetypes.MIMETYPE_XML.equals(contentType)) {
@@ -685,7 +669,7 @@ public class RestS3Service extends S3Service {
                 parameters.remove("marker");
             }
             
-            HttpMethodBase httpMethod = performRestGet(bucketName, parameters, null);
+            HttpMethodBase httpMethod = performRestGet(bucketName, null, parameters, null);
             ListBucketHandler listBucketHandler = 
                 (new XmlResponsesSaxParser()).parseListBucketObjectsResponse(
                     new HttpMethodReleaseInputStream(httpMethod));
@@ -717,29 +701,27 @@ public class RestS3Service extends S3Service {
     }
     
     public void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {
-        deleteObject(bucketName + "/" + objectKey);
+        performRestDelete(bucketName, objectKey);
     }    
 
     public AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
-        String fullKey = bucketName + "/" + objectKey; 
-        log.debug("Retrieving Access Control List for Object: " + fullKey);
+        log.debug("Retrieving Access Control List for bucketName=" + bucketName + ", objectKkey=" + objectKey);
         
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
 
-        HttpMethodBase httpMethod = performRestGet(fullKey, requestParameters, null);
+        HttpMethodBase httpMethod = performRestGet(bucketName, objectKey, requestParameters, null);
         return (new XmlResponsesSaxParser()).parseAccessControlListResponse(
             new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
     
     public AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
-        String fullKey = bucketName;
-        log.debug("Retrieving Access Control List for Bucket: " + fullKey);
+        log.debug("Retrieving Access Control List for Bucket: " + bucketName);
         
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
 
-        HttpMethodBase httpMethod = performRestGet(fullKey, requestParameters, null);
+        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
         return (new XmlResponsesSaxParser()).parseAccessControlListResponse(
             new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
@@ -747,20 +729,19 @@ public class RestS3Service extends S3Service {
     public void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
         throws S3ServiceException 
     {        
-        String fullKey = bucketName + "/" + objectKey;
-        putAclImpl(fullKey, acl);
+        putAclImpl(bucketName, objectKey, acl);
     }
     
     public void putBucketAclImpl(String bucketName, AccessControlList acl) 
         throws S3ServiceException 
     {        
         String fullKey = bucketName;
-        putAclImpl(fullKey, acl);
+        putAclImpl(fullKey, null, acl);
     }
 
-    protected void putAclImpl(String fullKey, AccessControlList acl) throws S3ServiceException 
+    protected void putAclImpl(String bucketName, String objectKey, AccessControlList acl) throws S3ServiceException 
     {
-        log.debug("Setting Access Control List for key: " + fullKey);
+        log.debug("Setting Access Control List for bucketName=" + bucketName + ", objectKey=" + objectKey);
 
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
@@ -772,7 +753,7 @@ public class RestS3Service extends S3Service {
             ByteArrayInputStream bais = new ByteArrayInputStream(
                     acl.toXml().getBytes(Constants.DEFAULT_ENCODING));
             metadata.put("Content-Length", String.valueOf(bais.available()));
-            performRestPut(fullKey, metadata, requestParameters, bais);
+            performRestPut(bucketName, objectKey, metadata, requestParameters, bais);
             bais.close();
         } catch (Exception e) {
             throw new S3ServiceException("Unable to encode ACL XML document", e);
@@ -792,7 +773,7 @@ public class RestS3Service extends S3Service {
     }
     
     public void deleteBucketImpl(String bucketName) throws S3ServiceException {
-        deleteObject(bucketName);
+        performRestDelete(bucketName, null);
     }    
     
     /**
@@ -814,9 +795,6 @@ public class RestS3Service extends S3Service {
         InputStream dataInputStream, Map metadata, AccessControlList acl) 
         throws S3ServiceException 
     {
-        String s3Path = bucketName;
-        s3Path += (objectKey != null? "/" + objectKey : "");
-        
         if (metadata == null) {
             metadata = new HashMap();
         }
@@ -840,14 +818,14 @@ public class RestS3Service extends S3Service {
             }
         }
                         
-        log.debug("Creating object with path " + s3Path + "." + 
+        log.debug("Creating object bucketName=" + bucketName + ", objectKey=" + objectKey + "." + 
             " Content-Type=" + metadata.get("Content-Type") +
             " Including data? " + (dataInputStream != null) +
             " Metadata: " + metadata +
             " ACL: " + acl
             );
         
-        HttpMethodAndByteCount methodAndByteCount = performRestPut(s3Path, metadata, null, dataInputStream);
+        HttpMethodAndByteCount methodAndByteCount = performRestPut(bucketName, objectKey, metadata, null, dataInputStream);
             
         // Consume response content.
         HttpMethodBase httpMethod = methodAndByteCount.getHttpMethod();
@@ -859,8 +837,8 @@ public class RestS3Service extends S3Service {
         map = ServiceUtils.cleanRestMetadataMap(map);
 
         if (putNonStandardAcl) {
-            log.debug("Creating object '" + s3Path + "' with a non-canned ACL using REST, so an extra ACL Put is required");
-            putAclImpl(s3Path, acl);
+            log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
+            putAclImpl(bucketName, objectKey, acl);
         }
         
         return map;
@@ -932,13 +910,11 @@ public class RestS3Service extends S3Service {
             log.debug("Only retrieve object if it is within range:" + range);
         }
         
-        String fullkey = bucketName + (objectKey != null? "/" + objectKey : "");
-        
         HttpMethodBase httpMethod = null;        
         if (headOnly) {
-            httpMethod = performRestHead(fullkey, null, requestHeaders);    
+            httpMethod = performRestHead(bucketName, objectKey, null, requestHeaders);    
         } else {
-            httpMethod = performRestGet(fullkey, null, requestHeaders);
+            httpMethod = performRestGet(bucketName, objectKey, null, requestHeaders);
         }
         
         HashMap map = new HashMap();
@@ -969,7 +945,7 @@ public class RestS3Service extends S3Service {
         HashMap requestParameters = new HashMap();
         requestParameters.put("logging","");
 
-        HttpMethodBase httpMethod = performRestGet(bucketName, requestParameters, null);
+        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
         return (new XmlResponsesSaxParser()).parseLoggingStatusResponse(
             new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();        
     }
@@ -989,7 +965,7 @@ public class RestS3Service extends S3Service {
             ByteArrayInputStream bais = new ByteArrayInputStream(
                 status.toXml().getBytes(Constants.DEFAULT_ENCODING));
             metadata.put("Content-Length", String.valueOf(bais.available()));
-            performRestPut(bucketName, metadata, requestParameters, bais);                
+            performRestPut(bucketName, null, metadata, requestParameters, bais);                
             bais.close();
         } catch (Exception e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
