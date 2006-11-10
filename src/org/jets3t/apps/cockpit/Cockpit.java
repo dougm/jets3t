@@ -663,8 +663,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * Stops/halts the progress display dialog and allows the user to interact with the application.
      */
     private void stopProgressDisplay() {
-        progressDisplay.dispose();
-        progressDisplay = null;
+        if (progressDisplay != null) {
+            progressDisplay.dispose();
+            progressDisplay = null;
+        }
         
         this.setEnabled(true);
         this.getContentPane().setCursor(null);        
