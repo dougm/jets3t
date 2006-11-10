@@ -105,6 +105,11 @@ public class ServiceUtils {
     public static String signWithHmacSha1(String awsSecretKey, String canonicalString)
         throws S3ServiceException
     {
+        if (awsSecretKey == null) {
+            log.debug("Canonical string will not be signed, as no AWS Secret Key was provided");
+            return null;
+        }
+        
         // The following HMAC/SHA1 code for the signature is taken from the
         // AWS Platform's implementation of RFC2104 (amazon.webservices.common.Signature)
         //
