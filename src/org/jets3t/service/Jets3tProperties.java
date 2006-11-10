@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Properties;
 
@@ -52,49 +53,61 @@ public class Jets3tProperties {
     /**
      * Stores the jets3t properties.
      */
-    private static Properties properties = new Properties();
+    private static final Hashtable propertiesHashtable = new Hashtable();
 
+    private Properties properties = new Properties();
+    
+    public static Jets3tProperties getInstance(InputStream inputStream) throws IOException {
+        Jets3tProperties jets3tProperties = new Jets3tProperties();
+        jets3tProperties.loadAndReplaceProperties(inputStream, "InputStream");
+        return jets3tProperties;
+    }
+    
     /*
      * Load properties from sources in order.
      */
-    static {       
+    public static Jets3tProperties getInstance(String propertiesFileName) {
+        Jets3tProperties jets3tProperties = null;
+        
+        // Keep static references to properties classes by filename.
+        if (propertiesHashtable.containsKey(propertiesFileName)) {
+            jets3tProperties = (Jets3tProperties) propertiesHashtable.get(propertiesFileName);
+            return jets3tProperties;
+        } else {
+            jets3tProperties = new Jets3tProperties();            
+            propertiesHashtable.put(propertiesFileName, jets3tProperties);
+        }
+        
         // Load properties from classpath.
-        if (ClassLoader.getSystemResource(Constants.JETS3T_PROPERTIES_FILENAME) != null) {
+        InputStream cpIS = jets3tProperties.getClass().getResourceAsStream("/" + propertiesFileName);
+        if (cpIS != null) {
             log.debug("Loading properties from resource in the classpath: " + 
-                Constants.JETS3T_PROPERTIES_FILENAME);
+                propertiesFileName);
             try {
-                loadAndReplaceProperties(
-                    ClassLoader.getSystemResourceAsStream(Constants.JETS3T_PROPERTIES_FILENAME),
-                    "Resource '" + Constants.JETS3T_PROPERTIES_FILENAME + "' in classpath");
+                jets3tProperties.loadAndReplaceProperties(cpIS,
+                    "Resource '" + propertiesFileName + "' in classpath");
             } catch (IOException e) {
                 log.error("Failed to load properties from resource in classpath: " 
-                    + Constants.JETS3T_PROPERTIES_FILENAME, e);
+                    + propertiesFileName, e);
             }
-        } 
+        }
         
-        // Load properties from file in jets3t home directory.
-        File file = new File(Constants.DEFAULT_PREFERENCES_DIRECTORY, 
-            Constants.JETS3T_PROPERTIES_FILENAME);
-        if (file.canRead()) {
-            log.debug("Loading properties from file: " + file.getAbsolutePath());  
-            try {
-            
-                loadAndReplaceProperties(
-                    new FileInputStream(file), "File '" + file.getAbsolutePath() + "'");
-            } catch (IOException e) {
-                log.error("Failed to load properties from file: " + file.getAbsolutePath(), e);
-            }
-        } 
-                
         // Load properties from System.
         log.debug("Loading System properties");  
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
             System.getProperties().store(baos, null);      
-            loadAndReplaceProperties(new ByteArrayInputStream(baos.toByteArray()), "System properties");
+            jets3tProperties.loadAndReplaceProperties(
+                new ByteArrayInputStream(baos.toByteArray()), "System properties");
         } catch (IOException e) {
             log.error("Failed to load System properties", e);            
         }
+        
+        return jets3tProperties;
+    }
+    
+    public void setProperty(Object propertyName, Object propertyValue) {
+        this.properties.put(propertyName, propertyValue);
     }
     
     /**
@@ -105,7 +118,7 @@ public class Jets3tProperties {
      * @param propertiesSource
      * @throws IOException
      */
-    private static void loadAndReplaceProperties(InputStream is, String propertiesSource) 
+    private void loadAndReplaceProperties(InputStream is, String propertiesSource) 
         throws IOException 
     {
         Properties newProperties = new Properties();
@@ -117,10 +130,14 @@ public class Jets3tProperties {
             if (properties.containsKey(key)) {
                 log.debug("Over-riding jets3t property [" + key + "=" + properties.getProperty(key)
                     + "] with value from properties source " + propertiesSource 
-                    + ". New value: [" + key + "=" + newProperties.getProperty(key).trim() + "]");
+                    + ". New value: [" + key + "=" + trim(newProperties.getProperty(key)) + "]");
             } 
-            properties.put(key, newProperties.getProperty(key).trim());                
+            properties.put(key, trim(newProperties.getProperty(key)));                
         }
+    }
+    
+    public Properties getProperties() {
+        return new Properties(properties);
     }
     
     /**
@@ -129,8 +146,8 @@ public class Jets3tProperties {
      * @return 
      * the named Property value as a string if the property is set, otherwise returns the default value.
      */
-    public static String getStringProperty(String propertyName, String defaultValue) {
-        String stringValue = properties.getProperty(propertyName, defaultValue).trim();
+    public String getStringProperty(String propertyName, String defaultValue) {
+        String stringValue = trim(properties.getProperty(propertyName, defaultValue));
         log.debug(propertyName + "=" + stringValue);
         return stringValue;
     }
@@ -143,10 +160,10 @@ public class Jets3tProperties {
      * the named Property value as a long if the property is set, otherwise returns the default value.
      * @throws NumberFormatException
      */
-    public static long getLongProperty(String propertyName, long defaultValue) 
+    public long getLongProperty(String propertyName, long defaultValue) 
         throws NumberFormatException 
     {
-        String longValue = properties.getProperty(propertyName, String.valueOf(defaultValue)).trim();
+        String longValue = trim(properties.getProperty(propertyName, String.valueOf(defaultValue)));
         log.debug(propertyName + "=" + longValue);
         return Long.parseLong(longValue);
     }
@@ -159,10 +176,10 @@ public class Jets3tProperties {
      * the named Property value as an int if the property is set, otherwise returns the default value.
      * @throws NumberFormatException
      */
-    public static int getIntProperty(String propertyName, int defaultValue) 
+    public int getIntProperty(String propertyName, int defaultValue) 
         throws NumberFormatException 
     {
-        String intValue = properties.getProperty(propertyName, String.valueOf(defaultValue)).trim();
+        String intValue = trim(properties.getProperty(propertyName, String.valueOf(defaultValue)));
         log.debug(propertyName + "=" + intValue);
         return Integer.parseInt(intValue);
     }
@@ -175,10 +192,10 @@ public class Jets3tProperties {
      * the named Property value as a boolean if the property is set, otherwise returns the default value.
      * @throws IllegalArgumentException
      */
-    public static boolean getBoolProperty(String propertyName, boolean defaultValue) 
+    public boolean getBoolProperty(String propertyName, boolean defaultValue) 
         throws IllegalArgumentException 
     {
-        String boolValue = properties.getProperty(propertyName, String.valueOf(defaultValue)).trim();
+        String boolValue = trim(properties.getProperty(propertyName, String.valueOf(defaultValue)));
         log.debug(propertyName + "=" + boolValue);
         if ("true".equalsIgnoreCase(boolValue)) {
             return true;
@@ -187,6 +204,14 @@ public class Jets3tProperties {
         } else {
             throw new IllegalArgumentException("Boolean value '" + boolValue + "' for jets3t property '" 
                 + propertyName + "' must be 'true' or 'false' (case-insensitive)");
+        }
+    }
+    
+    private String trim(String str) {
+        if (str != null) {
+            return str.trim();
+        } else {
+            return null;
         }
     }
     
