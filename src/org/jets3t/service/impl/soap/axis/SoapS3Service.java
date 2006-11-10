@@ -4,8 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,14 +14,11 @@ import java.util.Iterator;
 import java.util.Map;
 
 import javax.activation.DataHandler;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import javax.xml.rpc.ServiceException;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.axis.attachments.AttachmentPart;
 import org.apache.axis.attachments.SourceDataSource;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
@@ -112,44 +107,12 @@ public class SoapS3Service extends S3Service {
         }
     }
     
-    /**
-     * Creates a HMAC/SHA1 signature for the given method and time.
-     * 
-     * @param method
-     * @param timestamp
-     * @return
-     * @throws ParseException
-     */
-    private String makeSignature(String method, Calendar timestamp) throws ParseException {
+    private String getAWSSecretKey() {
         if (getAWSCredentials() == null) {
             return null;
+        } else {
+            return getAWSCredentials().getSecretKey();
         }
-        String canonicalString = Constants.SOAP_SERVICE_NAME + method 
-            + convertDateToString(timestamp.getTimeInMillis());
-
-        // The following HMAC/SHA1 code for the signature is taken from the
-        // AWS Platform's implementation of RFC2104
-        // (amazon.webservices.common.Signature)
-        //
-        // Acquire an HMAC/SHA1 from the raw key bytes.
-        SecretKeySpec signingKey = new SecretKeySpec(
-            getAWSCredentials().getSecretKey().getBytes(), Constants.HMAC_SHA1_ALGORITHM);
-
-        // Acquire the MAC instance and initialize with the signing key; the exceptions
-        // are unlikely.
-        Mac mac = null;
-        try {
-            mac = Mac.getInstance(Constants.HMAC_SHA1_ALGORITHM);
-            mac.init(signingKey);
-        } catch ( NoSuchAlgorithmException nsae ) {
-            throw new ParseException( nsae.getMessage(), 0 );
-        } catch ( InvalidKeyException ike ) {
-            throw new ParseException( ike.getMessage(), 0 );
-        }
-
-        // Compute the HMAC on the digest, and set it.
-        byte[] b64 = Base64.encodeBase64(mac.doFinal(canonicalString.getBytes())); 
-        return new String(b64);
     }
 
     private Calendar getTimeStamp( long timestamp ) throws ParseException {
@@ -157,13 +120,17 @@ public class SoapS3Service extends S3Service {
             return null;
         }
         Calendar ts = new GregorianCalendar();
-        Date date = ServiceUtils.parseIso8601Date(convertDateToString(timestamp));
+        Date date = ServiceUtils.parseIso8601Date(convertDateToString(ts));
         ts.setTime(date);
         return ts;
     }
 
-    private String convertDateToString(long time) {
-        return ServiceUtils.formatIso8601Date(new Date(time));
+    private String convertDateToString(Calendar cal) {
+        if (cal != null) {
+            return ServiceUtils.formatIso8601Date(cal.getTime());
+        } else {
+            return "";
+        }
     }
     
     private S3Owner convertOwner(CanonicalUser user) {
@@ -296,8 +263,9 @@ public class SoapS3Service extends S3Service {
         S3Bucket[] buckets = null;
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
-            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("ListAllMyBuckets", timestamp);
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );            
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "ListAllMyBuckets" + convertDateToString(timestamp));
             ListAllMyBucketsResult result = s3SoapBinding.listAllMyBuckets(
                 getAWSAccessKey(), timestamp, signature);
 
@@ -322,8 +290,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("ListBucket", timestamp);            
-            
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                        Constants.SOAP_SERVICE_NAME + "ListBucket" + convertDateToString(timestamp));
             s3SoapBinding.listBucket(
                 bucketName, null, null, new Integer(0), 
                 null, getAWSAccessKey(), timestamp, signature, null);
@@ -357,7 +325,8 @@ public class SoapS3Service extends S3Service {
             while (incompleteListing) {
                 AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
                 Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-                String signature = makeSignature("ListBucket", timestamp);
+                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                    Constants.SOAP_SERVICE_NAME + "ListBucket" + convertDateToString(timestamp));
                 ListBucketResult result = s3SoapBinding.listBucket(
                     bucketName, prefix, priorLastKey, new Integer((int)maxListingLength), 
                     delimiter, getAWSAccessKey(), timestamp, signature, null);
@@ -417,7 +386,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("CreateBucket", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "CreateBucket" + convertDateToString(timestamp));
             s3SoapBinding.createBucket(
                 bucketName, grants, getAWSAccessKey(), timestamp, signature);
             
@@ -433,7 +403,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("DeleteBucket", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "DeleteBucket" + convertDateToString(timestamp));
             s3SoapBinding.deleteBucket(
                 bucketName, getAWSAccessKey(), timestamp, signature, null);
         } catch (Exception e) {
@@ -498,7 +469,8 @@ public class SoapS3Service extends S3Service {
             }
             
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("PutObject", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "PutObject" + convertDateToString(timestamp));
             PutObjectResult result = 
                 s3SoapBinding.putObject(bucketName, object.getKey(), metadata, 
                     contentLength, grants, null, getAWSAccessKey(), 
@@ -517,7 +489,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("DeleteObject", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "DeleteObject" + convertDateToString(timestamp));
             s3SoapBinding.deleteObject(bucketName, objectKey, 
                 getAWSAccessKey(), timestamp, signature, null);
         } catch (Exception e) {
@@ -565,7 +538,8 @@ public class SoapS3Service extends S3Service {
                     + ", ifNoneMatchTags=" + (ifNoneMatchTags != null? Arrays.asList(ifNoneMatchTags).toString() : "null")
                     + ", byteRangeStart=" + byteRangeStart + ", byteRangeEnd=" + byteRangeEnd);
                 
-                String signature = makeSignature("GetObjectExtended", timestamp);
+                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                    Constants.SOAP_SERVICE_NAME + "GetObjectExtended" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObjectExtended(
                     bucketName, objectKey, true, true, false, byteRangeStart, byteRangeEnd,
                     ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags,
@@ -583,7 +557,8 @@ public class SoapS3Service extends S3Service {
                 }
             } else {
                 log.debug("Using standard GET (no constraints to apply)");
-                String signature = makeSignature("GetObject", timestamp);
+                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                    Constants.SOAP_SERVICE_NAME + "GetObject" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObject(
                     bucketName, objectKey, true, true, false,                
                     getAWSAccessKey(), timestamp, signature, null);                
@@ -637,7 +612,8 @@ public class SoapS3Service extends S3Service {
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
             Grant[] grants = convertACLtoGrants(acl);
                 
-            String signature = makeSignature("SetObjectAccessControlPolicy", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "SetObjectAccessControlPolicy" + convertDateToString(timestamp));
             s3SoapBinding.setObjectAccessControlPolicy(bucketName, objectKey, grants, 
                 getAWSAccessKey(), timestamp, signature, null);
         } catch (Exception e) {
@@ -653,7 +629,8 @@ public class SoapS3Service extends S3Service {
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
             Grant[] grants = convertACLtoGrants(acl);
                 
-            String signature = makeSignature("SetBucketAccessControlPolicy", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "SetBucketAccessControlPolicy" + convertDateToString(timestamp));
             s3SoapBinding.setBucketAccessControlPolicy(bucketName, grants, 
                 getAWSAccessKey(), timestamp, signature, null);
         } catch (Exception e) {
@@ -665,7 +642,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("GetObjectAccessControlPolicy", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "GetObjectAccessControlPolicy" + convertDateToString(timestamp));
             AccessControlPolicy result = s3SoapBinding.getObjectAccessControlPolicy(
                 bucketName, objectKey, getAWSAccessKey(), 
                 timestamp, signature, null);
@@ -679,7 +657,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("GetBucketAccessControlPolicy", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "GetBucketAccessControlPolicy" + convertDateToString(timestamp));
             AccessControlPolicy result = s3SoapBinding.getBucketAccessControlPolicy(bucketName, 
                 getAWSAccessKey(), timestamp, signature, null);
             return convertAccessControlTypes(result);
@@ -692,7 +671,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("GetBucketLoggingStatus", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "GetBucketLoggingStatus" + convertDateToString(timestamp));
             
             BucketLoggingStatus loggingStatus = s3SoapBinding.getBucketLoggingStatus(                
                 bucketName, getAWSAccessKey(), timestamp, signature, null);            
@@ -711,7 +691,8 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = makeSignature("SetBucketLoggingStatus", timestamp);
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "SetBucketLoggingStatus" + convertDateToString(timestamp));
             
             LoggingSettings loggingSettings = null;
             if (status.isLoggingEnabled()) {
