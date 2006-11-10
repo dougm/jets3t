@@ -11,6 +11,10 @@ Version 0.4.1
 - New methods to chunk bucket listings, allowing for better handling of buckets with many objects.
 - A limit to the maximum number of simultaneous communication threads (ie those interacting with S3) 
   is now imposed. This limit can be set in the properties file, and defaults to 50.
+- The REST/HTTP implementation is now less fussy about object key names, and will now allow unusual 
+  names such as full URL strings etc.
+- The REST/HTTP implementation *may* be better at detecting a browser's proxy settings when run
+  inside an applet context. This functionality is largely untested...
 
 * Cockpit
 
