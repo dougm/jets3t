@@ -63,6 +63,7 @@
 			file="${dir.dist}/jets3t-${version}/${dist.file.service}"
 			>
 			<include name="org/jets3t/service/**"/>
+			<include name="org/apache/commons/httpclient/contrib/**"/>
 		</jar>
 	</target>
 
@@ -105,7 +106,7 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/libs"/>
 		<copy 			
 			todir="${dir.dist}/jets3t-${version}/libs">
-			<fileset dir="libs" includes="**/*.jar"/>
+			<fileset dir="${dir.libs}" includes="**/*"/>
 		</copy>
 
 		<!-- Copy documentation to dist directory so it's included in archive files -->
