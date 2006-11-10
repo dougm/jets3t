@@ -45,6 +45,7 @@ import javax.crypto.spec.PBEParameterSpec;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 
 /**
@@ -106,7 +107,7 @@ public class EncryptionUtil {
 
     /**
      * Constructs class configured with the provided password, and set up to use the default encryption
-     * algorith as set in the {@link Jets3tProperties} property <tt>crypto.algorithm</tt>
+     * algorith PBEWithMD5AndDES.
      * 
      * @param encryptionKey
      *        the password to use for encryption/decryption.
@@ -119,8 +120,7 @@ public class EncryptionUtil {
     public EncryptionUtil(String encryptionKey) throws InvalidKeyException,
         NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException 
     {
-        this(encryptionKey, 
-            Jets3tProperties.getStringProperty("crypto.algorithm", "PBEWithMD5AndDES"));
+        this(encryptionKey, "PBEWithMD5AndDES");
     }
         
     /**

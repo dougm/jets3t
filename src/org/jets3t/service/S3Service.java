@@ -69,7 +69,8 @@ public abstract class S3Service {
      */
     protected S3Service(AWSCredentials awsPrincipal) throws S3ServiceException {
         this.awsCredentials = awsPrincipal;
-        isHttpsOnly = Jets3tProperties.getBoolProperty("s3service.https-only", false);        
+        isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("s3service.https-only", false);        
     }
 
     /**
