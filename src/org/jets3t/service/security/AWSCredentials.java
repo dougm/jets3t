@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -147,6 +148,24 @@ public class AWSCredentials {
         }
     }
 
+    public static AWSCredentials load(String password, File file) throws S3ServiceException {
+        log.debug("Loading credentials from file: " + file.getAbsolutePath());
+        BufferedInputStream fileIS = null;
+        try {
+            fileIS = new BufferedInputStream(new FileInputStream(file));
+            return load(password, fileIS);
+        } catch (Throwable t) {
+            throw new S3ServiceException("Failed to load AWS credentials", t);
+        } finally {
+            if (fileIS != null) {
+                try {
+                    fileIS.close();
+                } catch (IOException e) {
+                }
+            }
+        }
+    }
+    
     /**
      * Loads encrypted credentials from a file.
      * 
@@ -157,11 +176,9 @@ public class AWSCredentials {
      * @return the decrypted credentials in an object.
      * @throws S3ServiceException
      */
-    public static AWSCredentials load(String password, File file) throws S3ServiceException {
-        BufferedInputStream fileIS = null;
+    public static AWSCredentials load(String password, BufferedInputStream inputStream) throws S3ServiceException {
+        log.debug("Loading credentials from input stream");
         try {
-            fileIS = new BufferedInputStream(new FileInputStream(file));
-
             EncryptionUtil encryptionUtil = null; 
             byte[] encryptedKeys = new byte[2048];
             int encryptedDataIndex = 0;
@@ -171,52 +188,45 @@ public class AWSCredentials {
             String friendlyName = null;
             
             // Read version information from AWS credentials file.
-            version = ServiceUtils.readInputStreamLineToString(fileIS, Constants.DEFAULT_ENCODING);
+            version = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
             boolean obsoleteVersion = false;
             
             if (!version.startsWith(VERSION_PREFIX)) {
                 // Either this is not a valid AWS Credentials file, or it's an obsolete version.
                 // Try decrypting using the obsolete approach.
-                log.warn("Credentials file is in obsolete format: " + file);
                 obsoleteVersion = true;
                 encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(password);
                 friendlyName = version;
                 algorithm = encryptionUtil.getAlgorithm();
             } else {
                 // Read algorithm and friendly name from file.
-                algorithm = ServiceUtils.readInputStreamLineToString(fileIS, Constants.DEFAULT_ENCODING);
-                friendlyName = ServiceUtils.readInputStreamLineToString(fileIS, Constants.DEFAULT_ENCODING);    
+                algorithm = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
+                friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);    
                 
                 encryptionUtil = new EncryptionUtil(password, algorithm);
             }
             
             // Read encrypted data bytes from file.
-            encryptedDataIndex = fileIS.read(encryptedKeys);
+            encryptedDataIndex = inputStream.read(encryptedKeys);
             
             // Decrypt data.
             String keys = encryptionUtil.decryptString(encryptedKeys, 0, encryptedDataIndex);
 
             int delimOffset = keys.indexOf(KEYS_DELIMITER);
             if (delimOffset < 0) {
-                throw new Exception("Unable to load AWS keys from file " + file.getAbsolutePath()
-                    + ". Is the password correct?");
+                throw new Exception("Unable to load AWS keys. Is the password correct?");
             }
 
             AWSCredentials awsCredentials = new AWSCredentials(keys.substring(0, delimOffset), keys
                 .substring(delimOffset + KEYS_DELIMITER.length()), friendlyName.toString());
             
-            if (obsoleteVersion) {
-                log.warn("Updating obsolete credentials file to new format");
-                awsCredentials.save(password, file);
-            }
-            
             return awsCredentials;
         } catch (Throwable t) {
             throw new S3ServiceException("Failed to load AWS credentials", t);
         } finally {
-            if (fileIS != null) {
+            if (inputStream != null) {
                 try {
-                    fileIS.close();
+                    inputStream.close();
                 } catch (IOException e) {
                 }
             }
