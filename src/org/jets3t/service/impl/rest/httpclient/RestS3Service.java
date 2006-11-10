@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -38,6 +39,8 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpMethodRetryHandler;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.ProxyHost;
+import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.HeadMethod;
@@ -93,6 +96,7 @@ import org.jets3t.service.utils.ServiceUtils;
  *   and number of packets.</td>
  *   <td>true</td></tr>
  * <tr><td>httpclient.retry-on-errors</td><td></td><td>true</td></tr>
+ * <tr><td>httpclient.useragent</td><td>User agent string</td><td>HttpClient default value</td></tr>
  * </table>
  * 
  * @author James Murty
@@ -120,23 +124,25 @@ public class RestS3Service extends S3Service {
     public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         super(awsCredentials);
         
+        Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
+        
         // Set HttpClient properties based on Jets3t Properties.
         insecureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_INSECURE, PROTOCOL_INSECURE);
         secureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_SECURE, PROTOCOL_SECURE);
                         
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
-        connectionParams.setConnectionTimeout(Jets3tProperties.
+        connectionParams.setConnectionTimeout(jets3tProperties.
             getIntProperty("httpclient.connection-timeout-ms", 60000));
-        connectionParams.setSoTimeout(Jets3tProperties.
+        connectionParams.setSoTimeout(jets3tProperties.
             getIntProperty("httpclient.socket-timeout-ms", 60000));
-        connectionParams.setMaxConnectionsPerHost(insecureHostConfig, Jets3tProperties.
+        connectionParams.setMaxConnectionsPerHost(insecureHostConfig, jets3tProperties.
             getIntProperty("httpclient.max-connections", 10));
-        connectionParams.setMaxConnectionsPerHost(secureHostConfig, Jets3tProperties.
+        connectionParams.setMaxConnectionsPerHost(secureHostConfig, jets3tProperties.
             getIntProperty("httpclient.max-connections", 10));
-        connectionParams.setStaleCheckingEnabled(Jets3tProperties.
+        connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
-        connectionParams.setTcpNoDelay(Jets3tProperties.
-            getBoolProperty("httpclient.tcp-no-delay-enabled", true));        
+        connectionParams.setTcpNoDelay(jets3tProperties.
+            getBoolProperty("httpclient.tcp-no-delay-enabled", true));
 
         connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
                         
@@ -144,8 +150,10 @@ public class RestS3Service extends S3Service {
         connectionManager.setParams(connectionParams);
         
         HttpClientParams clientParams = new HttpClientParams();
+        clientParams.setParameter("http.useragent", jets3tProperties.
+            getStringProperty("httpclient.useragent", null));
         
-        boolean retryOnErrors = Jets3tProperties.getBoolProperty("httpclient.retry-on-errors", true);
+        boolean retryOnErrors = jets3tProperties.getBoolProperty("httpclient.retry-on-errors", true);
         if (!retryOnErrors) {
             // Replace default error retry handler with one that never retries.
             clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
@@ -156,6 +164,25 @@ public class RestS3Service extends S3Service {
         }
         
         httpClient = new HttpClient(clientParams, connectionManager);
+
+        // Try to detect any proxy settings from applet.
+        ProxyHost proxyHost = null;
+        try {
+            HostConfiguration hostConfig = null;
+            if (isHttpsOnly()) {
+                hostConfig = secureHostConfig;
+            } else {
+                hostConfig = insecureHostConfig;
+            }
+            
+            proxyHost = PluginProxyUtil.detectProxy(new URL(hostConfig.getHostURL()));
+            if (proxyHost != null) {
+                hostConfig.setProxyHost(proxyHost);
+                httpClient.setHostConfiguration(hostConfig);
+            }                
+        } catch (Throwable t) {
+            log.error("Unable to set proxy configuration", t);
+        }
     }
     
     /**
@@ -595,20 +622,27 @@ public class RestS3Service extends S3Service {
     
     public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
         log.debug("Checking existence of bucket: " + bucketName);
-
-        // Ensure bucket exists and is accessible by performing a HEAD request
-        HttpMethodBase httpMethod = performRestHead(bucketName, null, null, null);
+        
+        HttpMethodBase httpMethod = null;
         
         // This request may return an XML document that we're not interested in. Clean this up.
         try {
+            // Ensure bucket exists and is accessible by performing a HEAD request
+            httpMethod = performRestHead(bucketName, null, null, null);
+
             if (httpMethod.getResponseBodyAsStream() != null) {
                 httpMethod.getResponseBodyAsStream().close();
             }
+        } catch (S3ServiceException e) {
+            log.warn("Unable to access bucket: " + bucketName, e);
+            return false;
         } catch (IOException e) {
             log.warn("Unable to close response body input stream", e);
         } finally {
-             log.debug("Releasing un-wanted bucket HEAD response");            
-            httpMethod.releaseConnection();
+            log.debug("Releasing un-wanted bucket HEAD response");
+            if (httpMethod != null) {
+                httpMethod.releaseConnection();
+            }
         }
         
         // If we get this far, the bucket exists.
