@@ -116,7 +116,7 @@ public abstract class S3Service {
     public static String createSignedUrl(String bucketName, String objectKey, AWSCredentials awsCredentials, 
         long secondsSinceEpoch, boolean isSecure) throws S3ServiceException
     {
-        String fullKey = bucketName + (objectKey != null ? "/" + objectKey : "");
+        String fullKey = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlString(objectKey) : "");
         fullKey += "?AWSAccessKeyId=" + awsCredentials.getAccessKey();
         fullKey += "&Expires=" + secondsSinceEpoch;
 
