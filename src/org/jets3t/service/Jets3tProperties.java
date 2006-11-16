@@ -137,7 +137,7 @@ public class Jets3tProperties {
     }
     
     public Properties getProperties() {
-        return new Properties(properties);
+        return (Properties) properties.clone();
     }
     
     /**
