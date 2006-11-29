@@ -40,6 +40,7 @@ import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpMethodRetryHandler;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.ProxyHost;
+import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -115,13 +116,17 @@ public class RestS3Service extends S3Service {
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
     
+    public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
+        this(awsCredentials, null);
+    }
+    
     /**
      * Constructs the service and initialises the properties.
      * 
      * @param awsCredentials
      * @throws S3ServiceException
      */
-    public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
+    public RestS3Service(AWSCredentials awsCredentials, CredentialsProvider credentialsProvider) throws S3ServiceException {
         super(awsCredentials);
         
         Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
@@ -145,7 +150,7 @@ public class RestS3Service extends S3Service {
             getBoolProperty("httpclient.tcp-no-delay-enabled", true));
 
         connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
-                        
+                             
         connectionManager = new MultiThreadedHttpConnectionManager();
         connectionManager.setParams(connectionParams);
         
@@ -183,6 +188,12 @@ public class RestS3Service extends S3Service {
         } catch (Throwable t) {
             log.error("Unable to set proxy configuration", t);
         }
+        
+        if (credentialsProvider != null) {
+            log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
+            httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
+            httpClient.getParams().setAuthenticationPreemptive(true);
+        }          
     }
     
     /**
@@ -1004,7 +1015,8 @@ public class RestS3Service extends S3Service {
         } catch (Exception e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }    
-    }    
+    }
+    
     
     /**
      * Simple container object to store an HttpMethod object representing a request connection, and a 
