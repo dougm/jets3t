@@ -264,7 +264,7 @@ public class FileComparer {
                     } else {
                         // File is out-of-synch. Check which version has the latest date.
                         Date s3ObjectLastModified = null;
-                        String metadataLocalFileDate = (String) s3Object.getMetadata().get(
+                        String metadataLocalFileDate = (String) s3Object.getMetadata(
                             Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
                         if (metadataLocalFileDate == null) {
                             // This is risky as local file times and S3 times don't match!

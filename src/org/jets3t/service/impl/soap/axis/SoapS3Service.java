@@ -356,8 +356,7 @@ public class SoapS3Service extends S3Service {
                 log.debug("Found " + partialObjects.length + " objects in one batch");
                 for (int i = 0; entries != null && i < entries.length; i++) {
                     ListEntry entry = entries[i];
-                    S3Object object = new S3Object();
-                    object.setKey(entry.getKey());
+                    S3Object object = new S3Object(entry.getKey());
                     object.setLastModifiedDate(entry.getLastModified().getTime());
                     object.setETag(entry.getETag());
                     object.setContentLength(entry.getSize());
@@ -437,7 +436,7 @@ public class SoapS3Service extends S3Service {
         if (object.getAcl() != null) {
             grants = convertACLtoGrants(object.getAcl());
         }
-        MetadataEntry[] metadata = convertMetadata(object.getMetadata());
+        MetadataEntry[] metadata = convertMetadata(object.getMetadataMap());
         
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
@@ -582,11 +581,10 @@ public class SoapS3Service extends S3Service {
                     getAWSAccessKey(), timestamp, signature, null);                
             }
             
-            S3Object object = new S3Object();
+            S3Object object = new S3Object(objectKey);
             object.setETag(result.getETag());
             object.setLastModifiedDate(result.getLastModified().getTime());
             object.setBucketName(bucketName);
-            object.setKey(objectKey);
             
             // Get data details from the SOAP attachment.
             Object[] attachments = s3SoapBinding.getAttachments();

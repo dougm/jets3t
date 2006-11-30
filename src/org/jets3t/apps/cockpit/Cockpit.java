@@ -1587,14 +1587,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 OutputStream outputStream = new FileOutputStream(file);
                 
                 if ("gzip".equalsIgnoreCase(objects[i].getContentEncoding())
-                    || null != objects[i].getMetadata().get(Constants.METADATA_JETS3T_COMPRESSED))
+                    || objects[i].containsMetadata(Constants.METADATA_JETS3T_COMPRESSED))
                 {
                     // Automatically inflate gzipped data.
                     log.debug("Inflating gzipped data for object: " + objects[i].getKey());                    
                     outputStream = new GZipInflatingOutputStream(outputStream);
                 }
-                if (objects[i].getMetadata().get(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM) != null 
-                    || objects[i].getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null)
+                if (objects[i].containsMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM) 
+                    || objects[i].containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE))
                 {
                     log.debug("Decrypting encrypted data for object: " + objects[i].getKey());
                     
@@ -1607,16 +1607,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         }
                     }
 
-                    if (objects[i].getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null) {
+                    if (objects[i].containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)) {
                         // Item is encrypted with obsolete crypto.
                         log.warn("Object is encrypted with out-dated crypto version, please update it when possible: " 
                             + objects[i].getKey());
                         outputStream = EncryptionUtil.getObsoleteEncryptionUtil(
                             preferenceEncryptionPassword).decrypt(outputStream);                                            
                     } else {
-                        String algorithm = (String) objects[i].getMetadata().get(
+                        String algorithm = (String) objects[i].getMetadata(
                             Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
-                        String version = (String) objects[i].getMetadata().get(
+                        String version = (String) objects[i].getMetadata(
                             Constants.METADATA_JETS3T_CRYPTO_VERSION);
                         outputStream = new EncryptionUtil(preferenceEncryptionPassword, algorithm).
                             decrypt(outputStream);                                            
@@ -1874,8 +1874,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 String fileKey = iter.next().toString();
                 File file = (File) filesForUploadMap.get(fileKey);
                 
-                S3Object newObject = new S3Object();
-                newObject.setKey(fileKey);
+                S3Object newObject = new S3Object(fileKey);
                 if (file.isDirectory()) {
                     newObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
                 } else {     

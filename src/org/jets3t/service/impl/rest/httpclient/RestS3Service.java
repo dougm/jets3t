@@ -845,7 +845,7 @@ public class RestS3Service extends S3Service {
         log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);
 
         Map map = createObjectImpl(bucketName, object.getKey(), object.getContentType(), 
-            object.getDataInputStream(), object.getMetadata(), object.getAcl());
+            object.getDataInputStream(), object.getMetadataMap(), object.getAcl());
 
         object.replaceAllMetadata(map);
         return object;
@@ -857,6 +857,9 @@ public class RestS3Service extends S3Service {
     {
         if (metadata == null) {
             metadata = new HashMap();
+        } else {
+            // Use a new map object in case the one we were provided is immutable.
+            metadata = new HashMap(metadata);
         }
         if (contentType != null) {
             metadata.put("Content-Type", contentType);
@@ -980,9 +983,8 @@ public class RestS3Service extends S3Service {
         HashMap map = new HashMap();
         map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
 
-        S3Object responseObject = new S3Object();
+        S3Object responseObject = new S3Object(objectKey);
         responseObject.setBucketName(bucketName);
-        responseObject.setKey(objectKey);
         responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
         responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
         if (!headOnly) {
@@ -1059,21 +1061,19 @@ public class RestS3Service extends S3Service {
             putMethod.addRequestHeader("Content-Type", object.getContentType());            
         }
         
-        if (object.getMetadata() != null) {
-            Map metadata = object.getMetadata();
-            Iterator iter = metadata.keySet().iterator();
-            while (iter.hasNext()) {
-                String metadataName = (String) iter.next();
-                if (metadataName.startsWith(Constants.REST_HEADER_PREFIX)) {
-                    String metadataValue = (String) metadata.get(metadataName);
-                    putMethod.addRequestHeader(metadataName, metadataValue);                    
-                }
+        Map metadata = object.getMetadataMap();
+        Iterator iter = metadata.keySet().iterator();
+        while (iter.hasNext()) {
+            String metadataName = (String) iter.next();
+            if (metadataName.startsWith(Constants.REST_HEADER_PREFIX)) {
+                String metadataValue = (String) metadata.get(metadataName);
+                putMethod.addRequestHeader(metadataName, metadataValue);                    
             }
         }
                 
         long contentLength = InputStreamRequestEntity.CONTENT_LENGTH_AUTO;
-        if (object.getMetadata().containsKey("Content-Length")) {
-            contentLength = Long.parseLong((String) object.getMetadata().get("Content-Length"));
+        if (object.containsMetadata("Content-Length")) {
+            contentLength = Long.parseLong((String) object.getMetadata("Content-Length"));
         }                
 
         putMethod.setRequestEntity(new InputStreamRequestEntity(

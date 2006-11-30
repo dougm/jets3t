@@ -49,8 +49,7 @@ public class HttpClientRestS3ServiceTest extends BaseS3ServiceTest {
         
         // Try to create REST canned public object.        
         String publicKey = "PublicObject";
-        S3Object object = new S3Object();
-        object.setKey(publicKey);
+        S3Object object = new S3Object(publicKey);
         object.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
         object.setOwner(bucket.getOwner());
         

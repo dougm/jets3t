@@ -201,7 +201,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
             // Build metadata table contents.
 
             // Remove the metadata items already displayed above.
-            Map objectMetadata = new HashMap(object.getMetadata());
+            Map objectMetadata = new HashMap(object.getMetadataMap());
             objectMetadata.remove(S3Object.METADATA_HEADER_CONTENT_LENGTH);
             objectMetadata.remove(S3Object.METADATA_HEADER_CONTENT_TYPE);
             objectMetadata.remove(S3Object.METADATA_HEADER_DATE);
@@ -315,10 +315,9 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         bucket.setCreationDate(new Date());
         bucket.setOwner(owner);
 
-        S3Object object = new S3Object();
+        S3Object object = new S3Object("src/org/jets3t/apps/cockpit/PropertiesDialog.java");
         object.setBucketName(bucket.getName());
         object.setOwner(owner);
-        object.setKey("src/org/jets3t/apps/cockpit/PropertiesDialog.java");
         object.setContentLength(54367);
         object.setContentType("text/plain");
         object.setETag("fd43lhg984l4knhohnlg44");

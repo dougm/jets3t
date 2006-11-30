@@ -157,8 +157,7 @@ public class Synchronize {
      * @throws Exception
      */
     private S3Object prepareUploadObject(String targetKey, File file) throws Exception {
-        S3Object newObject = new S3Object();
-        newObject.setKey(targetKey);
+        S3Object newObject = new S3Object(targetKey);
         newObject.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE, 
             ServiceUtils.formatIso8601Date(new Date(file.lastModified())));
 
@@ -216,25 +215,25 @@ public class Synchronize {
                         
             if (isGzipEnabled && 
                 ("gzip".equalsIgnoreCase(object.getContentEncoding())
-                || null != object.getMetadata().get(Constants.METADATA_JETS3T_COMPRESSED)))
+                || object.containsMetadata(Constants.METADATA_JETS3T_COMPRESSED)))
             {
                 // Automatically inflate gzipped data.
                 outputStream = new GZipInflatingOutputStream(outputStream);
             }
             if (isEncryptionEnabled 
-                && (object.getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null
-                    || object.getMetadata().get(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM) != null))
+                && (object.containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)
+                    || object.containsMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM)))
             {
                 // Automatically decrypt encrypted files.
                 
-                if (object.getMetadata().get(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE) != null) {
+                if (object.containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)) {
                     // Item is encrypted with obsolete crypto.
                     outputStream = EncryptionUtil.getObsoleteEncryptionUtil(
                         cryptoPassword).decrypt(outputStream);                                            
                 } else {
-                    String algorithm = (String) object.getMetadata().get(
+                    String algorithm = (String) object.getMetadata(
                         Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
-                    String version = (String) object.getMetadata().get(
+                    String version = (String) object.getMetadata(
                         Constants.METADATA_JETS3T_CRYPTO_VERSION);
                     outputStream = new EncryptionUtil(cryptoPassword, algorithm).
                         decrypt(outputStream);                                            
@@ -582,8 +581,7 @@ public class Synchronize {
                 for (int i = 0; i < targetDirs.length; i++) {
                     currentDirPath += targetDirs[i];
                     
-                    S3Object dirObject = new S3Object();
-                    dirObject.setKey(currentDirPath);
+                    S3Object dirObject = new S3Object(currentDirPath);
                     dirObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
                     s3Service.putObject(bucket, dirObject);
                     currentDirPath += Constants.FILE_PATH_DELIM;

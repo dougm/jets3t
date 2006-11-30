@@ -18,30 +18,93 @@
  */
 package org.jets3t.service.model;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Base class to represent S3 objects (bucket or object). Buckets and objects
- * both contain metadata.
+ * Base class to represent S3 objects (bucket or object) and handle metadata, as  
+ * S3 buckets and objects both contain metadata.
  * 
  * @author James Murty
  */
 public abstract class BaseS3Object {
+    /**
+     * Map to privately store metadata associated with this object.
+     */
 	private Map metadata = new HashMap();
 
-	public Map getMetadata() {
-		return metadata;
+    
+    /**
+     * @return
+     * an <b>immutable</b> map containing all the metadata associated with this S3 object.
+     */
+	public Map getMetadataMap() {
+        return Collections.unmodifiableMap(metadata);
+	}
+    
+    /**
+     * @param name
+     * the metadata item name.
+     * 
+     * @return
+     * the value of the metadata with the given name, or null if no such metadata item exists.
+     */
+    public Object getMetadata(String name) {
+        return this.metadata.get(name);
+    }
+    
+    /**
+     * @param name
+     * the metadata item name.
+     * 
+     * @return
+     * true if this object contains a metadata item with the given name, false otherwise.
+     */
+    public boolean containsMetadata(String name) {
+        return this.metadata.keySet().contains(name);
+    }
+	
+    /**
+     * Adds a metadata item to the object.
+     * 
+     * @param name
+     * the metadata item name.
+     * @param value
+     * the metadata item value.
+     */
+	public void addMetadata(String name, Object value) {
+		this.metadata.put(name, value);
 	}
 	
-	public void addMetadata(String key, String value) {
-		metadata.put(key, value);
-	}
-	
+    /**
+     * Adds all the items in the provided map to this object's metadata.
+     * 
+     * @param metadata
+     * metadata items to add.
+     */
 	public void addAllMetadata(Map metadata) {
 		this.metadata.putAll(metadata);
 	}
+    
+    /**
+     * Removes a metadata item from the object.
+     * 
+     * @param name
+     * the name of the metadata item to remove.
+     */
+    public void removeMetadata(String name) {
+        this.metadata.remove(name);
+    }
 	
+    /**
+     * Removes all the metadata items associated with this object, then adds all the items
+     * in the provided map. After performing this operation, the metadata list will contain
+     * only those items in the provided map.
+     * 
+     * @param metadata
+     * metadata items to add.
+     */
 	public void replaceAllMetadata(Map metadata) {
 		this.metadata.clear();
 		addAllMetadata(metadata);

@@ -151,8 +151,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
-        S3Object object = new S3Object();
-        object.setKey("TestObject");
+        S3Object object = new S3Object("TestObject");
 
         try {
             s3Service.putObject( (S3Bucket) null, null);
@@ -167,7 +166,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         }
 
         try {
-            s3Service.putObject(bucket, new S3Object());
+            s3Service.putObject(bucket, new S3Object(null));
             fail("Cannot create an object without a valid object");
         } catch (S3ServiceException e) {
         }
@@ -227,10 +226,10 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Unexpected size for object", objectData.length(), dataObject
             .getContentLength());
         assertEquals("Mismatching hash", dataHash, dataObject.getETag());
-        assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata().get(
+        assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata(
             "creator"));
-        assertEquals("Missing purpose metadata", "For testing purposes", dataObject.getMetadata()
-            .get("purpose"));
+        assertEquals("Missing purpose metadata", "For testing purposes", 
+            dataObject.getMetadata("purpose"));
         assertNotNull("Expected data input stream to be available", dataObject.getDataInputStream());
         // Ensure we can get the data from S3.
         StringBuffer sb = new StringBuffer();
@@ -247,10 +246,10 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Unexpected default content type", "text/plain", dataObject.getContentType());
         assertEquals("Unexpected size for object", objectData.length(), dataObject.getContentLength());
         assertEquals("Mismatching hash", dataHash, dataObject.getETag());
-        assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata().get(
+        assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata(
             "creator"));
-        assertEquals("Missing purpose metadata", "For testing purposes", dataObject.getMetadata()
-            .get("purpose"));
+        assertEquals("Missing purpose metadata", "For testing purposes", 
+            dataObject.getMetadata("purpose"));
         assertNull("Expected data input stream to be unavailable", dataObject.getDataInputStream());
 
         // Test object GET constraints.
@@ -381,7 +380,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         acl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
         object.setAcl(acl);
         s3Service.putObject(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + publicKey);      
+        url = new URL(s3Url + "/" + bucketName + "/" + publicKey);
         assertEquals("Expected access (200)", 
                 200, ((HttpURLConnection)url.openConnection()).getResponseCode());
 
@@ -576,7 +575,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         
         // Create a signed HTTP PUT URL.
         String signedPutUrl = S3Service.createSignedUrl("PUT", bucket.getName(), object.getKey(), 
-            object.getMetadata(), awsCredentials, expiryDate, isHttpsUrl);
+            object.getMetadataMap(), awsCredentials, expiryDate, isHttpsUrl);
 
         // Put the object in S3 using the signed URL (no AWS credentials required)
         RestS3Service restS3Service = new RestS3Service(null);

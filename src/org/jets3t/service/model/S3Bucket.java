@@ -42,23 +42,23 @@ public class S3Bucket extends BaseS3Object {
     }
 	
 	public String toString() {
-		return "S3Bucket [name=" + getName() + ",creationDate=" + getCreationDate() + ",owner=" + getOwner() + "] Metadata=" + getMetadata();
+		return "S3Bucket [name=" + getName() + ",creationDate=" + getCreationDate() + ",owner=" + getOwner() + "] Metadata=" + getMetadataMap();
 	}
 	
 	public S3Owner getOwner() {
-		return (S3Owner) getMetadata().get(METADATA_HEADER_OWNER);
+		return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
 	}
 
 	public void setOwner(S3Owner owner) {
-		getMetadata().put(METADATA_HEADER_OWNER, owner);
+        addMetadata(METADATA_HEADER_OWNER, owner);
 	}	
 
 	public Date getCreationDate() {
-		return (Date) getMetadata().get(METADATA_HEADER_CREATION_DATE);
+		return (Date) getMetadata(METADATA_HEADER_CREATION_DATE);
 	}
 	
 	public void setCreationDate(Date creationDate) {
-		getMetadata().put(METADATA_HEADER_CREATION_DATE, creationDate);
+		addMetadata(METADATA_HEADER_CREATION_DATE, creationDate);
 	}
 
 	public AccessControlList getAcl() {
