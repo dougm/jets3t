@@ -16,7 +16,9 @@ TOOLKIT
   is now imposed. This limit can be set in the properties file, and defaults to 50.
 - Signed URLs can be generated for GET and PUT HTTP requests, and will correctly encode object key 
   names with special characters.
-- DNS caching is limited to 300 seconds
+- DNS caching is limited to 300 seconds.
+- When an object's data comes from a file, the file can be opened only when necessary rather than 
+  being opened as soon as the object is created.
   
   * REST/HTTP implementation
   
@@ -35,10 +37,14 @@ COCKPIT
 
 - Remembered login credentials are automatically updated to the new PBE-based encryption files.
 - Third-party buckets can be added without first logging in.
-- User can cancel the listing of objects in large buckets
+- User can cancel the listing of objects in large buckets.
+- Files being sent to s3 are only opened when necessary, removing the potential for too many files
+  to be open at once (exceeding an Operating System imposed limit).
 
 SYNCHONIZE
 
+- Files being sent to s3 are only opened when necessary, removing the potential for too many files
+  to be open at once (exceeding an Operating System imposed limit).
 
 KNOWN ISSUES
 
