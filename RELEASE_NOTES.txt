@@ -1,7 +1,10 @@
-Version 0.4.1
+Version 0.5.0
 -------------
 
-* Toolkit 
+TOOLKIT
+
+  * General
+
 - Properties for many aspects of jets3t behaviour can be set by the user
 - Support for getting/setting Server Access Logging for buckets.
 - Improved encryption mechanism, which now uses PBE-based encryption and allows users to set 
@@ -11,22 +14,33 @@ Version 0.4.1
 - New methods to chunk bucket listings, allowing for better handling of buckets with many objects.
 - A limit to the maximum number of simultaneous communication threads (ie those interacting with S3) 
   is now imposed. This limit can be set in the properties file, and defaults to 50.
-- Signed URLs correctly encode object key names prior to signing.
+- Signed URLs can be generated for GET and PUT HTTP requests, and will correctly encode object key 
+  names with special characters.
+- DNS caching is limited to 300 seconds
+  
+  * REST/HTTP implementation
+  
+- Requests that fail due to S3 Internal Server error are retried a configurable number of times,
+  with an increasing delay between each retry attempt.
 - The REST/HTTP implementation is now less fussy about object key names, and will allow unusual 
   names such as full URL strings etc.
-- The REST/HTTP implementation *may* be better at detecting a browser's proxy settings when run
-  inside an applet context. This functionality is largely untested...
+- Can detect (in some circumstances) a browser's proxy settings when run inside an applet context,
+  and allows for callbacks to a credentials provider object when authentication is required
+  (eg for proxies requiring username/password)
+- Added a utility method putObjectWithSignedUrl to upload objects to S3 using only a signed 
+  PUT URL (ie no AWS credentials are required).
+- Configurable user agent string.
 
-* Cockpit
+COCKPIT
 
-- Remembered login credentials are automatically updated to the new encryption version.
+- Remembered login credentials are automatically updated to the new PBE-based encryption files.
 - Third-party buckets can be added without first logging in.
 - User can cancel the listing of objects in large buckets
 
-* Synchronize
+SYNCHONIZE
 
 
-* Known issues
+KNOWN ISSUES
 
 
 Version 0.4.0
