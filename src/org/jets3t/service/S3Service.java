@@ -20,7 +20,10 @@ package org.jets3t.service;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
@@ -46,9 +49,12 @@ import org.jets3t.service.utils.ServiceUtils;
  * <table>
  * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
  * <tr><td>s3service.https-only</td>
- *   <td>If true, all communication with S3 will be via encrypted HTTPS connections, and will be
- *   much slower. If false, communications will be unencrypted and faster</td> 
- *   <td>false</td></tr>
+ *   <td>If true, all communication with S3 will be via encrypted HTTPS connections, otherwise
+ *   communications will be sent unencrypted via HTTP</td> 
+ *   <td>true</td></tr>
+ * <tr><td>s3service.internal-error-retry-max</td>
+ *   <td>The number of times</td> 
+ *   <td>true</td></tr>
  * </table>
  * 
  * 
@@ -56,8 +62,11 @@ import org.jets3t.service.utils.ServiceUtils;
  */
 public abstract class S3Service {
 
+    private static final Log log = LogFactory.getLog(S3Service.class);
+
     private AWSCredentials awsCredentials = null;
-    private boolean isHttpsOnly = false;
+    private boolean isHttpsOnly = true;
+    private int internalErrorRetryMax = 5;
 
     /**
      * Construct an <code>S3Service</code> identified by the given AWS Principal.
@@ -70,7 +79,13 @@ public abstract class S3Service {
     protected S3Service(AWSCredentials awsPrincipal) throws S3ServiceException {
         this.awsCredentials = awsPrincipal;
         isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getBoolProperty("s3service.https-only", false);        
+            .getBoolProperty("s3service.https-only", true);        
+        internalErrorRetryMax = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+        .getIntProperty("s3service.internal-error-retry-max", 5);        
+        
+        // TODO Confirm this works as expected...
+        // Set the InetAddress DNS caching time-to-live to 300 seconds.
+        System.setProperty("networkaddress.cache.ttl", "300");
     }
 
     /**
@@ -83,6 +98,50 @@ public abstract class S3Service {
     
     public boolean isHttpsOnly() {
         return isHttpsOnly;
+    }
+    
+    public int getInternalErrorRetryMax() {
+        return internalErrorRetryMax;
+    }
+    
+    /**
+     * Sleeps for a period of time based on the number of S3 Internal Server errors a request has
+     * encountered, provided the number of errors does not exceed the value set with the
+     * property <code>s3service.internal-error-retry-max</code>. If the maximum error count is
+     * exceeded, this method will throw an S3ServiceException.
+     *  
+     * The millisecond delay grows rapidly according to the formula 
+     * <code>50 * (<i>internalErrorCount</i> ^ 2)</code>.
+     * 
+     * <table>
+     * <tr><th>Error count</th><th>Delay in milliseconds</th></tr>
+     * <tr><td>1</td><td>50</td></tr>
+     * <tr><td>2</td><td>200</td></tr>
+     * <tr><td>3</td><td>450</td></tr>
+     * <tr><td>4</td><td>800</td></tr>
+     * <tr><td>5</td><td>1250</td></tr>
+     * </table>
+     * 
+     * @param internalErrorCount
+     * the number of S3 Internal Server errors encountered by a request.
+     * 
+     * @throws S3ServiceException
+     * thrown if the number of internal errors exceeds the value of internalErrorCount.
+     * @throws InterruptedException
+     * thrown if the thread sleep is interrupted.
+     */
+    protected void sleepOnInternalError(int internalErrorCount) 
+        throws S3ServiceException, InterruptedException 
+    {
+        if (internalErrorCount <= internalErrorRetryMax) {
+            long delayMs = 50 * (int) Math.pow(internalErrorCount, 2); 
+            log.warn("Encountered " + internalErrorCount 
+                + " S3 Internal Server error(s), will retry in " + delayMs + "ms");
+            Thread.sleep(delayMs);
+        } else {
+            throw new S3ServiceException("Encountered too many S3 Internal Server errors (" 
+                + internalErrorCount + "), aborting request.");
+        }        
     }
 
     /**
@@ -97,10 +156,16 @@ public abstract class S3Service {
      * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
      * to whoever uses the URL up until the time specified.
      * 
+     * @param method
+     * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
-     * the name of the object to include in the URL, if null only the bucket name is used. 
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param headersMap
+     * headers to add to the signed URL, may be null. 
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
      * @param awsCredentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object 
      * @param secondsSinceEpoch
@@ -109,19 +174,23 @@ public abstract class S3Service {
      * @param isSecure
      * if true an HTTPS URL is created and data accessed using the generated URL will be encrypted
      * when accessed, otherwise a standard HTTP URL is created.
+     * 
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
+     * 
      * @throws S3ServiceException
      */
-    public static String createSignedUrl(String bucketName, String objectKey, AWSCredentials awsCredentials, 
-        long secondsSinceEpoch, boolean isSecure) throws S3ServiceException
+    public static String createSignedUrl(String method, String bucketName, String objectKey, 
+        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch, boolean isSecure) 
+        throws S3ServiceException
     {
-        String fullKey = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlString(objectKey) : "");
+        String fullKey = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
         fullKey += "?AWSAccessKeyId=" + awsCredentials.getAccessKey();
         fullKey += "&Expires=" + secondsSinceEpoch;
 
-        String canonicalString = RestUtils.makeCanonicalString("GET", "/" + fullKey, null, String
-            .valueOf(secondsSinceEpoch));
+        String canonicalString = RestUtils.makeCanonicalString(method, "/" + fullKey, 
+            headersMap, String.valueOf(secondsSinceEpoch));
+        log.debug("Signing canonical string:\n" + canonicalString);
 
         String signedCanonical = ServiceUtils.signWithHmacSha1(awsCredentials.getSecretKey(),
             canonicalString);
@@ -135,13 +204,43 @@ public abstract class S3Service {
         }
     }
     
-    public static String createSignedUrl(String bucketName, String objectKey, AWSCredentials awsCredentials, 
-        Date expiryTime, boolean isSecure) throws S3ServiceException
+    /**
+     * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
+     * to whoever uses the URL up until the time specified, where the time is specified as a Date
+     * object for convenience.
+     * 
+     * @param method
+     * the HTTP method to sign, such as GET or POST (note that S3 does not support PUT requests).
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param headersMap
+     * headers to add to the signed URL, may be null. 
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param awsCredentials
+     * the credentials of someone with sufficient privileges to grant access to the bucket/object 
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param isSecure
+     * if true an HTTPS URL is created and data accessed using the generated URL will be encrypted
+     * when accessed, otherwise a standard HTTP URL is created.
+     * 
+     * @return
+     * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
+     * 
+     * @throws S3ServiceException
+     */
+    public static String createSignedUrl(String method, String bucketName, String objectKey, 
+        Map headersMap, AWSCredentials awsCredentials, Date expiryTime, boolean isSecure) 
+        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        return createSignedUrl(bucketName, objectKey, awsCredentials, secondsSinceEpoch, isSecure);
+        return createSignedUrl(method, bucketName, objectKey, headersMap, 
+            awsCredentials, secondsSinceEpoch, isSecure);
     }
-        
+            
     /**
      * Generates a URL string that will return a Torrent file for an object in S3, 
      * which file can be downloaded and run in a BitTorrent client.  
