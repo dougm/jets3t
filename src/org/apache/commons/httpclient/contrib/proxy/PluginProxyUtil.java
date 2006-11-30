@@ -1,7 +1,7 @@
 /*
  * $HeadURL: https://svn.apache.org/repos/asf/jakarta/commons/proper/httpclient/branches/HTTPCLIENT_3_0_BRANCH/src/contrib/org/apache/commons/httpclient/contrib/proxy/PluginProxyUtil.java $
- * $Revision: 1.2 $
- * $Date: 2006/11/29 06:33:20 $
+ * $Revision: 1.3 $
+ * $Date: 2006/11/30 11:36:02 $
  *
  * ====================================================================
  *
@@ -200,20 +200,20 @@ public class PluginProxyUtil {
                   "Sun Plugin 1.3.X failed to provide a default proxy handler");
             }
         } catch (Exception e) {
-            LOG.warn("Sun Plugin 1.3.X proxy detection class not " +
-                     "found, will try failover detection, e:"+e);
+            LOG.debug("Sun Plugin 1.3.X proxy detection class not " +
+                     "found, will try failover detection", e);
         }        
         return result;
     }
     
     /**
-     * Returns the proxy information for the specified sampleURL using JRE 1.4
+     * Returns the proxy information for the specified sampleURL using JRE 1.4+
      * specific plugin classes.
      * 
      * Notes:
-     *     Plugin 1.4 Final added 
+     *     Plugin 1.4+ Final added 
      *     com.sun.java.browser.net.* classes ProxyInfo & ProxyService... 
-     *     Use those with JREs => 1.4
+     *     Use those with JREs => 1.4+
      *
      * @param sampleURL the URL to check proxy settings for
      * @return ProxyHost the host and port of the proxy that should be used
@@ -221,7 +221,7 @@ public class PluginProxyUtil {
     private static ProxyHost detectProxySettingsJDK14_JDK15_JDK16(URL sampleURL) {
         ProxyHost result = null;
         try {
-            // Look around for the 1.4.X plugin proxy detection class... 
+            // Look around for the 1.4+ plugin proxy detection class... 
             // Without it, cannot autodetect...
             Class ProxyServiceClass = 
                 Class.forName("com.sun.java.browser.net.ProxyService");
@@ -234,7 +234,7 @@ public class PluginProxyUtil {
             if (proxyInfoArrayObj == null  
                     || Array.getLength(proxyInfoArrayObj) == 0) {
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("1.4.X reported NULL proxy (no proxy assumed)");
+                    LOG.debug("1.4+ reported NULL proxy (no proxy assumed)");
                 }
                 result = NO_PROXY_HOST;                    
             } else {
@@ -250,14 +250,14 @@ public class PluginProxyUtil {
                     (Integer)getPortMethod.invoke(proxyInfoObject, null);
                 int proxyPort = portInteger.intValue(); 
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("1.4.X Proxy info geProxy:"+proxyIP+ 
+                    LOG.debug("1.4+ Proxy info get Proxy:"+proxyIP+ 
                               " get Port:"+proxyPort);
                 }
                 result = new ProxyHost(proxyIP, proxyPort);
             }
         } catch (Exception e) { 
-            LOG.warn("Sun Plugin 1.4.X proxy detection class not found, " +
-                     "will try failover detection, e:"+e);
+            LOG.debug("Sun Plugin 1.4+ proxy detection class not found, " +
+                     "will try failover detection", e);
         }        
         return result;
     }
