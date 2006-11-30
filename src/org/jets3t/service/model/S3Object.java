@@ -22,10 +22,12 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 
 import org.jets3t.service.Constants;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.utils.Mimetypes;
 
@@ -55,6 +57,12 @@ public class S3Object extends BaseS3Object {
 	private AccessControlList acl = null;
     private boolean isMetadataComplete = false;
     
+    /**
+     * Store references to files when the object's data comes from a file, to allow for lazy
+     * opening of the file's input streams.
+     */
+    private File dataInputFile = null;
+    
     
     /**
      * Create an object representing a file. The object is initialised with the file's name
@@ -72,7 +80,10 @@ public class S3Object extends BaseS3Object {
         this(bucket, file.getName());
         setContentLength(file.length());
         setContentType(Mimetypes.getMimetype(file));
-        setDataInputStream(new FileInputStream(file));
+        if (!file.canRead()) {
+            throw new FileNotFoundException("Cannot read from file: " + file.getAbsolutePath());
+        }
+        setDataInputFile(file);
     }
     
     /**
@@ -128,21 +139,64 @@ public class S3Object extends BaseS3Object {
      * @return
      * an input stream containing this object's data, or null if there is no data associated
      * with the object.
+     * 
+     * @throws S3ServiceException 
      */
-	public InputStream getDataInputStream() {
-		return dataInputStream;
+	public InputStream getDataInputStream() throws S3ServiceException {
+        if (dataInputFile != null) {
+            try {
+                return new FileInputStream(dataInputFile);
+            } catch (FileNotFoundException e) {
+                throw new S3ServiceException("Cannot open file input stream", e); 
+            }
+        } else {
+            return dataInputStream;
+        }
 	}
 
     /**
-     * Sets an input stream containing the data content to associate with this object.  
+     * Sets an input stream containing the data content to associate with this object.
+     * <p>
+     * <b>Note</b>: If the data content comes from a file, use the alternate method
+     * {@link setDataInputFile} which allows object's to lazily open files and avoid any
+     * Operating System limits on the number of files that may be opened simultaneously. 
+     * <p>
+     * This method will set the object's file data reference to null.
      * 
      * @param dataInputStream
      * an input stream containing the object's data.
      */
 	public void setDataInputStream(InputStream dataInputStream) {
+        this.dataInputFile = null;
 		this.dataInputStream = dataInputStream;
 	}	
 
+    /**
+     * Sets the file containing the data content to associate with this object. This file will
+     * be automatically opened as an input stream only when absolutely necessary, that is when
+     * {@ getDataInputStream} is called.
+     * <p>
+     * This method will set the object's input stream data reference to null.
+     * 
+     * @param dataInputFile
+     * a file containing the object's data.
+     */
+    public void setDataInputFile(File dataInputFile) {
+        this.dataInputStream = null;
+        this.dataInputFile = dataInputFile;
+    }
+
+    /**
+     * Closes the object's data input stream if it exists.
+     * 
+     * @throws IOException
+     */
+    public void closeDataInputStream() throws IOException {
+        if (this.dataInputStream != null) {
+            this.dataInputStream.close();
+        }
+    }
+    
     /**
      * @return
      * the ETag value of the object as returned by S3 when an object is created. The ETag values
