@@ -18,13 +18,16 @@
  */
 package org.jets3t.tests;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -40,13 +43,14 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
-import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.Mimetypes;
+import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
@@ -114,7 +118,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         } catch (S3ServiceException e) {
         }
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest1";
+        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases_temp";
         s3Service.createBucket(bucketName);
 
         boolean bucketExists = s3Service.isBucketAccessible(bucketName);
@@ -144,7 +148,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
     public void testObjectManagement() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest2";
+        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
         S3Object object = new S3Object();
@@ -316,10 +320,31 @@ public abstract class BaseS3ServiceTest extends TestCase {
         dataReceived = readStringFromInputStream(dataObject.getDataInputStream());
         dataExpected = objectData.substring(objectData.length() - byteRangeEnd.intValue());
         assertEquals("Mismatching data from range precondition", dataExpected, dataReceived);
-
+        
         // Clean-up.
         s3Service.deleteObject(bucket, object.getKey());
-        s3Service.deleteBucket(bucket.getName());
+        
+        // Create object with tricky key.
+        String trickyKey = "http://example.site.com/some/path/document name.html?param1=a@b#c$d&param2=(089)";
+        S3Object trickyObject = s3Service.putObject(bucket, 
+            new S3Object(bucket, trickyKey, "Some test data"));
+        assertEquals("Tricky key name mistmatch", trickyKey, trickyObject.getKey());
+        
+        // Make sure the tricky named object really exists with its full name.
+        S3Object[] objects = s3Service.listObjects(bucket);
+        boolean trickyNamedObjectExists = false;
+        for (int i = 0; !trickyNamedObjectExists && i < objects.length; i++) {
+            if (trickyKey.equals(objects[i].getKey())) {
+                trickyNamedObjectExists = true;
+            }
+        }
+        assertTrue("Tricky key name object does not exist with its full name", trickyNamedObjectExists);
+        
+        // Delete object with tricky key.
+        s3Service.deleteObject(bucket, trickyObject.getKey());
+
+        
+//        s3Service.deleteBucket(bucket.getName());
     }
     
     public void testACLManagement() throws Exception {
@@ -327,16 +352,17 @@ public abstract class BaseS3ServiceTest extends TestCase {
         
         // Access public "third-party" bucket
         S3Service anonymousS3Service = getS3Service(null);
-        anonymousS3Service.isBucketAccessible("jetS3T");
+        boolean jets3tBucketAvailable = anonymousS3Service.isBucketAccessible("jets3t");
+        assertTrue("Cannot find public jets3t bucket", jets3tBucketAvailable);
 
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest3";
+        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
         S3Bucket bucket = s3Service.createBucket(bucketName);
         S3Object object = null;
 
         // Create private object (default permissions).
-        String privateKey = "PrivateObject";
+        String privateKey = "Private Object #1";
         object = new S3Object(bucket, privateKey, "Private object sample text");
         s3Service.putObject(bucket, object);
         URL url = new URL(s3Url + "/" + bucketName + "/" + privateKey);
@@ -348,7 +374,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         S3Owner bucketOwner = bucketACL.getOwner();
 
         // Create a public object.
-        String publicKey = "PublicObject";
+        String publicKey = "Public Object #1";
         object = new S3Object(bucket, publicKey, "Public object sample text");        
         AccessControlList acl = new AccessControlList();
         acl.setOwner(bucketOwner);
@@ -365,16 +391,16 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setKey(privateKey);
         object.setAcl(privateToPublicACL);
         s3Service.putObjectAcl(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + privateKey + "?"); // ? is hack to outsmart Web page caching at my ISP...
+        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey) + "?"); // ? is hack to outsmart Web page caching at my ISP...
         assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
             .getResponseCode());
 
         // Create a non-standard uncanned public object.
-        String publicKey2 = "PublicObject2";
+        String publicKey2 = "Public Object #2";
         object = new S3Object(publicKey2);
         object.setAcl(privateToPublicACL); // This ACL has ALL_USERS READ permission set above.
         s3Service.putObject(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + publicKey2);
+        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey2));
         assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
             .getResponseCode());
 
@@ -384,21 +410,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setKey(publicKey);
         object.setAcl(publicToPrivateACL);
         s3Service.putObjectAcl(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + publicKey + "?"); // ? is hack to outsmart Web page caching at my ISP...
-        assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
-            .openConnection()).getResponseCode());
-
-        // Generate URL granting anonymous user access.
-        int secondsUntilExpiry = 3;
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.SECOND, secondsUntilExpiry);
-        String urlString = S3Service.createSignedUrl(bucket.getName(), privateKey, awsCredentials,
-            cal.getTimeInMillis() / 1000, false);
-        url = new URL(urlString);
-        assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
-            .getResponseCode());
-        // Ensure anonymous user access URL expires.
-        Thread.sleep((secondsUntilExpiry + 1) * 1000);
+        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey) + "?"); // ? is hack to outsmart Web page caching at my ISP...
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
 
@@ -406,13 +418,13 @@ public abstract class BaseS3ServiceTest extends TestCase {
         s3Service.deleteObject(bucket, privateKey);
         s3Service.deleteObject(bucket, publicKey);
         s3Service.deleteObject(bucket, publicKey2);
-        s3Service.deleteBucket(bucket.getName());
+//        s3Service.deleteBucket(bucket.getName());
     }
     
     public void testObjectListing() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest4";
+        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
         
@@ -437,7 +449,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
         
         // List all items in directory.
         objects = s3Service.listObjects(bucket);        
-        assertEquals("Incorrect number of objects in directory structure", 7, objects.length);
+        assertEquals("Incorrect number of objects in directory structure", 
+            objectsList.size(), objects.length);
         
         // List items in chunks of size 2, ensure we get a total of seven.
         int chunkedObjectsCount = 0;
@@ -450,8 +463,10 @@ public abstract class BaseS3ServiceTest extends TestCase {
             chunkedObjectsCount += chunk.getObjects().length;
             chunkedIterationsCount++;
         } while (priorLastKey != null);
-        assertEquals("Chunked bucket listing retreived incorrect number of objects", 7, chunkedObjectsCount);
-        assertEquals("Chunked bucket listing ran for an unexpected number of iterations", 4, chunkedIterationsCount);
+        assertEquals("Chunked bucket listing retreived incorrect number of objects", 
+            objectsList.size(), chunkedObjectsCount);
+        assertEquals("Chunked bucket listing ran for an unexpected number of iterations", 
+            (objectsList.size() + 1) / 2, chunkedIterationsCount);
         
         // List the same items with a prefix.
         objects = s3Service.listObjects(bucket, "dir1", null);        
@@ -495,13 +510,13 @@ public abstract class BaseS3ServiceTest extends TestCase {
             S3Object object = (S3Object) iter.next();
             s3Service.deleteObject(bucket, object.getKey());
         }
-        s3Service.deleteBucket(bucket.getName());
+//        s3Service.deleteBucket(bucket.getName());
     }
 
     public void testBucketLogging() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
-        String bucketName = awsCredentials.getAccessKey() + ".S3ServiceTest5";
+        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
         
@@ -535,9 +550,97 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertFalse("Expected logging to be disabled for bucket " + bucketName, 
             loggingStatus.isLoggingEnabled());
 
-        s3Service.deleteBucket(bucket.getName());
+//        s3Service.deleteBucket(bucket.getName());
     }
 
+    public void testUrlSigning() throws Exception {
+        S3Service s3Service = getS3Service(awsCredentials);
+
+        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
+
+        S3Bucket bucket = s3Service.createBucket(bucketName);
+        
+        // Create test object, with private ACL
+        String dataString = "Text for the URL Signing test object...";
+        S3Object object = new S3Object(bucket, "Testing URL Signing", dataString);
+        object.setContentType("text/html");
+        object.addMetadata("x-amz-example-header", "example-value");
+        object.setAcl(AccessControlList.REST_CANNED_PRIVATE);
+
+        // Determine what the time will be in 5 minutes.
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.MINUTE, 5);
+        Date expiryDate = cal.getTime();
+
+        boolean isHttpsUrl = true; // Choose whether URL is HTTP or HTTPS.
+        
+        // Create a signed HTTP PUT URL.
+        String signedPutUrl = S3Service.createSignedUrl("PUT", bucket.getName(), object.getKey(), 
+            object.getMetadata(), awsCredentials, expiryDate, isHttpsUrl);
+
+        // Put the object in S3 using the signed URL (no AWS credentials required)
+        RestS3Service restS3Service = new RestS3Service(null);
+        restS3Service.putObjectWithSignedUrl(signedPutUrl, object); 
+        
+        // Ensure the object was created.
+        S3Object objects[] = s3Service.listObjects(bucket, object.getKey(), null);
+        assertEquals("Signed PUT URL failed to put/create object", objects.length, 1);
+
+        // Change the object's content-type and ensure the signed PUT URL disallows the put.
+        object.setContentType("application/octet-stream");
+        try {
+            restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
+            fail("Should not be able to use a signed URL for an object with a changed content-type");
+        } catch (S3ServiceException e) {            
+            object.setContentType("text/html");
+        }
+        
+        // Add an object header and ensure the signed PUT URL disallows the put.
+        object.addMetadata("x-amz-example-header-2", "example-value");
+        try {
+            restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
+            fail("Should not be able to use a signed URL for an object with changed metadata");
+        } catch (S3ServiceException e) {
+            object.removeMetadata("x-amz-example-header-2");
+        }
+
+        // Change the object's name and ensure the signed PUT URL disallows the put.
+        object.setKey("Testing URL Signing 2");
+        try {
+            restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
+            fail("Should not be able to use a signed URL for an object with a changed key");
+        } catch (S3ServiceException e) {
+            object.setKey("Testing URL Signing");
+        }
+
+        // Ensure we can't get the object with a normal URL.
+        String s3Url = "http://s3.amazonaws.com";
+        URL url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(object.getKey()));
+        assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
+            .openConnection()).getResponseCode());
+
+        // Create a signed HTTP GET URL.
+        String signedGetUrl = S3Service.createSignedUrl("GET", bucket.getName(), object.getKey(), null,
+            awsCredentials, expiryDate, isHttpsUrl);
+
+        // Ensure the signed URL can retrieve the object.
+        url = new URL(signedGetUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection(); 
+        assertEquals("Expected signed GET URL ("+ signedGetUrl +") to retrieve object with response code 200", 
+            200, conn.getResponseCode());
+        
+        // Sanity check the data in the S3 object.
+        String objectData = (new BufferedReader(
+            new InputStreamReader(conn.getInputStream())))
+            .readLine();
+        assertEquals("Unexpected data content in S3 object", dataString, objectData);
+        
+        // Clean up.
+        s3Service.deleteObject(bucket, object.getKey());
+        
+//        s3Service.deleteBucket(bucket.getName());
+    }
+    
     private String readStringFromInputStream(InputStream is) throws IOException {
         StringBuffer sb = new StringBuffer();
         int b = -1;
