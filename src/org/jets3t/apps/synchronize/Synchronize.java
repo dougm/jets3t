@@ -178,7 +178,7 @@ public class Synchronize {
             File uploadFile = prepareUploadFile(file, newObject, encryptionUtil);
             
             newObject.setContentLength(uploadFile.length());
-            newObject.setDataInputStream(new FileInputStream(uploadFile));
+            newObject.setDataInputFile(uploadFile);
             
             // TODO Delete temporary files created by this program, to free disk space ASAP.
         }

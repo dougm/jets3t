@@ -1891,7 +1891,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     newObject.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE, 
                         ServiceUtils.formatIso8601Date(new Date(file.lastModified())));
                     newObject.setContentLength(fileToUpload.length());
-                    newObject.setDataInputStream(new FileInputStream(fileToUpload));    
+                    newObject.setDataInputFile(fileToUpload);    
 
                     updateProgressDisplay("Prepared " + (objectIndex + 1) 
                         + " of " + fileKeysForUpload.size() + " file(s) for upload", 

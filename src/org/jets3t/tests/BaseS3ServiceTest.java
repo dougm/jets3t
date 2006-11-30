@@ -181,7 +181,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Unexpected default content type", Mimetypes.MIMETYPE_OCTET_STREAM,
             basicObject.getContentType());
         assertEquals("Unexpected size for 'empty' object", 0, basicObject.getContentLength());
-        basicObject.getDataInputStream().close();
+        basicObject.closeDataInputStream();
 
         // Make sure bucket cannot be removed while it has contents.
         try {
@@ -203,7 +203,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Unexpected default content type", contentType, directoryObject
             .getContentType());
         assertEquals("Unexpected size for 'empty' object", 0, directoryObject.getContentLength());
-        basicObject.getDataInputStream().close();
+        basicObject.closeDataInputStream();
 
         // Update/overwrite object with real data content and some metadata.
         contentType = "text/plain";
@@ -237,7 +237,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         while ((b = dataObject.getDataInputStream().read()) != -1) {
             sb.append((char) b);
         }
-        dataObject.getDataInputStream().close();
+        dataObject.closeDataInputStream();
         assertEquals("Mismatching data", objectData, sb.toString());
 
         // Retrieve only HEAD of data object (all metadata is available, but not the object content

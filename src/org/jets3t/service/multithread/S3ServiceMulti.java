@@ -798,12 +798,10 @@ public class S3ServiceMulti {
             } catch (S3ServiceException e) {
                 result = e;
             } finally {
-                if (s3Object.getDataInputStream() != null) {
-                    try {
-                        s3Object.getDataInputStream().close();
-                    } catch (IOException e) {
-                        log.error("Unable to close Object's input stream", e);                        
-                    }
+                try {
+                    s3Object.closeDataInputStream();
+                } catch (IOException e) {
+                    log.error("Unable to close Object's input stream", e);                        
                 }
             }
         }
