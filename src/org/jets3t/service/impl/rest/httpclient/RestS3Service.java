@@ -97,7 +97,7 @@ import org.jets3t.service.utils.ServiceUtils;
  *   and number of packets.</td>
  *   <td>true</td></tr>
  * <tr><td>httpclient.retry-on-errors</td><td></td><td>true</td></tr>
- * <tr><td>httpclient.useragent</td><td>User agent string</td><td>HttpClient default value</td></tr>
+ * <tr><td>httpclient.useragent</td><td>User agent string</td><td>HttpClient default value, eg "Jakarta Commons-HttpClient/3.0.1"</td></tr>
  * </table>
  * 
  * @author James Murty
@@ -217,9 +217,24 @@ public class RestS3Service extends S3Service {
         try {
             log.debug("Performing " + httpMethod.getName() 
                     + " request, expecting response code " + expectedResponseCode);
-                
-            // Perform the request.
-            int responseCode = httpClient.executeMethod(httpMethod);
+
+            // Variables to manage occasional S3 Internal Server 500 errors.
+            boolean completedWithoutS3InternalError = true;
+            int internalErrorCount = 0;
+
+            // Perform the request, sleeping and retrying when S3 Internal Errors are encountered.
+            int responseCode = -1;
+            do {
+                responseCode = httpClient.executeMethod(httpMethod);
+
+                if (responseCode == 500) {
+                    // Retry on S3 Internal Server 500 errors.
+                    completedWithoutS3InternalError = false;
+                    sleepOnInternalError(++internalErrorCount);                    
+                } else {
+                    completedWithoutS3InternalError = true;                    
+                }
+            } while (!completedWithoutS3InternalError);
 
             String contentType = "";
             if (httpMethod.getResponseHeader("Content-Type") != null) {
@@ -524,7 +539,7 @@ public class RestS3Service extends S3Service {
         performRequest(httpMethod, 204);
 
         // Release connection after DELETE (there's no response content)
-         log.debug("Releasing HttpMethod after delete");            
+        log.debug("Releasing HttpMethod after delete");            
         httpMethod.releaseConnection();
 
         return httpMethod;
@@ -600,7 +615,7 @@ public class RestS3Service extends S3Service {
         if (isAuthenticatedConnection()) {
             log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
         } else {
-            log.warn("Service has no AWS Credential and is un-authenticated, skipping authorization");
+            log.debug("Service has no AWS Credential and is un-authenticated, skipping authorization");
             return;
         }
 
@@ -1016,7 +1031,59 @@ public class RestS3Service extends S3Service {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }    
     }
-    
+
+    /**
+     * Puts an object using a pre-signed PUT URL based on that object.
+     * <p>
+     * This is a convenience method only, it does not required any S3 functionality as it merely 
+     * uploads the object using standard HTTP methods and the signed URL.
+     * 
+     * @param signedUrl
+     * a signed PUT URL generated with {@link S3Service.createSignedUrl}.
+     * @param object
+     * the object to upload, which must correspond to the object for which the URL was signed.
+     * The object <b>must</b> have the correct content length set, and to apply a non-standard
+     * ACL policy only the REST canned ACLs can be used
+     * (eg {@link AccessControlList.REST_CANNED_PUBLIC_READ_WRITE}). 
+     * 
+     * @throws S3ServiceException
+     */
+    public void putObjectWithSignedUrl(String signedUrl, S3Object object) throws S3ServiceException {
+        PutMethod putMethod = new PutMethod(signedUrl);
+        
+        if (object.getMd5Hash() != null) {
+            putMethod.addRequestHeader("Content-MD5", object.getMd5Hash());                        
+        }
+        
+        if (object.getContentType() != null) {
+            putMethod.addRequestHeader("Content-Type", object.getContentType());            
+        }
+        
+        if (object.getMetadata() != null) {
+            Map metadata = object.getMetadata();
+            Iterator iter = metadata.keySet().iterator();
+            while (iter.hasNext()) {
+                String metadataName = (String) iter.next();
+                if (metadataName.startsWith(Constants.REST_HEADER_PREFIX)) {
+                    String metadataValue = (String) metadata.get(metadataName);
+                    putMethod.addRequestHeader(metadataName, metadataValue);                    
+                }
+            }
+        }
+                
+        long contentLength = InputStreamRequestEntity.CONTENT_LENGTH_AUTO;
+        if (object.getMetadata().containsKey("Content-Length")) {
+            contentLength = Long.parseLong((String) object.getMetadata().get("Content-Length"));
+        }                
+
+        putMethod.setRequestEntity(new InputStreamRequestEntity(
+            object.getDataInputStream(), contentLength));
+
+        performRequest(putMethod, 200);
+        
+        // Release connection after PUT.
+        putMethod.releaseConnection();
+    }
     
     /**
      * Simple container object to store an HttpMethod object representing a request connection, and a 
