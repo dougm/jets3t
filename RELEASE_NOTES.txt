@@ -19,6 +19,7 @@ TOOLKIT
 - DNS caching is limited to 300 seconds.
 - When an object's data comes from a file, the file can be opened only when necessary rather than 
   being opened as soon as the object is created.
+- Added documentation for advanced options settings and logging
   
   * REST/HTTP implementation
   
