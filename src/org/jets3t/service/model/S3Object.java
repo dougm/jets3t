@@ -30,6 +30,7 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.utils.Mimetypes;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * An S3 object.
@@ -46,6 +47,7 @@ public class S3Object extends BaseS3Object {
 	public static final String METADATA_HEADER_OWNER = "Owner";	
 	public static final String METADATA_HEADER_ETAG = "ETag";	
     public static final String METADATA_HEADER_HASH_MD5 = "md5-hash";   
+    public static final String METADATA_HEADER_CONTENT_MD5 = "Content-MD5";   
 	public static final String METADATA_HEADER_CONTENT_LENGTH = "Content-Length";	
 	public static final String METADATA_HEADER_CONTENT_TYPE = "Content-Type";	
     public static final String METADATA_HEADER_CONTENT_ENCODING = "Content-Encoding";   
@@ -225,20 +227,46 @@ public class S3Object extends BaseS3Object {
     
     /**
      * @return
-     * the MD5 hash of an object's data contents, or null if the hash value is not available.
+     * the hex-encoded MD5 hash of an object's data contents as stored in the jets3t-specific metadata
+     * item <code>md5-hash</code>, or null if the hash value is not available.
      */
-    public String getMd5Hash() {
+    public String getMd5HashAsHex() {
         return (String) getMetadata(METADATA_HEADER_HASH_MD5);
     }
 	
     /**
+     * @return
+     * the Base64-encoded MD5 hash of an object's data contents as stored in the metadata
+     * item <code>Content-MD5</code>, or as derived from an <code>ETag</code> or 
+     * <code>md5-hash</code> hex-encoded version of the hash. Returns null if the hash value is not 
+     * available.
+     */
+    public String getMd5HashAsBase64() {
+        String md5HashBase64 = (String) getMetadata(METADATA_HEADER_CONTENT_MD5);
+        if (md5HashBase64 == null) {
+            // Try converting the object's ETag (a hex-encoded md5 hash).
+            if (getETag() != null) {
+                return ServiceUtils.toBase64(ServiceUtils.fromHex(getETag()));
+            }
+            // Try converting the object's md5-hash (another hex-encoded md5 hash).
+            if (getMd5HashAsHex() != null) {
+                return ServiceUtils.toBase64(ServiceUtils.fromHex(getMd5HashAsHex()));
+            }
+        }
+        return md5HashBase64;
+    }
+    
+    /**
      * Set the MD5 hash value of this object's data.
+     * The hash value is stored as metadata under <code>Content-MD5</code> (Base64-encoded)
+     * and the jets3t-specific <code>md5-hash</code> (Hex-encoded).
      * 
      * @param hash
-     * the hash value of the object's data.
+     * the MD5 hash value of the object's data.
      */
-    public void setMd5Hash(String hash) {
-        addMetadata(METADATA_HEADER_HASH_MD5, hash);
+    public void setMd5Hash(byte[] md5Hash) {
+        addMetadata(METADATA_HEADER_HASH_MD5, ServiceUtils.toHex(md5Hash));
+        addMetadata(METADATA_HEADER_CONTENT_MD5, ServiceUtils.toBase64(md5Hash));
     }
 
     /**
