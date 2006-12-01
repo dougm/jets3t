@@ -475,6 +475,7 @@ public class RestS3Service extends S3Service {
                 }
                 
                 if (!key.equalsIgnoreCase("content-type") 
+                    && !key.equalsIgnoreCase("content-md5")
                     && !key.equalsIgnoreCase("content-length")
                     && !key.equalsIgnoreCase("content-language")
                     && !key.equalsIgnoreCase("expires")
@@ -1053,8 +1054,8 @@ public class RestS3Service extends S3Service {
     public void putObjectWithSignedUrl(String signedUrl, S3Object object) throws S3ServiceException {
         PutMethod putMethod = new PutMethod(signedUrl);
         
-        if (object.getMd5Hash() != null) {
-            putMethod.addRequestHeader("Content-MD5", object.getMd5Hash());                        
+        if (object.getMd5HashAsBase64() != null) {
+            putMethod.addRequestHeader("Content-MD5", object.getMd5HashAsBase64());                        
         }
         
         if (object.getContentType() != null) {
@@ -1076,8 +1077,10 @@ public class RestS3Service extends S3Service {
             contentLength = Long.parseLong((String) object.getMetadata("Content-Length"));
         }                
 
-        putMethod.setRequestEntity(new InputStreamRequestEntity(
-            object.getDataInputStream(), contentLength));
+        if (object.getDataInputStream() != null) {
+            putMethod.setRequestEntity(new InputStreamRequestEntity(
+                object.getDataInputStream(), contentLength));
+        }
 
         performRequest(putMethod, 200);
         
