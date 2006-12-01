@@ -208,7 +208,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Update/overwrite object with real data content and some metadata.
         contentType = "text/plain";
         String objectData = "Just some rubbish text to include as data";
-        String dataHash = ServiceUtils.computeMD5Hash(objectData.getBytes());
+        String dataMd5HashAsHex = ServiceUtils.toHex( 
+            ServiceUtils.computeMD5Hash(objectData.getBytes()));
         HashMap metadata = new HashMap();
         metadata.put("creator", "S3ServiceTest");
         metadata.put("purpose", "For testing purposes");
@@ -217,7 +218,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setDataInputStream(new ByteArrayInputStream(objectData.getBytes()));
         S3Object dataObject = s3Service.putObject(bucket, object);
         assertEquals("Unexpected content type", contentType, dataObject.getContentType());
-        assertEquals("Mismatching hash", dataHash, dataObject.getETag());
+        assertEquals("Mismatching MD5 hex hash", dataMd5HashAsHex, dataObject.getETag());
 
         // Retrieve data object to ensure it was correctly created, the server-side hash matches
         // what we expect, and we get our metadata back.
@@ -225,7 +226,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Unexpected default content type", "text/plain", dataObject.getContentType());
         assertEquals("Unexpected size for object", objectData.length(), dataObject
             .getContentLength());
-        assertEquals("Mismatching hash", dataHash, dataObject.getETag());
+        assertEquals("Mismatching hash", dataMd5HashAsHex, dataObject.getETag());
         assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata(
             "creator"));
         assertEquals("Missing purpose metadata", "For testing purposes", 
@@ -245,7 +246,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         dataObject = s3Service.getObjectDetails(bucket, object.getKey());
         assertEquals("Unexpected default content type", "text/plain", dataObject.getContentType());
         assertEquals("Unexpected size for object", objectData.length(), dataObject.getContentLength());
-        assertEquals("Mismatching hash", dataHash, dataObject.getETag());
+        assertEquals("Mismatching hash", dataMd5HashAsHex, dataObject.getETag());
         assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata(
             "creator"));
         assertEquals("Missing purpose metadata", "For testing purposes", 
@@ -278,23 +279,23 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Precondition: Not modified since tomorrow
         s3Service.getObjectDetails(bucket, object.getKey(), null, tomorrow, null, null);
         // Precondition: matches correct hash
-        s3Service.getObjectDetails(bucket, object.getKey(), null, null, new String[] {dataHash}, null);
+        s3Service.getObjectDetails(bucket, object.getKey(), null, null, new String[] {dataMd5HashAsHex}, null);
         // Precondition: doesn't match incorrect hash
         try {
             s3Service.getObjectDetails(bucket, object.getKey(), null, null, 
-                new String[] {"__" + dataHash.substring(2)}, null);
+                new String[] {"__" + dataMd5HashAsHex.substring(2)}, null);
             fail("Hash values should not match");
         } catch (S3ServiceException e) {
         }
         // Precondition: doesn't match correct hash
         try {
-            s3Service.getObjectDetails(bucket, object.getKey(), null, null, null, new String[] {dataHash});
+            s3Service.getObjectDetails(bucket, object.getKey(), null, null, null, new String[] {dataMd5HashAsHex});
             fail("Hash values should mis-match");
         } catch (S3ServiceException e) {
         }
         // Precondition: doesn't match incorrect hash
         s3Service.getObjectDetails(bucket, object.getKey(), null, null, null, 
-            new String[] {"__" + dataHash.substring(2)});
+            new String[] {"__" + dataMd5HashAsHex.substring(2)});
 
         // Retrieve only a limited byte-range of the data, with a start and end.
         Long byteRangeStart = new Long(3);
@@ -639,6 +640,67 @@ public abstract class BaseS3ServiceTest extends TestCase {
         
 //        s3Service.deleteBucket(bucket.getName());
     }
+    
+    public void testHashVerifiedUploads() throws Exception {
+        S3Service s3Service = getS3Service(awsCredentials);
+
+        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
+
+        S3Bucket bucket = s3Service.createBucket(bucketName);
+        
+        // Create test object with an MD5 hash of the data.
+        String dataString = "Text for MD5 hashing...";
+        S3Object object = new S3Object(bucket, "Testing MD5 Hashing", dataString);        
+        object.setContentType("text/plain");
+        
+        // Calculate hash data for object.
+        byte[] md5Hash = ServiceUtils.computeMD5Hash(dataString.getBytes());
+
+        // Ensure that using an invalid hash value fails.
+        try {
+            object.addMetadata("Content-MD5", "123");
+            s3Service.putObject(bucket, object);
+            fail("Should have failed due to invalid hash value");
+        } catch (S3ServiceException e) {
+            // This error checks would be nice to have, but it only works for the REST interface, not SOAP.
+            // assertEquals("Expected error code indicating invalid md5 hash", "InvalidDigest", e.getErrorCode());
+        }
+        object = new S3Object(bucket, "Testing MD5 Hashing", dataString);        
+        
+        // Ensure that using the wrong hash value fails.
+        try {
+            byte[] incorrectHash = new byte[md5Hash.length];
+            System.arraycopy(md5Hash, 0, incorrectHash, 0, incorrectHash.length);
+            incorrectHash[0] = incorrectHash[1];
+            object.setMd5Hash(incorrectHash);
+            s3Service.putObject(bucket, object);
+            fail("Should have failed due to incorrect hash value");
+        } catch (S3ServiceException e) {
+            // This error checks would be nice to have, but it only works for the REST interface, not SOAP.
+            // assertEquals("Expected error code indicating invalid md5 hash", "BadDigest", e.getErrorCode());
+        }
+        object = new S3Object(bucket, "Testing MD5 Hashing", dataString);        
+
+        // Ensure that correct hash value succeeds.
+        object.setMd5Hash(md5Hash);
+        S3Object resultObject = s3Service.putObject(bucket, object);
+        
+        // Ensure the ETag result matches the hex-encoded MD5 hash.
+        assertEquals("Hex-encoded MD5 hash should match ETag", resultObject.getETag(), 
+            ServiceUtils.toHex(md5Hash));
+
+        // Ensure we can convert the hex-encoded ETag to Base64 that matches the Base64 md5 hash.
+        String md5HashBase64 = ServiceUtils.toBase64(md5Hash);
+        String eTagBase64 = ServiceUtils.toBase64(ServiceUtils.fromHex(resultObject.getETag()));
+        assertEquals("Could not convert ETag and MD5 hash to matching Base64-encoded strings", 
+            md5HashBase64, eTagBase64);
+
+        // Clean up.
+        s3Service.deleteObject(bucket, object.getKey());
+        
+//        s3Service.deleteBucket(bucket.getName());
+    }
+
     
     private String readStringFromInputStream(InputStream is) throws IOException {
         StringBuffer sb = new StringBuffer();
