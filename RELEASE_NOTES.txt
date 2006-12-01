@@ -32,6 +32,19 @@ TOOLKIT
 - Added a utility method putObjectWithSignedUrl to upload objects to S3 using only a signed 
   PUT URL (ie no AWS credentials are required).
 - Configurable user agent string.
+- Sends an upload object's MD5 data hash to S3 in the header Content-MD5, to confirm no data 
+  corruption has taken place on the wire.
+
+  * SOAP implementation
+
+- Tests for data corruption on the wire by matching ETag returned by S3 with 
+  expected MD5 hash value.
+
+UPLOADER
+
+A new application to allow third parties without AWS accounts or credentials to upload files
+to an S3 account.
+
 
 COCKPIT
 
