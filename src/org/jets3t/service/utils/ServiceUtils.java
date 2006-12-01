@@ -286,6 +286,47 @@ public class ServiceUtils {
         }
         return sb.toString().toLowerCase();
     }
+    
+    /**
+     * Converts a Hex-encoded data string to the original byte data.
+     * 
+     * @param hexData
+     * @return
+     */
+    public static byte[] fromHex(String hexData) {
+        byte[] result = new byte[(hexData.length() + 1) / 2];
+        String hexNumber = null;
+        int stringOffset = 0;
+        int byteOffset = 0;
+        while (stringOffset < hexData.length()) {
+            hexNumber = hexData.substring(stringOffset, stringOffset + 2);
+            stringOffset += 2;
+            result[byteOffset++] = (byte) Integer.parseInt(hexNumber, 16);
+        }
+        return result;
+    }
+    
+    /**
+     * Converts byte data to a Base64-encoded string.
+     * 
+     * @param data
+     * @return
+     */
+    public static String toBase64(byte[] data) {
+        byte[] b64 = Base64.encodeBase64(data); 
+        return new String(b64);
+    }
+    
+    /**
+     * Converts a Base64-encoded string to the original byte data.
+     * 
+     * @param b64Data
+     * @return
+     */
+    public static byte[] fromBase64(String b64Data) {
+        byte[] decoded = Base64.decodeBase64(b64Data.getBytes());
+        return decoded;
+    }
 
     /**
      * Computes the MD5 hash of the data in the given input stream and returns it as a hex string.
@@ -296,7 +337,7 @@ public class ServiceUtils {
      * @throws NoSuchAlgorithmException
      * @throws IOException
      */
-    public static String computeMD5Hash(InputStream is) throws NoSuchAlgorithmException, IOException {
+    public static byte[] computeMD5Hash(InputStream is) throws NoSuchAlgorithmException, IOException {
         BufferedInputStream bis = new BufferedInputStream(is);
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("MD5");
@@ -305,8 +346,7 @@ public class ServiceUtils {
             while ((bytesRead = bis.read(buffer, 0, buffer.length)) != -1) {
                 messageDigest.update(buffer, 0, bytesRead);
             }
-            byte[] digest = messageDigest.digest();
-            return toHex(digest);
+            return messageDigest.digest();
         } finally {
             try {
                 bis.close();
@@ -325,7 +365,7 @@ public class ServiceUtils {
      * @throws NoSuchAlgorithmException
      * @throws IOException
      */
-    public static String computeMD5Hash(byte[] data) throws NoSuchAlgorithmException, IOException {
+    public static byte[] computeMD5Hash(byte[] data) throws NoSuchAlgorithmException, IOException {
         return computeMD5Hash(new ByteArrayInputStream(data));
     }    
     
