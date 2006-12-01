@@ -493,6 +493,16 @@ public class SoapS3Service extends S3Service {
                     contentLength, grants, null, getAWSAccessKey(), 
                     timestamp, signature, null);
             
+            // Ensure no data was corrupted, if we have the MD5 hash available to check.
+            String eTag = result.getETag().substring(1, result.getETag().length() - 1);
+            String eTagAsBase64 = ServiceUtils.toBase64(
+                ServiceUtils.fromHex(eTag));
+            String md5HashAsBase64 = object.getMd5HashAsBase64();            
+            if (md5HashAsBase64 != null && !eTagAsBase64.equals(md5HashAsBase64)) {
+                throw new S3ServiceException(
+                    "Object created but ETag returned by S3 does not match MD5 hash value of object");
+            }
+            
             object.setETag(result.getETag());
             object.setContentLength(contentLength);
             object.setContentType(contentType);
