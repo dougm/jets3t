@@ -86,7 +86,7 @@ public class S3ServiceMulti {
      *        the event listener which will handle event notifications.
      */
     public S3ServiceMulti(S3Service s3Service, S3ServiceEventListener listener) {
-        this(s3Service, listener, 250);
+        this(s3Service, listener, 500);
     }
 
     /**
@@ -1063,7 +1063,10 @@ public class S3ServiceMulti {
                 // Start some threads
                 startPendingThreads(started, alreadyFired);                
                 
-                ThreadWatcher threadWatcher = new ThreadWatcher(0, runnables.length, cancelEventTrigger); 
+                // Create the thread's watcher object.
+                ThreadWatcher threadWatcher = new ThreadWatcher();
+                
+                threadWatcher.setThreadsCompletedRatio(0, runnables.length, cancelEventTrigger); 
                 fireStartEvent(threadWatcher);
                 
                 // Loop while threads haven't been interrupted/cancelled, and at least one thread is 
@@ -1077,7 +1080,8 @@ public class S3ServiceMulti {
                         } else {
                             // Fire progress event.
                             int completedThreads = runnables.length - localThreadGroup.activeCount();                    
-                            threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventTrigger);
+                            threadWatcher.setThreadsCompletedRatio(
+                                completedThreads, runnables.length, cancelEventTrigger);
                             List completedResults = getNewlyCompletedResults(started, alreadyFired);                    
                             fireProgressEvent(threadWatcher, completedResults);
                             
@@ -1098,7 +1102,8 @@ public class S3ServiceMulti {
                     fireCancelEvent();
                 } else {
                     int completedThreads = localThreadGroup.activeCount();                    
-                    threadWatcher = new ThreadWatcher(completedThreads, runnables.length, cancelEventTrigger);
+                    threadWatcher.setThreadsCompletedRatio(
+                        completedThreads, runnables.length, cancelEventTrigger);
                     List completedResults = getNewlyCompletedResults(started, alreadyFired);                    
                     fireProgressEvent(threadWatcher, completedResults);
                     if (completedResults.size() > 0) {
