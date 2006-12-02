@@ -54,6 +54,8 @@ public class ProgressDisplay {
      * @param title         the title for the progress dialog
      * @param statusText
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+     * @param detailsText
+     *        describes the status of a task in more detail, such as the current transfer rate and ETA.
      * @param minTaskValue  the minimum progress value for a task, generally 0
      * @param maxTaskValue  
      *        the maximum progress value for a task, such as the total number of threads or 100 if
@@ -65,11 +67,11 @@ public class ProgressDisplay {
      *        text displayed in the cancel button if a task can be cancelled. This is only used if
      *        a cancel event listener is provided.
      */
-    public ProgressDisplay(Frame owner, String title, String statusText, int minTaskValue, 
-        int maxTaskValue, String cancelButtonText, CancelEventTrigger cancelEventListener) 
+    public ProgressDisplay(Frame owner, String title, String statusText, String detailsText, 
+        int minTaskValue, int maxTaskValue, String cancelButtonText, CancelEventTrigger cancelEventListener) 
     {
-        progressDialog = new ProgressDialog(owner, title, statusText, minTaskValue, maxTaskValue, 
-            cancelEventListener, cancelButtonText);
+        progressDialog = new ProgressDialog(owner, title, statusText, detailsText, 
+            minTaskValue, maxTaskValue, cancelEventListener, cancelButtonText);
     }
     
     /**
@@ -100,15 +102,15 @@ public class ProgressDisplay {
     }
     
     /**
-     * Updates the dialog's status text.
+     * Updates the dialog's status messages.
      *  
      * @param text
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      */
-    public synchronized void updateStatusText(final String text) {
+    public synchronized void updateStatusMessages(final String statusMessage, final String detailsText) {
         SwingUtilities.invokeLater(new Runnable(){
             public void run() {
-                progressDialog.updateStatusText(text);
+                progressDialog.updateStatusMessages(statusMessage, detailsText);
             }
         });
     }
@@ -142,10 +144,12 @@ public class ProgressDisplay {
         private final Insets insetsDefault = new Insets(5, 7, 5, 7);
 
         private JLabel statusMessageLabel = null;
+        private JLabel detailsTextLabel = null;
         private JProgressBar progressBar = null;
         private boolean wasCancelClicked = false;
         private CancelEventTrigger cancelEventListener = null;
         private int longestStatusTextLength = 0;
+        private int longestDetailsTextLength = 0;
 
         /**
          * Constructs the progress dialog box.
@@ -154,6 +158,8 @@ public class ProgressDisplay {
          * @param title         the title for the progress dialog
          * @param statusMessage
          *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+         * @param detailsText
+         *        describes the status of a task in more detail, such as the current transfer rate and ETA.
          * @param minTaskValue  the minimum progress value for a task, generally 0
          * @param maxTaskValue  
          *        the maximum progress value for a task, such as the total number of threads or 100 if
@@ -164,23 +170,24 @@ public class ProgressDisplay {
          * @param cancelButtonText  
          *        text displayed in the cancel button if a task can be cancelled
          */
-        public ProgressDialog(Frame owner, String title, String statusMessage, int minTaskValue, 
-            int maxTaskValue, CancelEventTrigger cancelEventListener, String cancelButtonText) 
+        public ProgressDialog(Frame owner, String title, String statusMessage, String detailsText, 
+            int minTaskValue, int maxTaskValue, CancelEventTrigger cancelEventListener, String cancelButtonText) 
         {
             super(owner, title, true);
             this.cancelEventListener = cancelEventListener;
-            initGui(statusMessage, cancelButtonText, minTaskValue, maxTaskValue);
+            initGui(statusMessage, detailsText, cancelButtonText, minTaskValue, maxTaskValue);
         }
 
-        private void initGui(String statusMessage, String cancelButtonText, int min, int max) {
+        private void initGui(String statusMessage, String detailsText, String cancelButtonText, int min, int max) {
             this.setResizable(false);
             this.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
             
             JPanel container = new JPanel(new GridBagLayout());
             
             statusMessageLabel = new JLabel(statusMessage);
+            statusMessageLabel.setHorizontalAlignment(JLabel.CENTER);
             container.add(statusMessageLabel, 
-                new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+                new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             
             progressBar = new JProgressBar(min, max);
             progressBar.setStringPainted(true);
@@ -195,6 +202,14 @@ public class ProgressDisplay {
             container.add(progressBar, 
                 new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
+            if (detailsText == null) {
+                detailsText = "";
+            }
+            detailsTextLabel = new JLabel(detailsText);
+            detailsTextLabel.setHorizontalAlignment(JLabel.CENTER);
+            container.add(detailsTextLabel, 
+                new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            
             // Display the cancel button if a cancel event listener is available.
             if (this.cancelEventListener != null) {
                 JButton cancel = new JButton(cancelButtonText);
@@ -203,7 +218,7 @@ public class ProgressDisplay {
                 cancel.setDefaultCapable(true);
                             
                 container.add(cancel, 
-                    new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
+                    new GridBagConstraints(0, 3, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
             } else {
                 setCursor(new Cursor(Cursor.WAIT_CURSOR));                
             }
@@ -230,19 +245,31 @@ public class ProgressDisplay {
             super.dispose();
         }
         
-        public void updateStatusText(String text) {
-            if (statusMessageLabel.getText().equals(text)) {
+        public void updateStatusMessages(String statusMessage, String detailsText) {
+            if (statusMessageLabel.getText().equals(statusMessage)) {
                 // Nothing to do.
                 return;
             }
             
-            statusMessageLabel.setText(text);
+            statusMessageLabel.setText(statusMessage);
+            if (detailsText != null) {
+                detailsTextLabel.setText(detailsText);
+            }
             
-            if (text.length() > longestStatusTextLength) {
-                longestStatusTextLength = text.length();
+            boolean repack = false;
+            if (statusMessage.length() > longestStatusTextLength) {
+                longestStatusTextLength = statusMessage.length();
+                repack = true;
+            }
+            if (detailsText != null && detailsText.length() > longestDetailsTextLength) {
+                longestDetailsTextLength = detailsText.length();
+                repack = true;
+            }            
+            if (repack) {
                 progressDialog.pack();
                 progressDialog.setLocationRelativeTo(this.getOwner());
-            }            
+            }
+
         }
         
         public void updateProgress(int progressValue) {
