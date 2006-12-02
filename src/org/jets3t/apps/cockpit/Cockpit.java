@@ -611,7 +611,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private void startProgressDisplay(String statusText) {
         this.setEnabled(false);
-        startProgressDisplay(statusText, 0, 0, null, null);
+        startProgressDisplay(statusText, null, 0, 0, null, null);
     }
 
     /**
@@ -620,6 +620,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * 
      * @param statusText
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+     * @param detailsText
+     *        describes the status of a task in more detail, such as the current transfer rate and ETA.
      * @param minValue  the minimum progress value for a task, generally 0
      * @param maxValue  
      *        the maximum progress value for a task, such as the total number of threads or 100 if
@@ -631,32 +633,46 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      *        text displayed in the cancel button if a task can be cancelled. This is only used if
      *        a cancel event listener is provided.
      */
-    private void startProgressDisplay(final String statusText, final long minValue, final long maxValue, 
-        final String cancelButtonText, final CancelEventTrigger cancelEventListener) 
+    private void startProgressDisplay(final String statusText, final String detailsText, 
+        final long minValue, final long maxValue, final String cancelButtonText, 
+        final CancelEventTrigger cancelEventListener) 
     {
        if (progressDisplay == null || !progressDisplay.isActive()) {
            progressDisplay = new ProgressDisplay(ownerFrame, "Please wait...", statusText, 
-               (int) minValue, (int) maxValue, cancelButtonText, cancelEventListener);
+               null, (int) minValue, (int) maxValue, cancelButtonText, cancelEventListener);
            progressDisplay.startDialog();
            
            this.getContentPane().setCursor(new Cursor(Cursor.WAIT_CURSOR));
        }
     }
     
+    private void startProgressDisplay(final String statusText, final long minValue, 
+        final long maxValue, final String cancelButtonText, 
+        final CancelEventTrigger cancelEventListener) 
+    {
+        startProgressDisplay(statusText, null, minValue, maxValue, cancelButtonText, cancelEventListener);
+    }
+    
     /**
      * Updates the status text and value of the progress display dialog.
      * @param statusText
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+     * @param detailsText
+     *        describes the status of a task in more detail, such as the current transfer rate and ETA.
      * @param currentValue
      *        value representing how far through the task we are (relative to min and max values)
      */
-    private void updateProgressDisplay(final String statusText, final long currentValue) {
+    private void updateProgressDisplay(final String statusText, final String detailsText, final long currentValue) {
         if (progressDisplay != null && progressDisplay.isActive()) {
             if (currentValue > 0) {
                 progressDisplay.updateProgress((int) currentValue);                
             }
-            progressDisplay.updateStatusText(statusText);
+            progressDisplay.updateStatusMessages(statusText, detailsText);
         }
+    }
+    
+    private void updateProgressDisplay(final String statusText, final long currentValue) {
+        this.updateProgressDisplay(statusText, null, currentValue);
     }
     
     /**
@@ -1659,7 +1675,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // ... otherwise just show the number of completed threads.
             } else {
                 startProgressDisplay("Downloaded " + event.getThreadWatcher().getCompletedThreads()
-                    + " of " + event.getThreadWatcher().getThreadCount() + " objects", 
+                    + " of " + event.getThreadWatcher().getThreadCount() + " objects", " ",
                     0, event.getThreadWatcher().getThreadCount(),  "Cancel Download",
                     event.getThreadWatcher().getCancelEventListener());
             }
@@ -1672,9 +1688,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 String bytesCompletedStr = formatByteSize(watcher.getBytesTransferred());
                 String bytesTotalStr = formatByteSize(watcher.getBytesTotal());
                 String statusText = "Downloaded " + bytesCompletedStr + " of " + bytesTotalStr;
+                
+                String detailsText = formatTransferDetails(watcher);
+                
                 long percentage = (int) 
                     (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
-                updateProgressDisplay(statusText, percentage);
+                updateProgressDisplay(statusText, detailsText, percentage);
             }
             // ... otherwise just show the number of completed threads.
             else {
@@ -1919,7 +1938,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             if (watcher.isBytesTransferredInfoAvailable()) {
                 String bytesTotalStr = formatByteSize(watcher.getBytesTotal());
                 String statusText = "Uploaded 0 of " + bytesTotalStr;                
-                startProgressDisplay(statusText, 0, 100, "Cancel upload", 
+                startProgressDisplay(statusText, " ", 0, 100, "Cancel upload", 
                     event.getThreadWatcher().getCancelEventListener());
             } 
             // ... otherwise show the number of completed threads.
@@ -1953,7 +1972,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     String statusText = "Uploaded " + bytesCompletedStr + " of " + bytesTotalStr;
                     long percentage = (int) 
                         (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
-                    updateProgressDisplay(statusText, percentage);
+                    
+                    String detailsText = formatTransferDetails(watcher);
+
+                    updateProgressDisplay(statusText, detailsText, percentage);
                 }
             }
             // ... otherwise show the number of completed threads.
@@ -2222,6 +2244,39 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         return result;
     }    
+    
+    private String formatTime(long seconds) {
+        String result = "";
+        if (seconds > 3600) {
+            int hours = (int) seconds / 3600;
+            result = hours + ":";
+            seconds = seconds - (hours * 3600); 
+        } 
+        
+        int mins = (int) seconds / 60;
+        result += (mins < 10 ? "0" : "") + mins + ":";
+        seconds = seconds - (mins * 60);
+        
+        result += (seconds < 10 ? "0" : "") + seconds;
+        
+        return result;
+    }
+    
+    private String formatTransferDetails(ThreadWatcher watcher) {
+        String detailsText = null;
+        if (watcher.isBytesTransferredInfoAvailable()) {
+            detailsText = " ";
+        }
+        if (watcher.isBytesPerSecondAvailable()) {
+            long bytesPerSecond = watcher.getBytesPerSecond();
+            detailsText = formatByteSize(bytesPerSecond) + "/s";
+        }
+        if (watcher.isTimeRemainingAvailable()) {
+            long secondsRemaining = watcher.getTimeRemaining();
+            detailsText += " - ETA " + formatTime(secondsRemaining);
+        }
+        return detailsText;
+    }
     
         
     /**
