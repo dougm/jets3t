@@ -66,6 +66,7 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.signedurl.SignedPutUploader;
 
 /**
  * REST/HTTP implementation of an {@link S3Service} based on the 
@@ -102,7 +103,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * 
  * @author James Murty
  */
-public class RestS3Service extends S3Service {
+public class RestS3Service extends S3Service implements SignedPutUploader {
     private final Log log = LogFactory.getLog(RestS3Service.class);
 
     private static final String PROTOCOL_SECURE = "https";
@@ -1036,10 +1037,11 @@ public class RestS3Service extends S3Service {
     }
 
     /**
-     * Puts an object using a pre-signed PUT URL based on that object.
+     * Puts an object using a pre-signed PUT URL generated for that object.
+     * This method is an implementation of the interface {@link SignedPutUploader}. 
      * <p>
-     * This is a convenience method only, it does not required any S3 functionality as it merely 
-     * uploads the object using standard HTTP methods and the signed URL.
+     * This operation does not required any S3 functionality as it merely 
+     * uploads the object by performing a standard HTTP PUT using the signed URL.
      * 
      * @param signedUrl
      * a signed PUT URL generated with {@link S3Service.createSignedUrl}.
@@ -1049,9 +1051,13 @@ public class RestS3Service extends S3Service {
      * ACL policy only the REST canned ACLs can be used
      * (eg {@link AccessControlList.REST_CANNED_PUBLIC_READ_WRITE}). 
      * 
+     * @return
+     * the S3Object put to S3. The S3Object returned will be identical to the object provided, 
+     * except that the data input stream (if any) will have been consumed.
+     * 
      * @throws S3ServiceException
      */
-    public void putObjectWithSignedUrl(String signedUrl, S3Object object) throws S3ServiceException {
+    public S3Object putObjectWithSignedUrl(String signedUrl, S3Object object) throws S3ServiceException {
         PutMethod putMethod = new PutMethod(signedUrl);
         
         if (object.getMd5HashAsBase64() != null) {
@@ -1083,9 +1089,11 @@ public class RestS3Service extends S3Service {
         }
 
         performRequest(putMethod, 200);
-        
-        // Release connection after PUT.
+
+        // Consume response data and release connection.
         putMethod.releaseConnection();
+
+        return object;
     }
     
     /**
