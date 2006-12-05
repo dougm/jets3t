@@ -52,6 +52,8 @@ public class S3Object extends BaseS3Object {
 	public static final String METADATA_HEADER_CONTENT_TYPE = "Content-Type";	
     public static final String METADATA_HEADER_CONTENT_ENCODING = "Content-Encoding";   
 	public static final String METADATA_HEADER_STORAGE_CLASS = "Storage-Class";	
+    public static final String METADATA_HEADER_CONTENT_DISPOSITION = "Content-Disposition";   
+    public static final String METADATA_HEADER_CONTENT_LANGUAGE = "Content-Language";   
 	
 	private String key = null;
 	private String bucketName = null;
@@ -338,6 +340,22 @@ public class S3Object extends BaseS3Object {
         addMetadata(METADATA_HEADER_CONTENT_TYPE, contentType);
 	}
 	
+    public String getContentLanguage() {
+        return (String) getMetadata(METADATA_HEADER_CONTENT_LANGUAGE);
+    }
+
+    public void setContentLanguage(String contentLanguage) {
+        addMetadata(METADATA_HEADER_CONTENT_LANGUAGE, contentLanguage);
+    }
+
+    public String getContentDisposition() {
+        return (String) getMetadata(METADATA_HEADER_CONTENT_DISPOSITION);
+    }
+
+    public void setContentDisposition(String contentDisposition) {
+        addMetadata(METADATA_HEADER_CONTENT_DISPOSITION, contentDisposition);
+    }
+
     public String getContentEncoding() {
         return (String) getMetadata(METADATA_HEADER_CONTENT_ENCODING);
     }
