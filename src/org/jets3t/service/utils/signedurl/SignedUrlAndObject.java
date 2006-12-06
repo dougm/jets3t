@@ -21,16 +21,16 @@ package org.jets3t.service.utils.signedurl;
 import org.jets3t.service.model.S3Object;
 
 /**
- * A package containing an object and a signed PUT URL associated with the object.
+ * A package containing an object and a signed URL associated with the object.
  * 
  * @author James Murty
  */
-public class SignedPutPackage {
-    private String signedPutUrl = null;
+public class SignedUrlAndObject {
+    private String signedUrl = null;
     private S3Object object = null;
 
-    public SignedPutPackage(String signedPutUrl, S3Object object) {
-        this.signedPutUrl = signedPutUrl;
+    public SignedUrlAndObject(String signedUrl, S3Object object) {
+        this.signedUrl = signedUrl;
         this.object = object;
     }
 
@@ -38,8 +38,8 @@ public class SignedPutPackage {
         return object;
     }
 
-    public String getSignedPutUrl() {
-        return signedPutUrl;
+    public String getSignedUrl() {
+        return signedUrl;
     }
     
 }
