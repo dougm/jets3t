@@ -67,9 +67,13 @@ public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionList
         if (htmlText != null) {
             this.setText(htmlText);
         }
+        setHyperlinkeActivatedListener(listener);
+    }
+    
+    public void setHyperlinkeActivatedListener(HyperlinkActivatedListener listener) {
         this.listener = listener;
         addMouseListener(this);
-        addMouseMotionListener(this);
+        addMouseMotionListener(this);        
     }
 
     /**
