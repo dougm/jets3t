@@ -23,12 +23,14 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.JHtmlLabel;
 
 /**
  * Manages the creation of skinned GUI elements. 
@@ -49,7 +51,8 @@ import org.apache.commons.logging.LogFactory;
  * <table>
  * <tr><th>Class name</th><th>Extends</th></tr>
  * <tr><td>SkinnedJButton</td><td>javax.swing.JButton</td></tr>
- * <tr><td>SkinnedJPanel</td><td>JPanel</td></tr>
+ * <tr><td>SkinnedJLabel</td><td>org.jets3t.gui.JHtmlLabel</td></tr>
+ * <tr><td>SkinnedJPanel</td><td>javax.swing.JPanel</td></tr>
  * <tr><td>SkinnedLookAndFeel</td><td>javax.swing.plaf.metal.MetalLookAndFeel</td></tr>
  * </table>
  * 
@@ -174,6 +177,24 @@ public class SkinsFactory {
         }                
     }
     
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJLabel</code> class implementation for the current skin, or a default
+     * JHtmlLabel if no skin-specific implementation is available.
+     */
+    public JHtmlLabel createSkinnedJLabel(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJLabel"), itemName);        
+        if (instance != null) {
+            return (JHtmlLabel) instance;
+        } else {
+            return new JHtmlLabel(null);
+        }                
+    }
+
     private String buildSkinnedClassName(String className) {
         String skinnedClassName = 
             this.getClass().getPackage().getName() + "." + this.skinName + "." + className;
