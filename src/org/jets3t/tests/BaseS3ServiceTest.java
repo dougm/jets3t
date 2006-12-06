@@ -572,11 +572,9 @@ public abstract class BaseS3ServiceTest extends TestCase {
         cal.add(Calendar.MINUTE, 5);
         Date expiryDate = cal.getTime();
 
-        boolean isHttpsUrl = true; // Choose whether URL is HTTP or HTTPS.
-        
         // Create a signed HTTP PUT URL.
-        String signedPutUrl = S3Service.createSignedUrl("PUT", bucket.getName(), object.getKey(), 
-            object.getMetadataMap(), awsCredentials, expiryDate, isHttpsUrl);
+        String signedPutUrl = S3Service.createSignedPutUrl(bucket.getName(), object.getKey(), 
+            object.getMetadataMap(), awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
 
         // Put the object in S3 using the signed URL (no AWS credentials required)
         RestS3Service restS3Service = new RestS3Service(null);
@@ -620,8 +618,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
             .openConnection()).getResponseCode());
 
         // Create a signed HTTP GET URL.
-        String signedGetUrl = S3Service.createSignedUrl("GET", bucket.getName(), object.getKey(), null,
-            awsCredentials, expiryDate, isHttpsUrl);
+        String signedGetUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(), null, null,
+            awsCredentials, expiryDate, s3Url);
 
         // Ensure the signed URL can retrieve the object.
         url = new URL(signedGetUrl);
