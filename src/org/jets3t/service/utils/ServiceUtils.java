@@ -369,4 +369,28 @@ public class ServiceUtils {
         return computeMD5Hash(new ByteArrayInputStream(data));
     }    
     
+    /**
+     * Builds an object based on the bucket name and object key information available in a 
+     * URL path. 
+     * 
+     * @param urlPath
+     * the path of a URL that references an S3 object, excluding the preceeding protocol and server
+     * information as well as any URL parameters. This URL <b>must</b> include both the bucket
+     * name and object key components for this method to work.
+     * 
+     * @return
+     * the object referred to in the URL path.
+     */
+    public static S3Object buildObjectFromPath(String urlPath) {
+        if (urlPath.startsWith("/")) {
+            urlPath = urlPath.substring(1); // Ignore first '/' character.
+        }
+        String bucketName = urlPath.substring(0, urlPath.indexOf("/"));
+        String objectKey = urlPath.substring(bucketName.length() + 1);
+        
+        S3Object object = new S3Object(objectKey);
+        object.setBucketName(bucketName);
+        return object;
+    }
+    
 }
