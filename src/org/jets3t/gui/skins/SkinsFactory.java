@@ -30,21 +30,60 @@ import javax.swing.UIManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+/**
+ * Manages the creation of skinned GUI elements. 
+ * Skinned elements are created using the following process:
+ * <ol>
+ * <li>Instantiate a skin-specific class in the skin's package 
+ * <code>org.jets3t.gui.skins.<i>&lt;skinName&gt;</i></code></li>
+ * <li>If a skin-specific class is not available or cannot be created,
+ * instantiate a generic GUI class instead</li>
+ * </ol>
+ * <p>
+ * Skinned classes are specially-named extensions to standard Swing classes, which must have with a 
+ * constructor of the form <code>public SkinnedJButton(Properties skinProperties, String itemName)</code>.
+ * This constructor allows skinned GUI elements to change their look or behaviour based on any 
+ * skin-specific properties that are provided, or based on the name of a specific GUI element.
+ * <p>
+ * The skinned class names supported by this factory include:
+ * <table>
+ * <tr><th>Class name</th><th>Extends</th></tr>
+ * <tr><td>SkinnedJButton</td><td>javax.swing.JButton</td></tr>
+ * <tr><td>SkinnedJPanel</td><td>JPanel</td></tr>
+ * <tr><td>SkinnedLookAndFeel</td><td>javax.swing.plaf.metal.MetalLookAndFeel</td></tr>
+ * </table>
+ * 
+ * @author James Murty
+ *
+ */
 public class SkinsFactory {
     private static final Log log = LogFactory.getLog(SkinsFactory.class);
 
     public static final String DEFAULT_SKIN_NAME = "default";
     
+    /**
+     * The name of the chosen skin.
+     */
     private String skinName = null;
+    
+    /**
+     * Properties that apply specifically to the chosen skin.
+     */
     private Properties skinProperties = new Properties();
     
-    
+    /**
+     * Construct the factory and find skin-specific properties in the provided properties set.
+     * 
+     * @param properties
+     * A set of properties that may contain skin-specific properties.
+     */
     private SkinsFactory(Properties properties) {
         this.skinName = properties.getProperty("skin.name");
         if (this.skinName == null) {
             this.skinName = DEFAULT_SKIN_NAME;
         }
         
+        // Find skin-specific properties.
         String skinPropertyPrefix = "skin." + this.skinName.toLowerCase() + ".";
         Iterator iter = properties.keySet().iterator();
         while (iter.hasNext()) {
@@ -56,13 +95,32 @@ public class SkinsFactory {
                 this.skinProperties.put(skinPropertyName, propertyValue);                
             }
         }
-System.err.println("skinProperties=" + skinProperties);
     }
     
+    /**
+     * Provides a skin factory and initialised with skin-specific properties from the provided 
+     * properties set. Skin-specific properties are identified as those properties with the 
+     * prefix <code>skin.<i>&lt;skinName&gt;</i>.</code>
+     * 
+     * @param properties
+     * a set of properties that may contain skin-specific properties.
+     * 
+     * @return
+     * the skins factory initialised with skin settings.
+     */
     public static SkinsFactory getInstance(Properties properties) {
         return new SkinsFactory(properties);
     }
 
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedLookAndFeel</code> class implementation for the current skin, or the default
+     * system LookAndFeel if no skin-specific implementation is available.
+     */
     public LookAndFeel createSkinnedMetalTheme(String itemName) {
         Object instance = instantiateClass(buildSkinnedClassName("SkinnedLookAndFeel"), itemName);        
         if (instance != null) {
@@ -80,6 +138,15 @@ System.err.println("skinProperties=" + skinProperties);
         }        
     }
     
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJButton</code> class implementation for the current skin, or a default
+     * JButton if no skin-specific implementation is available.
+     */
     public JButton createSkinnedJButton(String itemName) {
         Object instance = instantiateClass(buildSkinnedClassName("SkinnedJButton"), itemName);        
         if (instance != null) {
@@ -89,6 +156,15 @@ System.err.println("skinProperties=" + skinProperties);
         }        
     }
     
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJPanel</code> class implementation for the current skin, or a default
+     * JPanel if no skin-specific implementation is available.
+     */
     public JPanel createSkinnedJPanel(String itemName) {
         Object instance = instantiateClass(buildSkinnedClassName("SkinnedJPanel"), itemName);        
         if (instance != null) {
