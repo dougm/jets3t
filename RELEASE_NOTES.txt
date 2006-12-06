@@ -14,8 +14,8 @@ TOOLKIT
 - New methods to chunk bucket listings, allowing for better handling of buckets with many objects.
 - A limit to the maximum number of simultaneous communication threads (ie those interacting with S3) 
   is now imposed. This limit can be set in the properties file, and defaults to 50.
-- Signed URLs can be generated for GET and PUT HTTP requests, and will correctly encode object key 
-  names with special characters.
+- Signed URLs can be generated for GET, HEAD, PUT and DELETE requests
+- Fixed bug where object keys/names with special characters were not correctly encoded.
 - DNS caching is limited to 300 seconds.
 - When an object's data comes from a file, the file can be opened only when necessary rather than 
   being opened as soon as the object is created.
@@ -30,6 +30,8 @@ TOOLKIT
 - Can detect (in some circumstances) a browser's proxy settings when run inside an applet context,
   and allows for callbacks to a credentials provider object when authentication is required
   (eg for proxies requiring username/password)
+- Signed URLs can be used to perform GET, HEAD, PUT and DELETE operations without the need for
+  knowledge of AWS credentials.
 - Added a utility method putObjectWithSignedUrl to upload objects to S3 using only a signed 
   PUT URL (ie no AWS credentials are required).
 - Configurable user agent string.
@@ -40,6 +42,12 @@ TOOLKIT
 
 - Tests for data corruption on the wire by matching ETag returned by S3 with 
   expected MD5 hash value.
+
+  * Multi-threaded Service
+
+- Signed URLs can be used to perform GET, HEAD, PUT and DELETE operations of multiple items at a time,
+  without the need for knowledge of AWS credentials.
+
 
 UPLOADER
 
@@ -54,13 +62,22 @@ COCKPIT
 - User can cancel the listing of objects in large buckets.
 - Files being sent to s3 are only opened when necessary, removing the potential for too many files
   to be open at once (exceeding an Operating System imposed limit).
+- When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
 
 SYNCHONIZE
 
 - Files being sent to s3 are only opened when necessary, removing the potential for too many files
   to be open at once (exceeding an Operating System imposed limit).
+- When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
 
 KNOWN ISSUES
+
+CONTRIBUTORS
+
+Thankyou to the following contributors, who helped make this release possible:
+
+- Andrea Barbieri of Moving Image Research (http://www.mir.nu)
+- Angel Vera (gunfus)
 
 
 Version 0.4.0
