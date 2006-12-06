@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
@@ -51,7 +50,7 @@ import org.jets3t.gui.JHtmlLabel;
  * <table>
  * <tr><th>Class name</th><th>Extends</th></tr>
  * <tr><td>SkinnedJButton</td><td>javax.swing.JButton</td></tr>
- * <tr><td>SkinnedJLabel</td><td>org.jets3t.gui.JHtmlLabel</td></tr>
+ * <tr><td>SkinnedJHtmlLabel</td><td>org.jets3t.gui.JHtmlLabel</td></tr>
  * <tr><td>SkinnedJPanel</td><td>javax.swing.JPanel</td></tr>
  * <tr><td>SkinnedLookAndFeel</td><td>javax.swing.plaf.metal.MetalLookAndFeel</td></tr>
  * </table>
@@ -186,8 +185,8 @@ public class SkinsFactory {
      * a <code>SkinnedJLabel</code> class implementation for the current skin, or a default
      * JHtmlLabel if no skin-specific implementation is available.
      */
-    public JHtmlLabel createSkinnedJLabel(String itemName) {
-        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJLabel"), itemName);        
+    public JHtmlLabel createSkinnedJHtmlLabel(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJHtmlLabel"), itemName);        
         if (instance != null) {
             return (JHtmlLabel) instance;
         } else {

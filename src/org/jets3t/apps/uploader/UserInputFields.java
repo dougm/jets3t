@@ -120,7 +120,7 @@ public class UserInputFields {
                         continue;
                     }
                     
-                    JHtmlLabel label = skinsFactory.createSkinnedJLabel(fieldName);
+                    JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
@@ -153,7 +153,7 @@ public class UserInputFields {
                         continue;
                     }
                     
-                    JHtmlLabel label = skinsFactory.createSkinnedJLabel(fieldName);
+                    JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
@@ -170,7 +170,7 @@ public class UserInputFields {
         
                     userInputComponentsMap.put(fieldName, comboBox);
                 } else if ("text".equals(fieldType)) {
-                    JHtmlLabel label = skinsFactory.createSkinnedJLabel(fieldName);
+                    JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
@@ -181,7 +181,7 @@ public class UserInputFields {
                     
                     userInputComponentsMap.put(fieldName, textField);
                 } else if ("password".equals(fieldType)) {
-                    JHtmlLabel label = skinsFactory.createSkinnedJLabel(fieldName);
+                    JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
@@ -192,7 +192,7 @@ public class UserInputFields {
                     
                     userInputComponentsMap.put(fieldName, passwordField);
                 } else if (fieldType.startsWith("textarea")) {
-                    JHtmlLabel label = skinsFactory.createSkinnedJLabel(fieldName);
+                    JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,

@@ -415,7 +415,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         
         // Footer for branding        
         boolean includeFooter = false;
-        JLabel footerLabel = new JHtmlLabel(this);
+        JHtmlLabel footerLabel = skinsFactory.createSkinnedJHtmlLabel("FooterLabel");
+        footerLabel.setHyperlinkeActivatedListener(this);
         footerLabel.setHorizontalAlignment(JLabel.CENTER);
         if (footerHtml != null) {
             footerLabel.setText(footerHtml);
@@ -444,7 +445,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Screen 2 : Drag/drop panel.
         JPanel screen2Panel = skinsFactory.createSkinnedJPanel("Screen2Panel");
         screen2Panel.setLayout(GRID_BAG_LAYOUT);
-        dragDropTargetLabel = new JHtmlLabel(this);
+        dragDropTargetLabel = skinsFactory.createSkinnedJHtmlLabel("DragDropTargetLabel");
+        dragDropTargetLabel.setHyperlinkeActivatedListener(this);
         dragDropTargetLabel.setHorizontalAlignment(JLabel.CENTER);
         dragDropTargetLabel.setVerticalAlignment(JLabel.CENTER);
         
@@ -489,7 +491,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Screen 3 : Information about the file to be uploaded.
         JPanel screen3Panel = skinsFactory.createSkinnedJPanel("Screen3Panel");
         screen3Panel.setLayout(GRID_BAG_LAYOUT);
-        fileToUploadLabel = new JHtmlLabel(this);
+        fileToUploadLabel = skinsFactory.createSkinnedJHtmlLabel("FileToUploadLabel");
+        fileToUploadLabel.setHyperlinkeActivatedListener(this);
         fileToUploadLabel.setHorizontalAlignment(JLabel.CENTER);
         fileToUploadLabel.setVerticalAlignment(JLabel.CENTER);
         screen3Panel.add(fileToUploadLabel,
@@ -498,13 +501,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Screen 4 : Upload progress.
         JPanel screen4Panel = skinsFactory.createSkinnedJPanel("Screen4Panel");
         screen4Panel.setLayout(GRID_BAG_LAYOUT);
-        fileInformationLabel = new JHtmlLabel(" ", this);
+        fileInformationLabel = skinsFactory.createSkinnedJHtmlLabel("FileInformationLabel");
+        fileInformationLabel.setHyperlinkeActivatedListener(this);        
         fileInformationLabel.setHorizontalAlignment(JLabel.CENTER);        
         progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(true);
-        progressStatusTextLabel = new JHtmlLabel(" ", this);
+        progressStatusTextLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressStatusTextLabel");
+        progressStatusTextLabel.setHyperlinkeActivatedListener(this);
+        progressStatusTextLabel.setText(" ");
         progressStatusTextLabel.setHorizontalAlignment(JLabel.CENTER);
-        progressTransferDetailsLabel = new JHtmlLabel(" ", this);
+        progressTransferDetailsLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressTransferDetailsLabel");
+        progressTransferDetailsLabel.setHyperlinkeActivatedListener(this);
+        progressTransferDetailsLabel.setText(" ");
         progressTransferDetailsLabel.setHorizontalAlignment(JLabel.CENTER);
 
         // Skinning for ProgressBar foreground.
@@ -567,7 +575,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Screen 5 : Thankyou message.
         JPanel screen5Panel = skinsFactory.createSkinnedJPanel("Screen5Panel");
         screen5Panel.setLayout(GRID_BAG_LAYOUT);
-        finalMessageLabel = new JHtmlLabel(this);
+        finalMessageLabel = skinsFactory.createSkinnedJHtmlLabel("FinalMessageLabel");
+        finalMessageLabel.setHyperlinkeActivatedListener(this);
         finalMessageLabel.setHorizontalAlignment(JLabel.CENTER);
         screen5Panel.add(finalMessageLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
@@ -617,7 +626,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         this.getContentPane().add(appContentPanel);
 
-        userGuidanceLabel = new JHtmlLabel(this);
+        userGuidanceLabel = skinsFactory.createSkinnedJHtmlLabel("UserGuidanceLabel");
+        userGuidanceLabel.setHyperlinkeActivatedListener(this);
         userGuidanceLabel.setHorizontalAlignment(JLabel.CENTER);
         
         userGuidancePanel.add(userGuidanceLabel, 

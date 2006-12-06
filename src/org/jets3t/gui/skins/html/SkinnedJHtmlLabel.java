@@ -22,9 +22,9 @@ import java.util.Properties;
 
 import org.jets3t.gui.JHtmlLabel;
 
-public class SkinnedJLabel extends JHtmlLabel {
+public class SkinnedJHtmlLabel extends JHtmlLabel {
 
-    public SkinnedJLabel(Properties skinProperties, String itemName) {
+    public SkinnedJHtmlLabel(Properties skinProperties, String itemName) {
         super(null);
     }
 
