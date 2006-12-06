@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -53,10 +55,118 @@ public class FileComparer {
     private static final Log log = LogFactory.getLog(FileComparer.class);
 
     /**
+     * If a <code>.jets3t-ignore</code> file is present in the given directory, the file is read
+     * and all the paths contained in it are coverted to regular expression Pattern objects.
+     * 
+     * @param directory
+     * a directory that may contain a <code>.jets3t-ignore</code> file. If this parameter is null
+     * or is actually a file and not a directory, an empty list will be returned.
+     * 
+     * @return
+     * a list of Pattern objects representing the paths in the ignore file. If there is no ignore
+     * file, or if it has no contents, the list returned will be empty. 
+     */
+    protected static List buildIgnoreRegexpList(File directory) {
+        ArrayList ignorePatternList = new ArrayList();
+
+        if (directory == null || !directory.isDirectory()) {
+            return ignorePatternList;
+        }
+        
+        File jets3tIgnoreFile = new File(directory, Constants.JETS3T_IGNORE_FILENAME);
+        if (jets3tIgnoreFile.exists() && jets3tIgnoreFile.canRead()) {
+            log.debug("Found ignore file: " + jets3tIgnoreFile.getPath());
+            try {
+                String ignorePaths = ServiceUtils.readInputStreamToString(
+                    new FileInputStream(jets3tIgnoreFile));
+                StringTokenizer st = new StringTokenizer(ignorePaths.trim(), "\n");
+                while (st.hasMoreTokens()) {
+                    String ignorePath = st.nextToken();
+                    
+                    // Convert path to RegExp.
+                    String ignoreRegexp = ignorePath;
+                    ignoreRegexp = ignoreRegexp.replaceAll("\\.", "\\\\.");
+                    ignoreRegexp = ignoreRegexp.replaceAll("\\*", ".*");
+                    ignoreRegexp = ignoreRegexp.replaceAll("\\?", ".");
+                    
+                    Pattern pattern = Pattern.compile(ignoreRegexp);
+                    log.debug("Ignore path '" + ignorePath + "' has become the regexp: " 
+                        + pattern.pattern());                    
+                    ignorePatternList.add(pattern);                    
+                }
+            } catch (IOException e) {
+                log.error("Failed to read contents of ignore file '" + jets3tIgnoreFile.getPath()
+                    + "'", e);
+            }
+        }
+        return ignorePatternList;
+    }
+    
+    /**
+     * Determines whether a file should be ignored, based on whether it matches a regular expression
+     * Pattern in the provided ignore list.
+     * 
+     * @param ignorePatternList
+     * a list of Pattern objects representing the file names to ignore.
+     * @param file
+     * a file that will either be ignored or not, depending on whether it matches an ignore Pattern.
+     * 
+     * @return
+     * true if the file should be ignored, false otherwise.
+     */
+    protected static boolean isIgnored(List ignorePatternList, File file) {
+        Iterator patternIter = ignorePatternList.iterator();
+        while (patternIter.hasNext()) {
+            Pattern pattern = (Pattern) patternIter.next();
+            
+            if (pattern.matcher(file.getName()).matches()) {
+                log.debug("Ignoring " + (file.isDirectory() ? "directory" : "file") 
+                    + " matching pattern '" + pattern.pattern() + "': " + file.getName());                
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Builds a File Map containing the given files. If any of the given files are actually
+     * directories, the contents of the directory are included.
+     * <p>
+     * File keys are delimited with '/' characters.
+     * <p>
+     * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
+     * 
+     * @param files
+     * the set of files/directories to include in the file map.
+     * 
+     * @return
+     * a Map of file path keys to File objects.
+     */
+    public static Map buildFileMap(File[] files) {
+        // Build map of files proposed for upload.
+        HashMap fileMap = new HashMap();
+        for (int i = 0; i < files.length; i++) {
+            List ignorePatternList = buildIgnoreRegexpList(files[i].getParentFile());
+            
+            if (!isIgnored(ignorePatternList, files[i])) {                
+                if (files[i].isDirectory()) {
+                    buildFileMapImpl(files[i], files[i].getName() + Constants.FILE_PATH_DELIM, fileMap);
+                } else {
+                    fileMap.put(files[i].getName(), files[i]);
+                }
+            }
+        }
+        return fileMap;
+    }
+    
+    /**
      * Builds a File Map containing all the files and directories inside the given root directory,
      * where the map's key for each file is the relative path to the file.
-     * 
+     * <p> 
      * File keys are delimited with '/' characters.
+     * <p>
+     * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
      * 
      * @see #buildDiscrepancyLists(Map, Map)
      * @see #buildS3ObjectMap(S3Service, S3Bucket, String, S3Object[], S3ServiceEventListener)
@@ -86,20 +196,33 @@ public class FileComparer {
     }
     
     /**
-     * Recursive function to build a file map for all files in a nested directory structure.
+     * Recursively builds a File Map containing all the files and directories inside the given directory,
+     * where the map's key for each file is the relative path to the file.
+     * <p> 
+     * File keys are delimited with '/' characters.
+     * <p>
+     * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
      * 
-     * @param dir
-     * @param currentPath
+     * @param directory
+     * The directory containing the files/directories of interest. The directory is <b>not</b>
+     * included in the result map.
+     * @param fileKeyPrefix
+     * A prefix added to each file path key in the map, e.g. the name of the root directory the
+     * files belong to. This prefix <b>must</b> end with a '/' character.
      * @param fileMap
+     * a map of path keys to File objects, that this method adds items to.
      */
-    protected static void buildFileMapImpl(File dir, String currentPath, Map fileMap) {
-        File children[] = dir.listFiles();
-        for (int i = 0; i < children.length; i++) {
-            fileMap.put(currentPath + children[i].getName(), children[i]);
-            if (children[i].isDirectory()) {
-                buildFileMapImpl(children[i], currentPath + children[i].getName() + "/", fileMap);
-            } else {
-                fileMap.put(currentPath + children[i].getName(), children[i]);
+    protected static void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap) {
+        List ignorePatternList = buildIgnoreRegexpList(directory);
+
+        File children[] = directory.listFiles();
+        for (int i = 0; i < children.length; i++) {                        
+            if (!isIgnored(ignorePatternList, children[i])) {
+                if (children[i].isDirectory()) {
+                    buildFileMapImpl(children[i], fileKeyPrefix + children[i].getName() + "/", fileMap);
+                } else {
+                    fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
+                }
             }
         }
     }
