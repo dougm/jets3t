@@ -16,25 +16,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.uploader;
+package org.jets3t.gui.skins.html;
 
-import java.net.URL;
+import java.util.Properties;
 
-/**
- * Listener responsible for following HTML links that have been activated.
- * 
- * @author James Murty
- */
-public interface HyperlinkActivatedListener {
+import javax.swing.JPanel;
 
-    /**
-     * Triggered when an HTML link is activated, most likely by a {@link JHtmlLabel}.
-     * 
-     * @param url
-     * the url contained in the href.
-     * @param target
-     * the target attribute of the href, may be null if the attribute is not present.
-     */
-    public void followHyperlink(URL url, String target);
+public class SkinnedJPanel extends JPanel {
+
+    public SkinnedJPanel(Properties skinProperties, String itemName) {
+        super();
+    }
     
 }

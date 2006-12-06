@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.uploader;
+package org.jets3t.gui;
 
 import java.awt.Cursor;
 import java.awt.event.MouseEvent;
@@ -30,6 +30,7 @@ import javax.swing.text.html.HTML;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.apps.uploader.Uploader;
 
 /**
  * Enhanced label component that changes the mouse curser to indicate when it passes over a
