@@ -22,6 +22,8 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -40,8 +42,8 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ServiceUtils;
-import org.jets3t.service.utils.signedurl.SignedPutPackage;
-import org.jets3t.service.utils.signedurl.SignedPutUploader;
+import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
+import org.jets3t.service.utils.signedurl.SignedUrlHandler;
 
 /**
  * S3 service wrapper that performs multiple S3 requests at a time using multi-threading and an
@@ -605,11 +607,206 @@ public class S3ServiceMulti {
     }
 
     /**
+     * Retrieves multiple objects (details and data) from a bucket using signed GET URLs corresponding
+     * to those objects.
+     * <p>
+     * Object retrieval using signed GET URLs can be performed without the underlying S3Service knowing 
+     * the AWSCredentials for the target S3 account, however the underlying service must implement
+     * the {@link SignedUrlHandler} interface. 
+     * <p>
+     * This method sends {@link GetObjectHeadsEvent} notification events.
+     * 
+     * @param signedGetURLs
+     * signed GET URL strings corresponding to the objects to be deleted.
+     * 
+     * @throws IllegalStateException
+     * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     * 
+     * @param bucket
+     * the bucket containing the objects to retrieve.
+     * @param objectKeys
+     * the key names of the objects to retrieve.
+     */
+    public void getObjects(final String[] signedGetURLs) throws MalformedURLException {
+        if (!(s3Service instanceof SignedUrlHandler)) {
+            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
+                + "SignedUrlHandler interface to make the method getObjects(String[] signedGetURLs) available");
+        }
+        
+        final List pendingObjectKeysList = new ArrayList();
+
+        // Start all queries in the background.
+        Thread[] threads = new Thread[signedGetURLs.length];
+        GetObjectRunnable[] runnables = new GetObjectRunnable[signedGetURLs.length];
+        for (int i = 0; i < runnables.length; i++) {
+            URL url = new URL(signedGetURLs[i]);
+            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            pendingObjectKeysList.add(object);
+            
+            runnables[i] = new GetObjectRunnable(signedGetURLs[i], false);
+            threads[i] = new Thread(runnables[i]);
+        }
+        // Wait for threads to finish, or be cancelled.        
+        (new ThreadGroupManager(threads, runnables) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                for (int i = 0; i < completedObjects.length; i++) {
+                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                }
+                fireServiceEvent(GetObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
+            }
+            public void fireCancelEvent() {
+                List cancelledObjectsList = new ArrayList();
+                Iterator iter = pendingObjectKeysList.iterator();
+                while (iter.hasNext()) {
+                    String key = (String) iter.next();
+                    cancelledObjectsList.add(new S3Object(key));
+                }
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(GetObjectsEvent.newCompletedEvent());                    
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable));
+            }
+        }).run();
+    }
+    
+    /**
+     * Retrieves details (but no data) about multiple objects using signed HEAD URLs corresponding
+     * to those objects.
+     * <p>
+     * Detail retrieval using signed HEAD URLs can be performed without the underlying S3Service knowing 
+     * the AWSCredentials for the target S3 account, however the underlying service must implement
+     * the {@link SignedUrlHandler} interface. 
+     * <p>
+     * This method sends {@link GetObjectHeadsEvent} notification events.
+     * 
+     * @param signedHeadURLs
+     * signed HEAD URL strings corresponding to the objects to be deleted.
+     * 
+     * @throws IllegalStateException
+     * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     */
+    public void getObjectsHeads(final String[] signedHeadURLs) throws MalformedURLException {
+        if (!(s3Service instanceof SignedUrlHandler)) {
+            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
+                + "SignedUrlHandler interface to make the method getObjectsHeads(String[] signedHeadURLs) available");
+        }
+        
+        final List pendingObjectKeysList = new ArrayList();
+        
+        // Start all queries in the background.
+        Thread[] threads = new Thread[signedHeadURLs.length];
+        GetObjectRunnable[] runnables = new GetObjectRunnable[signedHeadURLs.length];
+        for (int i = 0; i < runnables.length; i++) {
+            URL url = new URL(signedHeadURLs[i]);
+            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            pendingObjectKeysList.add(object);
+
+            runnables[i] = new GetObjectRunnable(signedHeadURLs[i], true);
+            threads[i] = new Thread(runnables[i]);
+        }
+        // Wait for threads to finish, or be cancelled.        
+        (new ThreadGroupManager(threads, runnables) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                for (int i = 0; i < completedObjects.length; i++) {
+                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                }
+                fireServiceEvent(GetObjectHeadsEvent.newInProgressEvent(threadWatcher, completedObjects));
+            }
+            public void fireCancelEvent() {
+                List cancelledObjectsList = new ArrayList();
+                Iterator iter = pendingObjectKeysList.iterator();
+                while (iter.hasNext()) {
+                    String key = (String) iter.next();
+                    cancelledObjectsList.add(new S3Object(key));
+                }
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(GetObjectHeadsEvent.newCompletedEvent());                    
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable));
+            }
+        }).run();
+    }
+    
+    /**
+     * Deletes multiple objects from a bucket using signed DELETE URLs corresponding to those objects.
+     * <p>
+     * Deletes using signed DELETE URLs can be performed without the underlying S3Service knowing 
+     * the AWSCredentials for the target S3 account, however the underlying service must implement
+     * the {@link SignedUrlHandler} interface. 
+     * <p>
+     * This method sends {@link DeleteObjectsEvent} notification events.
+     * 
+     * @param signedDeleteUrls
+     * signed DELETE URL strings corresponding to the objects to be deleted.
+     * 
+     * @throws IllegalStateException
+     * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     */
+    public void deleteObjects(final String[] signedDeleteUrls) throws MalformedURLException {
+        if (!(s3Service instanceof SignedUrlHandler)) {
+            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
+                + "SignedUrlHandler interface to make the method deleteObjects(String[] signedDeleteURLs) available");
+        }
+
+        final List objectsToDeleteList = new ArrayList();
+        
+        // Start all queries in the background.
+        Thread[] threads = new Thread[signedDeleteUrls.length];
+        DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[signedDeleteUrls.length];
+        for (int i = 0; i < runnables.length; i++) {
+            URL url = new URL(signedDeleteUrls[i]);
+            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            objectsToDeleteList.add(object);
+            
+            runnables[i] = new DeleteObjectRunnable(signedDeleteUrls[i]);
+            threads[i] = new Thread(runnables[i]);
+        }
+        
+        // Wait for threads to finish, or be cancelled.        
+        (new ThreadGroupManager(threads, runnables) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                objectsToDeleteList.removeAll(completedResults);
+                S3Object[] deletedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});                    
+                fireServiceEvent(DeleteObjectsEvent.newInProgressEvent(threadWatcher, deletedObjects));
+            }
+            public void fireCancelEvent() {
+                S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList.toArray(new S3Object[] {});                    
+                fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(DeleteObjectsEvent.newCompletedEvent());                    
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable));
+            }
+        }).run();
+    }
+
+    /**
      * Creates multiple objects in a bucket using a pre-signed PUT URL for each object.
      * <p>
      * Uploads using signed PUT URLs can be performed without the underlying S3Service knowing 
      * the AWSCredentials for the target S3 account, however the underlying service must implement
-     * the {@link SignedPutUploader} interface. 
+     * the {@link SignedUrlHandler} interface. 
      * <p>
      * This method sends {@link CreateObjectsEvent} notification events.
      * 
@@ -617,21 +814,21 @@ public class S3ServiceMulti {
      * packages containing the S3Object to upload and the corresponding signed PUT URL.
      * 
      * @throws IllegalStateException
-     * if the underlying S3Service does not implement {@link SignedPutUploader}
+     * if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
-    public void putObjects(final SignedPutPackage[] putPackages) {
-        if (!(s3Service instanceof SignedPutUploader)) {
+    public void putObjects(final SignedUrlAndObject[] signedPutUrlAndObjects) {
+        if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
-                + "SignedPutUploader interface to make the method putObjects(SignedPutPackage[]) available");
+                + "SignedUrlHandler interface to make the method putObjects(SignedUrlAndObject[] signedPutUrlAndObjects) available");
         }
         
         final List incompletedObjectsList = new ArrayList();        
         final long bytesCompleted[] = new long[] {0};
         
         // Calculate total byte count being transferred.
-        S3Object objects[] = new S3Object[putPackages.length];
-        for (int i = 0; i < putPackages.length; i++) {
-            objects[i] = putPackages[i].getObject();
+        S3Object objects[] = new S3Object[signedPutUrlAndObjects.length];
+        for (int i = 0; i < signedPutUrlAndObjects.length; i++) {
+            objects[i] = signedPutUrlAndObjects[i].getObject();
         }
         final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
         
@@ -642,11 +839,11 @@ public class S3ServiceMulti {
         };
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[putPackages.length];
-        SignedPutRunnable[] runnables = new SignedPutRunnable[putPackages.length];
+        Thread[] threads = new Thread[signedPutUrlAndObjects.length];
+        SignedPutRunnable[] runnables = new SignedPutRunnable[signedPutUrlAndObjects.length];
         for (int i = 0; i < runnables.length; i++) {
-            incompletedObjectsList.add(putPackages[i]);
-            runnables[i] = new SignedPutRunnable(putPackages[i], bytesTransferredListener);
+            incompletedObjectsList.add(signedPutUrlAndObjects[i].getObject());
+            runnables[i] = new SignedPutRunnable(signedPutUrlAndObjects[i], bytesTransferredListener);
             threads[i] = new Thread(runnables[i]);
         }        
         
@@ -776,19 +973,34 @@ public class S3ServiceMulti {
      */
     private class DeleteObjectRunnable extends AbstractThread {
         private S3Bucket bucket = null;
-        private S3Object object = null;        
+        private S3Object object = null;
+        private String signedDeleteUrl = null;
         private Object result = null;
         
         public DeleteObjectRunnable(S3Bucket bucket, S3Object object) {
+            this.signedDeleteUrl = null;
             this.bucket = bucket;
             this.object = object;
         }
 
+        public DeleteObjectRunnable(String signedDeleteUrl) {
+            this.signedDeleteUrl = signedDeleteUrl;
+            this.bucket = null;
+            this.object = null;
+        }
+
         public void run() {
             try {
-                s3Service.deleteObject(bucket, object.getKey());
-                result = object;
-            } catch (S3ServiceException e) {
+                if (signedDeleteUrl == null) {
+                    s3Service.deleteObject(bucket, object.getKey());                    
+                    result = object;
+                } else {
+                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    handler.deleteObjectWithSignedUrl(signedDeleteUrl);
+                    URL url = new URL(signedDeleteUrl);
+                    result = ServiceUtils.buildObjectFromPath(url.getPath());
+                }
+            } catch (Exception e) {
                 result = e;
             }            
         }
@@ -886,22 +1098,41 @@ public class S3ServiceMulti {
     private class GetObjectRunnable extends AbstractThread {
         private S3Bucket bucket = null;
         private String objectKey = null;
+        private String signedGetOrHeadUrl = null;
         private boolean headOnly = false;
         
         private Object result = null;
         
         public GetObjectRunnable(S3Bucket bucket, String objectKey, boolean headOnly) {
+            this.signedGetOrHeadUrl = null;
             this.bucket = bucket;
             this.objectKey = objectKey;
+            this.headOnly = headOnly;
+        }
+
+        public GetObjectRunnable(String signedGetOrHeadUrl, boolean headOnly) {
+            this.signedGetOrHeadUrl = signedGetOrHeadUrl;
+            this.bucket = null;
+            this.objectKey = null;
             this.headOnly = headOnly;
         }
 
         public void run() {
             try {
                 if (headOnly) {
-                    result = s3Service.getObjectDetails(bucket, objectKey);
+                    if (signedGetOrHeadUrl == null) {
+                        result = s3Service.getObjectDetails(bucket, objectKey);
+                    } else {
+                        SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                        result = handler.getObjectDetailsWithSignedUrl(signedGetOrHeadUrl);
+                    }
                 } else {
-                    result = s3Service.getObject(bucket, objectKey);                    
+                    if (signedGetOrHeadUrl == null) {
+                        result = s3Service.getObject(bucket, objectKey);
+                    } else {
+                        SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                        result = handler.getObjectWithSignedUrl(signedGetOrHeadUrl);
+                    }
                 }
             } catch (S3ServiceException e) {
                 result = e;
@@ -944,7 +1175,7 @@ public class S3ServiceMulti {
             S3Object object = null;
 
             try {
-                object = s3Service.getObject(bucket, objectKey);
+                    object = s3Service.getObject(bucket, objectKey);
 
                 // Setup monitoring of stream bytes tranferred. 
                 interruptableInputStream = new InterruptableInputStream(object.getDataInputStream()); 
@@ -996,34 +1227,34 @@ public class S3ServiceMulti {
      * the input stream is wrapped in an {@link InterruptableInputStream}.
      */
     private class SignedPutRunnable extends AbstractThread {
-        private SignedPutPackage putPackage = null;    
+        private SignedUrlAndObject signedUrlAndObject = null;    
         private InterruptableInputStream interruptableInputStream = null;
         private BytesTransferredWatcher bytesTransferredListener = null;
         
         private Object result = null;
         
-        public SignedPutRunnable(SignedPutPackage putPackage, BytesTransferredWatcher bytesTransferredListener) {
-            this.putPackage = putPackage;
+        public SignedPutRunnable(SignedUrlAndObject signedUrlAndObject, BytesTransferredWatcher bytesTransferredListener) {
+            this.signedUrlAndObject = signedUrlAndObject;
             this.bytesTransferredListener = bytesTransferredListener;
         }
 
         public void run() {
             try {
-                if (putPackage.getObject().getDataInputStream() != null) {
+                if (signedUrlAndObject.getObject().getDataInputStream() != null) {
                     interruptableInputStream = new InterruptableInputStream(
-                        putPackage.getObject().getDataInputStream());
+                        signedUrlAndObject.getObject().getDataInputStream());
                     ProgressMonitoredInputStream pmInputStream = new ProgressMonitoredInputStream(
                         interruptableInputStream, bytesTransferredListener);
-                    putPackage.getObject().setDataInputStream(pmInputStream);
+                    signedUrlAndObject.getObject().setDataInputStream(pmInputStream);
                 }
-                SignedPutUploader signedPutUploader = (SignedPutUploader) s3Service;
+                SignedUrlHandler signedPutUploader = (SignedUrlHandler) s3Service;
                 result = signedPutUploader.putObjectWithSignedUrl(
-                    putPackage.getSignedPutUrl(), putPackage.getObject());
+                    signedUrlAndObject.getSignedUrl(), signedUrlAndObject.getObject());
             } catch (S3ServiceException e) {
                 result = e;
             } finally {
                 try {
-                    putPackage.getObject().closeDataInputStream();
+                    signedUrlAndObject.getObject().closeDataInputStream();
                 } catch (IOException e) {
                     log.error("Unable to close Object's input stream", e);                        
                 }

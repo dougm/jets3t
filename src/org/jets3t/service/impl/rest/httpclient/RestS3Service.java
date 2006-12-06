@@ -66,7 +66,7 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
-import org.jets3t.service.utils.signedurl.SignedPutUploader;
+import org.jets3t.service.utils.signedurl.SignedUrlHandler;
 
 /**
  * REST/HTTP implementation of an {@link S3Service} based on the 
@@ -103,7 +103,7 @@ import org.jets3t.service.utils.signedurl.SignedPutUploader;
  * 
  * @author James Murty
  */
-public class RestS3Service extends S3Service implements SignedPutUploader {
+public class RestS3Service extends S3Service implements SignedUrlHandler {
     private final Log log = LogFactory.getLog(RestS3Service.class);
 
     private static final String PROTOCOL_SECURE = "https";
@@ -1038,13 +1038,13 @@ public class RestS3Service extends S3Service implements SignedPutUploader {
 
     /**
      * Puts an object using a pre-signed PUT URL generated for that object.
-     * This method is an implementation of the interface {@link SignedPutUploader}. 
+     * This method is an implementation of the interface {@link SignedUrlHandler}. 
      * <p>
      * This operation does not required any S3 functionality as it merely 
      * uploads the object by performing a standard HTTP PUT using the signed URL.
      * 
-     * @param signedUrl
-     * a signed PUT URL generated with {@link S3Service.createSignedUrl}.
+     * @param signedPutUrl
+     * a signed PUT URL generated with {@link S3Service.createSignedPutUrl()}.
      * @param object
      * the object to upload, which must correspond to the object for which the URL was signed.
      * The object <b>must</b> have the correct content length set, and to apply a non-standard
@@ -1057,8 +1057,8 @@ public class RestS3Service extends S3Service implements SignedPutUploader {
      * 
      * @throws S3ServiceException
      */
-    public S3Object putObjectWithSignedUrl(String signedUrl, S3Object object) throws S3ServiceException {
-        PutMethod putMethod = new PutMethod(signedUrl);
+    public S3Object putObjectWithSignedUrl(String signedPutUrl, S3Object object) throws S3ServiceException {
+        PutMethod putMethod = new PutMethod(signedPutUrl);
         
         if (object.getMd5HashAsBase64() != null) {
             putMethod.addRequestHeader("Content-MD5", object.getMd5HashAsBase64());                        
@@ -1081,7 +1081,9 @@ public class RestS3Service extends S3Service implements SignedPutUploader {
         long contentLength = InputStreamRequestEntity.CONTENT_LENGTH_AUTO;
         if (object.containsMetadata("Content-Length")) {
             contentLength = Long.parseLong((String) object.getMetadata("Content-Length"));
-        }                
+        } else {
+            throw new IllegalStateException("Content-Length must be specified for objects put using signed PUT URLs");
+        }
 
         if (object.getDataInputStream() != null) {
             putMethod.setRequestEntity(new InputStreamRequestEntity(
@@ -1094,6 +1096,95 @@ public class RestS3Service extends S3Service implements SignedPutUploader {
         putMethod.releaseConnection();
 
         return object;
+    }
+
+    /**
+     * Deletes an object using a pre-signed DELETE URL generated for that object.
+     * This method is an implementation of the interface {@link SignedUrlHandler}. 
+     * <p>
+     * This operation does not required any S3 functionality as it merely 
+     * deletes the object by performing a standard HTTP DELETE using the signed URL.
+     * 
+     * @param signedDeleteUrl
+     * a signed DELETE URL generated with {@link S3Service.createSignedDeleteUrl}.
+     * 
+     * @throws S3ServiceException
+     */
+    public void deleteObjectWithSignedUrl(String signedDeleteUrl) throws S3ServiceException {
+        DeleteMethod deleteMethod = new DeleteMethod(signedDeleteUrl);
+        
+        performRequest(deleteMethod, 204);
+
+        deleteMethod.releaseConnection();
+    }
+
+    /**
+     * Gets an object using a pre-signed GET URL generated for that object.
+     * This method is an implementation of the interface {@link SignedUrlHandler}. 
+     * <p>
+     * This operation does not required any S3 functionality as it merely 
+     * uploads the object by performing a standard HTTP GET using the signed URL.
+     * 
+     * @param signedGetUrl
+     * a signed GET URL generated with {@link S3Service.createSignedGetUrl()}.
+     * 
+     * @return
+     * the S3Object in S3 including all metadata and the object's data input stream.
+     * 
+     * @throws S3ServiceException
+     */
+    public S3Object getObjectWithSignedUrl(String signedGetUrl) throws S3ServiceException {
+        return getObjectWithSignedUrlImpl(signedGetUrl, false);
+    }
+    
+    /**
+     * Gets an object's details using a pre-signed HEAD URL generated for that object.
+     * This method is an implementation of the interface {@link SignedUrlHandler}. 
+     * <p>
+     * This operation does not required any S3 functionality as it merely 
+     * uploads the object by performing a standard HTTP HEAD using the signed URL.
+     * 
+     * @param signedHeadUrl
+     * a signed HEAD URL generated with {@link S3Service.createSignedHeadUrl()}.
+     * 
+     * @return
+     * the S3Object in S3 including all metadata, but without the object's data input stream.
+     * 
+     * @throws S3ServiceException
+     */
+    public S3Object getObjectDetailsWithSignedUrl(String signedHeadUrl) throws S3ServiceException {
+        return getObjectWithSignedUrlImpl(signedHeadUrl, true);
+    }
+    
+    private S3Object getObjectWithSignedUrlImpl(String signedGetOrHeadUrl, boolean headOnly) 
+        throws S3ServiceException 
+    {
+        HttpMethodBase httpMethod = null;        
+        if (headOnly) {
+            httpMethod = new HeadMethod(signedGetOrHeadUrl);    
+        } else {
+            httpMethod = new GetMethod(signedGetOrHeadUrl);
+        }
+        
+        performRequest(httpMethod, 200);
+
+        HashMap map = new HashMap();
+        map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
+
+        S3Object responseObject = ServiceUtils.buildObjectFromPath(
+            httpMethod.getPath().substring(1));
+        responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
+        responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
+        if (!headOnly) {
+            HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpMethod);
+            responseObject.setDataInputStream(releaseIS);
+        } else {                
+            // Release connection after HEAD (there's no response content)
+            log.debug("Releasing HttpMethod after HEAD");            
+            httpMethod.releaseConnection();
+        }
+        
+        return responseObject;
     }
     
     /**
