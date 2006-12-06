@@ -129,7 +129,9 @@ public class S3Object extends BaseS3Object {
      * the key name for the object.
      */
     public S3Object(S3Bucket bucket, String key) {
-        this.bucketName = bucket.getName();
+        if (bucket != null) {
+            this.bucketName = bucket.getName();
+        }
         this.key = key;
     }
 	
