@@ -496,10 +496,8 @@ public class CodeSamples {
         Date expiryDate = cal.getTime();
         
         // Create a signed HTTP GET URL valid for 5 minutes.
-        boolean isHttpsUrl = true; // Choose whether URL is HTTP or HTTPS.
-        String url = S3Service.createSignedUrl("GET", privateBucket.getName(), 
-            privateObject.getKey(), null,  
-            awsCredentials, expiryDate, isHttpsUrl);
+        String url = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
+            null, null, awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
         System.out.println("Signed URL: " + url);
     }
     
