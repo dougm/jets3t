@@ -18,10 +18,10 @@
  */
 package org.jets3t.apps.uploader;
 
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -38,74 +38,58 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
-import java.text.DecimalFormat;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
-import javax.swing.JRadioButton;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.plaf.metal.MetalLookAndFeel;
-import javax.swing.text.NumberFormatter;
 
 import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.ProxyHost;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScheme;
 import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.auth.NTLMScheme;
 import org.apache.commons.httpclient.auth.RFC2617Scheme;
-import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
-import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.apps.uploader.skins.SkinnedMetalTheme;
-import org.jets3t.apps.uploader.skins.SkinsFactory;
+import org.jets3t.gui.HyperlinkActivatedListener;
+import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
@@ -123,7 +107,13 @@ import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.multithread.ServiceEvent;
 import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.multithread.UpdateACLEvent;
+import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.TimeFormatter;
+import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
+
+import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
  * Dual application and applet for uploading files and XML metadata information to the Amazon S3 
@@ -168,7 +158,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
     
-    public static final int WIZARD_START = 0;
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
     public static final int WIZARD_SCREEN_3 = 3;
@@ -186,20 +175,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     
     private Frame ownerFrame = null;
     
+    private UserInputFields userInputFields = null;
+    private Properties userInputProperties = null;
+    
     /**
-     * The file to upload to S3.
+     * The files to upload to S3.
      */
-    private File fileToUpload = null;
+    private File[] filesToUpload = null;
     
     /**
      * The list of file extensions accepted by the Uploader.
      */
     private ArrayList validFileExtensions = new ArrayList();
-    
-    /**
-     * The target S3 bucket for uploads.
-     */
-    private S3Bucket s3Bucket = new S3Bucket("1FMFX9QNQHMZ32MPA7G2.Test"); // TODO Remove this completely...
     
     /**
      * Uploader's properties.
@@ -217,6 +204,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     private HashMap cachedAuthCredentials = new HashMap();
     
+    private final ByteFormatter byteFormatter = new ByteFormatter();
+    private final TimeFormatter timeFormatter = new TimeFormatter();
+    
     /*
      * Upload file constraints.
      */
@@ -230,11 +220,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
     private final Insets insetsNone = new Insets(0, 0, 0, 0);
 
-    private int currentState = WIZARD_START;
+    private int currentState = 0;
     
     private boolean isRunningAsApplet = false;
         
-    private HashMap fieldComponentsMap = new HashMap();
     private HashMap parametersMap = new HashMap();
     
     private SkinsFactory skinsFactory = null;
@@ -244,28 +233,22 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * GUI elements that need to be referenced outside initGui method.
      */
     private JHtmlLabel userGuidanceLabel = null;
-    private JPanel screen1Panel = null;
-    private JPanel screen2Panel = null;
-    private JPanel screen3Panel = null;
-    private JPanel screen4Panel = null;
-    private JPanel screen5Panel = null;
+    private JPanel appContentPanel = null;
     private JPanel buttonsPanel = null;
+    private JPanel primaryPanel = null;
+    private CardLayout primaryPanelCardLayout = null;
+    private CardLayout buttonsPanelCardLayout = null;
     private JButton backButton = null;
     private JButton nextButton = null;
     private JButton cancelUploadButton = null;
     private JHtmlLabel dragDropTargetLabel = null;
     private JHtmlLabel fileToUploadLabel = null;
     private JHtmlLabel fileInformationLabel = null;
-    private JHtmlLabel progressETATextLabel = null;
+    private JHtmlLabel progressTransferDetailsLabel = null;
     private JProgressBar progressBar = null;
     private JHtmlLabel progressStatusTextLabel = null;
     private JHtmlLabel finalMessageLabel = null;
     private CancelEventTrigger uploadCancelEventTrigger = null;
-    
-    /**
-     * Keep track of how long an upload has been running for.
-     */
-    private long uploadStartTime = 0;
     
     /**
      * Set to true when the object/file being uploaded is the final in a set, eg when
@@ -273,11 +256,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     private volatile boolean uploadingFinalObject = false;
     
-    /**
-     * Set to true when the last object/file uploaded was successfully uploaded.
-     */
-    private boolean lastUploadWasSuccessful = false;
-
     /**
      * Set to true if an upload failed due to a key name clash in S3, in which case an error
      * message is displayed in the final 'thankyou' screen.
@@ -391,144 +369,31 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         initGui();              
 
         // Determine valid file extensions.
-        String validFileExtensionsStr = uploaderProperties.getStringProperty("file.types", "");
-        if ("".equals(validFileExtensionsStr) || validFileExtensionsStr == null) {
-            log.warn("No valid file types are specified with the property 'file.types'");
-            fatalError(ERROR_CODE__MISSING_FILE_EXTENSIONS);
+        String validFileExtensionsStr = uploaderProperties.getStringProperty("file.extensions", "");
+        if (validFileExtensionsStr != null) {
+            StringTokenizer st = new StringTokenizer(validFileExtensionsStr, ",");
+            while (st.hasMoreTokens()) {
+                validFileExtensions.add(st.nextToken().toLowerCase());
+            }            
         }
-        StringTokenizer st = new StringTokenizer(validFileExtensionsStr, ",");
-        while (st.hasMoreTokens()) {
-            validFileExtensions.add(st.nextToken().toLowerCase());
-        }
-
+        
     }    
-    
-    /**
-     * Builds a user input panel matching the fields specified in the uploader.properties file.
-     * 
-     * @param fieldsPanel
-     * the panel component to add prompt and user input components to.
-     */
-    private void buildFieldsPanel(JPanel fieldsPanel) {
-        int fieldRow = 0;
-        
-        for (int fieldNo = 0; fieldNo < 100; fieldNo++) {
-            String fieldName = uploaderProperties.getStringProperty("field." + fieldNo + ".name", null);
-            String fieldType = uploaderProperties.getStringProperty("field." + fieldNo + ".type", null);
-            String fieldPrompt = uploaderProperties.getStringProperty("field." + fieldNo + ".prompt", null);
-            String fieldOptions = uploaderProperties.getStringProperty("field." + fieldNo + ".options", null);
-            
-            if (fieldName == null) {
-                // Expect there to be at least one field at number 0 or 1. If not, stop looking.
-                if (fieldNo > 1) {
-                    return;
-                } else {
-                    continue;
-                }
-            } else {
-                if (fieldType == null || fieldPrompt == null) {
-                    log.warn("Field '" + fieldName + "' missing .type or .prompt properties");
-                    continue;
-                }
-                if ("radio".equals(fieldType)) {
-                    if (fieldOptions == null) {
-                        log.warn("Radio button field '" + fieldName + "' is missing the required .options property");
-                        continue;
-                    }
-                    
-                    JHtmlLabel label = new JHtmlLabel(fieldPrompt, this);
-                    fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
-                    JPanel optionsPanel = skinsFactory.createSkinnedJPanel("OptionsPanel");
-                    optionsPanel.setLayout(GRID_BAG_LAYOUT);
-                    int columnOffset = 0;
-                    ButtonGroup buttonGroup = new ButtonGroup();                    
-                    StringTokenizer st = new StringTokenizer(fieldOptions, ",");
-                    while (st.hasMoreTokens()) {
-                        String option = st.nextToken();
-                        JRadioButton radioButton = new JRadioButton(option);
-                        buttonGroup.add(radioButton);
-                        if (buttonGroup.getButtonCount() == 1) {
-                            // Make first button the default.
-                            radioButton.setSelected(true);
-                        }
-
-                        optionsPanel.add(radioButton,
-                            new GridBagConstraints(columnOffset++, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-                    }
-                    fieldsPanel.add(optionsPanel,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsNone, 0, 0));
-
-                    fieldComponentsMap.put(fieldName, buttonGroup);
-                } else if ("selection".equals(fieldType)) {
-                    if (fieldOptions == null) {
-                        log.warn("Radio button field '" + fieldName + "' is missing the required .options property");
-                        continue;
-                    }
-                    
-                    JHtmlLabel label = new JHtmlLabel(fieldPrompt, this);
-                    fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-
-                    JComboBox comboBox = new JComboBox();
-                    StringTokenizer st = new StringTokenizer(fieldOptions, ",");
-                    while (st.hasMoreTokens()) {
-                        String option = st.nextToken();
-                        comboBox.addItem(option);
-                    }
-                    fieldsPanel.add(comboBox,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        
-                    fieldComponentsMap.put(fieldName, comboBox);
-                } else if ("text".equals(fieldType)) {
-                    JHtmlLabel label = new JHtmlLabel(fieldPrompt, this);
-                    fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-                    JTextField textField = new JTextField();
-                    fieldsPanel.add(textField,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-                    
-                    fieldComponentsMap.put(fieldName, textField);
-                } else if ("password".equals(fieldType)) {
-                    JHtmlLabel label = new JHtmlLabel(fieldPrompt, this);
-                    fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-                    JPasswordField passwordField = new JPasswordField();
-                    fieldsPanel.add(passwordField,
-                        new GridBagConstraints(1, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-                    
-                    fieldComponentsMap.put(fieldName, passwordField);
-                } else if (fieldType.startsWith("textarea")) {
-                    JHtmlLabel label = new JHtmlLabel(fieldPrompt, this);
-                    fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 2, 1, 0, 0, GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));                    
-                    JTextArea textArea = new JTextArea();
-                    fieldsPanel.add(new JScrollPane(textArea),
-                        new GridBagConstraints(0, fieldRow++, 2, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-                    
-                    fieldComponentsMap.put(fieldName, textArea);
-                } else {
-                    log.warn("Unrecognised .type setting for field '" + fieldName + "'");
-                }                
-            }
-        }
-    }
     
     /**
      * Initialises the application's GUI elements.
      */
     private void initGui() {
         // Initialise skins factory. 
-        String skinName = uploaderProperties.getStringProperty("skinName", null);
-        skinsFactory = SkinsFactory.getInstance(skinName, uploaderProperties.getProperties()); 
+        skinsFactory = SkinsFactory.getInstance(uploaderProperties.getProperties()); 
         
-        
-//        // Apply skinning.
-//        boolean applySkin = uploaderProperties.getBoolProperty("gui.isSkinned", false);
-//        if (applySkin) {
-//            initSkin();
-//        }
+        // Set Skinned Look and Feel.
+        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");        
+        try {
+            UIManager.setLookAndFeel(lookAndFeel);
+        } catch (UnsupportedLookAndFeelException e) {
+            log.error("Unable to set skinned LookAndFeel", e);
+        }
         
         // Apply branding
         String applicationTitle = uploaderProperties.getStringProperty("gui.applicationTitle", null);
@@ -567,13 +432,17 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         }
         
+        userInputFields = new UserInputFields(GRID_BAG_LAYOUT, insetsDefault,
+            this, skinsFactory);
+        
         // Screeen 1 : User input fields.
-        screen1Panel = skinsFactory.createSkinnedJPanel("Screen1Panel");
+        JPanel screen1Panel = skinsFactory.createSkinnedJPanel("Screen1Panel");
         screen1Panel.setLayout(GRID_BAG_LAYOUT);
-        buildFieldsPanel(screen1Panel);
-               
+        userInputFields.buildFieldsPanel(screen1Panel, uploaderProperties);
+        
+        
         // Screen 2 : Drag/drop panel.
-        screen2Panel = skinsFactory.createSkinnedJPanel("Screen2Panel");
+        JPanel screen2Panel = skinsFactory.createSkinnedJPanel("Screen2Panel");
         screen2Panel.setLayout(GRID_BAG_LAYOUT);
         dragDropTargetLabel = new JHtmlLabel(this);
         dragDropTargetLabel.setHorizontalAlignment(JLabel.CENTER);
@@ -586,7 +455,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         String browseButtonTooltip = uploaderProperties
             .getStringProperty("screen.2.browseButton.tooltip", null);
         
-        JButton chooseFileButton = new JButton();
+        JButton chooseFileButton = skinsFactory.createSkinnedJButton("ChooseFileButton");
         
         if (browseButtonImagePath != null) {
             URL iconURL = getClass().getResource(browseButtonImagePath);
@@ -609,32 +478,16 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             chooseFileButton.setVisible(true);
         }
         
-        chooseFileButton.setBorder(BorderFactory.createEmptyBorder());
         chooseFileButton.setActionCommand("ChooseFile");
         chooseFileButton.addActionListener(this);
         
-        // Skinning for Drag & Drop background.
-        Color dndBackgroundColor = screen2Panel.getBackground();
-        String dndBackgroundColorValue = uploaderProperties.getStringProperty(
-            "gui.draganddrop.backgroundColor", null);
-        if (dndBackgroundColorValue != null) {
-            Color color = Color.decode(dndBackgroundColorValue);
-            if (color == null) {
-                log.error("Unable to set drag&drop background color with value: " 
-                    + dndBackgroundColorValue);
-            } else {
-                dndBackgroundColor = color;
-            }
-        }
-        screen2Panel.setBackground(dndBackgroundColor);
-
         screen2Panel.add(dragDropTargetLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         screen2Panel.add(chooseFileButton,
             new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
 
         // Screen 3 : Information about the file to be uploaded.
-        screen3Panel = skinsFactory.createSkinnedJPanel("Screen3Panel");
+        JPanel screen3Panel = skinsFactory.createSkinnedJPanel("Screen3Panel");
         screen3Panel.setLayout(GRID_BAG_LAYOUT);
         fileToUploadLabel = new JHtmlLabel(this);
         fileToUploadLabel.setHorizontalAlignment(JLabel.CENTER);
@@ -643,7 +496,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));        
         
         // Screen 4 : Upload progress.
-        screen4Panel = skinsFactory.createSkinnedJPanel("Screen4Panel");
+        JPanel screen4Panel = skinsFactory.createSkinnedJPanel("Screen4Panel");
         screen4Panel.setLayout(GRID_BAG_LAYOUT);
         fileInformationLabel = new JHtmlLabel(" ", this);
         fileInformationLabel.setHorizontalAlignment(JLabel.CENTER);        
@@ -651,8 +504,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         progressBar.setStringPainted(true);
         progressStatusTextLabel = new JHtmlLabel(" ", this);
         progressStatusTextLabel.setHorizontalAlignment(JLabel.CENTER);
-        progressETATextLabel = new JHtmlLabel(" ", this);
-        progressETATextLabel.setHorizontalAlignment(JLabel.CENTER);
+        progressTransferDetailsLabel = new JHtmlLabel(" ", this);
+        progressTransferDetailsLabel.setHorizontalAlignment(JLabel.CENTER);
 
         // Skinning for ProgressBar foreground.
         Color pbForegroundColor = progressBar.getForeground();
@@ -698,7 +551,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (cancelUploadButtonTooltip != null) {
             cancelUploadButton.setToolTipText(cancelUploadButtonTooltip);
         }
-        cancelUploadButton.setBorder(BorderFactory.createEmptyBorder());                
         cancelUploadButton.setActionCommand("CancelUpload");
         cancelUploadButton.addActionListener(this);
         screen4Panel.add(fileInformationLabel,
@@ -707,13 +559,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         screen4Panel.add(progressStatusTextLabel,
             new GridBagConstraints(0, 2, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        screen4Panel.add(progressETATextLabel,
+        screen4Panel.add(progressTransferDetailsLabel,
             new GridBagConstraints(0, 3, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         screen4Panel.add(cancelUploadButton,
             new GridBagConstraints(0, 4, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
 
         // Screen 5 : Thankyou message.
-        screen5Panel = skinsFactory.createSkinnedJPanel("Screen5Panel");
+        JPanel screen5Panel = skinsFactory.createSkinnedJPanel("Screen5Panel");
         screen5Panel.setLayout(GRID_BAG_LAYOUT);
         finalMessageLabel = new JHtmlLabel(this);
         finalMessageLabel.setHorizontalAlignment(JLabel.CENTER);
@@ -729,19 +581,26 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         nextButton.addActionListener(this);
         
         buttonsPanel = skinsFactory.createSkinnedJPanel("ButtonsPanel");
-        buttonsPanel.setLayout(GRID_BAG_LAYOUT);
-        buttonsPanel.add(backButton,
+        buttonsPanelCardLayout = new CardLayout();
+        buttonsPanel.setLayout(buttonsPanelCardLayout);
+        JPanel buttonsInvisiblePanel = skinsFactory.createSkinnedJPanel("ButtonsInvisiblePanel");
+        JPanel buttonsVisiblePanel = skinsFactory.createSkinnedJPanel("ButtonsVisiblePanel");
+        buttonsVisiblePanel.setLayout(GRID_BAG_LAYOUT);
+        buttonsVisiblePanel.add(backButton,
             new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        buttonsPanel.add(nextButton,
+        buttonsVisiblePanel.add(nextButton,
             new GridBagConstraints(1, 0, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-
+        buttonsPanel.add(buttonsInvisiblePanel, "invisible");
+        buttonsPanel.add(buttonsVisiblePanel, "visible");
+        
         // Overall content panel.
-        JPanel appContentPanel = skinsFactory.createSkinnedJPanel("ApplicationContentPanel");
+        appContentPanel = skinsFactory.createSkinnedJPanel("ApplicationContentPanel");
         appContentPanel.setLayout(GRID_BAG_LAYOUT);
         JPanel userGuidancePanel = skinsFactory.createSkinnedJPanel("UserGuidancePanel");
         userGuidancePanel.setLayout(GRID_BAG_LAYOUT);
-        JPanel primaryPanel = skinsFactory.createSkinnedJPanel("PrimaryPanel");
-        primaryPanel.setLayout(GRID_BAG_LAYOUT);
+        primaryPanel = skinsFactory.createSkinnedJPanel("PrimaryPanel");
+        primaryPanelCardLayout = new CardLayout();
+        primaryPanel.setLayout(primaryPanelCardLayout);
         JPanel navigationPanel = skinsFactory.createSkinnedJPanel("NavigationPanel");
         navigationPanel.setLayout(GRID_BAG_LAYOUT);
 
@@ -766,91 +625,23 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         navigationPanel.add(buttonsPanel, 
             new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsNone, 0, 0));
 
-        // TODO Change all of this ugliness to a CardLayout.
-        GridBagConstraints overlappingGBC = 
-            new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.NORTH, GridBagConstraints.BOTH, insetsNone, 0, 0);
-        primaryPanel.add(screen1Panel, overlappingGBC);
-        primaryPanel.add(screen2Panel, overlappingGBC);
-        primaryPanel.add(screen3Panel, overlappingGBC);
-        primaryPanel.add(screen4Panel, overlappingGBC);
-        primaryPanel.add(screen5Panel, overlappingGBC);
-        primaryPanel.add(screen5Panel, overlappingGBC);
-                
-        screen1Panel.setVisible(false);
-        screen2Panel.setVisible(false);
-        screen3Panel.setVisible(false);
-        screen4Panel.setVisible(false);
-        screen5Panel.setVisible(false);
-        buttonsPanel.setVisible(false);
+        primaryPanel.add(screen1Panel, "screen1");
+        primaryPanel.add(screen2Panel, "screen2");
+        primaryPanel.add(screen3Panel, "screen3");
+        primaryPanel.add(screen4Panel, "screen4");
+        primaryPanel.add(screen5Panel, "screen5");
         
         // Set preferred sizes
         int preferredWidth = uploaderProperties.getIntProperty("gui.minSizeWidth", 400);
-        int preferredHeight = uploaderProperties.getIntProperty("gui.minSizeHeight", 400);
+        int preferredHeight = uploaderProperties.getIntProperty("gui.minSizeHeight", 500);
         this.setBounds(new Rectangle(new Dimension(preferredWidth, preferredHeight)));
         
         // Initialize drop target.
-        initDropTarget(new JComponent[] {screen2Panel} );
-        screen2Panel.getDropTarget().setActive(true);
+        initDropTarget(new Component[] {this} );
         
         wizardStepForward();
     }
-    
-    /**
-     * Initialises the GUI skinning by applying configuration options to set the
-     * background colour, text colour and text font to use for display. 
-     */
-    private void initSkin() {
-        try {
-            // Determine system defaults.
-            JLabel defaultLabel = new JLabel();
-            Color backgroundColor = defaultLabel.getBackground();
-            Color textColor = defaultLabel.getForeground();
-            Font font = defaultLabel.getFont();
-
-            // Find skinning configurations.
-            String backgroundColorValue = uploaderProperties.getStringProperty("gui.backgroundColor", null);
-            String textColorValue = uploaderProperties.getStringProperty("gui.textColor", null);
-            String fontValue = uploaderProperties.getStringProperty("gui.font", null);
-            
-            // Apply any configurations.
-            if (backgroundColorValue != null) {
-                Color color = Color.decode(backgroundColorValue);
-                if (color == null) {
-                    log.error("Unable to set background color with value: " + backgroundColorValue);
-                } else {
-                    backgroundColor = color;                    
-                }
-            }
-            if (textColorValue != null) {
-                Color color = Color.decode(textColorValue);
-                if (color == null) {
-                    log.error("Unable to set text color with value: " + backgroundColorValue);
-                } else {
-                    textColor = color;                    
-                }
-            }
-            if (fontValue != null) {
-                Font myFont = Font.decode(fontValue);
-                if (font == null) {
-                    log.error("Unable to set font with value: " + fontValue);
-                } else {
-                    font = myFont;                    
-                }
-            }
-                     
-            // Update metal theme with configured display properties.
-            SkinnedMetalTheme skinnedTheme = new SkinnedMetalTheme(
-                backgroundColor, textColor, font);            
-            MetalLookAndFeel metalLookAndFeel = new MetalLookAndFeel();
-            MetalLookAndFeel.setCurrentTheme(skinnedTheme);
-            
-            // Apply theme.
-            UIManager.setLookAndFeel(metalLookAndFeel);
-        } catch (Throwable t) {
-            log.error("Unable to set skinnable metal theme", t);
-        }   
-    }
-    
+       
     /**
      * Initialise the application's File drop targets for drag and drop copying of local files
      * to S3.
@@ -858,8 +649,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @param dropTargetComponents
      * the components files can be dropped on to transfer them to S3 
      */
-    private void initDropTarget(JComponent[] dropTargetComponents) {
+    private void initDropTarget(Component[] dropTargetComponents) {
         DropTargetListener dropTargetListener = new DropTargetListener() {
+            
+            private Border originalBorder = appContentPanel.getBorder();
+            private Border dragOverBorder = BorderFactory.createBevelBorder(1);
             
             private boolean checkValidDrag(DropTargetDragEvent dtde) {
                 if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
@@ -878,7 +672,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 if (checkValidDrag(dtde)) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            screen2Panel.setBorder(BorderFactory.createBevelBorder(1));
+                            appContentPanel.setBorder(dragOverBorder);
                         };
                     });                    
                 } 
@@ -888,19 +682,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
             
             public void dropActionChanged(DropTargetDragEvent dtde) {
-                if (checkValidDrag(dtde)) {
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            screen2Panel.setBorder(BorderFactory.createBevelBorder(1));
-                        };
-                    });                    
-                } 
+                checkValidDrag(dtde);
             }
 
             public void dragExit(DropTargetEvent dte) {
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        screen2Panel.setBorder(BorderFactory.createEtchedBorder());
+                        appContentPanel.setBorder(originalBorder);
                     };
                 });                    
             }
@@ -911,12 +699,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                         || DnDConstants.ACTION_MOVE == dtde.getDropAction()))
                 {
                     dtde.acceptDrop(dtde.getDropAction());
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            appContentPanel.setBorder(originalBorder);
+                        };
+                    });
+                    
                     try {
                         final List fileList = (List) dtde.getTransferable().getTransferData(
                             DataFlavor.javaFileListFlavor);
                         if (fileList != null && fileList.size() > 0) {
-                            if (!checkProposedUploadFiles(fileList)) {
-                                screen2Panel.setBorder(BorderFactory.createEtchedBorder());
+                            if (checkProposedUploadFiles(fileList)) {
+                                wizardStepForward();
                             }
                         }
                     } catch (Exception e) {
@@ -956,7 +750,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Check number of files for upload is within constraints.
         if (fileMaxCount > 0 && fileList.size() > fileMaxCount) {
             reportException(ownerFrame, "You may only upload " + fileMaxCount 
-                + (fileMaxCount == 1? " file" : " files"), null);
+                + (fileMaxCount == 1? " file" : " files") + " at a time", null);
             return false;
         }
         
@@ -976,26 +770,83 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         }        
         
-        // Check file extension is acceptable.   
-        iter = fileList.iterator();
-        while (iter.hasNext()) {
-            File file = (File) iter.next();
-            String fileName = file.getName();
-            String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1);
-            if (!validFileExtensions.contains(fileExtension.toLowerCase())) {
-                String extList = validFileExtensions.toString();
-                extList = extList.substring(1, extList.length() -1);
-                extList = extList.replaceAll(",", " ");
-                reportException(ownerFrame, "File name must end with one of the following extensions:\n" 
-                    + extList, null);                                
-                return false;
+        // Check file extension is acceptable.
+        if (validFileExtensions.size() > 0) {
+            iter = fileList.iterator();
+            while (iter.hasNext()) {
+                File file = (File) iter.next();
+                String fileName = file.getName();
+                String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1);
+                if (!validFileExtensions.contains(fileExtension.toLowerCase())) {
+                    String extList = validFileExtensions.toString();
+                    extList = extList.substring(1, extList.length() -1);
+                    extList = extList.replaceAll(",", " ");
+                    reportException(ownerFrame, "File name must end with one of the following extensions:\n" 
+                        + extList, null);                                
+                    return false;
+                }
             }
         }
         
-        // Note - from here on, we only handle a single file, not a list.
-        fileToUpload = (File) fileList.get(0); 
-        wizardStepForward();
+        filesToUpload = (File[]) fileList.toArray(new File[] {}); 
         return true;
+    }
+    
+    /**
+     * Builds a Gatekeeper response based on AWS credential information available in the Uploader 
+     * properties. The response signs URLs to be valid for 1 day.
+     * <p>
+     * The required properties are:
+     * <ul>
+     * <li>AwsAccessKey</li> 
+     * <li>AwsSecretKey</li> 
+     * <li>S3BucketName</li>
+     * </ul> 
+     * 
+     * @param objects
+     * @return
+     */
+    private GatekeeperResponse buildGatekeeperResponse(S3Object[] objects) {
+        
+        String awsAccessKey = userInputProperties.getProperty("AwsAccessKey");
+        String awsSecretKey = userInputProperties.getProperty("AwsSecretKey");
+        String s3BucketName = userInputProperties.getProperty("S3BucketName");
+        
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, 1);
+        Date expiryDate = cal.getTime();
+
+        AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
+        S3Bucket s3Bucket = new S3Bucket(s3BucketName);
+        
+        try {
+            // TODO
+            String data = "<xml>just some data</xml>";
+            S3Object summaryObject = new S3Object(s3Bucket, "Summary.xml", data);
+//            summaryObject.setMd5Hash(ServiceUtils.computeMD5Hash(data.getBytes()));
+            String signedPutUrl = S3Service.createSignedPutUrl(summaryObject.getBucketName(), summaryObject.getKey(), 
+                summaryObject.getMetadataMap(), awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
+            SignedUrlAndObject summaryPackage = new SignedUrlAndObject(signedPutUrl, summaryObject);                
+            
+            GatekeeperResponse response = new GatekeeperResponse(true, summaryPackage);
+            for (int i = 0; i < objects.length; i++) {
+                if (objects[i].getBucketName() == null) {
+                    objects[i].setBucketName(s3BucketName);
+                }
+                
+                signedPutUrl = S3Service.createSignedPutUrl(objects[i].getBucketName(), objects[i].getKey(), 
+                    objects[i].getMetadataMap(), awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
+                response.addObjectAndUrl(new SignedUrlAndObject(signedPutUrl, objects[i]));
+            }
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Unable to generate singed PUT URL for testing", e);
+            S3Object summaryObject = new S3Object(s3Bucket, "Summary.xml", "<xml>just some data</xml>");
+            SignedUrlAndObject summaryPackage = new SignedUrlAndObject(null, summaryObject);
+            
+            return new GatekeeperResponse(false, summaryPackage); 
+        }        
     }
     
     /**
@@ -1014,9 +865,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @throws HttpException
      * @throws IOException
      */
-    private UploadInformation retrieveUploadInformation(String credentialsProviderUrl, S3Object object) 
+    private GatekeeperResponse sendGatekeeperRequest(String credentialsProviderUrl, S3Object[] objects) 
         throws HttpException, IOException 
     {
+        // TODO 
+/*                
         // Add all properties/parameters to credentials POST request.
         PostMethod httpMethod = new PostMethod(credentialsProviderUrl);
         Properties props = uploaderProperties.getProperties();
@@ -1069,13 +922,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 }                
                 
                 // TODO Source all this information from service response.
-                return new UploadInformation(responseBodyText, object.getBucketName(), object.getKey());
+                return new GatekeeperResponse(responseBodyText, object.getBucketName(), object.getKey());
             } 
         } catch (Exception e) {
             log.error("Unable to retrieve credentials from credentials provider url: " + credentialsProviderUrl, e);
         } finally {
             httpMethod.releaseConnection();            
         }
+*/        
         return null;
     }
     
@@ -1098,63 +952,73 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             progressStatusTextLabel.setText(replaceMessageVariables(
                 uploaderProperties.getStringProperty("screen.4.hashingMessage", 
                 "Missing property 'screen.4.hashingMessage'")));
-            log.debug("Computing MD5 hash for file: " + fileToUpload);
-            byte[] fileHash = ServiceUtils.computeMD5Hash(new FileInputStream(fileToUpload));
-
-            // Create S3Objects representing file for upload and XML file.                
-            /* Build upload file S3 object */
-            S3Object uploadFileObject = new S3Object(s3Bucket, fileToUpload);
-            // Store hash of original file data in metadata.
-            uploadFileObject.setMd5Hash(fileHash);
             
-            // Obtain signed PUT URLs from server-side credentials service.
-            UploadInformation uploadInfoForFile = retrieveUploadInformation(credentialsServiceUrl, uploadFileObject);
-            if (uploadInfoForFile == null) {
+            boolean includeXmlSummaryDoc = uploaderProperties.getBoolProperty("xmlSummary", false);
+            
+            
+            // Create objects for upload from file listing.
+            S3Object[] objectsForUpload = new S3Object[filesToUpload.length];
+            for (int i = 0; i < filesToUpload.length; i++) {
+                File file = filesToUpload[i];
+                log.debug("Computing MD5 hash for file: " + file);
+                byte[] fileHash = ServiceUtils.computeMD5Hash(new FileInputStream(file));
+                
+                S3Object object = new S3Object(null, file);
+                object.setMd5Hash(fileHash);
+                objectsForUpload[i] = object; 
+            }
+            
+            boolean s3CredentialsProvided =                
+                userInputProperties.getProperty("AwsAccessKey") != null
+                && userInputProperties.getProperty("AwsSecretKey") != null
+                && userInputProperties.getProperty("S3BucketName") != null;
+
+            // Obtain Gatekeeper response.
+            GatekeeperResponse gatekeeperResponse = null;
+            if (s3CredentialsProvided) {
+                log.debug("S3 login credentials and bucket name are available, the Uploader "
+                    + "will generate its own Gatekeeper response");
+                gatekeeperResponse = buildGatekeeperResponse(objectsForUpload);
+            } else {
+                gatekeeperResponse = sendGatekeeperRequest(
+                    credentialsServiceUrl, objectsForUpload);                
+            }            
+            
+            if (!gatekeeperResponse.isApproved()) {
                 fatalError(ERROR_CODE__INVALID_PUT_URL);                    
                 return;
             }
+            
             // TODO Update S3Object if service specifies different bucket/key names.
-
+/*
             // Generate XML document.
             XmlGenerator xmlGen = new XmlGenerator();
             Map filenamesMap = new HashMap();
 //            filenamesMap.put("uploaderUUID", ); // TODO
             filenamesMap.put("originalFilename", fileToUpload.getName());
-            filenamesMap.put("filename", uploadInfoForFile.objectKey);
+            filenamesMap.put("filename", gatekeeperResponse.objectKey);
             String xmlDocument = xmlGen.generateXml(
                 uploaderProperties.getStringProperty("xml.version", "1.0"),
                 fieldComponentsMap, parametersMap, filenamesMap);
             log.debug("XML document : \n" + xmlDocument);            
 
-            /* Build xml document object */
-            S3Object xmlDocObject = new S3Object(s3Bucket, uploadInfoForFile.objectKey + ".xml", xmlDocument);
+            S3Object xmlDocObject = new S3Object(s3Bucket, gatekeeperResponse.objectKey + ".xml", xmlDocument);
             xmlDocObject.setContentType("application/xml");
-                                            
-
-            UploadInformation uploadInfoForXml = retrieveUploadInformation(credentialsServiceUrl, xmlDocObject);            
-            if (uploadInfoForXml == null) {
-                fatalError(ERROR_CODE__INVALID_PUT_URL);                    
-                return;
-            }
-            // TODO Update S3Object if service specifies different bucket/key names.
+*/                                            
             
-            RestS3Service restS3Service = new RestS3Service(null, this);
-            restS3Service.putObjectWithSignedUrl(
-                uploadInfoForFile.signedPutUrl, uploadFileObject);
-            restS3Service.putObjectWithSignedUrl(
-                uploadInfoForXml.signedPutUrl, xmlDocObject);
-            
-            // TODO Need threading for PUT URL-based file uploads...
-            wizardStepForward();
-//            // Upload the objects, file first then XML document.
-//            uploadingFinalObject = false;
-//            progressBar.setVisible(true);
-//            s3ServiceMulti.putObjects(s3Bucket, new S3Object[] {uploadFileObject});
-//            if (lastUploadWasSuccessful) {
-//                uploadingFinalObject = true;
-//                s3ServiceMulti.putObjects(s3Bucket, new S3Object[] {xmlDocObject});
-//            }
-
+            S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(
+                new RestS3Service(null/*TODO , this*/), this); 
+                      
+            if (includeXmlSummaryDoc) {
+                uploadingFinalObject = false;
+                s3ServiceMulti.putObjects(gatekeeperResponse.getSignedUrlAndObjects());
+                uploadingFinalObject = true;
+                s3ServiceMulti.putObjects(
+                    new SignedUrlAndObject[] { gatekeeperResponse.getXmlSummaryPackage() });                
+            } else {
+                uploadingFinalObject = true;
+                s3ServiceMulti.putObjects(gatekeeperResponse.getSignedUrlAndObjects());                
+            }            
         } catch (Exception e) {
             wizardStepBackward();
             reportException(ownerFrame, "File upload failed, please try again", e);
@@ -1167,13 +1031,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     public void s3ServiceEventPerformed(final CreateObjectsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
-            lastUploadWasSuccessful = false;
-
-            uploadStartTime = System.currentTimeMillis();
-            
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    cancelUploadButton.setVisible(true);
+                    cancelUploadButton.setEnabled(true);
                 }
             });
             
@@ -1181,7 +1041,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             uploadCancelEventTrigger = watcher.getCancelEventListener();
             
             // Show percentage of bytes transferred.
-            String bytesTotalStr = describeByteSize(watcher.getBytesTotal());
+            String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
             final String statusText = "Uploaded 0 of " + bytesTotalStr;                
 
             SwingUtilities.invokeLater(new Runnable() {
@@ -1200,41 +1060,47 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 
                 progressBar.setValue(100);
                 progressStatusTextLabel.setText(replaceMessageVariables(statusText));
-                progressETATextLabel.setText("");
+                progressTransferDetailsLabel.setText("");
             } else {                    
-                String bytesCompletedStr = describeByteSize(watcher.getBytesTransferred());
-                String bytesTotalStr = describeByteSize(watcher.getBytesTotal());
+                String bytesCompletedStr = byteFormatter.formatByteSize(watcher.getBytesTransferred());
+                String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                 String statusText = "Uploaded " + bytesCompletedStr + " of " + bytesTotalStr;
                 int percentage = (int) 
                     (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
                 
-                long bytesPerSecondEstimate = watcher.getBytesTransferred() * 1000 
-                    / (System.currentTimeMillis() - uploadStartTime);
-                String rateText = describeByteSize(bytesPerSecondEstimate) + "/s";
-                
+                String transferDetailsText = " ";
+                if (watcher.isBytesPerSecondAvailable()) {
+                    long bytesPerSecond = watcher.getBytesPerSecond();
+                    transferDetailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
+                }
+                if (watcher.isTimeRemainingAvailable()) {
+                    long secondsRemaining = watcher.getTimeRemaining();
+                    transferDetailsText += " - ETA " + timeFormatter.formatTime(secondsRemaining);
+                }
+                                
                 progressBar.setValue(percentage);
                 progressStatusTextLabel.setText(replaceMessageVariables(statusText));
-                progressETATextLabel.setText(replaceMessageVariables(rateText));
+                progressTransferDetailsLabel.setText(replaceMessageVariables(transferDetailsText));
             }
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             if (uploadingFinalObject) {
                 drawWizardScreen(WIZARD_SCREEN_5);
             }
-            lastUploadWasSuccessful = true;
             progressBar.setValue(0);          
             progressStatusTextLabel.setText("");
-            progressETATextLabel.setText("");
+            progressTransferDetailsLabel.setText("");
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             progressBar.setValue(0);          
             progressStatusTextLabel.setText("");
-            progressETATextLabel.setText("");
+            progressTransferDetailsLabel.setText("");
+            drawWizardScreen(WIZARD_SCREEN_3);
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             progressBar.setValue(0);          
             progressStatusTextLabel.setText("");
-            progressETATextLabel.setText("");
+            progressTransferDetailsLabel.setText("");
             fatalError(ERROR_CODE__S3_UPLOAD_FAILED);
             reportException(ownerFrame, "File upload failed", event.getErrorCause());
         }
@@ -1306,49 +1172,39 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             backButton.setToolTipText(backButtonTooltip);
         }
 
+        this.getDropTarget().setActive(false);
         
-        if (nextState == WIZARD_START) {
-            // This screen should never be reachable via user interaction.
-        } else if (nextState == WIZARD_SCREEN_1) {
-            screen1Panel.setVisible(true);
-            screen2Panel.setVisible(false);
-            buttonsPanel.setVisible(true);
+        if (nextState == WIZARD_SCREEN_1) {
+            primaryPanelCardLayout.show(primaryPanel, "screen1");
+            buttonsPanelCardLayout.show(buttonsPanel, "visible");
         } else if (nextState == WIZARD_SCREEN_2) {
-            screen1Panel.setVisible(false);
-            screen2Panel.setVisible(true);             
-            screen3Panel.setVisible(false);
+            userInputProperties = userInputFields.getUserInputsAsProperties();
             
+            primaryPanelCardLayout.show(primaryPanel, "screen2");
             dragDropTargetLabel.setText(
                 replaceMessageVariables(uploaderProperties.getStringProperty("screen.2.dragDropPrompt", 
                 "Missing property 'screen.2.dragDropPrompt'")));
-            screen2Panel.setBorder(BorderFactory.createEtchedBorder());
+            this.getDropTarget().setActive(true);
         } else if (nextState == WIZARD_SCREEN_3) {
-            screen2Panel.setVisible(false);
-            screen3Panel.setVisible(true);
-            screen4Panel.setVisible(false);
-
+            primaryPanelCardLayout.show(primaryPanel, "screen3");
             String fileInformation = uploaderProperties.getStringProperty("screen.3.fileInformation", 
                 "Missing property 'screen.3.fileInformation'");
             fileToUploadLabel.setText(replaceMessageVariables(fileInformation));
         } else if (nextState == WIZARD_SCREEN_4) {
-            screen3Panel.setVisible(false);
-            screen4Panel.setVisible(true);
-            screen5Panel.setVisible(false);
-
+            primaryPanelCardLayout.show(primaryPanel, "screen4");
+            
             String fileInformation = uploaderProperties.getStringProperty("screen.4.fileInformation", 
                 "Missing property 'screen.4.fileInformation'");
             fileInformationLabel.setText(replaceMessageVariables(fileInformation));
 
-            progressBar.setVisible(false);
-            cancelUploadButton.setVisible(false);
+            cancelUploadButton.setEnabled(false);
             new Thread() {
                 public void run() {                           
                     uploadFilesToS3();
                 }
             }.start();                    
         } else if (nextState == WIZARD_SCREEN_5) {
-            screen4Panel.setVisible(false);
-            screen5Panel.setVisible(true);
+            primaryPanelCardLayout.show(primaryPanel, "screen5");
 
             String finalMessage = null;
             if (fatalErrorOccurred) {
@@ -1416,12 +1272,23 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * the input string with any variable referenced replaced with the variable's value. 
      */
     private String replaceMessageVariables(String message) {
+        if (message == null) {
+            log.warn("Passing of null message should not happen...");
+            return "";
+        }
+        
         String result = message;
-        // Replace upload file variables, if an upload file has been chosen.        
-        if (fileToUpload != null) {
-            result = result.replaceAll("\\$\\{fileName\\}", fileToUpload.getName());
-            result = result.replaceAll("\\$\\{fileSize\\}", describeByteSize(fileToUpload.length()));                    
-            result = result.replaceAll("\\$\\{filePath\\}", fileToUpload.getAbsolutePath());
+        // Replace upload file variables, if an upload file has been chosen.
+        if (filesToUpload != null) {
+            long filesSize = 0;
+            String fileNameList = "";
+            for (int i = 0; i < filesToUpload.length; i++) {
+                filesSize += filesToUpload[i].length();
+                fileNameList += filesToUpload[i].getName() + " ";
+            }
+            
+            result = result.replaceAll("\\$\\{fileNameList\\}", fileNameList);
+            result = result.replaceAll("\\$\\{filesSize\\}", byteFormatter.formatByteSize(filesSize));                    
         }
         result = result.replaceAll("\\$\\{maxFileSize\\}", String.valueOf(fileMaxSizeMB));
         result = result.replaceAll("\\$\\{maxFileCount\\}", String.valueOf(fileMaxCount));
@@ -1463,12 +1330,17 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             wizardStepBackward();
         } else if ("ChooseFile".equals(actionEvent.getActionCommand())) {
             JFileChooser fileChooser = new JFileChooser();
-            UploaderFileExtensionFilter filter = new UploaderFileExtensionFilter(
-                "Movie files", validFileExtensions);
-            fileChooser.setFileFilter(filter);            
-            fileChooser.setDialogTitle("Choose your movie");
+            
+            if (validFileExtensions.size() > 0) {
+                UploaderFileExtensionFilter filter = new UploaderFileExtensionFilter(
+                    "Allowed files", validFileExtensions);
+                fileChooser.setFileFilter(filter);                            
+            }
+            
+            fileChooser.setMultiSelectionEnabled(fileMaxCount > 1);
+            fileChooser.setDialogTitle("Choose file" + (fileMaxCount > 1 ? "s" : "") + " to upload");
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            fileChooser.setApproveButtonText("Choose movie");
+            fileChooser.setApproveButtonText("Choose file" + (fileMaxCount > 1 ? "s" : ""));
             
             int returnVal = fileChooser.showOpenDialog(ownerFrame);
             if (returnVal != JFileChooser.APPROVE_OPTION) {
@@ -1481,14 +1353,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             } else {
                 fileList.add(fileChooser.getSelectedFile());
             }
-            if (!checkProposedUploadFiles(fileList)) {
-                screen2Panel.setBorder(BorderFactory.createEtchedBorder());
+            if (checkProposedUploadFiles(fileList)) {
+                wizardStepForward();
             }
         } else if ("CancelUpload".equals(actionEvent.getActionCommand())) {
             if (uploadCancelEventTrigger != null) {
                 uploadCancelEventTrigger.cancelTask(this);
                 progressBar.setValue(0);
-                wizardStepBackward();
+//                wizardStepBackward();
             } else {
                 log.warn("Ignoring attempt to cancel file upload when cancel trigger is not available");
             }
@@ -1513,43 +1385,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 getAppletContext().showDocument(url, target);
             }
         } else {
-            log.warn("Uploader does not launch HTML links when running stand-alone");
+            BareBonesBrowserLaunch.openURL(url.toString());
         }
     }
-
-    /**
-     * Converts a byte size into a human-readable string, such as "1.43 MB" or "27 KB".
-     * The values used are based on powers of 1024, ie 1 KB = 1024 bytes, not 1000 bytes.
-     * 
-     * @param byteSize
-     * the byte size of some item
-     * @return
-     * a human-readable description of the byte size
-     */
-    private String describeByteSize(long byteSize) {
-        NumberFormatter nf = new NumberFormatter(new DecimalFormat("0.00"));
-        
-        String result = "???";
-        try {
-            if (byteSize > Math.pow(1024,3)) {
-                // Report gigabytes
-                result = nf.valueToString(new Double(byteSize / Math.pow(1024,3))) + " GB";
-            } else if (byteSize > Math.pow(1024,2)) {
-                // Report megabytes
-                result = nf.valueToString(new Double(byteSize / Math.pow(1024,2))) + " MB";
-            } else if (byteSize > 1024) {
-                // Report kilobytes
-                result = nf.valueToString(new Double(byteSize / Math.pow(1024,1))) + " KB";                    
-            } else if (byteSize >= 0) {
-                // Report bytes                
-                result = byteSize + " byte" + (byteSize == 1? "" : "s");
-            } 
-        } catch (ParseException e) {
-            log.error("Unable to format byte size " + byteSize, e);
-            return String.valueOf(byteSize);
-        }
-        return result;
-    }    
 
     /**
      * Based on sample code InteractiveAuthenticationExample from: 
@@ -1653,15 +1491,30 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public void s3ServiceEventPerformed(DownloadObjectsEvent event) {}
     public void valueChanged(ListSelectionEvent arg0) {}
     
-    public class UploadInformation {
-        public String signedPutUrl = null;
-        public String bucketName = null;
-        public String objectKey = null;
+    public class GatekeeperResponse {
+        private boolean isApproved = false;
+        private ArrayList urlAndObjectList = new ArrayList();
+        private SignedUrlAndObject xmlSummaryPackage = null;
         
-        public UploadInformation(String signedPutUrl, String bucketName, String objectKey) {
-            this.signedPutUrl = signedPutUrl;
-            this.bucketName = bucketName;
-            this.objectKey = objectKey;
+        public GatekeeperResponse(boolean isApproved, SignedUrlAndObject xmlSummaryPackage) {
+            this.isApproved = isApproved;
+            this.xmlSummaryPackage = xmlSummaryPackage;
+        }
+        
+        public void addObjectAndUrl(SignedUrlAndObject urlAndObject) {
+            urlAndObjectList.add(urlAndObject);
+        }
+
+        public boolean isApproved() {
+            return isApproved;
+        }
+
+        public SignedUrlAndObject getXmlSummaryPackage() {
+            return xmlSummaryPackage;
+        }
+        
+        public SignedUrlAndObject[] getSignedUrlAndObjects() {
+            return (SignedUrlAndObject[]) urlAndObjectList.toArray(new SignedUrlAndObject[] {});
         }
     }
     
