@@ -30,6 +30,11 @@ public class Constants {
     public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
     
     /**
+     * File name .jets3t-ignore file, that contains file paths to ignore. 
+     */
+    public static final String JETS3T_IGNORE_FILENAME = ".jets3t-ignore";
+    
+    /**
      * The default preferences directory is &lt;user.home&gt;/.jets3t
      */
     public static File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home")
