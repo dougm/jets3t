@@ -119,10 +119,12 @@ import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.multithread.UpdateACLEvent;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
+import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.TimeFormatter;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
@@ -148,6 +150,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
 
+    private final ByteFormatter byteFormatter = new ByteFormatter();
+    private final TimeFormatter timeFormatter = new TimeFormatter();
     private final SimpleDateFormat yearAndTimeSDF = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     private final SimpleDateFormat timeSDF = new SimpleDateFormat("HH:mm:ss");
     
@@ -1057,7 +1061,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     totalBytes += objects[i].getContentLength();
                 }
                 if (totalBytes > 0) {
-                    summary += ", " + formatByteSize(totalBytes);
+                    summary += ", " + byteFormatter.formatByteSize(totalBytes);
                 }
                 summary += "  @ " + timeSDF.format(new Date());
                 if (isIncompleteListing) {
@@ -1669,8 +1673,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             // Show percentage of bytes transferred, if this info is available.
             if (watcher.isBytesTransferredInfoAvailable()) {
-                startProgressDisplay("Downloaded " + formatByteSize(watcher.getBytesTransferred()) 
-                    + " of " + formatByteSize(watcher.getBytesTotal()), 0, 100, "Cancel Download", 
+                startProgressDisplay("Downloaded " + 
+                    byteFormatter.formatByteSize(watcher.getBytesTransferred()) 
+                    + " of " + byteFormatter.formatByteSize(watcher.getBytesTotal()), 0, 100, "Cancel Download", 
                     event.getThreadWatcher().getCancelEventListener());
             // ... otherwise just show the number of completed threads.
             } else {
@@ -1685,8 +1690,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             // Show percentage of bytes transferred, if this info is available.
             if (watcher.isBytesTransferredInfoAvailable()) {
-                String bytesCompletedStr = formatByteSize(watcher.getBytesTransferred());
-                String bytesTotalStr = formatByteSize(watcher.getBytesTotal());
+                String bytesCompletedStr = byteFormatter.formatByteSize(watcher.getBytesTransferred());
+                String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                 String statusText = "Downloaded " + bytesCompletedStr + " of " + bytesTotalStr;
                 
                 String detailsText = formatTransferDetails(watcher);
@@ -1787,15 +1792,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private void uploadFilesToS3(final File uploadingFiles[]) {
         try {
             // Build map of files proposed for upload.
-            HashMap filesForUploadMap = new HashMap();
-            for (int i = 0; i < uploadingFiles.length; i++) {
-                if (uploadingFiles[i].isDirectory()) {
-                    filesForUploadMap.putAll(FileComparer.
-                        buildFileMap(uploadingFiles[i], uploadingFiles[i].getName()));
-                } else {
-                    filesForUploadMap.put(uploadingFiles[i].getName(), uploadingFiles[i]);
-                }                
-            }
+            Map filesForUploadMap = FileComparer.buildFileMap(uploadingFiles);
             
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.
@@ -1936,7 +1933,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             // Show percentage of bytes transferred, if this info is available.
             if (watcher.isBytesTransferredInfoAvailable()) {
-                String bytesTotalStr = formatByteSize(watcher.getBytesTotal());
+                String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                 String statusText = "Uploaded 0 of " + bytesTotalStr;                
                 startProgressDisplay(statusText, " ", 0, 100, "Cancel upload", 
                     event.getThreadWatcher().getCancelEventListener());
@@ -1967,8 +1964,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     String statusText = "Upload completed, awaiting confirmation";
                     updateProgressDisplay(statusText, 100);
                 } else {                    
-                    String bytesCompletedStr = formatByteSize(watcher.getBytesTransferred());
-                    String bytesTotalStr = formatByteSize(watcher.getBytesTotal());
+                    String bytesCompletedStr = byteFormatter.formatByteSize(watcher.getBytesTransferred());
+                    String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                     String statusText = "Uploaded " + bytesCompletedStr + " of " + bytesTotalStr;
                     long percentage = (int) 
                         (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
@@ -2036,9 +2033,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             cal.add(Calendar.SECOND, secondsFromNow);
 
             // Generate URL
-            String signedUrl = S3Service.createSignedUrl(
-                "GET", getCurrentSelectedBucket().getName(), currentObject.getKey(), null,
-                s3ServiceMulti.getAWSCredentials(), cal.getTimeInMillis() / 1000, true);
+            String signedUrl = S3Service.createSignedGetUrl(
+                getCurrentSelectedBucket().getName(), currentObject.getKey(), null, null,
+                s3ServiceMulti.getAWSCredentials(), cal.getTime(), S3Service.DEFAULT_S3_URL_SECURE);
             
             // Display signed URL
             JOptionPane.showInputDialog(ownerFrame,
@@ -2220,48 +2217,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             reportException(ownerFrame, "getObjectHeads", event.getErrorCause());
         }
     }
-    
-    private String formatByteSize(long byteSize) {
-        NumberFormatter nf = new NumberFormatter(new DecimalFormat("0.00"));
-        
-        String result = "???";
-        try {
-            if (byteSize > Math.pow(1024,3)) {
-                // Report gigabytes
-                result = nf.valueToString(new Double(byteSize / Math.pow(1024,3))) + " GB";
-            } else if (byteSize > Math.pow(1024,2)) {
-                // Report megabytes
-                result = nf.valueToString(new Double(byteSize / Math.pow(1024,2))) + " MB";
-            } else if (byteSize > 1024) {
-                // Report kilobytes
-                result = nf.valueToString(new Double(byteSize / Math.pow(1024,1))) + " KB";                    
-            } else if (byteSize >= 0) {
-                // Report bytes                
-                result = byteSize + " byte" + (byteSize == 1? "" : "s");
-            } 
-        } catch (ParseException e) {
-            reportException(ownerFrame, "Unable to format byte size " + byteSize, e);
-        }
-        return result;
-    }    
-    
-    private String formatTime(long seconds) {
-        String result = "";
-        if (seconds > 3600) {
-            int hours = (int) seconds / 3600;
-            result = hours + ":";
-            seconds = seconds - (hours * 3600); 
-        } 
-        
-        int mins = (int) seconds / 60;
-        result += (mins < 10 ? "0" : "") + mins + ":";
-        seconds = seconds - (mins * 60);
-        
-        result += (seconds < 10 ? "0" : "") + seconds;
-        
-        return result;
-    }
-    
+           
     private String formatTransferDetails(ThreadWatcher watcher) {
         String detailsText = null;
         if (watcher.isBytesTransferredInfoAvailable()) {
@@ -2269,11 +2225,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         if (watcher.isBytesPerSecondAvailable()) {
             long bytesPerSecond = watcher.getBytesPerSecond();
-            detailsText = formatByteSize(bytesPerSecond) + "/s";
+            detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
         }
         if (watcher.isTimeRemainingAvailable()) {
             long secondsRemaining = watcher.getTimeRemaining();
-            detailsText += " - ETA " + formatTime(secondsRemaining);
+            detailsText += " - ETA " + timeFormatter.formatTime(secondsRemaining);
         }
         return detailsText;
     }
@@ -2393,7 +2349,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
             // New object to insert.
             objectList.add(insertRow, object);
-            this.insertRow(insertRow, new Object[] {object.getKey(), formatByteSize(object.getContentLength()), 
+            this.insertRow(insertRow, new Object[] {object.getKey(), 
+                byteFormatter.formatByteSize(object.getContentLength()), 
                 object.getLastModifiedDate() /*, object.getHash(), object.getStorageClass()*/});
             
             // Automatically select (highlight) a newly aded object, if required.
