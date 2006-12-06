@@ -20,6 +20,7 @@ package org.jets3t.service;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -63,6 +64,9 @@ import org.jets3t.service.utils.ServiceUtils;
 public abstract class S3Service {
 
     private static final Log log = LogFactory.getLog(S3Service.class);
+    
+    public static final String DEFAULT_S3_URL_SECURE = "https://" + Constants.REST_SERVER_DNS + "/";
+    public static final String DEFAULT_S3_URL_INSECURE = "http://" + Constants.REST_SERVER_DNS + "/";
 
     private AWSCredentials awsCredentials = null;
     private boolean isHttpsOnly = true;
@@ -171,9 +175,9 @@ public abstract class S3Service {
      * @param secondsSinceEpoch
      * the time after which URL's signature will no longer be valid. This time cannot be null.
      *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds. 
-     * @param isSecure
-     * if true an HTTPS URL is created and data accessed using the generated URL will be encrypted
-     * when accessed, otherwise a standard HTTP URL is created.
+     * @param urlPrefix
+     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
+     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
      * 
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
@@ -181,7 +185,7 @@ public abstract class S3Service {
      * @throws S3ServiceException
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey, 
-        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch, boolean isSecure) 
+        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch, String urlPrefix) 
         throws S3ServiceException
     {
         String fullKey = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
@@ -197,20 +201,51 @@ public abstract class S3Service {
         String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
         fullKey += "&Signature=" + encodedCanonical;
 
-        if (isSecure) {
-            return "https://" + Constants.REST_SERVER_DNS + "/" + fullKey;
+        if (!urlPrefix.endsWith("/")) {
+            return urlPrefix + "/" + fullKey;
         } else {
-            return "http://" + Constants.REST_SERVER_DNS + "/" + fullKey;            
-        }
+            return urlPrefix + fullKey;
+        }        
     }
     
     /**
-     * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
-     * to whoever uses the URL up until the time specified, where the time is specified as a Date
-     * object for convenience.
+     * Generates a signed GET URL.
      * 
-     * @param method
-     * the HTTP method to sign, such as GET or POST (note that S3 does not support PUT requests).
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param awsCredentials
+     * the credentials of someone with sufficient privileges to grant access to the bucket/object 
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param urlPrefix
+     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
+     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
+     * 
+     * @return
+     * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
+     * @throws S3ServiceException
+     */
+    public static String createSignedGetUrl(String bucketName, String objectKey,
+        String contentType, String contentMd5, AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        Map headersMap = new HashMap();
+        if (contentType != null) {
+            headersMap.put("Content-Type", contentType);
+        }
+        if (contentMd5 != null) {
+            headersMap.put("Content-MD5", contentMd5);            
+        }
+        return createSignedUrl("GET", bucketName, objectKey, headersMap, 
+            awsCredentials, secondsSinceEpoch, urlPrefix);
+    }
+
+    /**
+     * Generates a signed PUT URL.
+     * 
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
@@ -223,24 +258,79 @@ public abstract class S3Service {
      * the credentials of someone with sufficient privileges to grant access to the bucket/object 
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
-     * @param isSecure
-     * if true an HTTPS URL is created and data accessed using the generated URL will be encrypted
-     * when accessed, otherwise a standard HTTP URL is created.
+     * @param urlPrefix
+     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
+     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
      * 
      * @return
-     * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     * 
+     * a URL signed in such a way as to allow anyone to PUT an object into S3.
      * @throws S3ServiceException
      */
-    public static String createSignedUrl(String method, String bucketName, String objectKey, 
-        Map headersMap, AWSCredentials awsCredentials, Date expiryTime, boolean isSecure) 
+    public static String createSignedPutUrl(String bucketName, String objectKey, 
+        Map headersMap, AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        return createSignedUrl(method, bucketName, objectKey, headersMap, 
-            awsCredentials, secondsSinceEpoch, isSecure);
+        return createSignedUrl("PUT", bucketName, objectKey, headersMap, 
+            awsCredentials, secondsSinceEpoch, urlPrefix);
     }
             
+    /**
+     * Generates a signed DELETE URL.
+     * 
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param awsCredentials
+     * the credentials of someone with sufficient privileges to grant access to the bucket/object 
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param urlPrefix
+     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
+     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
+     * 
+     * @return
+     * a URL signed in such a way as to allow anyone do DELETE an object in S3.
+     * @throws S3ServiceException
+     */
+    public static String createSignedDeleteUrl(String bucketName, String objectKey, 
+        AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        return createSignedUrl("DELETE", bucketName, objectKey, null, 
+            awsCredentials, secondsSinceEpoch, urlPrefix);
+    }
+
+    /**
+     * Generates a signed HEAD URL.
+     * 
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param awsCredentials
+     * the credentials of someone with sufficient privileges to grant access to the bucket/object 
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param urlPrefix
+     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
+     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
+     * 
+     * @return
+     * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
+     * @throws S3ServiceException
+     */
+    public static String createSignedHeadUrl(String bucketName, String objectKey, 
+        AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        return createSignedUrl("HEAD", bucketName, objectKey, null, 
+            awsCredentials, secondsSinceEpoch, urlPrefix);
+    }
+
     /**
      * Generates a URL string that will return a Torrent file for an object in S3, 
      * which file can be downloaded and run in a BitTorrent client.  
