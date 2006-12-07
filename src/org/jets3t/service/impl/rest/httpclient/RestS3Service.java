@@ -376,8 +376,28 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             map.put(headers[i].getName(), headers[i].getValue());
         }
         return map;
-    }    
-    
+    }  
+        
+    /**
+     * Adds all appropriate metadata to the given HTTP method.
+     * 
+     * @param httpMethod
+     * @param metadata
+     */
+    private void addMetadataToHeaders(HttpMethodBase httpMethod, Map metadata) {
+        Iterator metaDataIter = metadata.keySet().iterator();
+        while (metaDataIter.hasNext()) {                
+            String key = (String) metaDataIter.next();
+            Object value = metadata.get(key);
+
+            if (key == null || !(value instanceof String)) {
+                // Ignore invalid metadata.
+                continue;
+            }
+            
+            httpMethod.setRequestHeader(key, (String) value);
+        }
+    }
     
     /**
      * Performs an HTTP HEAD request using the {@link #performRequest} method.
@@ -443,7 +463,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         return httpMethod;
     }
-    
+        
     /**
      * Performs an HTTP PUT request using the {@link #performRequest} method.
      *  
@@ -464,32 +484,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         // Add any request parameters.
         HttpMethodBase httpMethod = setupConnection("PUT", bucketName, objectKey, requestParameters);
         
-        // Add all meta-data headers.
-        if (metadata != null) {
-            Iterator metaDataIter = metadata.keySet().iterator();
-            while (metaDataIter.hasNext()) {                
-                String key = (String) metaDataIter.next();
-                Object value = metadata.get(key);
-                if (key == null || !(value instanceof String)) {
-                    // Ignore invalid metadata.
-                    continue;
-                }
-                
-                if (!key.equalsIgnoreCase("content-type") 
-                    && !key.equalsIgnoreCase("content-md5")
-                    && !key.equalsIgnoreCase("content-length")
-                    && !key.equalsIgnoreCase("content-language")
-                    && !key.equalsIgnoreCase("expires")
-                    && !key.equalsIgnoreCase("cache-control")
-                    && !key.equalsIgnoreCase("content-disposition")
-                    && !key.equalsIgnoreCase("content-encoding")
-                    && !key.startsWith(Constants.REST_HEADER_PREFIX)) 
-                {
-                    key = Constants.REST_METADATA_PREFIX + key;
-                }                
-                httpMethod.setRequestHeader(key, value.toString());
-            }
-        }
+        Map renamedMetadata = RestUtils.renameMetadataKeys(metadata);
+        addMetadataToHeaders(httpMethod, renamedMetadata);
 
 		// Build the authorization string for the method.        
         buildAuthorizationString(httpMethod);
@@ -1060,24 +1056,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     public S3Object putObjectWithSignedUrl(String signedPutUrl, S3Object object) throws S3ServiceException {
         PutMethod putMethod = new PutMethod(signedPutUrl);
         
-        if (object.getMd5HashAsBase64() != null) {
-            putMethod.addRequestHeader("Content-MD5", object.getMd5HashAsBase64());                        
-        }
-        
-        if (object.getContentType() != null) {
-            putMethod.addRequestHeader("Content-Type", object.getContentType());            
-        }
-        
-        Map metadata = object.getMetadataMap();
-        Iterator iter = metadata.keySet().iterator();
-        while (iter.hasNext()) {
-            String metadataName = (String) iter.next();
-            if (metadataName.startsWith(Constants.REST_HEADER_PREFIX)) {
-                String metadataValue = (String) metadata.get(metadataName);
-                putMethod.addRequestHeader(metadataName, metadataValue);                    
-            }
-        }
-                
+        Map renamedMetadata = RestUtils.renameMetadataKeys(object.getMetadataMap());
+        addMetadataToHeaders(putMethod, renamedMetadata);                
+
         long contentLength = InputStreamRequestEntity.CONTENT_LENGTH_AUTO;
         if (object.containsMetadata("Content-Length")) {
             contentLength = Long.parseLong((String) object.getMetadata("Content-Length"));
