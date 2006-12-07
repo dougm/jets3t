@@ -55,6 +55,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -75,14 +76,20 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import org.apache.commons.httpclient.Credentials;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HostConfiguration;
+import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.NTCredentials;
+import org.apache.commons.httpclient.ProxyHost;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScheme;
 import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.auth.NTLMScheme;
 import org.apache.commons.httpclient.auth.RFC2617Scheme;
+import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
+import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.HyperlinkActivatedListener;
@@ -111,6 +118,8 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
+import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
+import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
@@ -816,7 +825,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @param objects
      * @return
      */
-    private GatekeeperResponse buildGatekeeperResponse(S3Object[] objects) {
+    private GatekeeperMessage buildGatekeeperResponse(S3Object[] objects) {
         
         String awsAccessKey = userInputProperties.getProperty("AwsAccessKey");
         String awsSecretKey = userInputProperties.getProperty("AwsSecretKey");
@@ -827,35 +836,39 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         Date expiryDate = cal.getTime();
 
         AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
-        S3Bucket s3Bucket = new S3Bucket(s3BucketName);
         
         try {
-            // TODO
+            GatekeeperMessage message = new GatekeeperMessage();
+
+            // TODO How do we handle the XML summary?
+/*            
             String data = "<xml>just some data</xml>";
             S3Object summaryObject = new S3Object(s3Bucket, "Summary.xml", data);
 //            summaryObject.setMd5Hash(ServiceUtils.computeMD5Hash(data.getBytes()));
             String signedPutUrl = S3Service.createSignedPutUrl(summaryObject.getBucketName(), summaryObject.getKey(), 
                 summaryObject.getMetadataMap(), awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
             SignedUrlAndObject summaryPackage = new SignedUrlAndObject(signedPutUrl, summaryObject);                
-            
-            GatekeeperResponse response = new GatekeeperResponse(true, summaryPackage);
+            message.addObjectToSignPUT(summaryObject);
+            message.addSignedObject(summaryPackage);
+*/            
             for (int i = 0; i < objects.length; i++) {
-                if (objects[i].getBucketName() == null) {
-                    objects[i].setBucketName(s3BucketName);
-                }
-                
-                signedPutUrl = S3Service.createSignedPutUrl(objects[i].getBucketName(), objects[i].getKey(), 
+                String signedPutUrl = S3Service.createSignedPutUrl(s3BucketName, objects[i].getKey(), 
                     objects[i].getMetadataMap(), awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
-                response.addObjectAndUrl(new SignedUrlAndObject(signedPutUrl, objects[i]));
+                
+                SignatureRequest signatureRequest = new SignatureRequest(
+                    SignatureRequest.SIGNATURE_TYPE_PUT, objects[i].getKey());
+                signatureRequest.setBucketName(s3BucketName);
+                signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
+                signatureRequest.signRequest(signedPutUrl);
+                
+                message.addSignatureRequest(signatureRequest);
             }
-            return response;
+                        
+            return message;
             
         } catch (Exception e) {
             log.error("Unable to generate singed PUT URL for testing", e);
-            S3Object summaryObject = new S3Object(s3Bucket, "Summary.xml", "<xml>just some data</xml>");
-            SignedUrlAndObject summaryPackage = new SignedUrlAndObject(null, summaryObject);
-            
-            return new GatekeeperResponse(false, summaryPackage); 
+            return null; // TODO should throw exception?
         }        
     }
     
@@ -875,29 +888,51 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @throws HttpException
      * @throws IOException
      */
-    private GatekeeperResponse sendGatekeeperRequest(String credentialsProviderUrl, S3Object[] objects) 
+    private GatekeeperMessage sendGatekeeperRequest(String gatekeeperUrl, S3Object[] objects) 
         throws HttpException, IOException 
     {
-        // TODO 
-/*                
+        /*
+         *  Build Gatekeeper request.
+         */
+        GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
+        
+        // Add User inputs as application properties.
+        gatekeeperMessage.addApplicationProperties(userInputProperties);
+        
+        // Add any Applet/Application parameters as application properties.
+        gatekeeperMessage.addApplicationProperties(parametersMap);
+        
+        // Add all S3 objects as candiates for PUT signing.
+        for (int i = 0; i < objects.length; i++) {
+            SignatureRequest signatureRequest = new SignatureRequest(
+                SignatureRequest.SIGNATURE_TYPE_PUT, objects[i].getKey());
+            signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
+            
+            gatekeeperMessage.addSignatureRequest(signatureRequest);
+        }
+        
+        
+        /*
+         *  Build HttpClient POST message.
+         */
+        
         // Add all properties/parameters to credentials POST request.
-        PostMethod httpMethod = new PostMethod(credentialsProviderUrl);
-        Properties props = uploaderProperties.getProperties();
-        Iterator iter = props.keySet().iterator();
+        PostMethod putMethod = new PostMethod(gatekeeperUrl);
+        Properties properties = gatekeeperMessage.encodeToProperties();
+        Iterator iter = properties.keySet().iterator();
         while (iter.hasNext()) { 
             String fieldName = (String) iter.next();
-            String fieldValue = (String) props.getProperty(fieldName);
-            httpMethod.addParameter(fieldName, fieldValue);
+            String fieldValue = (String) properties.getProperty(fieldName);
+            putMethod.addParameter(fieldName, fieldValue);
         }
-        httpMethod.addParameter("objectKey", object.getKey());
         
-        // Try to detect any necessary proxy config.
+        // Try to detect any necessary proxy configurations.
         HttpClient httpClient = new HttpClient();
         httpClient.getParams().setParameter(
             CredentialsProvider.PROVIDER, this);     
         ProxyHost proxyHost = null;
         try {
-            proxyHost = PluginProxyUtil.detectProxy(new URL(credentialsProviderUrl));
+            proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
             if (proxyHost != null) {
                 HostConfiguration hostConfig = new HostConfiguration();
                 hostConfig.setProxyHost(proxyHost);
@@ -908,39 +943,37 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             log.error("Unable to set proxy", t);
         }
 
-        log.debug("Retrieving credentials from url: " + credentialsProviderUrl);
-        String signedPutUrl = null;
+        // Perform Gateway request.
+        log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
         try {                        
-            int responseCode = httpClient.executeMethod(httpMethod);
+            int responseCode = httpClient.executeMethod(putMethod);
             if (responseCode == 200) {
-                // Consume response content and release connection.
-                String responseBodyText = "";
+                InputStream responseInputStream = null;
 
-                Header encodingHeader = httpMethod.getResponseHeader("Content-Encoding");
+                Header encodingHeader = putMethod.getResponseHeader("Content-Encoding");
                 if (encodingHeader != null && "gzip".equalsIgnoreCase(encodingHeader.getValue())) {
                     log.debug("Inflating gzip-encoded response");
-                    BufferedReader br = new BufferedReader(new InputStreamReader(
-                        new GZIPInputStream(httpMethod.getResponseBodyAsStream())));
-                    responseBodyText = br.readLine();
+                    responseInputStream = new GZIPInputStream(putMethod.getResponseBodyAsStream());
                 } else {
-                    responseBodyText = httpMethod.getResponseBodyAsString();
+                    responseInputStream = putMethod.getResponseBodyAsStream();
                 }                
                 
-                if (!responseBodyText.startsWith("http")) {
-                    log.debug("Response from credentials provider service does not include signed PUT URL: '" + responseBodyText + "'");
-                    return null;
-                }                
+                if (responseInputStream == null) {
+                    throw new IOException("No response input stream available from Gatekeeper"); // TODO                    
+                }         
                 
-                // TODO Source all this information from service response.
-                return new GatekeeperResponse(responseBodyText, object.getBucketName(), object.getKey());
-            } 
+                Properties responseProperties = new Properties();
+                responseProperties.load(responseInputStream);                
+                return GatekeeperMessage.decodeFromProperties(responseProperties);
+            } else {
+                throw new IOException("Unexpected response code from Gatekeeper request: " 
+                    + responseCode); // TODO
+            }
         } catch (Exception e) {
-            log.error("Unable to retrieve credentials from credentials provider url: " + credentialsProviderUrl, e);
+            throw new IOException("Unable to receive signed URLs from Gatekeeper at: " + gatekeeperUrl + ". " + e); // TODO
         } finally {
-            httpMethod.releaseConnection();            
+            putMethod.releaseConnection();            
         }
-*/        
-        return null;
     }
     
     /**
@@ -984,21 +1017,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 && userInputProperties.getProperty("S3BucketName") != null;
 
             // Obtain Gatekeeper response.
-            GatekeeperResponse gatekeeperResponse = null;
+            GatekeeperMessage gatekeeperMessage = null;
             if (s3CredentialsProvided) {
                 log.debug("S3 login credentials and bucket name are available, the Uploader "
                     + "will generate its own Gatekeeper response");
-                gatekeeperResponse = buildGatekeeperResponse(objectsForUpload);
+                gatekeeperMessage = buildGatekeeperResponse(objectsForUpload);
             } else {
-                gatekeeperResponse = sendGatekeeperRequest(
+                gatekeeperMessage = sendGatekeeperRequest(
                     credentialsServiceUrl, objectsForUpload);                
             }            
             
-            if (!gatekeeperResponse.isApproved()) {
-                fatalError(ERROR_CODE__INVALID_PUT_URL);                    
-                return;
-            }
-            
+            log.debug("Gatekeeper response properties: " + gatekeeperMessage.encodeToProperties());
+                        
             // TODO Update S3Object if service specifies different bucket/key names.
 /*
             // Generate XML document.
@@ -1016,18 +1046,40 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             xmlDocObject.setContentType("application/xml");
 */                                            
             
+            List signedObjects = new ArrayList();
+            for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {
+                SignatureRequest request = gatekeeperMessage.getSignatureRequests()[i];
+                if (request.isSigned()) {
+                    // Update object with any changes dictated by Gatekeeper.
+                    S3Object object = objectsForUpload[i];
+                    object.setKey(request.getObjectKey());
+                    object.setBucketName(request.getBucketName());
+                    object.replaceAllMetadata(request.getObjectMetadata());
+                    
+                    SignedUrlAndObject urlAndObject = new SignedUrlAndObject(request.getSignedUrl(), object);
+                    signedObjects.add(urlAndObject);
+                } else {
+                    // TODO What do we do on declines?
+                    String declineReason = request.getDeclineReason();
+System.err.println("=== Object '" + objectsForUpload[i].getKey() + "' because: " + declineReason);                    
+                }
+            }
+            
             S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(
                 new RestS3Service(null/*TODO , this*/), this); 
                       
             if (includeXmlSummaryDoc) {
                 uploadingFinalObject = false;
-                s3ServiceMulti.putObjects(gatekeeperResponse.getSignedUrlAndObjects());
-                uploadingFinalObject = true;
                 s3ServiceMulti.putObjects(
-                    new SignedUrlAndObject[] { gatekeeperResponse.getXmlSummaryPackage() });                
+                    (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[] {}));
+                // TODO
+//                uploadingFinalObject = true;
+//                s3ServiceMulti.putObjects(
+//                    new SignedUrlAndObject[] { gatekeeperResponse.getXmlSummaryPackage() });                
             } else {
                 uploadingFinalObject = true;
-                s3ServiceMulti.putObjects(gatekeeperResponse.getSignedUrlAndObjects());                
+                s3ServiceMulti.putObjects(                
+                    (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[] {}));
             }            
         } catch (Exception e) {
             wizardStepBackward();
@@ -1500,33 +1552,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public void s3ServiceEventPerformed(UpdateACLEvent event) {}
     public void s3ServiceEventPerformed(DownloadObjectsEvent event) {}
     public void valueChanged(ListSelectionEvent arg0) {}
-    
-    public class GatekeeperResponse {
-        private boolean isApproved = false;
-        private ArrayList urlAndObjectList = new ArrayList();
-        private SignedUrlAndObject xmlSummaryPackage = null;
-        
-        public GatekeeperResponse(boolean isApproved, SignedUrlAndObject xmlSummaryPackage) {
-            this.isApproved = isApproved;
-            this.xmlSummaryPackage = xmlSummaryPackage;
-        }
-        
-        public void addObjectAndUrl(SignedUrlAndObject urlAndObject) {
-            urlAndObjectList.add(urlAndObject);
-        }
-
-        public boolean isApproved() {
-            return isApproved;
-        }
-
-        public SignedUrlAndObject getXmlSummaryPackage() {
-            return xmlSummaryPackage;
-        }
-        
-        public SignedUrlAndObject[] getSignedUrlAndObjects() {
-            return (SignedUrlAndObject[]) urlAndObjectList.toArray(new SignedUrlAndObject[] {});
-        }
-    }
     
     /**
      * Run the Uploader as a stand-alone application.
