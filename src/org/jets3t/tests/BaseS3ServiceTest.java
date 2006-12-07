@@ -618,7 +618,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
             .openConnection()).getResponseCode());
 
         // Create a signed HTTP GET URL.
-        String signedGetUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(), null, null,
+        String signedGetUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(), 
             awsCredentials, expiryDate, s3Url);
 
         // Ensure the signed URL can retrieve the object.

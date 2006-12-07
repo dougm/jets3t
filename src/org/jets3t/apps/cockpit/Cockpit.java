@@ -2034,7 +2034,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
             // Generate URL
             String signedUrl = S3Service.createSignedGetUrl(
-                getCurrentSelectedBucket().getName(), currentObject.getKey(), null, null,
+                getCurrentSelectedBucket().getName(), currentObject.getKey(),
                 s3ServiceMulti.getAWSCredentials(), cal.getTime(), S3Service.DEFAULT_S3_URL_SECURE);
             
             // Display signed URL

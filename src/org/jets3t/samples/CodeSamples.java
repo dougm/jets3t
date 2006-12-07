@@ -497,7 +497,7 @@ public class CodeSamples {
         
         // Create a signed HTTP GET URL valid for 5 minutes.
         String url = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
-            null, null, awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
+            awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
         System.out.println("Signed URL: " + url);
     }
     

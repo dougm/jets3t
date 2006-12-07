@@ -20,7 +20,6 @@ package org.jets3t.service;
 
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -192,8 +191,8 @@ public abstract class S3Service {
         fullKey += "?AWSAccessKeyId=" + awsCredentials.getAccessKey();
         fullKey += "&Expires=" + secondsSinceEpoch;
 
-        String canonicalString = RestUtils.makeCanonicalString(method, "/" + fullKey, 
-            headersMap, String.valueOf(secondsSinceEpoch));
+        String canonicalString = RestUtils.makeCanonicalString(method, "/" + fullKey,
+            RestUtils.renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch));
         log.debug("Signing canonical string:\n" + canonicalString);
 
         String signedCanonical = ServiceUtils.signWithHmacSha1(awsCredentials.getSecretKey(),
@@ -228,18 +227,11 @@ public abstract class S3Service {
      * @throws S3ServiceException
      */
     public static String createSignedGetUrl(String bucketName, String objectKey,
-        String contentType, String contentMd5, AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        Map headersMap = new HashMap();
-        if (contentType != null) {
-            headersMap.put("Content-Type", contentType);
-        }
-        if (contentMd5 != null) {
-            headersMap.put("Content-MD5", contentMd5);            
-        }
-        return createSignedUrl("GET", bucketName, objectKey, headersMap, 
+        return createSignedUrl("GET", bucketName, objectKey, null, // headersMap, 
             awsCredentials, secondsSinceEpoch, urlPrefix);
     }
 
