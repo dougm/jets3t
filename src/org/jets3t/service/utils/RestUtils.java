@@ -20,6 +20,7 @@ package org.jets3t.service.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedMap;
@@ -152,5 +153,51 @@ public class RestUtils {
 
         return buf.toString();
     }
+    
+    /**
+     * Renames metadata property names to be suitable for use as HTTP Headers. This is done
+     * by renaming any non-HTTP headers to have the prefix <code>x-amz-meta-</code> and leaving the 
+     * HTTP header names unchanged. The HTTP header names left unchanged are:
+     * <table>
+     * <tr><th>Unchanged metadata names</th></tr>
+     * <tr><td>content-type</td></tr>
+     * <tr><td>content-md5</td></tr>
+     * <tr><td>content-length</td></tr>
+     * <tr><td>content-language</td></tr>
+     * <tr><td>expires</td></tr>
+     * <tr><td>cache-control</td></tr>
+     * <tr><td>content-disposition</td></tr>
+     * <tr><td>content-encoding</td></tr>
+     * </table>
+     * 
+     * @param metadata
+     * @return
+     */
+    public static Map renameMetadataKeys(Map metadata) {
+        Map convertedMetadata = new HashMap();
+        // Add all meta-data headers.
+        if (metadata != null) {
+            Iterator metaDataIter = metadata.keySet().iterator();
+            while (metaDataIter.hasNext()) {                
+                String key = (String) metaDataIter.next();
+                Object value = metadata.get(key);
+
+                if (!key.equalsIgnoreCase("content-type") 
+                    && !key.equalsIgnoreCase("content-md5")
+                    && !key.equalsIgnoreCase("content-length")
+                    && !key.equalsIgnoreCase("content-language")
+                    && !key.equalsIgnoreCase("expires")
+                    && !key.equalsIgnoreCase("cache-control")
+                    && !key.equalsIgnoreCase("content-disposition")
+                    && !key.equalsIgnoreCase("content-encoding")
+                    && !key.startsWith(Constants.REST_HEADER_PREFIX)) 
+                {
+                    key = Constants.REST_METADATA_PREFIX + key;
+                }                
+                convertedMetadata.put(key, value);
+            }
+        }
+        return convertedMetadata;
+    }    
 
 }
