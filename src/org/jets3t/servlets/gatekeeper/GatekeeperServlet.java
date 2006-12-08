@@ -20,8 +20,6 @@ package org.jets3t.servlets.gatekeeper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.util.Properties;
 
@@ -33,19 +31,16 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.model.S3Object;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
-import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 import org.jets3t.servlets.gatekeeper.impl.DefaultGatekeeper;
+import org.jets3t.servlets.gatekeeper.impl.DefaultTransactionIdProvider;
 import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
 
 public class GatekeeperServlet extends HttpServlet {
     private final Log log = LogFactory.getLog(GatekeeperServlet.class);
     
-    private Gatekeeper gatekeeper = null;
-    private UrlSigner urlSigner = null;
-
+    private ServletConfig servletConfig = null;
 
     private Object instantiateClass(String className, Class[] constructorParamClasses, 
         Object[] constructorParams)
@@ -65,98 +60,122 @@ public class GatekeeperServlet extends HttpServlet {
     
     public void init(ServletConfig servletConfig) throws ServletException {
         log.info("Initialising GatekeeperServlet");
+        this.servletConfig = servletConfig;
+    }
 
+    private Gatekeeper initGatekeeper() throws ServletException {
         String gatekeeperClass = servletConfig.getInitParameter("GatekeeperClass");
         log.debug("GatekeeperClass: " + gatekeeperClass);        
         if (gatekeeperClass != null) {
             log.info("Loading Gatekeeper implementation class: " + gatekeeperClass);
-            gatekeeper = (Gatekeeper) instantiateClass(gatekeeperClass, 
-                new Class[] {}, new Object[] {});
+            return (Gatekeeper) instantiateClass(gatekeeperClass, 
+                new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
-        if (gatekeeper == null) {
-            gatekeeper = new DefaultGatekeeper();            
-            log.info("Loaded default Gatekeeper implementation class: " 
-                + gatekeeper.getClass().getName());
-        }
+        log.info("Loaded default Gatekeeper implementation class: " 
+            + DefaultGatekeeper.class.getName());
+        return new DefaultGatekeeper(servletConfig);
+    }
 
+    private UrlSigner initUrlSigner() throws ServletException {
         String urlSignerClass = servletConfig.getInitParameter("UrlSignerClass");
         log.debug("UrlSignerClass: " + urlSignerClass);        
         if (urlSignerClass != null) {
             log.info("Loading UrlSigner implementation class: " + urlSignerClass);
-            urlSigner = (UrlSigner) instantiateClass(urlSignerClass,
+            return (UrlSigner) instantiateClass(urlSignerClass,
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
-        if (urlSigner == null) {
-            urlSigner = new DefaultUrlSigner(servletConfig);            
-            log.info("Loaded default UrlSigner implementation class: " 
-                + urlSigner.getClass().getName());
-        }
-    }
-    
-    // TODO
-    public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException 
-    {
-        String userAgent =  req.getHeader("user-agent");
-        String clientBrowser =  "Not known!";   
-        if( userAgent != null)
-            clientBrowser = userAgent;
-        req.setAttribute("client.browser",clientBrowser );
-        req.getRequestDispatcher("/showBrowser.jsp").forward(req,resp);
+        log.info("Loaded default UrlSigner implementation class: " 
+            + DefaultUrlSigner.class.getName());
+        return new DefaultUrlSigner(servletConfig);            
     }
 
+    private TransactionIdProvider initTransactionIdProvider() throws ServletException {
+        String transactionIdProviderClass = servletConfig.getInitParameter("TransactionIdProviderClass");
+        log.debug("TransactionIdProviderClass: " + transactionIdProviderClass);        
+        if (transactionIdProviderClass != null) {
+            log.info("Loading TransactionIdProvider implementation class: " + transactionIdProviderClass);
+            return (TransactionIdProvider) instantiateClass(transactionIdProviderClass,
+                new Class[] {ServletConfig.class}, new Object[] {servletConfig});
+        }
+        log.info("Loaded default TransactionIdProvider implementation class: " 
+            + TransactionIdProvider.class.getName());
+        return new DefaultTransactionIdProvider(servletConfig);            
+    }
+    
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         log.debug("Handling POST request");
         try {
+            
+            // Initialise required classes.
+            TransactionIdProvider transactionIdProvider = initTransactionIdProvider();
+            UrlSigner urlSigner = initUrlSigner();
+            Gatekeeper gatekeeper = initGatekeeper();
         
-            // Build Gatekeeper request
-System.err.println("=== request.getParameterMap()=" + request.getParameterMap());
+            // Build Gatekeeper request from POST form parameters.
             GatekeeperMessage gatekeeperMessage = 
                 GatekeeperMessage.decodeFromProperties(request.getParameterMap());
                     
-            // TODO Obtain client information
-            ClientInformation clientInformation = null;
+            // Obtain client information
+            ClientInformation clientInformation = new ClientInformation(
+                request.getRemoteAddr(), request.getRemoteHost(), request.getRemoteUser(),
+                request.getRemotePort(), request.getSession(false), request.getUserPrincipal());
             
-            // Process each object request.
+            // Generate Transaction ID, and store it in the message.
+            String transactionId = transactionIdProvider.getTransactionId(
+                gatekeeperMessage.getApplicationProperties(), 
+                gatekeeperMessage.getMessageProperties(), clientInformation);
+            if (transactionId != null) {
+                gatekeeperMessage.addMessageProperty(GatekeeperMessage.PROPERTY_TRANSACTION_ID, transactionId);
+            }
+            
+            // Process each signature request.
             for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {
                 SignatureRequest signatureRequest = (SignatureRequest) gatekeeperMessage.getSignatureRequests()[i];
-                boolean allowed = gatekeeper.allowPut(gatekeeperMessage.getApplicationProperties(),
-                    clientInformation, signatureRequest);
                 
+                // Determine whether the request will be allowed. If the request is not allowed, the
+                // reason will be made available in the signature request object (with signatureRequest.declineRequest())
+                boolean allowed = gatekeeper.allowSignatureRequest(gatekeeperMessage.getApplicationProperties(),
+                    gatekeeperMessage.getMessageProperties(), clientInformation, signatureRequest);
+
+                // Sign requests when they are allowed. When a request is signed, the signed URL is made available
+                // in the SignatureRequest object.
                 if (allowed) {
                     String signedUrl = null;
                     if (SignatureRequest.SIGNATURE_TYPE_GET.equals(signatureRequest.getSignatureType())) {
                         signedUrl = urlSigner.signGet(gatekeeperMessage.getApplicationProperties(), 
-                            clientInformation, signatureRequest);                        
+                            gatekeeperMessage.getMessageProperties(), clientInformation, signatureRequest);                        
                     } else if (SignatureRequest.SIGNATURE_TYPE_HEAD.equals(signatureRequest.getSignatureType())) {
                         signedUrl = urlSigner.signHead(gatekeeperMessage.getApplicationProperties(), 
-                            clientInformation, signatureRequest);
+                            gatekeeperMessage.getMessageProperties(), clientInformation, signatureRequest);
                     } else if (SignatureRequest.SIGNATURE_TYPE_PUT.equals(signatureRequest.getSignatureType())) {
                         signedUrl = urlSigner.signPut(gatekeeperMessage.getApplicationProperties(), 
-                            clientInformation, signatureRequest);
+                            gatekeeperMessage.getMessageProperties(), clientInformation, signatureRequest);
                     } else if (SignatureRequest.SIGNATURE_TYPE_DELETE.equals(signatureRequest.getSignatureType())) {
                         signedUrl = urlSigner.signDelete(gatekeeperMessage.getApplicationProperties(), 
-                            clientInformation, signatureRequest);                        
+                            gatekeeperMessage.getMessageProperties(), clientInformation, signatureRequest);                        
                     }
                     signatureRequest.signRequest(signedUrl);
                 }                 
             }
-            
-            // Build response.
+                        
+            // Build response as a set of properties, and return this document.
             Properties responseProperties = gatekeeperMessage.encodeToProperties();
-System.out.println("=== POST Properties before response: " + responseProperties);
+            log.debug("Sending response message as properties: " + responseProperties);            
             
-            
+            // Serialize properties to bytes. 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             responseProperties.store(baos, "");
             
+            // Send successful response.
             response.setStatus(200);                
+            response.setContentType(GatekeeperMessage.CONTENT_TYPE);
             response.getOutputStream().write(baos.toByteArray());
         } catch (Exception e) {
-            log.error("Failed to sign request", e);  
+            log.error("Gatekeeper failed to send valid response", e);  
             response.setStatus(500);
+            response.setContentType("text/plain");
             response.getWriter().println(e.toString());
         }
-
     }
     
 }
