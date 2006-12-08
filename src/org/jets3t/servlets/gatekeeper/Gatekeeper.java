@@ -20,16 +20,18 @@ package org.jets3t.servlets.gatekeeper;
 
 import java.util.Properties;
 
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 
 public abstract class Gatekeeper {
 
-    public abstract boolean allowGet(Properties applicationProperties, ClientInformation clientInformation, SignatureRequest signatureRequest);
-
-    public abstract boolean allowHead(Properties applicationProperties, ClientInformation clientInformation, SignatureRequest signatureRequest);
-
-    public abstract boolean allowPut(Properties applicationProperties, ClientInformation clientInformation, SignatureRequest signatureRequest);
-
-    public abstract boolean allowDelete(Properties applicationProperties, ClientInformation clientInformation, SignatureRequest signatureRequest);
+    public Gatekeeper(ServletConfig servletConfig) throws ServletException {
+    }
+    
+    public abstract boolean allowSignatureRequest(Properties applicationProperties, 
+        Properties messageProperties, ClientInformation clientInformation, 
+        SignatureRequest signatureRequest);
 
 }

@@ -20,37 +20,22 @@ package org.jets3t.servlets.gatekeeper.impl;
 
 import java.util.Properties;
 
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.servlets.gatekeeper.ClientInformation;
 import org.jets3t.servlets.gatekeeper.Gatekeeper;
 
 public class DefaultGatekeeper extends Gatekeeper {
 
-    public boolean allowDelete(Properties applicationProperties,
+    public DefaultGatekeeper(ServletConfig servletConfig) throws ServletException {
+        super(servletConfig);
+    }
+
+    public boolean allowSignatureRequest(Properties applicationProperties, Properties messageProperties,
         ClientInformation clientInformation, SignatureRequest signatureRequest)
     {
-        // TODO Auto-generated method stub
-        return true;
-    }
-
-    public boolean allowGet(Properties applicationProperties, ClientInformation clientInformation,
-        SignatureRequest signatureRequest)
-    {
-        // TODO Auto-generated method stub
-        return true;
-    }
-
-    public boolean allowHead(Properties applicationProperties,
-        ClientInformation clientInformation, SignatureRequest signatureRequest)
-    {
-        // TODO Auto-generated method stub
-        return true;
-    }
-
-    public boolean allowPut(Properties applicationProperties, ClientInformation clientInformation,
-        SignatureRequest signatureRequest)
-    {
-        // TODO Auto-generated method stub
         return true;
     }
 
