@@ -19,6 +19,7 @@
 package org.jets3t.service.utils.gatekeeper;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -26,14 +27,24 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * 
  * 
  * @author James Murty
  */
 public class GatekeeperMessage {
+    private static final Log log = LogFactory.getLog(GatekeeperMessage.class);
+    
+    public static final String PROPERTY_TRANSACTION_ID = "transactionId";
+    public static final String CONTENT_TYPE = "application/x-message-properties";
+    
     private Properties applicationProperties = new Properties();
+    private Properties messageProperties = new Properties(); 
     private List signatureRequestList = new ArrayList();
+    
     
     public GatekeeperMessage() {        
     }
@@ -63,49 +74,75 @@ public class GatekeeperMessage {
     public Properties getApplicationProperties() {
         return applicationProperties;
     }
+    
+    public void addMessageProperty(String propertyName, String propertyValue) {
+        messageProperties.put(propertyName, propertyValue);
+    }
+    
+    public void addMessageProperties(Map propertiesMap) {
+        messageProperties.putAll(propertiesMap);
+    }
         
-    private void setPropertyIfAvailable(Properties properties, String propertyName, String value) {
-        if (value != null) {
-System.out.println("=== WRITE Property. " + propertyName + "=" + value);            
+    public Properties getMessageProperties() {
+        return messageProperties;
+    }
+
+    private void encodeProperty(Properties properties, String propertyName, Object value) {
+        if (value != null && (value instanceof String)) {
+            log.debug("Encoding property: " + propertyName + "=" + value);
             properties.put(propertyName, value);
         }        
     }
         
     public Properties encodeToProperties() {
-        Properties postProperties = new Properties();
+        log.debug("Encoding GatekeeperMessage to properties");
+        
+        Properties encodedProperties = new Properties();
         Iterator iter = null;
         
-        String prefix = "applicationProperties";
+        String prefix = "application";
         iter = applicationProperties.keySet().iterator();
         while (iter.hasNext()) {
             String key = (String) iter.next();
-            String name = prefix + "." + key;
             String value = applicationProperties.getProperty(key);
-            postProperties.put(name, value);
+            encodeProperty(encodedProperties, prefix + "." + key, value);
+        }
+        
+        prefix = "message";
+        iter = messageProperties.keySet().iterator();
+        while (iter.hasNext()) {
+            String key = (String) iter.next();
+            String value = messageProperties.getProperty(key);
+            encodeProperty(encodedProperties, prefix + "." + key, value);
         }
         
         prefix = "request";
         SignatureRequest[] requests = getSignatureRequests();
-        for (int i = 0; i < requests.length; i++) {
+        for (int i = 0; i < requests.length; i++) {            
             SignatureRequest request = requests[i];
-            setPropertyIfAvailable(postProperties, prefix + "." + i + "." + request.getSignatureType() + ".objectKey", request.getObjectKey());
-            setPropertyIfAvailable(postProperties, prefix + "." + i + "." + request.getSignatureType() + ".bucketName", request.getBucketName());
-            setPropertyIfAvailable(postProperties, prefix + "." + i + "." + request.getSignatureType() + ".signedUrl", request.getSignedUrl());
-            setPropertyIfAvailable(postProperties, prefix + "." + i + "." + request.getSignatureType() + ".declineReason", request.getDeclineReason());
+            String propertyPrefix = prefix + "." + i + "." + request.getSignatureType() + ".";
+
+            encodeProperty(encodedProperties, propertyPrefix + "objectKey", request.getObjectKey());
+            encodeProperty(encodedProperties, propertyPrefix + "bucketName", request.getBucketName());
+            encodeProperty(encodedProperties, propertyPrefix + "signedUrl", request.getSignedUrl());
+            encodeProperty(encodedProperties, propertyPrefix + "declineReason", request.getDeclineReason());
             
+            propertyPrefix += "metadata.";                
             Map metadata = request.getObjectMetadata();
             iter = metadata.keySet().iterator();
             while (iter.hasNext()) {
                 String metadataName = iter.next().toString();
-                String metadataValue = metadata.get(metadataName).toString();
-                setPropertyIfAvailable(postProperties, prefix + "." + i + "." + request.getSignatureType() + ".metadata." + metadataName, metadataValue);                
+                Object metadataValue = metadata.get(metadataName);
+                encodeProperty(encodedProperties, propertyPrefix + metadataName, metadataValue);                
             }
         }
         
-        return postProperties;
+        return encodedProperties;
     }
     
     public static GatekeeperMessage decodeFromProperties(Map postProperties) {
+        log.debug("Decoding GatekeeperMessage from properties");
+        
         GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
         
         Map signatureRequestMap = new HashMap();
@@ -120,17 +157,17 @@ System.out.println("=== WRITE Property. " + propertyName + "=" + value);
             } else {
                 propertyValue = (String) value;
             }
-
-System.out.println("=== READ Property. " + key + "=" + propertyValue);
             
-            if (key.startsWith("applicationProperties")) {
+            if (key.startsWith("application")) {
                 String propertyName = key.substring(key.lastIndexOf(".") + 1);
                 gatekeeperMessage.addApplicationProperty(propertyName, propertyValue);
+            } else if (key.startsWith("message")) {
+                String propertyName = key.substring(key.lastIndexOf(".") + 1);
+                gatekeeperMessage.addMessageProperty(propertyName, propertyValue);                
             } else if (key.startsWith("request")) {
                 StringTokenizer st = new StringTokenizer(key, ".");
                 st.nextToken(); // Consume object prefix
                 String objectIndexStr = st.nextToken();
-                Integer objectIndex = Integer.valueOf(objectIndexStr);   
                 
                 String signatureType = st.nextToken();
                 
@@ -141,6 +178,7 @@ System.out.println("=== READ Property. " + key + "=" + propertyValue);
                     propertyName = st.nextToken();
                 }
                 
+                Integer objectIndex = Integer.valueOf(objectIndexStr);   
                 SignatureRequest request = null;
                 
                 if (signatureRequestMap.containsKey(objectIndex)) {
@@ -162,11 +200,11 @@ System.out.println("=== READ Property. " + key + "=" + propertyValue);
                     } else if ("declineReason".equals(propertyName)) {
                         request.declineRequest(propertyValue);
                     } else {
-System.err.println("=== WARNING: Unrecognised object property name: " + propertyName);
+                        log.warn("Ignoring unrecognised SignatureRequest property: " + propertyName);
                     }       
                 }
             } else {
-System.err.println("=== READ Unrecognised key: " + key); // TODO                
+                log.warn("Ignoring unrecognised property name: " + key);
             }            
         }
         
@@ -179,9 +217,11 @@ System.err.println("=== READ Unrecognised key: " + key); // TODO
         return gatekeeperMessage;
     }
     
+
     
+    // TODO Remove after testing...
     public static void main(String[] args) {        
-        SignatureRequest requests[] = new SignatureRequest[21];
+        SignatureRequest requests[] = new SignatureRequest[12];
         for (int i = 0; i < requests.length; i++) {
             requests[i] = new SignatureRequest(SignatureRequest.SIGNATURE_TYPE_PUT, "Request " + i);
             requests[i].addObjectMetadata("object-index", String.valueOf(i));
@@ -189,6 +229,9 @@ System.err.println("=== READ Unrecognised key: " + key); // TODO
         
         GatekeeperMessage request = new GatekeeperMessage();
         request.addSignatureRequests(requests);
+        request.addMessageProperty("id", "123");
+        request.addMessageProperty("date", (new Date()).toString());
+        request.addApplicationProperty("username", "jmurty");
         
         System.err.println("=== Original WRITE");
         Properties properties = request.encodeToProperties();
