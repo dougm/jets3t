@@ -51,6 +51,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
@@ -99,7 +100,6 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CancelEventTrigger;
 import org.jets3t.service.multithread.CreateBucketsEvent;
@@ -116,6 +116,7 @@ import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.multithread.UpdateACLEvent;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ByteFormatter;
+import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
@@ -163,7 +164,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * @author James Murty
  */
 public class Uploader extends JApplet implements S3ServiceEventListener, ActionListener, ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
-    private static final long serialVersionUID = -5687535269925501969L;
+    private static final long serialVersionUID = -1648566055636164308L;
 
     private static final Log log = LogFactory.getLog(Uploader.class);
     
@@ -331,7 +332,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 // Fatal error if a parameter is missing.
                 if (null == paramValue) {
                     log.error("Missing required applet parameter: " + paramName);
-                    fatalError(ERROR_CODE__MISSING_REQUIRED_PARAM);               
+                    throw new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);               
                 } else {
                     log.debug("Found applet parameter: " + paramName + "='" + paramValue + "'");
                 }
@@ -354,7 +355,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     // Fatal error if a parameter is missing.
                     if (null == propValue) {
                         log.error("Missing required command-line property: " + propValue);
-                        fatalError(ERROR_CODE__MISSING_REQUIRED_PARAM);               
+                        throw new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);               
                     } else {
                         log.debug("Using command-line property: " + propName + "='" + propValue + "'");                    
                     }
@@ -384,8 +385,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             while (st.hasMoreTokens()) {
                 validFileExtensions.add(st.nextToken().toLowerCase());
             }            
-        }
-        
+        }        
     }    
 
     
@@ -825,7 +825,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @param objects
      * @return
      */
-    private GatekeeperMessage buildGatekeeperResponse(S3Object[] objects) {
+    private GatekeeperMessage buildGatekeeperResponse(S3Object[] objects) throws Exception {
         
         String awsAccessKey = userInputProperties.getProperty("AwsAccessKey");
         String awsSecretKey = userInputProperties.getProperty("AwsSecretKey");
@@ -838,19 +838,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
         
         try {
-            GatekeeperMessage message = new GatekeeperMessage();
+            /*
+             *  Build Gatekeeper request.
+             */
+            GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
+            gatekeeperMessage.addApplicationProperties(userInputProperties); // Add User inputs as application properties.
+            gatekeeperMessage.addApplicationProperties(parametersMap); // Add any Applet/Application parameters as application properties.
 
-            // TODO How do we handle the XML summary?
-/*            
-            String data = "<xml>just some data</xml>";
-            S3Object summaryObject = new S3Object(s3Bucket, "Summary.xml", data);
-//            summaryObject.setMd5Hash(ServiceUtils.computeMD5Hash(data.getBytes()));
-            String signedPutUrl = S3Service.createSignedPutUrl(summaryObject.getBucketName(), summaryObject.getKey(), 
-                summaryObject.getMetadataMap(), awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
-            SignedUrlAndObject summaryPackage = new SignedUrlAndObject(signedPutUrl, summaryObject);                
-            message.addObjectToSignPUT(summaryObject);
-            message.addSignedObject(summaryPackage);
-*/            
             for (int i = 0; i < objects.length; i++) {
                 String signedPutUrl = S3Service.createSignedPutUrl(s3BucketName, objects[i].getKey(), 
                     objects[i].getMetadataMap(), awsCredentials, expiryDate, S3Service.DEFAULT_S3_URL_SECURE);
@@ -861,14 +855,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
                 signatureRequest.signRequest(signedPutUrl);
                 
-                message.addSignatureRequest(signatureRequest);
+                gatekeeperMessage.addSignatureRequest(signatureRequest);
             }
                         
-            return message;
+            return gatekeeperMessage;
             
         } catch (Exception e) {
-            log.error("Unable to generate singed PUT URL for testing", e);
-            return null; // TODO should throw exception?
+            throw new Exception("Unable to generate locally-signed PUT URLs for testing", e);
         }        
     }
     
@@ -888,19 +881,19 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @throws HttpException
      * @throws IOException
      */
-    private GatekeeperMessage sendGatekeeperRequest(String gatekeeperUrl, S3Object[] objects) 
+    private GatekeeperMessage sendGatekeeperRequest(S3Object[] objects) 
         throws HttpException, IOException 
     {
+        // Retrieve credentials from URL location value by the property 'credentialsServiceUrl'.  
+        String gatekeeperUrl = uploaderProperties.getStringProperty(
+            "gatekeeperUrl", "Missing required property gatekeeperUrl");
+        
         /*
          *  Build Gatekeeper request.
          */
         GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
-        
-        // Add User inputs as application properties.
-        gatekeeperMessage.addApplicationProperties(userInputProperties);
-        
-        // Add any Applet/Application parameters as application properties.
-        gatekeeperMessage.addApplicationProperties(parametersMap);
+        gatekeeperMessage.addApplicationProperties(userInputProperties); // Add User inputs as application properties.
+        gatekeeperMessage.addApplicationProperties(parametersMap); // Add any Applet/Application parameters as application properties.
         
         // Add all S3 objects as candiates for PUT signing.
         for (int i = 0; i < objects.length; i++) {
@@ -947,7 +940,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
         try {                        
             int responseCode = httpClient.executeMethod(putMethod);
-            if (responseCode == 200) {
+            String contentType = putMethod.getResponseHeader("Content-Type").getValue();
+            if (responseCode == 200 
+                && GatekeeperMessage.CONTENT_TYPE.equals(contentType)) 
+            {
                 InputStream responseInputStream = null;
 
                 Header encodingHeader = putMethod.getResponseHeader("Content-Encoding");
@@ -959,21 +955,40 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 }                
                 
                 if (responseInputStream == null) {
-                    throw new IOException("No response input stream available from Gatekeeper"); // TODO                    
+                    throw new IOException("No response input stream available from Gatekeeper");                    
                 }         
                 
                 Properties responseProperties = new Properties();
                 responseProperties.load(responseInputStream);                
                 return GatekeeperMessage.decodeFromProperties(responseProperties);
-            } else {
-                throw new IOException("Unexpected response code from Gatekeeper request: " 
-                    + responseCode); // TODO
+            } else {                
+                throw new IOException("Unexpected response code (" + responseCode
+                    + ") or response content type (" + contentType + ") from Gatekeeper request: " 
+                    + responseCode);
             }
         } catch (Exception e) {
-            throw new IOException("Unable to receive signed URLs from Gatekeeper at: " + gatekeeperUrl + ". " + e); // TODO
+            throw new IOException("Unable to receive signed URLs from Gatekeeper at: " + gatekeeperUrl + ". " + e);
         } finally {
             putMethod.releaseConnection();            
         }
+    }
+    
+    private GatekeeperMessage retrieveGatekeeperResponse(S3Object[] objects) throws Exception {
+        // Check whether Uploader has all necessary credentials from user inputs.
+        boolean s3CredentialsProvided =                
+            userInputProperties.getProperty("AwsAccessKey") != null
+            && userInputProperties.getProperty("AwsSecretKey") != null
+            && userInputProperties.getProperty("S3BucketName") != null;
+
+        GatekeeperMessage gatekeeperMessage = null;
+        if (s3CredentialsProvided) {
+            log.debug("S3 login credentials and bucket name are available, the Uploader "
+                + "will generate its own Gatekeeper response");
+            gatekeeperMessage = buildGatekeeperResponse(objects);
+        } else {
+            gatekeeperMessage = sendGatekeeperRequest(objects);                
+        }            
+        return gatekeeperMessage;
     }
     
     /**
@@ -986,18 +1001,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             progressStatusTextLabel.setText(
                 replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage", 
                 "Missing property 'screen.4.connectingMessage'")));
-            
-            // Retrieve credentials from URL location value by the property 'credentialsServiceUrl'.  
-            String credentialsServiceUrl = uploaderProperties.getStringProperty(
-                "credentialsServiceUrl", "missingCredentialsProviderUrl");
-                       
+                                   
             // Create file hash.
             progressStatusTextLabel.setText(replaceMessageVariables(
                 uploaderProperties.getStringProperty("screen.4.hashingMessage", 
                 "Missing property 'screen.4.hashingMessage'")));
-            
-            boolean includeXmlSummaryDoc = uploaderProperties.getBoolProperty("xmlSummary", false);
-            
             
             // Create objects for upload from file listing.
             S3Object[] objectsForUpload = new S3Object[filesToUpload.length];
@@ -1011,80 +1019,105 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 objectsForUpload[i] = object; 
             }
             
-            boolean s3CredentialsProvided =                
-                userInputProperties.getProperty("AwsAccessKey") != null
-                && userInputProperties.getProperty("AwsSecretKey") != null
-                && userInputProperties.getProperty("S3BucketName") != null;
-
             // Obtain Gatekeeper response.
-            GatekeeperMessage gatekeeperMessage = null;
-            if (s3CredentialsProvided) {
-                log.debug("S3 login credentials and bucket name are available, the Uploader "
-                    + "will generate its own Gatekeeper response");
-                gatekeeperMessage = buildGatekeeperResponse(objectsForUpload);
-            } else {
-                gatekeeperMessage = sendGatekeeperRequest(
-                    credentialsServiceUrl, objectsForUpload);                
-            }            
+            GatekeeperMessage gatekeeperMessage = retrieveGatekeeperResponse(objectsForUpload);
             
             log.debug("Gatekeeper response properties: " + gatekeeperMessage.encodeToProperties());
-                        
-            // TODO Update S3Object if service specifies different bucket/key names.
-/*
-            // Generate XML document.
-            XmlGenerator xmlGen = new XmlGenerator();
-            Map filenamesMap = new HashMap();
-//            filenamesMap.put("uploaderUUID", ); // TODO
-            filenamesMap.put("originalFilename", fileToUpload.getName());
-            filenamesMap.put("filename", gatekeeperResponse.objectKey);
-            String xmlDocument = xmlGen.generateXml(
-                uploaderProperties.getStringProperty("xml.version", "1.0"),
-                fieldComponentsMap, parametersMap, filenamesMap);
-            log.debug("XML document : \n" + xmlDocument);            
-
-            S3Object xmlDocObject = new S3Object(s3Bucket, gatekeeperResponse.objectKey + ".xml", xmlDocument);
-            xmlDocObject.setContentType("application/xml");
-*/                                            
             
-            List signedObjects = new ArrayList();
-            for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {
-                SignatureRequest request = gatekeeperMessage.getSignatureRequests()[i];
-                if (request.isSigned()) {
-                    // Update object with any changes dictated by Gatekeeper.
-                    S3Object object = objectsForUpload[i];
-                    object.setKey(request.getObjectKey());
-                    object.setBucketName(request.getBucketName());
-                    object.replaceAllMetadata(request.getObjectMetadata());
-                    
-                    SignedUrlAndObject urlAndObject = new SignedUrlAndObject(request.getSignedUrl(), object);
-                    signedObjects.add(urlAndObject);
-                } else {
-                    // TODO What do we do on declines?
-                    String declineReason = request.getDeclineReason();
-System.err.println("=== Object '" + objectsForUpload[i].getKey() + "' because: " + declineReason);                    
-                }
-            }
+            XmlGenerator xmlGenerator = new XmlGenerator();
+            xmlGenerator.addApplicationProperties(gatekeeperMessage.getApplicationProperties());
+            xmlGenerator.addMessageProperties(gatekeeperMessage.getMessageProperties());
+                                    
+            SignedUrlAndObject[] uploadItems = prepareSignedObjects(
+                objectsForUpload, gatekeeperMessage.getSignatureRequests(), xmlGenerator);
             
             S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(
                 new RestS3Service(null/*TODO , this*/), this); 
                       
+            /*
+             * Prepare XML Summary document for upload, it the summary option is set.
+             */
+            boolean includeXmlSummaryDoc = uploaderProperties.getBoolProperty("xmlSummary", false);
+            SignedUrlAndObject[] xmlSummaryItem = null;
+            if (includeXmlSummaryDoc) {
+                String priorTransactionId = gatekeeperMessage.getMessageProperties().getProperty(
+                    GatekeeperMessage.PROPERTY_TRANSACTION_ID);
+                if (priorTransactionId == null) {
+                    failWithFatalError("Cannot create a summary XML document without a unique Transaction ID");
+                }
+                
+                S3Object summaryXmlObject = 
+                    new S3Object(null, priorTransactionId + ".xml", xmlGenerator.generateXml());
+                summaryXmlObject.setContentType(Mimetypes.MIMETYPE_XML);
+                summaryXmlObject.addMetadata("uploader-summary-xml", "true"); // TODO 
+                
+                gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});
+                xmlSummaryItem = prepareSignedObjects(new S3Object[] {summaryXmlObject}, 
+                    gatekeeperMessage.getSignatureRequests(), null);
+            }
+            
             if (includeXmlSummaryDoc) {
                 uploadingFinalObject = false;
-                s3ServiceMulti.putObjects(
-                    (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[] {}));
-                // TODO
-//                uploadingFinalObject = true;
-//                s3ServiceMulti.putObjects(
-//                    new SignedUrlAndObject[] { gatekeeperResponse.getXmlSummaryPackage() });                
+                s3ServiceMulti.putObjects(uploadItems);
+                
+                uploadingFinalObject = true;
+                s3ServiceMulti.putObjects(xmlSummaryItem);
             } else {
                 uploadingFinalObject = true;
-                s3ServiceMulti.putObjects(                
-                    (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[] {}));
+                s3ServiceMulti.putObjects(uploadItems);          
             }            
         } catch (Exception e) {
             wizardStepBackward();
             reportException(ownerFrame, "File upload failed, please try again", e);
         } 
+    }
+    
+    private SignedUrlAndObject[] prepareSignedObjects(S3Object[] objects, 
+        SignatureRequest[] signatureRequests, XmlGenerator xmlGenerator) 
+    {
+        List signedObjects = new ArrayList();
+        String firstDeclineReason = null;
+        
+        for (int i = 0; i < signatureRequests.length; i++) {
+            SignatureRequest request = signatureRequests[i];
+            S3Object object = objects[i];
+            
+            // Store summary information in XML document generator.
+            if (xmlGenerator != null) {
+                Map clonedMetadata = new HashMap();
+                clonedMetadata.putAll(object.getMetadataMap());
+                xmlGenerator.addObjectRequestDetails(object.getKey(), object.getBucketName(), 
+                    clonedMetadata, request);
+            }
+            
+            if (request.isSigned()) {
+                // Update object with any changes dictated by Gatekeeper.
+                if (request.getObjectKey() != null) {
+                    object.setKey(request.getObjectKey());
+                }
+                if (request.getBucketName() != null) {
+                    object.setBucketName(request.getBucketName());
+                }
+                if (request.getObjectMetadata() != null && request.getObjectMetadata().size() > 0) {
+                    object.replaceAllMetadata(request.getObjectMetadata());
+                }
+                
+                SignedUrlAndObject urlAndObject = new SignedUrlAndObject(request.getSignedUrl(), object);
+                signedObjects.add(urlAndObject);
+            } else {
+                // If ANY requests are declined, we will fail with a fatal error message.
+                log.warn("Object '" + objects[i].getKey() + "' was declined: "
+                    + request.getDeclineReason());
+                if (firstDeclineReason == null) {
+                    firstDeclineReason = request.getDeclineReason();
+                }
+            }
+        }
+        if (firstDeclineReason != null) {
+            failWithFatalError("Your upload" + (objects.length > 1 ? "s were" : " was") 
+                + " declined: " + firstDeclineReason);
+        }
+        return (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[] {});
     }
     
     /**
@@ -1163,7 +1196,7 @@ System.err.println("=== Object '" + objectsForUpload[i].getKey() + "' because: "
             progressBar.setValue(0);          
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
-            fatalError(ERROR_CODE__S3_UPLOAD_FAILED);
+            failWithFatalError(ERROR_CODE__S3_UPLOAD_FAILED);
             reportException(ownerFrame, "File upload failed", event.getErrorCause());
         }
     }
@@ -1301,14 +1334,14 @@ System.err.println("=== Object '" + objectsForUpload[i].getKey() + "' because: "
     
     /**
      * When a fatal error occurs, go straight to last screen to display the error message
-     * and make the error code available as a variable (<code>${errorCode}</code>) to be used
+     * and make the error code available as a variable (<code>${errorMessage}</code>) to be used
      * in the error message displayed to the user.
      * 
-     * @param errorCode
+     * @param errorMessage
      * the error code/message
      */
-    private void fatalError(String errorCode) {
-        uploaderProperties.setProperty("errorCode", errorCode);
+    private void failWithFatalError(String errorMessage) {
+        uploaderProperties.setProperty("errorMessage", errorMessage);
         fatalErrorOccurred = true;
         drawWizardScreen(WIZARD_SCREEN_5);
     }
