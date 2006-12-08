@@ -59,19 +59,19 @@ public abstract class UrlSigner {
         this.urlPrefix = urlPrefix;        
     }
 
-    public abstract String signGet(Properties applicationProperties, 
+    public abstract String signGet(Properties applicationProperties, Properties messageProperties,
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
-    public abstract String signHead(Properties applicationProperties, 
+    public abstract String signHead(Properties applicationProperties, Properties messageProperties, 
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
-    public abstract String signPut(Properties applicationProperties, 
+    public abstract String signPut(Properties applicationProperties, Properties messageProperties, 
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
-    public abstract String signDelete(Properties applicationProperties, 
+    public abstract String signDelete(Properties applicationProperties,  Properties messageProperties,
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 

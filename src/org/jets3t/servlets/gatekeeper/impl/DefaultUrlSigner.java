@@ -20,6 +20,7 @@ package org.jets3t.servlets.gatekeeper.impl;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.servlet.ServletConfig;
@@ -29,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.servlets.gatekeeper.ClientInformation;
 import org.jets3t.servlets.gatekeeper.UrlSigner;
@@ -59,49 +61,56 @@ public class DefaultUrlSigner extends UrlSigner {
         }
     }
     
-    private void overrideBucketName(SignatureRequest signatureRequest) {
+    protected void updateObject(SignatureRequest signatureRequest, Properties messageProperties) 
+        throws S3ServiceException 
+    {
         signatureRequest.setBucketName(s3BucketName);
+
+        Map objectMetadata = signatureRequest.getObjectMetadata();
+        if (!objectMetadata.containsKey(GatekeeperMessage.PROPERTY_TRANSACTION_ID)) {
+            String transactionId = 
+                messageProperties.getProperty(GatekeeperMessage.PROPERTY_TRANSACTION_ID);
+            if (transactionId != null) {
+                objectMetadata.put(GatekeeperMessage.PROPERTY_TRANSACTION_ID, transactionId);
+            }
+        }
     }
     
     private Date calculateExpiryTime() {
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, secondsUntilExpiry);
-        log.info("Expiry time for all signed URLs: " + cal.getTime()); // TODO
+        log.debug("Expiry time for all signed URLs: " + cal.getTime());
         return cal.getTime();        
     }
 
-    public String signDelete(Properties applicationProperties, ClientInformation clientInformation,
-        SignatureRequest signatureRequest) throws S3ServiceException
+    public String signDelete(Properties applicationProperties,  Properties messageProperties, 
+        ClientInformation clientInformation,SignatureRequest signatureRequest) throws S3ServiceException
     {
-        overrideBucketName(signatureRequest);
+        updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedDeleteUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
             awsCredentials, calculateExpiryTime(), urlPrefix);
     }
 
-    public String signGet(Properties applicationProperties, ClientInformation clientInformation,
-        SignatureRequest signatureRequest) throws S3ServiceException
+    public String signGet(Properties applicationProperties,  Properties messageProperties, 
+        ClientInformation clientInformation,SignatureRequest signatureRequest) throws S3ServiceException
     {
-        overrideBucketName(signatureRequest);
+        updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedGetUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
             awsCredentials, calculateExpiryTime(), urlPrefix);
     }
 
-    public String signHead(Properties applicationProperties, ClientInformation clientInformation,
-        SignatureRequest signatureRequest) throws S3ServiceException
+    public String signHead(Properties applicationProperties,  Properties messageProperties, 
+        ClientInformation clientInformation,SignatureRequest signatureRequest) throws S3ServiceException
     {
-        overrideBucketName(signatureRequest);
+        updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedHeadUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
             awsCredentials, calculateExpiryTime(), urlPrefix);
     }
 
-    public String signPut(Properties applicationProperties, ClientInformation clientInformation,
-        SignatureRequest signatureRequest) throws S3ServiceException
+    public String signPut(Properties applicationProperties,  Properties messageProperties, 
+        ClientInformation clientInformation,SignatureRequest signatureRequest) throws S3ServiceException
     {
-        // TODO Testing
-        signatureRequest.setObjectKey("Test Key");
-        signatureRequest.addObjectMetadata("test-metadata", "test-value");
-        
-        overrideBucketName(signatureRequest);
+        updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedPutUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(),
             signatureRequest.getObjectMetadata(), awsCredentials, calculateExpiryTime(), urlPrefix);
     }
