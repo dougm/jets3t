@@ -19,9 +19,11 @@
 package org.jets3t.apps.uploader;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.ButtonGroup;
@@ -38,6 +40,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.xml.serialize.OutputFormat;
 import org.apache.xml.serialize.XMLSerializer;
 import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -62,6 +65,42 @@ import org.w3c.dom.Element;
  */
 public class XmlGenerator {
     private static final Log log = LogFactory.getLog(XmlGenerator.class);
+    
+    public static final String xmlVersionNumber = "1.0";
+    
+    private List objectRequestList = new ArrayList();
+    private Map applicationProperties = new HashMap();
+    private Map messageProperties = new HashMap();
+    
+    public void addObjectRequestDetails(String key, String bucketName, Map metadata, 
+        SignatureRequest signatureRequest) 
+    {
+        objectRequestList.add(new ObjectRequestDetails(key, bucketName, metadata, signatureRequest));
+    }
+    
+    public void addApplicationProperties(Map properties) {
+        applicationProperties.putAll(properties);
+    }
+    
+    public void addMessageProperties(Map properties) {
+        messageProperties.putAll(properties);
+    }
+    
+    private class ObjectRequestDetails {
+        public String key = null;
+        public String bucketName = null;        
+        public Map metadata = null;
+        public SignatureRequest signatureRequest = null;
+        
+        public ObjectRequestDetails(String key, String bucketName, Map metadata, 
+            SignatureRequest signatureRequest) 
+        {
+            this.key = key;
+            this.bucketName = bucketName;
+            this.metadata = metadata;
+            this.signatureRequest = signatureRequest;
+        }
+    }
 
     /**
      * Generates an XML document containing metadata information as Property elements.
@@ -74,7 +113,7 @@ public class XmlGenerator {
      * a map of property names to Swing components containing the user's responses. Swing
      * components supported include: {@link ButtonGroup}'s containing {@link JRadioButton}s,
      * {@link JComboBox}, {@link JTextField}, {@link JPasswordField}, {@link JTextArea}.  
-     * @param appletParametersMap
+     * @param parametersMap
      * a map of property names to applet parameter string values.
      * @param uploaderInfoMap
      * a map of property names to uploader-sourced string values.
@@ -83,8 +122,7 @@ public class XmlGenerator {
      * 
      * @throws Exception
      */
-    public String generateXml(String xmlVersionNumber, Map userInputComponentsMap, 
-        Map appletParametersMap, Map uploaderInfoMap) throws Exception
+    public String generateXml() throws Exception
     {
         DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
         
@@ -95,53 +133,30 @@ public class XmlGenerator {
         rootElem.setAttribute("uploadDate",
             ServiceUtils.formatIso8601Date(new Date()));
         
-        // Add field components (user's input) to XML document.
-        for (Iterator iter = userInputComponentsMap.keySet().iterator(); iter.hasNext();) {
-            String fieldName = (String) iter.next();
-            String fieldValue = null;
-            
-            Object component = userInputComponentsMap.get(fieldName);
-            if (component instanceof ButtonGroup) {
-                ButtonGroup bg = (ButtonGroup) component;
-                Enumeration radioEnum = bg.getElements();
-                while (radioEnum.hasMoreElements()) {
-                    JRadioButton button = (JRadioButton) radioEnum.nextElement();
-                    if (button.isSelected()) {
-                        fieldValue = button.getText();
-                        break;
-                    }
-                }
-            } else if (component instanceof JComboBox) {
-                fieldValue = ((JComboBox) component).getSelectedItem().toString();
-            } else if (component instanceof JTextField) {
-                fieldValue = ((JTextField) component).getText();
-            } else if (component instanceof JPasswordField) {
-                fieldValue = new String(((JPasswordField) component).getPassword());
-            } else if (component instanceof JTextArea) {            
-                fieldValue = ((JTextArea) component).getText();
-            } else {
-                log.warn("Unrecognised component type for field named '" + fieldName + "': "
-                    + component.getClass().getName());
-            }
-            rootElem.appendChild(createPropertyElement(document, fieldName, fieldValue, "userinput"));
+        // Add application properties (user inputs and application parameters) to XML document.
+        for (Iterator iter = applicationProperties.keySet().iterator(); iter.hasNext();) {
+            String propertyName = (String) iter.next();
+            String propertyValue = (String) applicationProperties.get(propertyName);            
+            rootElem.appendChild(createPropertyElement(document, propertyName, propertyValue, "ApplicationProperty"));
+        }
+
+        // Add message properties (user inputs and application parameters) to XML document.
+        for (Iterator iter = messageProperties.keySet().iterator(); iter.hasNext();) {
+            String propertyName = (String) iter.next();
+            String propertyValue = (String) messageProperties.get(propertyName);            
+            rootElem.appendChild(createPropertyElement(document, propertyName, propertyValue, "MessageProperty"));
         }
         
-        // Add applet parameters to XML document.
-        for (Iterator iter = appletParametersMap.keySet().iterator(); iter.hasNext();) {
-            String fieldName = (String) iter.next();
-            String fieldValue = (String) appletParametersMap.get(fieldName);
-            rootElem.appendChild(createPropertyElement(document, fieldName, fieldValue, "parameter"));
-        }        
+        // Add Object request details to XML document.
+        ObjectRequestDetails[] details = (ObjectRequestDetails[]) objectRequestList.toArray(new ObjectRequestDetails[] {});
+        for (int i = 0; i < details.length; i++) {
+            ObjectRequestDetails objectDetails = details[i];
+            rootElem.appendChild(createSignatureRequestElement(document, objectDetails));
+        }
         
-        // Add additional information to XML document.
-        for (Iterator iter = uploaderInfoMap.keySet().iterator(); iter.hasNext();) {
-            String fieldName = (String) iter.next();
-            String fieldValue = (String) uploaderInfoMap.get(fieldName);
-            rootElem.appendChild(createPropertyElement(document, fieldName, fieldValue, "uploader"));
-        }        
-
         // Serialize XML document to String.
         OutputFormat outputFormat = new OutputFormat(document);
+        outputFormat.setIndenting(true);
         StringWriter writer = new StringWriter();
         XMLSerializer serializer = new XMLSerializer(writer, outputFormat);
         serializer.serialize(document);
@@ -169,14 +184,51 @@ public class XmlGenerator {
     private Element createPropertyElement(
         Document document, String propertyName, String propertyValue, String source) 
     {
-        Element propertyElem = document.createElement("Property");
-        propertyElem.setAttribute("name", propertyName);
-        propertyElem.setAttribute("source", source);            
+        Element propertyElem = document.createElement(source);
+        if (propertyName != null) {
+            propertyElem.setAttribute("name", propertyName);
+        }
         if (propertyValue != null) {
             CDATASection cdataSection = document.createCDATASection(propertyValue);
             propertyElem.appendChild(cdataSection);
         }
         return propertyElem;        
+    }
+    
+    private Element createSignatureRequestElement(Document document, ObjectRequestDetails details) {
+        SignatureRequest request = details.signatureRequest;
+        
+        Element requestElem = document.createElement("SignatureRequest");
+        requestElem.setAttribute("type", request.getSignatureType());
+        requestElem.setAttribute("signed", String.valueOf(request.isSigned()));
+        requestElem.appendChild(
+            createObjectElement(document, details.key, details.bucketName, details.metadata, "RequestObject"));
+
+        if (request.isSigned()) {
+            requestElem.appendChild(
+                createObjectElement(document, request.getObjectKey(), request.getBucketName(), 
+                    request.getObjectMetadata(), "SignedObject"));
+            requestElem.appendChild(
+                createPropertyElement(document, null, request.getSignedUrl(), "SignedURL"));
+        } else {
+            requestElem.appendChild(
+                createPropertyElement(document, null, request.getDeclineReason(), "DeclineReason"));            
+        }
+        return requestElem;        
+    }
+    
+    private Element createObjectElement(Document document, String key, String bucketName, Map metadata, String elementName) {
+        Element objectElement = document.createElement(elementName);
+        objectElement.setAttribute("key", key);
+        objectElement.setAttribute("bucketName", bucketName);
+        Iterator iter = metadata.keySet().iterator();
+        while (iter.hasNext()) {
+            String metadataName = (String) iter.next();
+            String metadataValue = (String) metadata.get(metadataName);
+            objectElement.appendChild(
+                createPropertyElement(document, metadataName, metadataValue, "Metadata"));
+        }
+        return objectElement;
     }
     
 }
