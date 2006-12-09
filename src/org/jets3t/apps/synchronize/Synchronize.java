@@ -58,6 +58,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class Synchronize {
+    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.5.0";
+    
     private S3Service s3Service = null;
     
     private boolean doAction = false; // Files will only be transferred if true. 
@@ -779,7 +781,7 @@ public class Synchronize {
          
         // Perform the UPLOAD/DOWNLOAD.
         Synchronize client = new Synchronize(
-            new RestS3Service(awsCredentials),
+            new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
             doAction, isQuiet, isForce, isKeepFiles, isGzipEnabled, isEncryptionEnabled);
         client.run(s3Path, localDirectory, actionCommand, properties.getProperty("password"));
     }

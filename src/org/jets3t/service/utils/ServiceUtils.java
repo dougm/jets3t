@@ -46,6 +46,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Object;
 
@@ -391,6 +392,32 @@ public class ServiceUtils {
         S3Object object = new S3Object(objectKey);
         object.setBucketName(bucketName);
         return object;
+    }
+
+    /**
+     * Returns a user agent string describing the jets3t library, and optionally the application
+     * using it, to server-side services.
+     * 
+     * @param applicationDescription
+     * a description of the application using the jets3t toolkit, included at the end of the
+     * user agent string. This value may be null. 
+     * @return
+     */
+    public static String getUserAgentDescription(String applicationDescription) {
+        return 
+            "jets3t/" + S3Service.VERSION_NO__JETS3T_TOOLKIT + " ("
+            + System.getProperty("os.name") + "/" + System.getProperty("os.version") + ";"
+            + " " + System.getProperty("os.arch") + ";"
+            + (System.getProperty("user.region") != null 
+                ? " " + System.getProperty("user.region") + ";"
+                : "")
+            + (System.getProperty("user.language") != null
+                ? " " + System.getProperty("user.language")
+                : "")
+            + ")"
+            + (applicationDescription != null
+                ? " " + applicationDescription 
+                : "");
     }
     
 }

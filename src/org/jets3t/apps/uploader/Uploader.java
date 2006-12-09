@@ -91,6 +91,7 @@ import org.apache.commons.httpclient.auth.NTLMScheme;
 import org.apache.commons.httpclient.auth.RFC2617Scheme;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.HyperlinkActivatedListener;
@@ -167,6 +168,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     private static final long serialVersionUID = -1648566055636164308L;
 
     private static final Log log = LogFactory.getLog(Uploader.class);
+    
+    public static final String APPLICATION_DESCRIPTION = "Uploader/1.0";
     
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
@@ -299,7 +302,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     public void init() {
         super.init();
-
+        
         // Find or create a Frame to own modal dialog boxes.
         if (this.ownerFrame == null) {
             Component c = this;
@@ -881,7 +884,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @throws HttpException
      * @throws IOException
      */
-    private GatekeeperMessage sendGatekeeperRequest(S3Object[] objects) 
+    private GatekeeperMessage contactGatewayServer(S3Object[] objects) 
         throws HttpException, IOException 
     {
         // Retrieve credentials from URL location value by the property 'credentialsServiceUrl'.  
@@ -923,6 +926,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         HttpClient httpClient = new HttpClient();
         httpClient.getParams().setParameter(
             CredentialsProvider.PROVIDER, this);     
+        httpClient.getParams().setParameter(HttpMethodParams.USER_AGENT, 
+            ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
+
         ProxyHost proxyHost = null;
         try {
             proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
@@ -986,7 +992,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 + "will generate its own Gatekeeper response");
             gatekeeperMessage = buildGatekeeperResponse(objects);
         } else {
-            gatekeeperMessage = sendGatekeeperRequest(objects);                
+            gatekeeperMessage = contactGatewayServer(objects);                
         }            
         return gatekeeperMessage;
     }
@@ -1032,7 +1038,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 objectsForUpload, gatekeeperMessage.getSignatureRequests(), xmlGenerator);
             
             S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(null/*TODO , this*/), this); 
+                new RestS3Service(null, APPLICATION_DESCRIPTION, this), this); 
                       
             /*
              * Prepare XML Summary document for upload, it the summary option is set.
@@ -1046,10 +1052,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     failWithFatalError("Cannot create a summary XML document without a unique Transaction ID");
                 }
                 
-                S3Object summaryXmlObject = 
-                    new S3Object(null, priorTransactionId + ".xml", xmlGenerator.generateXml());
+                S3Object summaryXmlObject = new S3Object(
+                    null, priorTransactionId + ".xml", xmlGenerator.generateXml());
                 summaryXmlObject.setContentType(Mimetypes.MIMETYPE_XML);
-                summaryXmlObject.addMetadata("uploader-summary-xml", "true"); // TODO 
+                summaryXmlObject.addMetadata(GatekeeperMessage.PROPERTY_TRANSACTION_ID, priorTransactionId);
+                summaryXmlObject.addMetadata(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG, "true"); 
                 
                 gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});
                 xmlSummaryItem = prepareSignedObjects(new S3Object[] {summaryXmlObject}, 
@@ -1455,7 +1462,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             if (uploadCancelEventTrigger != null) {
                 uploadCancelEventTrigger.cancelTask(this);
                 progressBar.setValue(0);
-//                wizardStepBackward();
             } else {
                 log.warn("Ignoring attempt to cancel file upload when cancel trigger is not available");
             }

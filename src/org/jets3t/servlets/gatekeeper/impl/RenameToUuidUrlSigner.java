@@ -47,20 +47,24 @@ public class RenameToUuidUrlSigner extends DefaultUrlSigner {
         String transactionId = messageProperties.getProperty(GatekeeperMessage.PROPERTY_TRANSACTION_ID);            
         Map objectMetadata = signatureRequest.getObjectMetadata();
 
-System.err.println("=== transactionId=" + transactionId);
-
-        if (!objectMetadata.containsKey("uploader-summary-xml") /*TODO*/ &&  transactionId != null) {
+        if (transactionId != null) {
             String originalKey = signatureRequest.getObjectKey();
-            
-            String extension = null;
-            int lastDotIndex = originalKey.lastIndexOf(".");
-            if (lastDotIndex >= 0) {
-                extension = originalKey.substring(lastDotIndex + 1);
+
+            if (objectMetadata.containsKey(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG)) {
+                log.debug("Object with key '" + originalKey + "' is flagged as a Summary Document"
+                    + ", and will not be renamed");
+            } else {
+                String extension = null;
+                int lastDotIndex = originalKey.lastIndexOf(".");
+                if (lastDotIndex >= 0) {
+                    extension = originalKey.substring(lastDotIndex + 1);
+                }
+                
+                String newKey = transactionId + "." + (++countOfRenamedObjects) 
+                    + (extension != null? "." + extension : "");
+                log.debug("Renamed object key '" + originalKey + "' to '" + newKey + "'");            
+                signatureRequest.setObjectKey(newKey);
             }
-            
-            String newKey = transactionId + "." + (++countOfRenamedObjects) + "." + extension;
-System.err.println("=== Renamed " + originalKey + " to " + newKey);            
-            signatureRequest.setObjectKey(newKey);            
         }
 
         if (!objectMetadata.containsKey(GatekeeperMessage.PROPERTY_TRANSACTION_ID)) {

@@ -49,6 +49,7 @@ import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
+import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
@@ -98,7 +99,8 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  *   and number of packets.</td>
  *   <td>true</td></tr>
  * <tr><td>httpclient.retry-on-errors</td><td></td><td>true</td></tr>
- * <tr><td>httpclient.useragent</td><td>User agent string</td><td>HttpClient default value, eg "Jakarta Commons-HttpClient/3.0.1"</td></tr>
+ * <tr><td>httpclient.useragent</td><td>Overrides the default jets3t user agent string</td>
+ *     <td>The value set by {@link S3Service#setUserAgentDescription()}</td></tr>
  * </table>
  * 
  * @author James Murty
@@ -117,17 +119,38 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
     
+    /**
+     * Constructs the service and initialises the properties.
+     * 
+     * @param awsCredentials
+     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * communication is done as an anonymous user.
+     * 
+     * @throws S3ServiceException
+     */
     public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
-        this(awsCredentials, null);
+        this(awsCredentials, null, null);
     }
     
     /**
      * Constructs the service and initialises the properties.
      * 
      * @param awsCredentials
+     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * communication is done as an anonymous user.
+     * @param invokingApplicationDescription
+     * a short description of the application using the service, suitable for inclusion in a
+     * user agent string for REST/HTTP requests. Ideally this would include the application's
+     * version number, for example: <code>Cockpit/0.5.0</code> or <code>My App Name/1.0</code>
+     * @param credentialsProvider
+     * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
+     * prompting for credentials when necessary.
+     *   
      * @throws S3ServiceException
      */
-    public RestS3Service(AWSCredentials awsCredentials, CredentialsProvider credentialsProvider) throws S3ServiceException {
+    public RestS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription, 
+        CredentialsProvider credentialsProvider) throws S3ServiceException 
+    {
         super(awsCredentials);
         
         Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
@@ -155,9 +178,15 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         connectionManager = new MultiThreadedHttpConnectionManager();
         connectionManager.setParams(connectionParams);
         
+        // Set user agent string.
         HttpClientParams clientParams = new HttpClientParams();
-        clientParams.setParameter("http.useragent", jets3tProperties.
-            getStringProperty("httpclient.useragent", null));
+        String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
+        if (userAgent == null) {
+            userAgent = ServiceUtils.getUserAgentDescription(
+                getInvokingApplicationDescription());
+        }
+        log.debug("Setting user agent string: " + userAgent);
+        clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
         
         boolean retryOnErrors = jets3tProperties.getBoolProperty("httpclient.retry-on-errors", true);
         if (!retryOnErrors) {

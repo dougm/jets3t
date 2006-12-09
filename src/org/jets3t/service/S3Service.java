@@ -61,26 +61,33 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public abstract class S3Service {
-
     private static final Log log = LogFactory.getLog(S3Service.class);
+    
+    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.5.0";
     
     public static final String DEFAULT_S3_URL_SECURE = "https://" + Constants.REST_SERVER_DNS + "/";
     public static final String DEFAULT_S3_URL_INSECURE = "http://" + Constants.REST_SERVER_DNS + "/";
 
     private AWSCredentials awsCredentials = null;
+    private String invokingApplicationDescription = null;
     private boolean isHttpsOnly = true;
     private int internalErrorRetryMax = 5;
-
+        
     /**
      * Construct an <code>S3Service</code> identified by the given AWS Principal.
      * 
-     * @param awsPrincipal
+     * @param awsCredentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
+     * @param invokingApplicationDescription
+     * a short description of the application using the service, suitable for inclusion in a
+     * user agent string for REST/HTTP requests. Ideally this would include the application's
+     * version number, for example: <code>Cockpit/0.5.0</code> or <code>My App Name/1.0</code> 
      * @throws S3ServiceException
      */
-    protected S3Service(AWSCredentials awsPrincipal) throws S3ServiceException {
-        this.awsCredentials = awsPrincipal;
+    protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) throws S3ServiceException {
+        this.awsCredentials = awsCredentials;
+        this.invokingApplicationDescription = invokingApplicationDescription;
         isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getBoolProperty("s3service.https-only", true);        
         internalErrorRetryMax = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -91,6 +98,18 @@ public abstract class S3Service {
         System.setProperty("networkaddress.cache.ttl", "300");
     }
 
+    /**
+     * Construct an <code>S3Service</code> identified by the given AWS Principal.
+     * 
+     * @param awsPrincipal
+     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * communication is done as an anonymous user.
+     * @throws S3ServiceException
+     */
+    protected S3Service(AWSCredentials awsPrincipal) throws S3ServiceException {
+        this(awsPrincipal, null);
+    }
+    
     /**
      * @return true if this service has <code>AWSCredentials</code> identifying an S3 user, false
      * if the service is acting as an anonymous user.
@@ -155,6 +174,14 @@ public abstract class S3Service {
         return awsCredentials;
     }
     
+    /**
+     * @return a description of the application using this service, suitable for inclusion in the
+     * user agent string of REST/HTTP requests. 
+     */
+    public String getInvokingApplicationDescription() {
+        return invokingApplicationDescription;
+    }
+
     /**
      * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
      * to whoever uses the URL up until the time specified.

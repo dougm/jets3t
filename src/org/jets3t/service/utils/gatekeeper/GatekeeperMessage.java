@@ -40,6 +40,7 @@ public class GatekeeperMessage {
     
     public static final String PROPERTY_TRANSACTION_ID = "transactionId";
     public static final String CONTENT_TYPE = "application/x-message-properties";
+    public static final String SUMMARY_DOCUMENT_METADATA_FLAG = "jets3t-uploader-summary-doc";
     
     private Properties applicationProperties = new Properties();
     private Properties messageProperties = new Properties(); 

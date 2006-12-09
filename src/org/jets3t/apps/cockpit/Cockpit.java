@@ -50,8 +50,6 @@ import java.io.OutputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.text.DecimalFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -88,12 +86,10 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.text.NumberFormatter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
-import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
@@ -141,6 +137,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private static final long serialVersionUID = 8122461453115708538L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
+    
+    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.5.0";
     
     public static final String APPLICATION_TITLE = "jets3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 500;
@@ -274,7 +272,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Initialise a non-authenticated service.
         try {
             // Revert to anonymous service.
-            s3ServiceMulti = new S3ServiceMulti(new RestS3Service(null), this);
+            s3ServiceMulti = new S3ServiceMulti(
+                new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
         } catch (S3ServiceException e2) {
             reportException(ownerFrame, "Unable to start anonymous service", e2);
         }
@@ -796,7 +795,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             final AWSCredentials awsCredentials = 
                 LoginDialog.showDialog(ownerFrame, rememberedLoginsDirectory);
 
-            s3ServiceMulti = new S3ServiceMulti(new RestS3Service(awsCredentials), this);
+            s3ServiceMulti = new S3ServiceMulti(
+                new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null), this);
 
             if (awsCredentials == null) {
                 log.debug("Log in cancelled by user");
@@ -816,7 +816,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             reportException(ownerFrame, "Unable to Log in", e);
             try {
                 // Revert to anonymous service.
-                s3ServiceMulti = new S3ServiceMulti(new RestS3Service(null), this);
+                s3ServiceMulti = new S3ServiceMulti(
+                    new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
             } catch (S3ServiceException e2) {
                 reportException(ownerFrame, "Unable to revert to anonymous user", e2);
             }
@@ -831,7 +832,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         log.debug("Logging out");
         try {
             // Revert to anonymous service.
-            s3ServiceMulti = new S3ServiceMulti(new RestS3Service(null), this);
+            s3ServiceMulti = new S3ServiceMulti(
+                new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
             
             bucketsTable.clearSelection();
             ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();

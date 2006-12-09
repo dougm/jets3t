@@ -27,6 +27,10 @@ import java.io.File;
  */
 public class Constants {
     
+    ////////////////////////////////////
+    // Default file names and locations.
+    ////////////////////////////////////
+    
     public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
     
     /**
@@ -94,7 +98,7 @@ public class Constants {
      * Default number of objects to include in each chunk of an object listing.
      */
     public static long DEFAULT_OBJECT_LIST_CHUNK_SIZE = 1000;
-
+    
     ///////////////////////////////////
     // Headers used by REST S3 Services
     ///////////////////////////////////
