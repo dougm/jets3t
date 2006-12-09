@@ -149,15 +149,14 @@ public class S3Object extends BaseS3Object {
      * @throws S3ServiceException 
      */
 	public InputStream getDataInputStream() throws S3ServiceException {
-        if (dataInputFile != null) {
+        if (dataInputStream == null && dataInputFile != null) {
             try {
-                return new FileInputStream(dataInputFile);
+                dataInputStream = new FileInputStream(dataInputFile);                
             } catch (FileNotFoundException e) {
                 throw new S3ServiceException("Cannot open file input stream", e); 
             }
-        } else {
-            return dataInputStream;
         }
+        return dataInputStream;
 	}
 
     /**
