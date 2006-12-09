@@ -21,9 +21,10 @@ public class ClientInformation {
     private int remotePort = -1;
     private HttpSession session = null;
     private Principal userPrincipal = null;
+    private String userAgent = null;
     
     public ClientInformation(String remoteAddress, String remoteHost, String remoteUser,
-        int remotePort, HttpSession session, Principal userPrincipal) 
+        int remotePort, HttpSession session, Principal userPrincipal, String userAgent) 
     {
         this.remoteAddress = remoteAddress;
         this.remoteHost = remoteHost;
@@ -31,6 +32,7 @@ public class ClientInformation {
         this.remotePort = remotePort;
         this.session = session;
         this.userPrincipal = userPrincipal;
+        this.userAgent = userAgent;
     }
 
     public String getRemoteAddress() {
@@ -55,6 +57,10 @@ public class ClientInformation {
 
     public Principal getUserPrincipal() {
         return userPrincipal;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
     }
 
 }
