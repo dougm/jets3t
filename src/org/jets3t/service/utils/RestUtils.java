@@ -37,7 +37,8 @@ import org.jets3t.service.S3ServiceException;
 public class RestUtils {
 
     /**
-     * Encodes a URL string.
+     * Encodes a URL string, and ensures that spaces are encoded as "%20" instead of "+" to keep
+     * fussy web browsers happier.
      * 
      * @param path
      * @return
@@ -47,6 +48,8 @@ public class RestUtils {
     public static String encodeUrlString(String path) throws S3ServiceException {
         try {
             String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
+            // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
+            encodedPath = encodedPath.replaceAll("\\+", "%20");            
             return encodedPath;
         } catch (UnsupportedEncodingException uee) {
             throw new S3ServiceException("Unable to encode path: " + path, uee);
@@ -55,6 +58,7 @@ public class RestUtils {
 
     /**
      * Encodes a URL string but leaves a delimiter string unencoded.
+     * Spaces are encoded as "%20" instead of "+".
      * 
      * @param path
      * @param delimiter
