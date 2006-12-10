@@ -36,20 +36,54 @@ public class TimeFormatter {
      * a representation of the time.
      */
     public String formatTime(long seconds) {
-        String result = "";
+        int hours = 0;
         if (seconds > 3600) {
-            int hours = (int) seconds / 3600;
-            result = hours + ":";
+            hours = (int) seconds / 3600;
             seconds = seconds - (hours * 3600); 
         } 
         
         int mins = (int) seconds / 60;
-        result += (mins < 10 ? "0" : "") + mins + ":";
-        seconds = seconds - (mins * 60);
+        seconds = seconds - (mins * 60); 
         
-        result += (seconds < 10 ? "0" : "") + seconds;
-        
-        return result;
+        if (hours > 0) {
+            if (mins > 45) {
+                return (hours + 1) + " hours";
+            } else if (mins > 30) {
+                return hours + "\u00BE hours"; // Three quarters               
+            } else if (mins > 15) {
+                return hours + "\u00BD hours"; // One half               
+            } else if (mins > 0) {
+                return hours + "\u00BC hours"; // One quarter               
+            } else {
+                return hours + " hour" + (hours > 1? "s" : "");                
+            }
+        } else if (mins > 0) {
+            if (seconds > 45) {
+                return (mins + 1) + " minutes";
+            } else if (seconds > 30) {
+                return mins + "\u00BE minutes"; // Three quarters
+            } else if (seconds > 15) {
+                return mins + "\u00BD minutes"; // One half
+            } else if (seconds > 0) {
+                return mins + "\u00BC minutes"; // One quarter
+            } else {
+                return mins + " minute" + (mins > 1? "s" : "");
+            }
+        } else {
+            return seconds + " second" + (seconds != 1? "s" : "");
+        }
     }
+    
+//    public static void main(String[] args) throws Exception {
+//        TimeFormatter formatter = new TimeFormatter();
+//        long seconds = 2 * 60 * 60;
+//        
+//        while (seconds >= 0) {
+//            System.out.println(formatter.formatTime(seconds));
+//            Thread.sleep(5);
+//            seconds--;
+//        }
+//                
+//    }
 
 }
