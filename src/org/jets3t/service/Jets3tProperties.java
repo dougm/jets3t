@@ -54,6 +54,7 @@ public class Jets3tProperties {
     private static final Hashtable propertiesHashtable = new Hashtable();
 
     private Properties properties = new Properties();
+    private boolean loaded = false;
     
     public static Jets3tProperties getInstance(InputStream inputStream) throws IOException {
         Jets3tProperties jets3tProperties = new Jets3tProperties();
@@ -88,19 +89,7 @@ public class Jets3tProperties {
                 log.error("Failed to load properties from resource in classpath: " 
                     + propertiesFileName, e);
             }
-        }
-        
-        // Load properties from System.
-        log.debug("Loading System properties");  
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try {
-            System.getProperties().store(baos, null);      
-            jets3tProperties.loadAndReplaceProperties(
-                new ByteArrayInputStream(baos.toByteArray()), "System properties");
-        } catch (IOException e) {
-            log.error("Failed to load System properties", e);            
-        }
-        
+        } 
         return jets3tProperties;
     }
     
@@ -132,6 +121,8 @@ public class Jets3tProperties {
             } 
             properties.put(key, trim(newProperties.getProperty(key)));                
         }
+        
+        loaded = true;
     }
     
     public Properties getProperties() {
@@ -213,6 +204,15 @@ public class Jets3tProperties {
      */
     public boolean containsKey(String propertyName) {
         return properties.containsKey(propertyName);
+    }
+    
+    /**
+     * @return
+     * true if this properties object was successfully loaded from an input stream or a named
+     * properties file, false otherwise.
+     */
+    public boolean isLoaded() {
+        return loaded;
     }
     
     private String trim(String str) {
