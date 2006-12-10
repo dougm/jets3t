@@ -31,9 +31,9 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
@@ -114,7 +114,7 @@ public class Synchronize {
         // Create a temporary file to hold data transformed from the original file. 
         final File tempUploadFile = File.createTempFile("jets3t-Synchronize",".tmp");        
         tempUploadFile.deleteOnExit();
-        
+
         // Transform data from original file, gzipping or encrypting as specified in user's options.
         InputStream inputStream = new BufferedInputStream(new FileInputStream(originalFile));       
         String contentEncoding = null;        
@@ -169,10 +169,6 @@ public class Synchronize {
         } else {
             newObject.setContentType(Mimetypes.getMimetype(file));
 
-            // Compute the file's MD5 hash.
-            newObject.setMd5Hash(ServiceUtils.computeMD5Hash(
-                new FileInputStream(file)));   
-            
             EncryptionUtil encryptionUtil = null;
             if (isEncryptionEnabled) {
                 encryptionUtil = new EncryptionUtil(cryptoPassword);
@@ -181,8 +177,18 @@ public class Synchronize {
             
             newObject.setContentLength(uploadFile.length());
             newObject.setDataInputFile(uploadFile);
+
+            // Compute the upload file's MD5 hash.
+            newObject.setMd5Hash(ServiceUtils.computeMD5Hash(
+                new FileInputStream(uploadFile)));
             
-            // TODO Delete temporary files created by this program, to free disk space ASAP.
+            if (!uploadFile.equals(file)) {
+                // Compute the MD5 hash of the *original* file, if upload file has been altered
+                // through encryption or gzipping.
+                newObject.addMetadata(
+                    S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5,
+                    ServiceUtils.toBase64(ServiceUtils.computeMD5Hash(new FileInputStream(file))));
+            }
         }
         return newObject;
     }
@@ -530,15 +536,17 @@ public class Synchronize {
     /**
      * Runs the application, performing the action specified on the given S3 and local directory paths.
      * 
-     * @param s3Path    The path in S3 (including the bucket name) to which files are backed-up, or from
-     *                  which files are restored.
-     * @param localDirectory    A local directory where files are backed-up from, or restored to.
-     * @param actionCommand     The action to perform, UPLOAD or DOWNLOAD
-     * @param cryptoPassword      If non-null, an {@link EncryptionUtil} object is created with the provided
-     *                      password to encrypt or decrypt files.
+     * @param s3Path    
+     * the path in S3 (including the bucket name) to which files are backed-up, or from which files are restored.
+     * @param fileList
+     * a list one or more of File objects for Uploads, or a single target directory for Downloads.
+     * @param actionCommand     
+     * the action to perform, UP(load) or DOWN(load)
+     * @param cryptoPassword      
+     * if non-null, an {@link EncryptionUtil} object is created with the provided password to encrypt or decrypt files.
      * @throws Exception
      */
-    public void run(String s3Path, File localDirectory, String actionCommand, String cryptoPassword) throws Exception 
+    public void run(String s3Path, List fileList, String actionCommand, String cryptoPassword) throws Exception 
     {
         String bucketName = null;
         String objectPath = "";        
@@ -553,24 +561,31 @@ public class Synchronize {
         }
         
         // Describe the action that will be performed.
-        if ("UPLOAD".equals(actionCommand)) {
-            System.out.println("UPLOAD "
+        if ("UP".equals(actionCommand)) {
+            System.out.println("UP "
                 + (doAction ? "" : "[No Action] ")
-                + "Local(" + localDirectory + ") => S3(" + s3Path + ")");              
-        } else if ("DOWNLOAD".equals(actionCommand)) {
-            System.out.println("DOWNLOAD "
+                + "Local" + fileList + " => S3[" + s3Path + "]");              
+        } else if ("DOWN".equals(actionCommand)) {
+            if (fileList.size() != 1) {
+                throw new SynchronizeException("Only one target directory is allowed for downloads");
+            }
+            System.out.println("DOWN "
                 + (doAction ? "" : "[No Action] ")
-                + "S3(" + s3Path + ") => Local(" + localDirectory + ")");              
+                + "S3[" + s3Path + "] => Local" + fileList);              
         } else {
-            throw new SynchronizeException("Action string must be 'UPLOAD' or 'DOWNLOAD'");
+            throw new SynchronizeException("Action string must be 'UP' or 'DOWN'");
         }        
         
         this.cryptoPassword = cryptoPassword;
                 
         S3Bucket bucket = null;
         try {
-            // Create/connect to the S3 bucket.
-            bucket = s3Service.createBucket(bucketName);
+            if (!s3Service.isBucketAccessible(bucketName)) {
+                // Create/connect to the S3 bucket.
+                bucket = s3Service.createBucket(bucketName);
+            } else {
+                bucket = new S3Bucket(bucketName);
+            }
         } catch (Exception e) {
             throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
         }
@@ -594,7 +609,12 @@ public class Synchronize {
         }
                 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
-        Map filesMap = FileComparer.buildFileMap(localDirectory, null);
+        Map filesMap = null;
+        if ("UP".equals(actionCommand)) {
+            filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[] {}));
+        } else if ("DOWN".equals(actionCommand)) {
+            filesMap = FileComparer.buildFileMap((File) fileList.get(0), null);
+        }
 
         S3ServiceEventAdaptor errorCatchingAdaptor = new S3ServiceEventAdaptor();
         Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath, errorCatchingAdaptor);
@@ -605,10 +625,10 @@ public class Synchronize {
         FileComparerResults discrepancyResults = FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap);
 
         // Perform the requested action on the set of disrepancies.
-        if ("UPLOAD".equals(actionCommand)) {
+        if ("UP".equals(actionCommand)) {
             uploadLocalDirectoryToS3(discrepancyResults, filesMap, s3ObjectsMap, bucket, objectPath);
-        } else if ("DOWNLOAD".equals(actionCommand)) {
-            restoreFromS3ToLocalDirectory(discrepancyResults, filesMap, s3ObjectsMap, objectPath, localDirectory, bucket);
+        } else if ("DOWN".equals(actionCommand)) {
+            restoreFromS3ToLocalDirectory(discrepancyResults, filesMap, s3ObjectsMap, objectPath, (File) fileList.get(0), bucket);
         }
     }
 
@@ -617,18 +637,22 @@ public class Synchronize {
      */
     private static void printHelpAndExit(boolean fullHelp) {
         System.out.println();
-        System.out.println("Usage: Synchronize [options] UPLOAD <Directory> <S3Path> <Properties File>");
-        System.out.println("   or: Synchronize [options] DOWNLOAD <Directory> <S3Path> <Properties File>");
+        System.out.println("Usage: Synchronize [options] UP <S3Path> <File/Directory> (<File/Directory>...)");
+        System.out.println("   or: Synchronize [options] DOWN <S3Path> <DownloadDirectory>");
         System.out.println("");
-        System.out.println("UPLOAD  : Synchronize the contents of the Local Directory with S3.");
-        System.out.println("DOWNLOAD : Synchronize the contents of S3 with the Local Directory");
+        System.out.println("UP      : Synchronize the contents of the Local Directory with S3.");
+        System.out.println("DOWN    : Synchronize the contents of S3 with the Local Directory");
         System.out.println("S3Path  : A path to the resource in S3. This must include at least the");
         System.out.println("          bucket name, but may also specify a path inside the bucket.");
         System.out.println("          E.g. <bucketName>/Backups/Documents/20060623");
-        System.out.println("Directory : A directory on your computer");
-        System.out.println("Properties File : A properties file containing the following properties:");
-        System.out.println("          accesskey : Your AWS Access Key");
-        System.out.println("          secretkey : Your AWS Secret Key");
+        System.out.println("File/Directory : A file or directory on your computer to upload");
+        System.out.println("DownloadDirectory : A directory on your computer where downloaded files");
+        System.out.println("          will be stored");
+        System.out.println();
+        System.out.println("A property file with the name 'synchronize.properties' must be available in the");
+        System.out.println("classpath and must contain the following properties:");
+        System.out.println("          accesskey : Your AWS Access Key (Required)");
+        System.out.println("          secretkey : Your AWS Secret Key (Required)");
         System.out.println("          password  : Encryption password (only required when using crypto)");
         System.out.println("");
         System.out.println("For more help : Synchronize --help");
@@ -693,10 +717,10 @@ public class Synchronize {
     public static void main(String args[]) throws Exception {
         // Required arguments
         String actionCommand = null;
-        File localDirectory = null;
         String s3Path = null;
         File propertiesFile = null;
         int reqArgCount = 0;
+        List fileList = new ArrayList();
         
         // Options
         boolean doAction = true;
@@ -733,37 +757,50 @@ public class Synchronize {
                 // Argument is one of the required parameters.
                 if (reqArgCount == 0) {
                     actionCommand = arg.toUpperCase();
-                    if (!"UPLOAD".equals(actionCommand) && !"DOWNLOAD".equals(actionCommand)) {
+                    if (!"UP".equals(actionCommand) && !"DOWN".equals(actionCommand)) {
                         System.err.println("ERROR: Invalid action command " + actionCommand 
-                            + ". Valid values are 'UPLOAD' or 'DOWNLOAD'");
+                            + ". Valid values are 'UP' or 'DOWN'");
                         printHelpAndExit(false);
                     }                    
                 } else if (reqArgCount == 1) {
-                    localDirectory = new File(arg);
-                    if (!localDirectory.canRead() || !localDirectory.isDirectory()) {
-                        localDirectory.mkdirs();
-                    }
-                } else if (reqArgCount == 2) {
                     s3Path = arg;
-                } else if (reqArgCount == 3) {
-                    propertiesFile = new File(arg);                    
-                } else {
-                    System.err.println("ERROR: Too many parameters");
-                    printHelpAndExit(false);                    
+                } else if (reqArgCount > 1) {
+                    File file = new File(arg);
+                    
+                    if ("DOWN".equals(actionCommand)) {
+                        if (reqArgCount > 2) {
+                            System.err.println("ERROR: Only one target directory may be specified"
+                                + " for " + actionCommand); 
+                            printHelpAndExit(false);
+                        }
+                        if (!file.canRead() || !file.isDirectory()) {
+                            file.mkdirs();
+                        }         
+                    } else {
+                        if (!file.canRead()) {
+                            System.err.println("ERROR: Cannot read from file/directory: " + file);
+                            printHelpAndExit(false);                            
+                        }
+                    }
+                    fileList.add(file);
                 }
                 reqArgCount++;
             }
         }
         
-        if (reqArgCount < 4) {
+        if (fileList.size() < 1) {
             // Missing one or more required parameters.
-            System.err.println("ERROR: Missing " + (4 - reqArgCount) + " required parameter(s)");
+            System.err.println("ERROR: Missing required parameter(s)");
             printHelpAndExit(false);
         }
         
         // Read the Properties file, and make sure it contains everything we need.
-        Properties properties = new Properties();
-        properties.load(new FileInputStream(propertiesFile));
+        Jets3tProperties properties = Jets3tProperties.getInstance("synchronize.properties");
+        if (!properties.isLoaded()) {
+            System.err.println("ERROR: The properties file " + propertiesFile + " could not be found in the classpath");
+            System.exit(2);                        
+        }
+        
         if (!properties.containsKey("accesskey")) {
             System.err.println("ERROR: The properties file " + propertiesFile + " must contain the property: accesskey");
             System.exit(2);            
@@ -777,13 +814,14 @@ public class Synchronize {
         
         // Load the AWS credentials from encrypted file.
         AWSCredentials awsCredentials = new AWSCredentials(
-            properties.getProperty("accesskey"), properties.getProperty("secretkey"));        
+            properties.getStringProperty("accesskey", null), 
+            properties.getStringProperty("secretkey", null));        
          
-        // Perform the UPLOAD/DOWNLOAD.
+        // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
             doAction, isQuiet, isForce, isKeepFiles, isGzipEnabled, isEncryptionEnabled);
-        client.run(s3Path, localDirectory, actionCommand, properties.getProperty("password"));
+        client.run(s3Path, fileList, actionCommand, properties.getStringProperty("password", null));
     }
         
 }
