@@ -79,7 +79,7 @@ public class S3ServiceMulti {
     /**
      * Construct a multi-threaded service based on an S3Service and which sends event notifications
      * to an event listening class. EVENT_IN_PROGRESS events are sent at the default time interval
-     * of 250ms. 
+     * of 200ms. 
      * 
      * @param s3Service
      *        an S3Service implementation that will be used to perform S3 requests. This implementation
@@ -88,7 +88,7 @@ public class S3ServiceMulti {
      *        the event listener which will handle event notifications.
      */
     public S3ServiceMulti(S3Service s3Service, S3ServiceEventListener listener) {
-        this(s3Service, listener, 500);
+        this(s3Service, listener, 200);
     }
 
     /**
@@ -1475,7 +1475,7 @@ public class S3ServiceMulti {
                     fireCompletedEvent();
                 }
             } catch (Throwable t) {
-                log.error("A thread failed with an exception. Firing ERROR event and cancellling all threads", t);
+                log.error("A thread failed with an exception. Firing ERROR event and cancelling all threads", t);
                 // Set force interrupt flag for all runnables.
                 forceInterruptAllRunnables();
                 
