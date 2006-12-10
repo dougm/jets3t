@@ -151,7 +151,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     public RestS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription, 
         CredentialsProvider credentialsProvider) throws S3ServiceException 
     {
-        super(awsCredentials);
+        super(awsCredentials, invokingApplicationDescription);
         
         Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
         

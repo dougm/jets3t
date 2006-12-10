@@ -101,13 +101,13 @@ public abstract class S3Service {
     /**
      * Construct an <code>S3Service</code> identified by the given AWS Principal.
      * 
-     * @param awsPrincipal
+     * @param awsCredentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      * @throws S3ServiceException
      */
-    protected S3Service(AWSCredentials awsPrincipal) throws S3ServiceException {
-        this(awsPrincipal, null);
+    protected S3Service(AWSCredentials awsCredentials) throws S3ServiceException {
+        this(awsCredentials, null);
     }
     
     /**
