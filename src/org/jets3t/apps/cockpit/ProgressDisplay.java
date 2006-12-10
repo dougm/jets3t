@@ -148,8 +148,7 @@ public class ProgressDisplay {
         private JProgressBar progressBar = null;
         private boolean wasCancelClicked = false;
         private CancelEventTrigger cancelEventListener = null;
-        private int longestStatusTextLength = 0;
-        private int longestDetailsTextLength = 0;
+        private int maximumLabelLength = 120;
 
         /**
          * Constructs the progress dialog box.
@@ -179,12 +178,12 @@ public class ProgressDisplay {
         }
 
         private void initGui(String statusMessage, String detailsText, String cancelButtonText, int min, int max) {
-            this.setResizable(false);
             this.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-            
+            this.setResizable(false);
+                        
             JPanel container = new JPanel(new GridBagLayout());
             
-            statusMessageLabel = new JLabel(statusMessage);
+            statusMessageLabel = new JLabel(longestTextString());
             statusMessageLabel.setHorizontalAlignment(JLabel.CENTER);
             container.add(statusMessageLabel, 
                 new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
@@ -202,10 +201,7 @@ public class ProgressDisplay {
             container.add(progressBar, 
                 new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
-            if (detailsText == null) {
-                detailsText = "";
-            }
-            detailsTextLabel = new JLabel(detailsText);
+            detailsTextLabel = new JLabel(longestTextString());
             detailsTextLabel.setHorizontalAlignment(JLabel.CENTER);
             container.add(detailsTextLabel, 
                 new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
@@ -226,6 +222,17 @@ public class ProgressDisplay {
             this.getContentPane().add(container);
             this.pack();
             this.setLocationRelativeTo(this.getOwner());
+            
+            statusMessageLabel.setText(statusMessage);
+            detailsTextLabel.setText(detailsText);
+        }
+        
+        private String longestTextString() {
+            StringBuffer padding = new StringBuffer();
+            for (int i = 0; i < maximumLabelLength; i++) {
+                padding.append(" ");
+            }
+            return padding.toString();
         }
         
         public void actionPerformed(ActionEvent e) {
@@ -246,30 +253,8 @@ public class ProgressDisplay {
         }
         
         public void updateStatusMessages(String statusMessage, String detailsText) {
-            if (statusMessageLabel.getText().equals(statusMessage)) {
-                // Nothing to do.
-                return;
-            }
-            
             statusMessageLabel.setText(statusMessage);
-            if (detailsText != null) {
-                detailsTextLabel.setText(detailsText);
-            }
-            
-            boolean repack = false;
-            if (statusMessage.length() > longestStatusTextLength) {
-                longestStatusTextLength = statusMessage.length();
-                repack = true;
-            }
-            if (detailsText != null && detailsText.length() > longestDetailsTextLength) {
-                longestDetailsTextLength = detailsText.length();
-                repack = true;
-            }            
-            if (repack) {
-                progressDialog.pack();
-                progressDialog.setLocationRelativeTo(this.getOwner());
-            }
-
+            detailsTextLabel.setText(detailsText);
         }
         
         public void updateProgress(int progressValue) {
