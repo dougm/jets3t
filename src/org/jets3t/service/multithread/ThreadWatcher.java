@@ -43,11 +43,12 @@ public class ThreadWatcher {
      * The number of bytes transferred updates (via setBytesTransferredInfo) that must occurbefore transfer
      * before transfer rate and ETA is calculated.
      */
-    private static final int MIN_TRANSFER_UPDATES_FOR_RATE = 5;
+    private static final int MIN_TRANSFER_UPDATES_FOR_RATE = 20;
     
     private long completedThreads = 0;
     private long threadCount = 0;
     private CancelEventTrigger cancelEventListener = null;
+    private long watcherStartTimeMS = -1;
     private long bytesTransferred = -1;
     private long bytesTotal = -1;
     private long bytesPerSecond = -1;
@@ -61,6 +62,7 @@ public class ThreadWatcher {
     private Vector historicTimeQueue = new Vector();
 
     public ThreadWatcher() {
+        this.watcherStartTimeMS = System.currentTimeMillis();
     }
     
     public void setThreadsCompletedRatio(long completedThreads, long threadCount) {
@@ -101,17 +103,18 @@ public class ThreadWatcher {
             long intervalsBytesTransferred = bytesTransferred - historicByteTransferCount.longValue();
             long bytesRemaining = bytesTotal - bytesTransferred;
             
-            // Calculate the bytes/s transfer rate.
+            // Calculate the current bytes/s transfer rate.
             if (intervalsElapsedTimeMS != 0) {
                 this.bytesPerSecond = 1000 * intervalsBytesTransferred / intervalsElapsedTimeMS;                
             }
             
-            // Calculate the time until the transfer is complete.
-            if (bytesPerSecond == 0) {
-                // Cannot calculate infinite ETA.
-                this.timeRemainingSeconds = -1;
-            } else if (bytesRemaining > 0) {
-                double remainingSecsDouble = bytesRemaining / bytesPerSecond;
+            // Calculate the averate bytes/s transfer rate.
+            long overallBytesPerSecond = 1000 * bytesTransferred / 
+                (System.currentTimeMillis() - watcherStartTimeMS);  
+            
+            // Calculate the time until the transfer is complete, using the *overall* bytes/second rate.
+            if (bytesRemaining > 0) {
+                double remainingSecsDouble = bytesRemaining / overallBytesPerSecond;
                 this.timeRemainingSeconds = Math.round(remainingSecsDouble);
             } else {
                 this.timeRemainingSeconds = 0;
@@ -205,7 +208,8 @@ public class ThreadWatcher {
     
     /**
      * @return
-     * an estimate of the how many <b>seconds</b> until the data transfer completes.
+     * an estimate of the how many <b>seconds</b> until the data transfer completes, based on the
+     * overall byte rate of the transmission.
      * @throws IllegalStateException
      * if the time remaining estimave is not available - check this availability
      * with the {@link #isTimeRemainingAvailable()} method.
