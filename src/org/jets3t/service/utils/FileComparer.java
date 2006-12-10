@@ -150,10 +150,9 @@ public class FileComparer {
             List ignorePatternList = buildIgnoreRegexpList(files[i].getParentFile());
             
             if (!isIgnored(ignorePatternList, files[i])) {                
+                fileMap.put(files[i].getName(), files[i]);
                 if (files[i].isDirectory()) {
                     buildFileMapImpl(files[i], files[i].getName() + Constants.FILE_PATH_DELIM, fileMap);
-                } else {
-                    fileMap.put(files[i].getName(), files[i]);
                 }
             }
         }
@@ -182,16 +181,19 @@ public class FileComparer {
      * @return A Map of file path keys to File objects.
      */
     public static Map buildFileMap(File rootDirectory, String fileKeyPrefix) {
-        if (fileKeyPrefix == null || fileKeyPrefix.length() == 0) {
-            fileKeyPrefix = "";
-        } else {
-            if (!fileKeyPrefix.endsWith(Constants.FILE_PATH_DELIM)) {
-                fileKeyPrefix += Constants.FILE_PATH_DELIM;
-            }
-        }
-
         HashMap fileMap = new HashMap();
-        buildFileMapImpl(rootDirectory, fileKeyPrefix, fileMap);
+        List ignorePatternList = buildIgnoreRegexpList(rootDirectory);
+        
+        if (!isIgnored(ignorePatternList, rootDirectory)) {        
+            if (fileKeyPrefix == null || fileKeyPrefix.length() == 0) {
+                fileKeyPrefix = "";
+            } else {
+                if (!fileKeyPrefix.endsWith(Constants.FILE_PATH_DELIM)) {
+                    fileKeyPrefix += Constants.FILE_PATH_DELIM;
+                }
+            }
+            buildFileMapImpl(rootDirectory, fileKeyPrefix, fileMap);
+        }
         return fileMap;
     }
     
@@ -218,11 +220,10 @@ public class FileComparer {
         File children[] = directory.listFiles();
         for (int i = 0; i < children.length; i++) {                        
             if (!isIgnored(ignorePatternList, children[i])) {
+                fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
                 if (children[i].isDirectory()) {
                     buildFileMapImpl(children[i], fileKeyPrefix + children[i].getName() + "/", fileMap);
-                } else {
-                    fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
-                }
+                } 
             }
         }
     }
@@ -374,7 +375,19 @@ public class FileComparer {
                     // Compare file hashes.
                     String fileHashAsBase64 = ServiceUtils.toBase64(
                         ServiceUtils.computeMD5Hash(new FileInputStream(file)));
-                    String objectHash = s3Object.getMd5HashAsBase64();
+                    
+                    // Get the S3 object's Base64 hash.
+                    String objectHash = null;
+                    if (s3Object.containsMetadata(S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5)) {
+                        // Use the object's *original* hash, as it is an encoded version of a local file.
+                        objectHash = (String) s3Object.getMetadata(
+                            S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5);
+                        log.debug("Object in S3 is encoded, using the object's original hash value for: "
+                            + s3Object.getKey());
+                    } else {
+                        // The object wasn't altered when uploaded, so use its current hash.
+                        objectHash = s3Object.getMd5HashAsBase64();
+                    } 
                     
                     if (fileHashAsBase64.equals(objectHash)) {
                         // Hashes match so file is already synchronised.
