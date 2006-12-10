@@ -1898,18 +1898,25 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 } else {     
                     newObject.setContentType(Mimetypes.getMimetype(file));
                     
-                    // Store hash of original file data in metadata.
-                    log.debug("Computing MD5 hash for file: " + file);
-                    newObject.setMd5Hash(ServiceUtils.computeMD5Hash(
-                        new FileInputStream(file)));
-                    
                     // Do any necessary file pre-processing.
                     File fileToUpload = prepareUploadFile(file, newObject);
                     
                     newObject.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE, 
                         ServiceUtils.formatIso8601Date(new Date(file.lastModified())));
                     newObject.setContentLength(fileToUpload.length());
-                    newObject.setDataInputFile(fileToUpload);    
+                    newObject.setDataInputFile(fileToUpload);
+                    
+                    // Compute the upload file's MD5 hash.
+                    newObject.setMd5Hash(ServiceUtils.computeMD5Hash(
+                        new FileInputStream(fileToUpload)));
+                    
+                    if (!fileToUpload.equals(file)) {
+                        // Compute the MD5 hash of the *original* file, if upload file has been altered
+                        // through encryption or gzipping.
+                        newObject.addMetadata(
+                            S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5,
+                            ServiceUtils.toBase64(ServiceUtils.computeMD5Hash(new FileInputStream(file))));
+                    }
 
                     updateProgressDisplay("Prepared " + (objectIndex + 1) 
                         + " of " + fileKeysForUpload.size() + " file(s) for upload", 

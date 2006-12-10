@@ -47,6 +47,7 @@ public class S3Object extends BaseS3Object {
 	public static final String METADATA_HEADER_OWNER = "Owner";	
 	public static final String METADATA_HEADER_ETAG = "ETag";	
     public static final String METADATA_HEADER_HASH_MD5 = "md5-hash";   
+    public static final String METADATA_HEADER_ORIGINAL_HASH_MD5 = "original-md5-hash";   
     public static final String METADATA_HEADER_CONTENT_MD5 = "Content-MD5";   
 	public static final String METADATA_HEADER_CONTENT_LENGTH = "Content-Length";	
 	public static final String METADATA_HEADER_CONTENT_TYPE = "Content-Type";	
