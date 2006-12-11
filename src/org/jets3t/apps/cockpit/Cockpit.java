@@ -47,6 +47,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -89,6 +91,7 @@ import javax.swing.table.DefaultTableModel;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
@@ -133,7 +136,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * 
  * @author jmurty
  */
-public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener, ListSelectionListener {
+public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener, ListSelectionListener, HyperlinkActivatedListener {
     private static final long serialVersionUID = 8122461453115708538L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
@@ -495,14 +498,22 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         cockpitHelpMenuItem = new JMenuItem("Cockpit Guide");
         cockpitHelpMenuItem.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
-               BareBonesBrowserLaunch.openURL(Constants.JETS3T_COCKPIT_HELP_PAGE);
+               try {
+                   followHyperlink(new URL(Constants.JETS3T_COCKPIT_HELP_PAGE), "_blank");
+               } catch (MalformedURLException ex) {
+                   reportException(ownerFrame, "Unable to follow hyperlink to invalid URL", ex);
+               }
            } 
         });
         helpMenu.add(cockpitHelpMenuItem);
         amazonS3HelpMenuItem = new JMenuItem("Amazon S3");
         amazonS3HelpMenuItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                BareBonesBrowserLaunch.openURL(Constants.AMAZON_S3_PAGE);
+                try {
+                    followHyperlink(new URL(Constants.AMAZON_S3_PAGE), "_blank");
+                } catch (MalformedURLException ex) {
+                    reportException(ownerFrame, "Unable to follow hyperlink to invalid URL", ex);
+                }
             } 
          });
         helpMenu.add(amazonS3HelpMenuItem);
@@ -1896,7 +1907,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 if (file.isDirectory()) {
                     newObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
                 } else {     
-                    newObject.setContentType(Mimetypes.getMimetype(file));
+                    newObject.setContentType(Mimetypes.getInstance().getMimetype(file));
                     
                     // Do any necessary file pre-processing.
                     File fileToUpload = prepareUploadFile(file, newObject);
@@ -2243,6 +2254,25 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         return detailsText;
     }
     
+    /**
+     * Opens hyperlinks if the Uploader application is running as an Applet. If the uploader is
+     * not running as an applet, the action is ignored with a warning message.
+     * @param url
+     * the url to open
+     * @param target
+     * the target pane to open the url in, eg "_blank". This may be null.
+     */
+    public void followHyperlink(URL url, String target) {
+        if (!isStandAloneApplication) {
+            if (target == null) {
+                getAppletContext().showDocument(url);                
+            } else {
+                getAppletContext().showDocument(url, target);
+            }
+        } else {
+            BareBonesBrowserLaunch.openURL(url.toString());
+        }
+    }
         
     /**
      * Displays a rudimentary error message dialog box.
