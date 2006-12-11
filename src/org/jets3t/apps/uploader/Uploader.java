@@ -169,7 +169,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
     
-    public static final String APPLICATION_DESCRIPTION = "Uploader/1.0";
+    public static final String APPLICATION_DESCRIPTION = "Uploader/0.5.0";
     
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
@@ -461,44 +461,16 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         dragDropTargetLabel.setHyperlinkeActivatedListener(this);
         dragDropTargetLabel.setHorizontalAlignment(JLabel.CENTER);
         dragDropTargetLabel.setVerticalAlignment(JLabel.CENTER);
-        
-        String browseButtonImagePath = uploaderProperties
-            .getStringProperty("screen.2.browseButton.image", null);
-        String browseButtonText = uploaderProperties
-            .getStringProperty("screen.2.browseButton.text", null);
-        String browseButtonTooltip = uploaderProperties
-            .getStringProperty("screen.2.browseButton.tooltip", null);
-        
+                
         JButton chooseFileButton = skinsFactory.createSkinnedJButton("ChooseFileButton");
-        
-        if (browseButtonImagePath != null) {
-            URL iconURL = getClass().getResource(browseButtonImagePath);
-            if (iconURL == null) {
-                log.error("Unable to load image URL for browse button: " + browseButtonImagePath);
-            } else {
-                ImageIcon icon = new ImageIcon(iconURL);
-                chooseFileButton.setIcon(icon);
-            }
-        }
-        if (browseButtonText != null) {
-            chooseFileButton.setText(replaceMessageVariables(browseButtonText));  
-        }
-        if (browseButtonTooltip != null) {
-            chooseFileButton.setToolTipText(browseButtonTooltip);            
-        }
-        if (browseButtonImagePath == null && browseButtonText == null) {
-            chooseFileButton.setVisible(false);
-        } else {
-            chooseFileButton.setVisible(true);
-        }
-        
         chooseFileButton.setActionCommand("ChooseFile");
         chooseFileButton.addActionListener(this);
+        configureButton(chooseFileButton, "screen.2.browseButton");
         
         screen2Panel.add(dragDropTargetLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         screen2Panel.add(chooseFileButton,
-            new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            new GridBagConstraints(0, 1, 1, 1, 1, 1, GridBagConstraints.NORTH, GridBagConstraints.NONE, insetsDefault, 0, 0));
 
         // Screen 3 : Information about the file to be uploaded.
         JPanel screen3Panel = skinsFactory.createSkinnedJPanel("Screen3Panel");
@@ -543,36 +515,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         progressBar.setForeground(pbForegroundColor);
 
         cancelUploadButton = skinsFactory.createSkinnedJButton("CancelUploadButton");
-        
-        String cancelUploadButtonImagePath = uploaderProperties
-            .getStringProperty("screen.4.cancelButton.image", null);
-        String cancelUploadButtonText = uploaderProperties
-            .getStringProperty("screen.4.cancelButton.text", null);
-        String cancelUploadButtonTooltip = uploaderProperties
-            .getStringProperty("screen.4.cancelButton.tooltip", null);
-        
-        if (cancelUploadButtonImagePath != null) {
-            URL iconURL = getClass().getResource(cancelUploadButtonImagePath);
-            if (iconURL == null) {
-                log.error("Unable to load image URL for cancel button: " + cancelUploadButtonImagePath);
-            } else {
-                ImageIcon icon = new ImageIcon(iconURL);
-                cancelUploadButton.setIcon(icon);
-            }
-        }
-        if (cancelUploadButtonText != null) {
-            cancelUploadButton.setText(replaceMessageVariables(cancelUploadButtonText));
-        }
-        if (cancelUploadButtonImagePath == null && cancelUploadButtonText == null) {
-            cancelUploadButton.setVisible(false);
-        } else {
-            cancelUploadButton.setVisible(true);
-        }
-        if (cancelUploadButtonTooltip != null) {
-            cancelUploadButton.setToolTipText(cancelUploadButtonTooltip);
-        }
         cancelUploadButton.setActionCommand("CancelUpload");
         cancelUploadButton.addActionListener(this);
+        configureButton(cancelUploadButton, "screen.4.cancelButton");
+        
         screen4Panel.add(fileInformationLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         screen4Panel.add(progressBar,
@@ -858,7 +804,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
                 signatureRequest.signRequest(signedPutUrl);
                 
-                gatekeeperMessage.addSignatureRequest(signatureRequest);
+                gatekeeperMessage.addSignatureRequest(signatureRequest);                
             }
                         
             return gatekeeperMessage;
@@ -1207,6 +1153,45 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             reportException(ownerFrame, "File upload failed", event.getErrorCause());
         }
     }
+    
+    /**
+     * Configures a button's text, tooltip and image using uploader properties prefixed
+     * with the given properties prefix.
+     * 
+     * @param button
+     * @param propertiesPrefix
+     */
+    private void configureButton(JButton button, String propertiesPrefix) {
+        String buttonImagePath = uploaderProperties
+            .getStringProperty(propertiesPrefix + ".image", null);
+        String buttonText = uploaderProperties
+            .getStringProperty(propertiesPrefix + ".text", null);
+        String buttonTooltip = uploaderProperties
+            .getStringProperty(propertiesPrefix + ".tooltip", null);
+        
+        if (buttonImagePath != null && buttonImagePath.length() > 0) {
+            URL iconURL = getClass().getResource(buttonImagePath);
+            if (iconURL == null) {
+                log.error("Unable to load image URL for a button with property prefix '" 
+                    + propertiesPrefix + "'. Image path: " + buttonImagePath);                        
+            } else {
+                ImageIcon icon = new ImageIcon(iconURL);
+                button.setIcon(icon);                    
+            }
+        }
+        if (buttonText != null) {
+            button.setText(replaceMessageVariables(buttonText));                
+        }
+        if (buttonTooltip != null) {
+            button.setToolTipText(buttonTooltip);
+        }
+
+        if (buttonImagePath == null && buttonText == null) {
+            button.setVisible(false);
+        } else {
+            button.setVisible(true);
+        }   
+    }
         
     /**
      * Draws the wizard screen appropriate to the stage in the wizard process the user has
@@ -1221,59 +1206,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             "screen." + nextState + ".title", "");
         userGuidanceLabel.setText(replaceMessageVariables(title));
         
-        String nextButtonImagePath = uploaderProperties
-            .getStringProperty("screen." + nextState + ".nextButton.image", null);
-        String nextButtonText = uploaderProperties
-            .getStringProperty("screen." + nextState + ".nextButton.text", null);
-        String nextButtonTooltip = uploaderProperties
-            .getStringProperty("screen." + nextState + ".nextButton.tooltip", null);
-        if (nextButtonImagePath != null) {
-            URL iconURL = getClass().getResource(nextButtonImagePath);
-            if (iconURL == null) {
-                log.error("Unable to load image URL for next button: " + nextButtonImagePath);                        
-            } else {
-                ImageIcon icon = new ImageIcon(iconURL);
-                nextButton.setIcon(icon);                    
-            }
-        }
-        if (nextButtonText != null) {
-            nextButton.setText(replaceMessageVariables(nextButtonText));                
-        }
-        if (nextButtonImagePath == null && nextButtonText == null) {
-            nextButton.setVisible(false);
-        } else {
-            nextButton.setVisible(true);
-        }
-        if (nextButtonTooltip != null) {
-            nextButton.setToolTipText(nextButtonTooltip);
-        }
-        String backButtonImagePath = uploaderProperties
-            .getStringProperty("screen." + nextState + ".backButton.image", null);
-        String backButtonText = uploaderProperties
-            .getStringProperty("screen." + nextState + ".backButton.text", null);
-        String backButtonTooltip = uploaderProperties
-            .getStringProperty("screen." + nextState + ".backButton.tooltip", null);
-        if (backButtonImagePath != null) {
-            URL iconURL = getClass().getResource(backButtonImagePath);
-            if (iconURL == null) {
-                log.error("Unable to load image URL for back button: " + backButtonImagePath);                        
-            } else {
-                ImageIcon icon = new ImageIcon(iconURL);
-                backButton.setIcon(icon);                    
-            }
-        }
-        if (backButtonText != null) {
-            backButton.setText(replaceMessageVariables(backButtonText));                
-        }
-        if (backButtonImagePath == null && backButtonText == null) {
-            backButton.setVisible(false);
-        } else {
-            backButton.setVisible(true);
-        }
-        if (backButtonTooltip != null) {
-            backButton.setToolTipText(backButtonTooltip);
-        }
-
+        configureButton(nextButton, "screen." + nextState + ".nextButton");
+        configureButton(backButton, "screen." + nextState + ".backButton");
+        
         this.getDropTarget().setActive(false);
         
         if (nextState == WIZARD_SCREEN_1) {
@@ -1406,12 +1341,24 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         while (matcher.find(offset)) {
             String variable = matcher.group();
             String variableName = variable.substring(2, variable.length() - 1);
-            String replacement = uploaderProperties.getStringProperty(variableName, null);
+
+            String replacement = null;
+            if (userInputProperties.containsKey(variableName)) {
+                log.debug("Replacing variable '" + variableName + "' with value from a user input field");
+                replacement = userInputProperties.getProperty(variableName, null);
+            } else if (parametersMap.containsKey(variableName)) {
+                log.debug("Replacing variable '" + variableName + "' with value from Uploader's parameters");
+                replacement = (String) parametersMap.get(variableName);
+            } else if (uploaderProperties.containsKey(variableName)) {
+                log.debug("Replacing variable '" + variableName + "' with value from uploader.properties file");
+                replacement = uploaderProperties.getStringProperty(variableName, null);
+            }
+            
             if (replacement != null) {
                 result = result.substring(0, matcher.start()) + replacement + 
-                    result.substring(matcher.end());
+                result.substring(matcher.end());
                 offset = matcher.start() + 1;
-                matcher.reset(result);
+                matcher.reset(result);                
             } else {
                 offset = matcher.start() + 1;                
             }
