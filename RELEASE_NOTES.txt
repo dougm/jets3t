@@ -1,6 +1,53 @@
 Version 0.5.0
 -------------
 
+COCKPIT
+
+- Remembered login credentials are automatically updated to the new PBE-based encryption files.
+- Third-party buckets can be added without first logging in.
+- User can cancel the listing of objects in large buckets.
+- Files being sent to s3 are only opened when necessary, removing the potential for too many files
+  to be open at once (exceeding an Operating System imposed limit).
+- When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
+
+
+SYNCHONIZE
+
+- Files being sent to s3 are only opened when necessary, removing the potential for too many files
+  to be open at once (exceeding an Operating System imposed limit).
+- When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
+
+
+UPLOADER
+
+A new applet/application to allow third parties without AWS accounts or credentials to upload files
+to an S3 account. The Uploader provides a simple wizard-based GUI allowing end-users to provide
+information, choose the file(s) they will upload, and see upload progress.
+
+The Uploader is highly configurable via the uploader.properties file, with settings to configure:
+user input fields, explanatory text messages, names/images/tooltips for buttons at each stage in 
+the wizard, basic skinning of the Uploader (an example HTML-like skin is included), and branding.
+
+The Uploader is designed to work closely with a Gatekeeper server, which provides the 
+Uploader with signed URLs to allow it to perform uploads.
+
+
+GATEKEEPER
+
+A new servlet that acts as a Gatekeeper server for S3 operations. The servlet receives requests for
+S3 operations (GET, HEAD, PUT, DELETE) and responds to these requests with either a signed URL
+allowing the operation, or a message stating that the operation will not be allowed.
+
+Basic decision-making functionality is included with the Gatekeeper Servlet, however it is 
+straight-forward to obtain more advanced control over the Gatekeeper's behaviour by implementing
+the relevant Java interfaces. There are specific interfaces for: allowing/denying requests, 
+signing URLs, and assigning unique transaction IDs for a request.
+
+The Gatekeeper is designed to work closely with the Uploader application, providing it with
+signed URLs so the Uploader can add items to an S3 account without the end-user having any 
+access to the AWS account credentials.
+
+
 TOOLKIT
 
   * General
@@ -48,27 +95,6 @@ TOOLKIT
 - Signed URLs can be used to perform GET, HEAD, PUT and DELETE operations of multiple items at a time,
   without the need for knowledge of AWS credentials.
 
-
-UPLOADER
-
-A new application to allow third parties without AWS accounts or credentials to upload files
-to an S3 account.
-
-
-COCKPIT
-
-- Remembered login credentials are automatically updated to the new PBE-based encryption files.
-- Third-party buckets can be added without first logging in.
-- User can cancel the listing of objects in large buckets.
-- Files being sent to s3 are only opened when necessary, removing the potential for too many files
-  to be open at once (exceeding an Operating System imposed limit).
-- When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
-
-SYNCHONIZE
-
-- Files being sent to s3 are only opened when necessary, removing the potential for too many files
-  to be open at once (exceeding an Operating System imposed limit).
-- When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
 
 KNOWN ISSUES
 

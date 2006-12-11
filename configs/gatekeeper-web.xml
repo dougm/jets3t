@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app id="WebApp_ID" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<display-name>jetset Gatekeeper</display-name>
+
+	<servlet>
+		<description>
+		</description>
+		<display-name>GatekeeperServlet</display-name>
+		<servlet-name>GatekeeperServlet</servlet-name>
+		<servlet-class>org.jets3t.servlets.gatekeeper.GatekeeperServlet</servlet-class>
+		
+		<!-- Optional parameters for GatekeeperServlet -->
+		<!--
+		<init-param>
+			<param-name>TransactionIdProviderClass</param-name>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.</param-value>
+		</init-param>		
+		<init-param>
+			<param-name>GatekeeperClass</param-name>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.</param-value>
+		</init-param>		
+		<init-param>
+			<param-name>UrlSignerClass</param-name>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.RenameToUuidUrlSigner</param-value>
+		</init-param>		
+		-->
+		
+		<!-- Required parameters for UrlSigner -->
+		<init-param>
+			<param-name>AwsAccessKey</param-name>
+			<param-value><YourAWSAccessKey></param-value>
+		</init-param>
+		<init-param>
+			<param-name>AwsSecretKey</param-name>
+			<param-value><YourAWSSecretKey></param-value>
+		</init-param>
+		<init-param>
+			<param-name>UrlPrefix</param-name>
+			<param-value>https://s3.amazonaws.com/</param-value>
+		</init-param>
+		
+		<!-- Required parameters for DefaultUrlSigner -->
+		<init-param>
+			<param-name>SecondsToSign</param-name>
+			<param-value>30</param-value>
+		</init-param>
+		<init-param>
+			<param-name>S3BucketName</param-name>
+			<param-value></param-value>
+		</init-param>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>GatekeeperServlet</servlet-name>
+		<url-pattern>/GatekeeperServlet</url-pattern>
+	</servlet-mapping>
+
+</web-app>
