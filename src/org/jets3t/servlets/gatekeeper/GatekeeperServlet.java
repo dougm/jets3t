@@ -102,6 +102,13 @@ public class GatekeeperServlet extends HttpServlet {
         return new DefaultTransactionIdProvider(servletConfig);            
     }
     
+    public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        log.debug("Handling GET request");
+        response.setStatus(200);
+        response.setContentType("text/html");
+        response.getWriter().println("<html><head><title>jets3t Gatekeeper</title><body><h1>jets3t Gatekeeper is available</h1></body></html>");
+    }
+    
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         log.debug("Handling POST request");
         try {
