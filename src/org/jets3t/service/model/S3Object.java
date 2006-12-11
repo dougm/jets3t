@@ -84,7 +84,7 @@ public class S3Object extends BaseS3Object {
     public S3Object(S3Bucket bucket, File file) throws FileNotFoundException {
         this(bucket, file.getName());
         setContentLength(file.length());
-        setContentType(Mimetypes.getMimetype(file));
+        setContentType(Mimetypes.getInstance().getMimetype(file));
         if (!file.canRead()) {
             throw new FileNotFoundException("Cannot read from file: " + file.getAbsolutePath());
         }

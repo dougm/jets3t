@@ -56,24 +56,36 @@ public class Mimetypes {
     // Mimetypes specific to jetS3T.
     public static String MIMETYPE_JETS3T_DIRECTORY = "application/x-directory";
     
+    private static Mimetypes mimetypes = null;
+    
     /**
      * Map that stores file extensions as keys, and the corresponding mimetype as values.
      */
-    private static HashMap extensionToMimetypeMap = new HashMap();
+    private HashMap extensionToMimetypeMap = new HashMap();
+    
+    private Mimetypes() {        
+    }
     
     /**
      * Loads mime type settings from the file 'mime.types' in the classpath, if it's available.
      */
-    static {
-        InputStream mimetypesFile = extensionToMimetypeMap.getClass().getResourceAsStream("/mime.types");
+    public static Mimetypes getInstance() {
+        if (mimetypes != null) {
+            return mimetypes;
+        } 
+        mimetypes = new Mimetypes();
+        InputStream mimetypesFile = mimetypes.getClass().getResourceAsStream("/mime.types");
         if (mimetypesFile != null) {
             log.debug("Loading mime types from file in the classpath: mime.types");
             try {
-                loadAndReplaceMimetypes(mimetypesFile);
+                mimetypes.loadAndReplaceMimetypes(mimetypesFile);
             } catch (IOException e) {
                 log.error("Failed to load mime types from file in the classpath: mime.types", e); 
             }
-        }
+        } else {
+            log.warn("Unable to find 'mime.types' file in classpath");
+        }        
+        return mimetypes;
     }
 
     /**
@@ -85,7 +97,7 @@ public class Mimetypes {
      * 
      * @throws IOException
      */
-    public static void loadAndReplaceMimetypes(InputStream is) throws IOException {
+    public void loadAndReplaceMimetypes(InputStream is) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
         String line =  null;
         
@@ -127,7 +139,7 @@ public class Mimetypes {
      * the file's mimetype based on its extension, or a default value of 
      * <code>application/octet-stream</code> if a mime type value cannot be found.
      */
-    public static String getMimetype(String fileName) {
+    public String getMimetype(String fileName) {
         int lastPeriodIndex = fileName.lastIndexOf(".");
         if (lastPeriodIndex > 0 && lastPeriodIndex + 1 < fileName.length()) {
             String ext = fileName.substring(lastPeriodIndex + 1);
@@ -162,7 +174,7 @@ public class Mimetypes {
      * the file's mimetype based on its extension, or a default value of 
      * <code>application/octet-stream</code> if a mime type value cannot be found.
      */
-    public static String getMimetype(File file) {
+    public String getMimetype(File file) {
        return getMimetype(file.getName()); 
     }
         

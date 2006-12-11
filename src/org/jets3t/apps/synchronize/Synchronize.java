@@ -167,7 +167,7 @@ public class Synchronize {
             newObject.setContentLength(0);
             newObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
         } else {
-            newObject.setContentType(Mimetypes.getMimetype(file));
+            newObject.setContentType(Mimetypes.getInstance().getMimetype(file));
 
             EncryptionUtil encryptionUtil = null;
             if (isEncryptionEnabled) {
