@@ -101,6 +101,8 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
+import org.jets3t.service.io.BytesTransferredWatcher;
+import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CancelEventTrigger;
 import org.jets3t.service.multithread.CreateBucketsEvent;
@@ -270,6 +272,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     private volatile boolean uploadingFinalObject = false;
     
     /**
+     * Set to true when a file upload has been cancelled, to prevent the Uploader from
+     * uploading an XML summary file when the prior file upload was cancelled.
+     */
+    private volatile boolean uploadCancelled = false;
+    
+    /**
      * Set to true if an upload failed due to a key name clash in S3, in which case an error
      * message is displayed in the final 'thankyou' screen.
      */
@@ -416,8 +424,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (!isRunningAsApplet && applicationIconPath != null) {            
             try {
                 URL iconUrl = getClass().getResource(applicationIconPath);
-                ImageIcon icon = new ImageIcon(iconUrl);
-                ownerFrame.setIconImage(icon.getImage());
+                if (iconUrl != null) {
+                    ImageIcon icon = new ImageIcon(iconUrl);
+                    ownerFrame.setIconImage(icon.getImage());
+                } else {
+                    log.warn("Unable to find application icon: " + applicationIconPath);
+                }
             } catch (Exception e) {
                 log.error("Failed to set application icon: " + applicationIconPath, e);
             }
@@ -437,9 +449,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (footerIconPath != null) {
             try {
                 URL iconUrl = getClass().getResource(footerIconPath);
-                ImageIcon icon = new ImageIcon(iconUrl);
-                footerLabel.setIcon(icon);
-                includeFooter = true;
+                if (iconUrl != null) {
+                    ImageIcon icon = new ImageIcon(iconUrl);
+                    footerLabel.setIcon(icon);
+                    includeFooter = true;
+                } else {
+                    log.warn("Unable to find footer icon: " + footerIconPath);
+                }
             } catch (Exception e) {
                 log.error("Failed to set application icon: " + applicationIconPath, e);
             }
@@ -950,21 +966,45 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     private void uploadFilesToS3() {        
         try {
-            progressStatusTextLabel.setText(
-                replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage", 
-                "Missing property 'screen.4.connectingMessage'")));
-                                   
-            // Create file hash.
-            progressStatusTextLabel.setText(replaceMessageVariables(
-                uploaderProperties.getStringProperty("screen.4.hashingMessage", 
-                "Missing property 'screen.4.hashingMessage'")));
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    // Creating file hash message 
+                    progressStatusTextLabel.setText(replaceMessageVariables(
+                        uploaderProperties.getStringProperty("screen.4.hashingMessage", 
+                        "Missing property 'screen.4.hashingMessage'")));
+                };
+            });                                                       
+            
+            // Calculate total files size.
+            final long filesSizeTotal[] = new long[1];
+            for (int i = 0; i < filesToUpload.length; i++) {
+                filesSizeTotal[0] += filesToUpload[i].length();
+            }
+            
+            // Monitor generation of MD5 hash, and provide feedback via the progress bar. 
+            final long transferredBytesTotal[] = new long[1];
+            transferredBytesTotal[0] = 0;
+            final BytesTransferredWatcher hashWatcher = new BytesTransferredWatcher() {
+                public void bytesTransferredUpdate(long transferredBytes) {
+                    transferredBytesTotal[0] += transferredBytes;
+                    final int percentage = 
+                        (int) (100 * transferredBytesTotal[0] / filesSizeTotal[0]);
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressBar.setValue(percentage);
+                        }
+                    });
+                }
+            };
             
             // Create objects for upload from file listing.
             S3Object[] objectsForUpload = new S3Object[filesToUpload.length];
             for (int i = 0; i < filesToUpload.length; i++) {
                 File file = filesToUpload[i];
                 log.debug("Computing MD5 hash for file: " + file);
-                byte[] fileHash = ServiceUtils.computeMD5Hash(new FileInputStream(file));
+                byte[] fileHash = ServiceUtils.computeMD5Hash(
+                    new ProgressMonitoredInputStream( // Report on MD5 hash progress.
+                        new FileInputStream(file), hashWatcher));
                 
                 S3Object object = new S3Object(null, file);
                 object.setMd5Hash(fileHash);
@@ -972,6 +1012,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
             
             // Obtain Gatekeeper response.
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    progressStatusTextLabel.setText(
+                        replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage", 
+                        "Missing property 'screen.4.connectingMessage'")));
+                    progressBar.setValue(0);
+                };
+            });                    
             GatekeeperMessage gatekeeperMessage = retrieveGatekeeperResponse(objectsForUpload);
             
             log.debug("Gatekeeper response properties: " + gatekeeperMessage.encodeToProperties());
@@ -1010,18 +1058,25 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
             
             if (includeXmlSummaryDoc) {
+                uploadCancelled = false;
                 uploadingFinalObject = false;
                 s3ServiceMulti.putObjects(uploadItems);
                 
-                uploadingFinalObject = true;
-                s3ServiceMulti.putObjects(xmlSummaryItem);
+                if (!uploadCancelled) {
+                    uploadingFinalObject = true;
+                    s3ServiceMulti.putObjects(xmlSummaryItem);
+                }
             } else {
                 uploadingFinalObject = true;
                 s3ServiceMulti.putObjects(uploadItems);          
             }            
-        } catch (Exception e) {
-            wizardStepBackward();
-            reportException(ownerFrame, "File upload failed, please try again", e);
+        } catch (final Exception e) {
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    wizardStepBackward();
+                    reportException(ownerFrame, "File upload failed, please try again", e);
+                };
+            });                    
         } 
     }
     
@@ -1119,11 +1174,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 String transferDetailsText = " ";
                 if (watcher.isBytesPerSecondAvailable()) {
                     long bytesPerSecond = watcher.getBytesPerSecond();
-                    transferDetailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
+                    transferDetailsText = "Speed: " + byteFormatter.formatByteSize(bytesPerSecond) + "/s";
                 }
                 if (watcher.isTimeRemainingAvailable()) {
                     long secondsRemaining = watcher.getTimeRemaining();
-                    transferDetailsText += " - ETA " + timeFormatter.formatTime(secondsRemaining);
+                    transferDetailsText += " - Time remaining: " + timeFormatter.formatTime(secondsRemaining);
                 }
                                 
                 progressBar.setValue(percentage);
@@ -1143,6 +1198,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             progressBar.setValue(0);          
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
+            uploadCancelled = true;
             drawWizardScreen(WIZARD_SCREEN_3);
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
