@@ -97,7 +97,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  *   network latency and increase performance, they can disable Nagle's algorithm (by enabling 
  *   TCP_NODELAY). Data will be sent earlier, at the cost of an increase in bandwidth consumption 
  *   and number of packets.</td>
- *   <td>true</td></tr>
+ *   <td>false</td></tr>
  * <tr><td>httpclient.retry-on-errors</td><td></td><td>true</td></tr>
  * <tr><td>httpclient.useragent</td><td>Overrides the default jets3t user agent string</td>
  *     <td>The value set by {@link S3Service#setUserAgentDescription()}</td></tr>
@@ -171,7 +171,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
         connectionParams.setTcpNoDelay(jets3tProperties.
-            getBoolProperty("httpclient.tcp-no-delay-enabled", true));
+            getBoolProperty("httpclient.tcp-no-delay-enabled", false));
 
         connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
                              
