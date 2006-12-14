@@ -104,16 +104,19 @@ public class ThreadWatcher {
             long bytesRemaining = bytesTotal - bytesTransferred;
             
             // Calculate the current bytes/s transfer rate.
-            if (intervalsElapsedTimeMS != 0) {
+            if (intervalsElapsedTimeMS > 0) {
                 this.bytesPerSecond = 1000 * intervalsBytesTransferred / intervalsElapsedTimeMS;                
             }
             
             // Calculate the averate bytes/s transfer rate.
-            long overallBytesPerSecond = 1000 * bytesTransferred / 
-                (System.currentTimeMillis() - watcherStartTimeMS);  
+            long overallElapsedTimeMS = System.currentTimeMillis() - watcherStartTimeMS;
+            long overallBytesPerSecond = -1;
+            if (overallElapsedTimeMS > 0) {
+                overallBytesPerSecond = 1000 * bytesTransferred / overallElapsedTimeMS;
+            }
             
             // Calculate the time until the transfer is complete, using the *overall* bytes/second rate.
-            if (bytesRemaining > 0) {
+            if (bytesRemaining > 0 && overallBytesPerSecond > 0) {
                 double remainingSecsDouble = bytesRemaining / overallBytesPerSecond;
                 this.timeRemainingSeconds = Math.round(remainingSecsDouble);
             } else {
