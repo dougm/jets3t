@@ -635,7 +635,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @param statusText
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      * @param detailsText
-     *        describes the status of a task in more detail, such as the current transfer rate and ETA.
+     *        describes the status of a task in more detail, such as the current transfer rate and Time remaining.
      * @param minValue  the minimum progress value for a task, generally 0
      * @param maxValue  
      *        the maximum progress value for a task, such as the total number of threads or 100 if
@@ -672,7 +672,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @param statusText
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      * @param detailsText
-     *        describes the status of a task in more detail, such as the current transfer rate and ETA.
+     *        describes the status of a task in more detail, such as the current transfer rate and time remaining.
      * @param currentValue
      *        value representing how far through the task we are (relative to min and max values)
      */
@@ -2249,7 +2249,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         if (watcher.isTimeRemainingAvailable()) {
             long secondsRemaining = watcher.getTimeRemaining();
-            detailsText += " - ETA " + timeFormatter.formatTime(secondsRemaining);
+            detailsText += " - Time remaining: " + timeFormatter.formatTime(secondsRemaining);
         }
         return detailsText;
     }
