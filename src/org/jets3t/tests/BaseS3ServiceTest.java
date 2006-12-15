@@ -602,14 +602,13 @@ public abstract class BaseS3ServiceTest extends TestCase {
             object.removeMetadata("x-amz-example-header-2");
         }
 
-        // Change the object's name and ensure the signed PUT URL disallows the put.
+        // Change the object's name and ensure the signed PUT URL uses the signed name, not the object name.
+        String originalName = object.getKey();
         object.setKey("Testing URL Signing 2");
-        try {
-            restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
-            fail("Should not be able to use a signed URL for an object with a changed key");
-        } catch (S3ServiceException e) {
-            object.setKey("Testing URL Signing");
-        }
+        object.setDataInputStream(new ByteArrayInputStream(dataString.getBytes()));
+        S3Object renamedObject = restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
+        assertEquals("Ensure returned object key is renamed based on signed PUT URL", 
+            originalName, renamedObject.getKey());
 
         // Ensure we can't get the object with a normal URL.
         String s3Url = "http://s3.amazonaws.com";
@@ -660,7 +659,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
             s3Service.putObject(bucket, object);
             fail("Should have failed due to invalid hash value");
         } catch (S3ServiceException e) {
-            // This error checks would be nice to have, but it only works for the REST interface, not SOAP.
+            // This error check would be nice to have, but it only works for the REST interface, not SOAP.
             // assertEquals("Expected error code indicating invalid md5 hash", "InvalidDigest", e.getErrorCode());
         }
         object = new S3Object(bucket, "Testing MD5 Hashing", dataString);        
