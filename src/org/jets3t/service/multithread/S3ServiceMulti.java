@@ -22,6 +22,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -627,7 +628,7 @@ public class S3ServiceMulti {
      * @param objectKeys
      * the key names of the objects to retrieve.
      */
-    public void getObjects(final String[] signedGetURLs) throws MalformedURLException {
+    public void getObjects(final String[] signedGetURLs) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method getObjects(String[] signedGetURLs) available");
@@ -693,7 +694,7 @@ public class S3ServiceMulti {
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
-    public void getObjectsHeads(final String[] signedHeadURLs) throws MalformedURLException {
+    public void getObjectsHeads(final String[] signedHeadURLs) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method getObjectsHeads(String[] signedHeadURLs) available");
@@ -758,7 +759,7 @@ public class S3ServiceMulti {
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
-    public void deleteObjects(final String[] signedDeleteUrls) throws MalformedURLException {
+    public void deleteObjects(final String[] signedDeleteUrls) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method deleteObjects(String[] signedDeleteURLs) available");

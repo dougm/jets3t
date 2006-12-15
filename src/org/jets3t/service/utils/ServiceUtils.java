@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -382,12 +383,14 @@ public class ServiceUtils {
      * @return
      * the object referred to in the URL path.
      */
-    public static S3Object buildObjectFromPath(String urlPath) {
+    public static S3Object buildObjectFromPath(String urlPath) throws UnsupportedEncodingException {
         if (urlPath.startsWith("/")) {
             urlPath = urlPath.substring(1); // Ignore first '/' character.
         }
-        String bucketName = urlPath.substring(0, urlPath.indexOf("/"));
-        String objectKey = urlPath.substring(bucketName.length() + 1);
+        String bucketName = URLDecoder.decode(
+            urlPath.substring(0, urlPath.indexOf("/")), Constants.DEFAULT_ENCODING);
+        String objectKey = URLDecoder.decode( 
+            urlPath.substring(bucketName.length() + 1), Constants.DEFAULT_ENCODING);
         
         S3Object object = new S3Object(objectKey);
         object.setBucketName(bucketName);
