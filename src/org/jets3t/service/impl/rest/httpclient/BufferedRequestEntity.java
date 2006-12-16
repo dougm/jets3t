@@ -37,13 +37,13 @@ import org.jets3t.service.io.UnrecoverableIOException;
 public class BufferedRequestEntity implements RequestEntity {
     private final Log log = LogFactory.getLog(BufferedRequestEntity.class);
 
-    private int bufferSize = 16384;    
+    private int bufferSize = 0;    
     private InputStream is = null;
     private String contentType = null;
     private long contentLength = 0;
     
     private int bytesWritten = 0;
-    private byte[] buffer = new byte[bufferSize];
+    private byte[] buffer = null;
 
     /**
      * Constructs a buffered entity with a given buffer size.
@@ -61,17 +61,18 @@ public class BufferedRequestEntity implements RequestEntity {
         this.is = is;
         this.contentLength = contentLength;
         this.contentType = contentType;
+        buffer = new byte[this.bufferSize];
     }
 
     /**
-     * Constructs a buffered entity with the default buffer size of 16384 bytes.
+     * Constructs a buffered entity with the default buffer size of 131,072 bytes.
      * 
      * @param is
      * @param contentType
      * @param contentLength
      */
     public BufferedRequestEntity(InputStream is, String contentType, long contentLength) {
-        this(16384, is, contentType, contentLength);
+        this(131072, is, contentType, contentLength); // TODO
     }
     
     public long getContentLength() {
@@ -88,10 +89,16 @@ public class BufferedRequestEntity implements RequestEntity {
      * available for replay. False otherwise.
      */
     public boolean isRepeatable() {
-        log.info("Testing whether buffered request entity is repeatable. Bytes written: " // TODO 
-            + bytesWritten + ", Buffer size: " + bufferSize + ", Is repeatable: " 
-            + (bytesWritten < bufferSize));
-        return (bytesWritten < bufferSize);
+        boolean repeatable = (bytesWritten < bufferSize);
+        if (repeatable) {
+            log.info("Repeating buffered request entity. Buffer size is " // TODO 
+                + this.bytesWritten + " bytes of " + this.bufferSize + " available");
+        } else {
+            log.warn("Buffered request entity is not repeatable as " + this.bytesWritten 
+                + " bytes have been written, which exceeds the available buffer size " 
+                + this.bufferSize);
+        }
+        return repeatable;
     }
 
     /**
@@ -102,7 +109,6 @@ public class BufferedRequestEntity implements RequestEntity {
      */
     public void writeRequest(OutputStream out) throws IOException {
         if (bytesWritten > 0) {
-            log.info("Repeating buffered data of size: " + bytesWritten); // TODO
             out.write(buffer, 0, bytesWritten);
         }
         
