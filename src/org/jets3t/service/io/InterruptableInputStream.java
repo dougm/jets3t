@@ -57,7 +57,9 @@ public class InterruptableInputStream extends InputStream implements InputStream
             } catch (IOException ioe) {
                 log.warn("Unable to close underlying InputStream on interrupt");
             }
-            throw new IOException("Input Stream Interrupted");
+            // Throw an unrecoverable exception to indicate that this exception was deliberate, and
+            // should not be recovered from.
+            throw new UnrecoverableIOException("Reading from input stream deliberately interrupted");
         }
     }
 
