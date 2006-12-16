@@ -93,13 +93,6 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  *   <td>"Determines whether stale connection check is to be used. Disabling stale connection check may  
  *   result in slight performance improvement at the risk of getting an I/O error when executing a request 
  *   over a connection that has been closed at the server side."</td><td>true</td></tr>
- * <tr><td>httpclient.tcp-no-delay-enabled</td>
- *   <td>"Determines whether Nagle's algorithm is to be used. The Nagle's algorithm tries to conserve 
- *   bandwidth by minimizing the number of segments that are sent. When applications wish to decrease 
- *   network latency and increase performance, they can disable Nagle's algorithm (by enabling 
- *   TCP_NODELAY). Data will be sent earlier, at the cost of an increase in bandwidth consumption 
- *   and number of packets.</td>
- *   <td>false</td></tr>
  * <tr><td>httpclient.retry-on-errors</td><td></td><td>true</td></tr>
  * <tr><td>httpclient.useragent</td><td>Overrides the default jets3t user agent string</td>
  *     <td>The value set by {@link S3Service#setUserAgentDescription()}</td></tr>
@@ -172,8 +165,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             getIntProperty("httpclient.max-connections", 10));
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
-        connectionParams.setTcpNoDelay(jets3tProperties.
-            getBoolProperty("httpclient.tcp-no-delay-enabled", false));
 
         connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
                              
@@ -260,8 +251,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     + " request, expecting response code " + expectedResponseCode);
 
             // Variables to manage occasional S3 Internal Server 500 errors.
-            boolean completedWithoutS3InternalError = true;
+            boolean completedWithoutRecoverableError = true;
             int internalErrorCount = 0;
+            int requestTimeoutErrorCount = 0;
 
             // Perform the request, sleeping and retrying when S3 Internal Errors are encountered.
             int responseCode = -1;
@@ -270,62 +262,81 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
                 if (responseCode == 500) {
                     // Retry on S3 Internal Server 500 errors.
-                    completedWithoutS3InternalError = false;
-                    sleepOnInternalError(++internalErrorCount);                    
+                    completedWithoutRecoverableError = false;
+                    sleepOnInternalError(++internalErrorCount);
                 } else {
-                    completedWithoutS3InternalError = true;                    
+                    completedWithoutRecoverableError = true;                    
                 }
-            } while (!completedWithoutS3InternalError);
 
-            String contentType = "";
-            if (httpMethod.getResponseHeader("Content-Type") != null) {
-                contentType = httpMethod.getResponseHeader("Content-Type").getValue();
-            }
-            
-            log.debug("Request returned with headers: " + Arrays.asList(httpMethod.getResponseHeaders()));
-            log.debug("Request returned with Content-Type: " + contentType);
-                    
-            // Check we received the expected result code.
-            if (responseCode != expectedResponseCode) {                
-                log.debug("Unexpected response code " + responseCode + ", expected " + expectedResponseCode);
+                String contentType = "";
+                if (httpMethod.getResponseHeader("Content-Type") != null) {
+                    contentType = httpMethod.getResponseHeader("Content-Type").getValue();
+                }
                 
-                if (Mimetypes.MIMETYPE_XML.equals(contentType)
-                    && httpMethod.getResponseBodyAsStream() != null
-                    && httpMethod.getResponseContentLength() != 0) 
-                {
-                    log.debug("Received error response with XML message");
+                log.debug("Request returned with headers: " + Arrays.asList(httpMethod.getResponseHeaders()));
+                log.debug("Request returned with Content-Type: " + contentType);
+                        
+                // Check we received the expected result code.
+                if (responseCode != expectedResponseCode) {                
+                    log.debug("Unexpected response code " + responseCode + ", expected " + expectedResponseCode);
+                    
+                    if (Mimetypes.MIMETYPE_XML.equals(contentType)
+                        && httpMethod.getResponseBodyAsStream() != null
+                        && httpMethod.getResponseContentLength() != 0) 
+                    {
+                        log.debug("Received error response with XML message");
+        
+                        StringBuffer sb = new StringBuffer();
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(
+                            new HttpMethodReleaseInputStream(httpMethod)));
+                        String line = null;
+                        while ((line = reader.readLine()) != null) {
+                            sb.append(line + "\n");
+                        }
+                        reader.close();
+                        
+                        // Throw exception containing the XML message document.
+                        S3ServiceException exception = 
+                            new S3ServiceException("S3 " + httpMethod.getName() 
+                                + " failed.", sb.toString());
+                        
+                        if ("RequestTimeout".equals(exception.getErrorCode())) {
+                            if (requestTimeoutErrorCount < 3) { // TODO
+                                requestTimeoutErrorCount++;                                
+                                log.warn("Retrying connection that failed with RequestTimeout error"
+                                    + ", attempt number " + requestTimeoutErrorCount + " of " 
+                                    + 3); // TODO
+                                completedWithoutRecoverableError = false;
+                            } else {
+                                log.warn("Exceeded maximum number of retries for RequestTimeout errors: "
+                                    + 3); // TODO
+                                throw exception;
+                            }
+                        } else if (responseCode == 500) {
+                            // Retrying after InternalError 500, don't throw exception.
+                        } else {
+                            throw exception;                            
+                        }
+                    } else {
+                        // Consume response content and release connection.
+                        String responseText = null; 
+                        byte[] responseBody = httpMethod.getResponseBody();
+                        if (responseBody != null && responseBody.length > 0) {
+                            responseText = new String(responseBody);
+                        }
     
-                    StringBuffer sb = new StringBuffer();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        new HttpMethodReleaseInputStream(httpMethod)));
-                    String line = null;
-                    while ((line = reader.readLine()) != null) {
-                        sb.append(line + "\n");
+                        log.debug("Releasing error response without XML content");
+                        httpMethod.releaseConnection();
+                        
+                        // Throw exception containing the HTTP error fields.
+                        throw new S3ServiceException("S3 " 
+                            + httpMethod.getName() + " request failed. " 
+                            + "ResponseCode=" + httpMethod.getStatusCode()
+                            + ", ResponseMessage=" + httpMethod.getStatusText()
+                            + (responseText != null ? "\n" + responseText : ""));
                     }
-                    reader.close();
-                    
-                    // Throw exception containing the XML message document.
-                    throw new S3ServiceException("S3 " + httpMethod.getName() 
-                            + " failed.", sb.toString());
-                } else {
-                    // Consume response content and release connection.
-                    String responseText = null; 
-                    byte[] responseBody = httpMethod.getResponseBody();
-                    if (responseBody != null && responseBody.length > 0) {
-                        responseText = new String(responseBody);
-                    }
-
-                    log.debug("Releasing error response without XML content");
-                    httpMethod.releaseConnection();
-                    
-                    // Throw exception containing the HTTP error fields.
-                    throw new S3ServiceException("S3 " 
-                        + httpMethod.getName() + " request failed. " 
-                        + "ResponseCode=" + httpMethod.getStatusCode()
-                        + ", ResponseMessage=" + httpMethod.getStatusText()
-                        + (responseText != null ? "\n" + responseText : ""));
                 }
-            }
+            } while (!completedWithoutRecoverableError);
             
             // Release immediately any connections without response bodies.
             if ((httpMethod.getResponseBodyAsStream() == null 
