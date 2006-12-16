@@ -19,10 +19,9 @@
 package org.jets3t.service.impl.rest.httpclient;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +46,8 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.HeadMethod;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.RequestEntity;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.httpclient.params.HttpMethodParams;
@@ -60,6 +61,7 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
+import org.jets3t.service.io.UnrecoverableIOException;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
@@ -188,15 +190,24 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         log.debug("Setting user agent string: " + userAgent);
         clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
         
-        boolean retryOnErrors = jets3tProperties.getBoolProperty("httpclient.retry-on-errors", true);
-        if (!retryOnErrors) {
-            // Replace default error retry handler with one that never retries.
-            clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
-                public boolean retryMethod(HttpMethod method, IOException ioe, int executionCount) {
+        // Replace default error retry handler.
+        final boolean retryOnErrors = jets3tProperties.getBoolProperty("httpclient.retry-on-errors", true);
+        final int maximumRetryCount = 3;
+        
+        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
+            public boolean retryMethod(HttpMethod method, IOException ioe, int executionCount) {
+                if  (ioe instanceof UnrecoverableIOException) {
+                    log.debug("Deliberate interruption, will not retry");
                     return false;
                 }
-            });
-        }
+                if (executionCount > maximumRetryCount) {
+                    log.debug("Retried connection " + maximumRetryCount + " times, it's time to give up");
+                    return false;
+                }
+                log.debug("Retrying request - attempt " + executionCount + " of " + maximumRetryCount);
+                return retryOnErrors;
+            }
+        });
         
         httpClient = new HttpClient(clientParams, connectionManager);
 
@@ -275,8 +286,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             log.debug("Request returned with Content-Type: " + contentType);
                     
             // Check we received the expected result code.
-            if (responseCode != expectedResponseCode)
-            {                                
+            if (responseCode != expectedResponseCode) {                
+                log.debug("Unexpected response code " + responseCode + ", expected " + expectedResponseCode);
+                
                 if (Mimetypes.MIMETYPE_XML.equals(contentType)
                     && httpMethod.getResponseBodyAsStream() != null
                     && httpMethod.getResponseContentLength() != 0) 
@@ -508,7 +520,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * @throws S3ServiceException
      */
     protected HttpMethodAndByteCount performRestPut(String bucketName, String objectKey, 
-        Map metadata, Map requestParameters, InputStream dataInputStream) throws S3ServiceException 
+        Map metadata, Map requestParameters, RequestEntity requestEntity) throws S3ServiceException 
     {        
         // Add any request parameters.
         HttpMethodBase httpMethod = setupConnection("PUT", bucketName, objectKey, requestParameters);
@@ -521,19 +533,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
         long contentLength = 0;
         
-        if (dataInputStream != null) {
-            // Determine the content length for the data to upload, which will be   
-            // automatically set as a header by the InputStreamRequestEntity object.
-            contentLength = InputStreamRequestEntity.CONTENT_LENGTH_AUTO;
-            if (metadata.containsKey("Content-Length")) {
-                contentLength = Long.parseLong((String) metadata.get("Content-Length"));
-                log.debug("Uploading object data with Content-Length: " + contentLength);                                            
-            } else {
-                log.warn("Content-Length of data stream not set, will automatically determine data length in memory");
-            }                
-            
-            ((PutMethod)httpMethod).setRequestEntity(new InputStreamRequestEntity(
-                dataInputStream, contentLength));
+        if (requestEntity != null) {
+            ((PutMethod)httpMethod).setRequestEntity(requestEntity);
         } else {
             // Need an explicit Content-Length even if no data is being uploaded.
             httpMethod.setRequestHeader("Content-Length", "0");
@@ -541,7 +542,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         performRequest(httpMethod, 200);
         
-        if (dataInputStream != null) {
+        if (requestEntity != null) {
             // Respond with the actual guaranteed content length of the uploaded data.
             contentLength = ((PutMethod)httpMethod).getRequestEntity().getContentLength();
         }
@@ -837,12 +838,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         metadata.put("Content-Type", "text/plain");
 
         try {
-            ByteArrayInputStream bais = new ByteArrayInputStream(
-                    acl.toXml().getBytes(Constants.DEFAULT_ENCODING));
-            metadata.put("Content-Length", String.valueOf(bais.available()));
-            performRestPut(bucketName, objectKey, metadata, requestParameters, bais);
-            bais.close();
-        } catch (Exception e) {
+            String aclAsXml = acl.toXml();
+            metadata.put("Content-Length", String.valueOf(aclAsXml.length()));
+            performRestPut(bucketName, objectKey, metadata, requestParameters, 
+                new StringRequestEntity(aclAsXml, "text/plain", Constants.DEFAULT_ENCODING));
+        } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode ACL XML document", e);
         }
     }
@@ -871,15 +871,30 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     {        
         log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);
 
+        RequestEntity requestEntity = null;
+        if (object.getDataInputStream() != null) {
+            if (object.containsMetadata("Content-Length")) {
+                log.debug("Uploading object data with Content-Length: " + object.getContentLength());                                            
+                requestEntity = new BufferedRequestEntity(
+                    object.getDataInputStream(), object.getContentType(), object.getContentLength());
+            } else {
+                // Use InputStreamRequestEntity for objects with an unknown content length, as the
+                // entity will cache the results and doesn't need to know the data length in advance.
+                log.warn("Content-Length of data stream not set, will automatically determine data length in memory");
+                requestEntity = new InputStreamRequestEntity(
+                    object.getDataInputStream(), InputStreamRequestEntity.CONTENT_LENGTH_AUTO);
+            }
+        }
+        
         Map map = createObjectImpl(bucketName, object.getKey(), object.getContentType(), 
-            object.getDataInputStream(), object.getMetadataMap(), object.getAcl());
+            requestEntity, object.getMetadataMap(), object.getAcl());
 
         object.replaceAllMetadata(map);
         return object;
     }
     
     protected Map createObjectImpl(String bucketName, String objectKey, String contentType, 
-        InputStream dataInputStream, Map metadata, AccessControlList acl) 
+        RequestEntity requestEntity, Map metadata, AccessControlList acl) 
         throws S3ServiceException 
     {
         if (metadata == null) {
@@ -910,12 +925,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         
         log.debug("Creating object bucketName=" + bucketName + ", objectKey=" + objectKey + "." + 
             " Content-Type=" + metadata.get("Content-Type") +
-            " Including data? " + (dataInputStream != null) +
+            " Including data? " + (requestEntity != null) +
             " Metadata: " + metadata +
             " ACL: " + acl
             );
         
-        HttpMethodAndByteCount methodAndByteCount = performRestPut(bucketName, objectKey, metadata, null, dataInputStream);
+        HttpMethodAndByteCount methodAndByteCount = performRestPut(
+            bucketName, objectKey, metadata, null, requestEntity);
             
         // Consume response content.
         HttpMethodBase httpMethod = methodAndByteCount.getHttpMethod();
@@ -1051,12 +1067,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         metadata.put("Content-Type", "text/plain");
 
         try {
-            ByteArrayInputStream bais = new ByteArrayInputStream(
-                status.toXml().getBytes(Constants.DEFAULT_ENCODING));
-            metadata.put("Content-Length", String.valueOf(bais.available()));
-            performRestPut(bucketName, null, metadata, requestParameters, bais);                
-            bais.close();
-        } catch (Exception e) {
+            String statusAsXml = status.toXml();
+            metadata.put("Content-Length", String.valueOf(statusAsXml.length()));
+            performRestPut(bucketName, null, metadata, requestParameters, 
+                new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING));                
+        } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }    
     }
@@ -1088,23 +1103,32 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         Map renamedMetadata = RestUtils.renameMetadataKeys(object.getMetadataMap());
         addMetadataToHeaders(putMethod, renamedMetadata);                
 
-        long contentLength = InputStreamRequestEntity.CONTENT_LENGTH_AUTO;
-        if (object.containsMetadata("Content-Length")) {
-            contentLength = Long.parseLong((String) object.getMetadata("Content-Length"));
-        } else {
+        if (!object.containsMetadata("Content-Length")) {
             throw new IllegalStateException("Content-Length must be specified for objects put using signed PUT URLs");
         }
-
+        
         if (object.getDataInputStream() != null) {
-            putMethod.setRequestEntity(new InputStreamRequestEntity(
-                object.getDataInputStream(), contentLength));
+            putMethod.setRequestEntity(new BufferedRequestEntity(
+                object.getDataInputStream(), object.getContentType(), object.getContentLength()));
         }
 
         performRequest(putMethod, 200);
 
         // Consume response data and release connection.
         putMethod.releaseConnection();
-
+        
+        try {
+            S3Object uploadedObject = ServiceUtils.buildObjectFromPath(putMethod.getPath());
+            object.setBucketName(uploadedObject.getBucketName());
+            object.setKey(uploadedObject.getKey());
+            
+            object.getDataInputStream().close();
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to determine name of object created with signed PUT", e); 
+        } catch (IOException e) {
+            log.warn("Unable to close object's input stream", e);
+        }
+        
         return object;
     }
 
@@ -1180,9 +1204,15 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
         HashMap map = new HashMap();
         map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
-
-        S3Object responseObject = ServiceUtils.buildObjectFromPath(
-            httpMethod.getPath().substring(1));
+        
+        S3Object responseObject = null;
+        try {
+            responseObject = ServiceUtils.buildObjectFromPath(
+                httpMethod.getPath().substring(1));
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to determine name of object created with signed PUT", e); 
+        }
+        
         responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
         responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
         if (!headOnly) {
