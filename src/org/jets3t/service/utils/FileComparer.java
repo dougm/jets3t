@@ -218,7 +218,7 @@ public class FileComparer {
         List ignorePatternList = buildIgnoreRegexpList(directory);
 
         File children[] = directory.listFiles();
-        for (int i = 0; i < children.length; i++) {                        
+        for (int i = 0; children != null && i < children.length; i++) {                        
             if (!isIgnored(ignorePatternList, children[i])) {
                 fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
                 if (children[i].isDirectory()) {
