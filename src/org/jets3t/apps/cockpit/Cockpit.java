@@ -91,6 +91,8 @@ import javax.swing.table.DefaultTableModel;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.apps.cockpit.gui.StartupDialog;
+import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ObjectsChunk;
@@ -180,7 +182,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem refreshObjectMenuItem = null;
     private JMenuItem updateObjectACLMenuItem = null;
     private JMenuItem downloadObjectMenuItem = null;
-    private JMenuItem generatePublicUrl = null;
+    private JMenuItem generatePublicGetUrl = null;
     private JMenuItem generateTorrentUrl = null;
     private JMenuItem deleteObjectMenuItem = null;
 
@@ -277,9 +279,17 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Revert to anonymous service.
             s3ServiceMulti = new S3ServiceMulti(
                 new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
-        } catch (S3ServiceException e2) {
-            reportException(ownerFrame, "Unable to start anonymous service", e2);
+        } catch (S3ServiceException e) {
+            String message = "Unable to start anonymous service";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         }
+        
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                loginEvent();                
+            }
+        });
     }    
     
     /**
@@ -350,7 +360,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Initialize drop target.
         initDropTarget(new JComponent[] {objectsTableSP, objectsTable} );
         objectsTable.getDropTarget().setActive(false);
-        objectsTableSP.getDropTarget().setActive(false);
+        objectsTableSP.getDropTarget().setActive(false);        
     }
     
     /**
@@ -451,10 +461,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
         objectMenu.add(new JSeparator());
 
-        generatePublicUrl = new JMenuItem("Generate Public URL...");
-        generatePublicUrl.setActionCommand("GeneratePublicURL");
-        generatePublicUrl.addActionListener(this);
-        objectMenu.add(generatePublicUrl);        
+        generatePublicGetUrl = new JMenuItem("Generate Public GET URL...");
+        generatePublicGetUrl.setActionCommand("GeneratePublicGetURL");
+        generatePublicGetUrl.addActionListener(this);
+        objectMenu.add(generatePublicGetUrl);        
         
         generateTorrentUrl = new JMenuItem("Generate Torrent URL...");
         generateTorrentUrl.setActionCommand("GenerateTorrentURL");
@@ -472,7 +482,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         refreshObjectMenuItem.setEnabled(false);
         updateObjectACLMenuItem.setEnabled(false);
         downloadObjectMenuItem.setEnabled(false);
-        generatePublicUrl.setEnabled(false);
+        generatePublicGetUrl.setEnabled(false);
         generateTorrentUrl.setEnabled(false);
         deleteObjectMenuItem.setEnabled(false);
 
@@ -501,7 +511,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                try {
                    followHyperlink(new URL(Constants.JETS3T_COCKPIT_HELP_PAGE), "_blank");
                } catch (MalformedURLException ex) {
-                   reportException(ownerFrame, "Unable to follow hyperlink to invalid URL", ex);
+                   throw new IllegalStateException("Invalid URL embedded in program: " 
+                       + Constants.JETS3T_COCKPIT_HELP_PAGE);
                }
            } 
         });
@@ -512,7 +523,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 try {
                     followHyperlink(new URL(Constants.AMAZON_S3_PAGE), "_blank");
                 } catch (MalformedURLException ex) {
-                    reportException(ownerFrame, "Unable to follow hyperlink to invalid URL", ex);
+                    throw new IllegalStateException("Invalid URL embedded in program: " 
+                        + Constants.AMAZON_S3_PAGE);
                 }
             } 
          });
@@ -602,7 +614,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                             }.start();
                         }
                     } catch (Exception e) {
-                        reportException(ownerFrame, "Unable to accept dropped item", e);
+                        String message = "Unable to start accept dropped item(s)";
+                        log.error(message, e);
+                        ErrorDialog.showDialog(ownerFrame, null, message, e);
                     }
                 } else {
                     dtde.rejectDrop();
@@ -651,13 +665,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         final long minValue, final long maxValue, final String cancelButtonText, 
         final CancelEventTrigger cancelEventListener) 
     {
-       if (progressDisplay == null || !progressDisplay.isActive()) {
+       if (progressDisplay == null) {
            progressDisplay = new ProgressDisplay(ownerFrame, "Please wait...", statusText, 
-               null, (int) minValue, (int) maxValue, cancelButtonText, cancelEventListener);
+               null, (int) minValue, (int) maxValue, cancelButtonText, cancelEventListener);                   
            progressDisplay.startDialog();
            
            this.getContentPane().setCursor(new Cursor(Cursor.WAIT_CURSOR));
-       }
+        }
     }
     
     private void startProgressDisplay(final String statusText, final long minValue, 
@@ -677,7 +691,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      *        value representing how far through the task we are (relative to min and max values)
      */
     private void updateProgressDisplay(final String statusText, final String detailsText, final long currentValue) {
-        if (progressDisplay != null && progressDisplay.isActive()) {
+        if (progressDisplay != null) {
             if (currentValue > 0) {
                 progressDisplay.updateProgress((int) currentValue);                
             }
@@ -720,7 +734,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if ("ViewBucketProperties".equals(event.getActionCommand())) {
             listBucketProperties();
         } else if ("RefreshBuckets".equals(event.getActionCommand())) {
-            listAllBuckets();
+            try {
+                listAllBuckets();
+            } catch (S3ServiceException ex) {
+                String message = "Unable to list your buckets in S3";
+                log.error(message, ex);
+                ErrorDialog.showDialog(ownerFrame, null, message, ex);                
+            }
         } else if ("CreateBucket".equals(event.getActionCommand())) {
             createBucketAction();
         } else if ("DeleteBucket".equals(event.getActionCommand())) {
@@ -738,8 +758,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             listObjects();
         } else if ("UpdateObjectACL".equals(event.getActionCommand())) {
             lookupObjectsAccessControlLists();
-        } else if ("GeneratePublicURL".equals(event.getActionCommand())) {
-            generatePublicUrl();
+        } else if ("GeneratePublicGetURL".equals(event.getActionCommand())) {
+            generatePublicGetUrl();
         } else if ("GenerateTorrentURL".equals(event.getActionCommand())) {
             generateTorrentUrl();
         } else if ("DeleteObjects".equals(event.getActionCommand())) {
@@ -748,7 +768,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             try {
                 downloadSelectedObjects();
             } catch (Exception ex) {
-                reportException(ownerFrame, "Downloading S3 Objects", ex);
+                String message = "Unable to download objects from S3";
+                log.error(message, ex);
+                ErrorDialog.showDialog(ownerFrame, this, message, ex);
             }
         }
         
@@ -798,13 +820,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
             
     /**
-     * Displays the {@link LoginDialog} dialog and, if the user provides login credentials,
+     * Displays the {@link StartupDialog} dialog and, if the user provides login credentials,
      * logs into the S3 service using those credentials.
      */
     private void loginEvent() {
         try {
             final AWSCredentials awsCredentials = 
-                LoginDialog.showDialog(ownerFrame, rememberedLoginsDirectory);
+                StartupDialog.showDialog(ownerFrame, this);
 
             s3ServiceMulti = new S3ServiceMulti(
                 new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null), this);
@@ -814,7 +836,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 return;
             } 
 
-            listAllBuckets(); // Doubles as check for valid credentials.            
+            listAllBuckets();            
             updateObjectsSummary(false);
             
             ownerFrame.setTitle(APPLICATION_TITLE + " : " + awsCredentials.getAccessKey());
@@ -824,14 +846,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             refreshBucketMenuItem.setEnabled(true);
             createBucketMenuItem.setEnabled(true);
         } catch (Exception e) {
-            reportException(ownerFrame, "Unable to Log in", e);
-            try {
-                // Revert to anonymous service.
-                s3ServiceMulti = new S3ServiceMulti(
-                    new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
-            } catch (S3ServiceException e2) {
-                reportException(ownerFrame, "Unable to revert to anonymous user", e2);
-            }
+            String message = "Unable to log in to S3";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
+            
+            logoutEvent();
         }
     }
     
@@ -859,7 +878,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             refreshBucketMenuItem.setEnabled(false);
             createBucketMenuItem.setEnabled(false);
         } catch (Exception e) {
-            reportException(ownerFrame, "Unable to Log out", e);            
+            String message = "Unable to log out from S3";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         }
     }
     
@@ -887,7 +908,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     /**
      * Starts a thread to run {@link S3ServiceMulti#listAllBuckets}.
      */
-    private void listAllBuckets() {
+    private void listAllBuckets() throws S3ServiceException {
         // This is all very convoluted, it was done this way to ensure we can display the dialog box.
         
         new Thread() {
@@ -912,10 +933,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         }
                     });
                 } catch (final Exception e) {
-                    logoutEvent();
-                    reportException(ownerFrame, "Unable to list your buckets", e);
+                    stopProgressDisplay();
+
+                    String message = "Unable to list your buckets in S3";
+                    log.error(message, e);
+                    ErrorDialog.showDialog(ownerFrame, null, message, e);
                 } finally {
-                    stopProgressDisplay();                    
+                    stopProgressDisplay();
                 }
             };
         }.start();        
@@ -985,7 +1009,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         downloadObjectMenuItem.setEnabled(count > 0);
         deleteObjectMenuItem.setEnabled(count > 0);
         viewObjectPropertiesMenuItem.setEnabled(count == 1);
-        generatePublicUrl.setEnabled(count == 1);
+        generatePublicGetUrl.setEnabled(count == 1);
         generateTorrentUrl.setEnabled(count == 1);
     }
 
@@ -1043,12 +1067,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     });                        
 
                 } catch (final Exception e) {
-                    logoutEvent();
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            reportException(ownerFrame, "listObjects", e);
-                        }
-                    });                    
+                    stopProgressDisplay();
+                    
+                    String message = "Unable to list objects";
+                    log.error(message, e);
+                    ErrorDialog.showDialog(ownerFrame, null, message, e);
                 } finally {
                     stopProgressDisplay();
                 }
@@ -1084,7 +1107,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             objectsSummaryLabel.setText(summary);
         } catch (Throwable t) {
-            reportException(ownerFrame, "Unable to update object list summary", t);
+            String message = "Unable to update object list summary";
+            log.error(message, t);
+            ErrorDialog.showDialog(ownerFrame, this, message, t);
         }
     }
     
@@ -1178,8 +1203,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
         menu.add(new JSeparator());
 
-        JMenuItem mi4 = new JMenuItem("Generate Public URL...");
-        mi4.setActionCommand("GeneratePublicURL");
+        JMenuItem mi4 = new JMenuItem("Generate Public GET URL...");
+        mi4.setActionCommand("GeneratePublicGetURL");
         mi4.addActionListener(this);
         menu.add(mi4);
         if (objectsTable.getSelectedRows().length != 1) {
@@ -1273,7 +1298,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDisplay();
-            reportException(ownerFrame, "createBuckets", event.getErrorCause());
+            
+            String message = "Unable to create a bucket";
+            log.error(message, event.getErrorCause());
+            ErrorDialog.showDialog(ownerFrame, this, message, event.getErrorCause());
         }
     }
 
@@ -1300,7 +1328,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             s3ServiceMulti.getS3Service().deleteBucket(currentBucket.getName());
             ((BucketTableModel)bucketsTable.getModel()).removeBucket(currentBucket);
         } catch (Exception e) {
-            reportException(ownerFrame, "Unable to delete bucket", e);
+            String message = "Unable to delete bucket";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         }
     }
     
@@ -1320,10 +1350,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 if (s3ServiceMulti.getS3Service().isBucketAccessible(bucketName)) {
                     S3Bucket thirdPartyBucket = new S3Bucket(bucketName);
                     ((BucketTableModel)bucketsTable.getModel()).addBucket(thirdPartyBucket);
+                } else {
+                    String message = "Unable to access third-party bucket: " + bucketName;
+                    log.error(message);
+                    ErrorDialog.showDialog(ownerFrame, this, message, null);
                 }
             }            
         } catch (Exception e) {
-            reportException(ownerFrame, "Unable to access third-party bucket", e);
+            String message = "Unable to access third-party bucket";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         }        
     }
     
@@ -1341,7 +1377,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 s3ServiceMulti.getS3Service().putBucketAcl(currentBucket);
             }
         } catch (Exception e) {
-            reportException(ownerFrame, "Unable to update bucket Access Control", e);
+            String message = "Unable to update bucket's Access Control List";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         }        
     }    
     
@@ -1433,7 +1471,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDisplay();
-            reportException(ownerFrame, "lookupACLs", event.getErrorCause());
+            
+            String message = "Unable to lookup Access Control list for object(s)";
+            log.error(message, event.getErrorCause());
+            ErrorDialog.showDialog(ownerFrame, this, message, event.getErrorCause());
         }
     }
     
@@ -1452,7 +1493,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
-     * application's <code>S3ServiceMulti</code> triggers a <code>LookupACLEvent</code>.
+     * application's <code>S3ServiceMulti</code> triggers a <code>UpdateACLEvent</code>.
      * <p>
      * The only actions performed as ACL settings are updated is the update of the progress
      * dialog box.
@@ -1478,7 +1519,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDisplay();
-            reportException(ownerFrame, "lookupACLs", event.getErrorCause());
+            
+            String message = "Unable to update Access Control List(s)";
+            log.error(message, event.getErrorCause());
+            ErrorDialog.showDialog(ownerFrame, this, message, event.getErrorCause());
         }
     }
 
@@ -1667,7 +1711,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
             }).start();
         } catch (Exception e) {
-            reportException(ownerFrame, "Failed to download objects", e);
+            String message = "Unable to download objects";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         }
     }
     
@@ -1738,7 +1784,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDisplay();
-            reportException(ownerFrame, "createObjects", event.getErrorCause());
+            
+            String message = "Unable to download object(s)";
+            log.error(message, event.getErrorCause());
+            ErrorDialog.showDialog(ownerFrame, this, message, event.getErrorCause());
         }
     }
     
@@ -1935,7 +1984,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
                 objects[objectIndex++] = newObject;
             }
-
             
             stopProgressDisplay();
             
@@ -1943,7 +1991,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             s3ServiceMulti.putObjects(getCurrentSelectedBucket(), objects);
 
         } catch (Exception e) {
-            reportException(ownerFrame, "Unable to upload file or directory", e);
+            String message = "Unable to upload object(s)";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         } 
     }
     
@@ -2024,11 +2074,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDisplay();
-            reportException(ownerFrame, "createObjects", event.getErrorCause());
+            
+            String message = "Unable to upload object(s)";
+            log.error(message, event.getErrorCause());
+            ErrorDialog.showDialog(ownerFrame, this, message, event.getErrorCause());
         }
     }
     
-    private void generatePublicUrl() {
+    private void generatePublicGetUrl() {
         final S3Object[] objects = getSelectedObjects(); 
 
         if (objects.length != 1) {
@@ -2065,9 +2118,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 "Signed URL", JOptionPane.INFORMATION_MESSAGE, null, null, signedUrl);
 
         } catch (NumberFormatException e) {
-            reportException(ownerFrame, "Hours must be a valid decimal value; eg 3, 0.1", e);
+            String message = "Hours must be a valid decimal value; eg 3, 0.1";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         } catch (S3ServiceException e) {
-            reportException(ownerFrame, "Unable to generate public URL", e);
+            String message = "Unable to generate public GET URL";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
         }
     }    
         
@@ -2155,7 +2212,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             listObjects(); // Refresh object listing.
             stopProgressDisplay();
-            reportException(ownerFrame, "deleteObjects", event.getErrorCause());
+            
+            String message = "Unable to delete object(s)";
+            log.error(message, event.getErrorCause());
+            ErrorDialog.showDialog(ownerFrame, this, message, event.getErrorCause());
         }
     }
     
@@ -2234,7 +2294,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDisplay();
-            reportException(ownerFrame, "getObjectHeads", event.getErrorCause());
+            
+            String message = "Unable to retrieve object(s) details";
+            log.error(message, event.getErrorCause());
+            ErrorDialog.showDialog(ownerFrame, this, message, event.getErrorCause());
         }
     }
            
@@ -2274,40 +2337,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
     }
         
-    /**
-     * Displays a rudimentary error message dialog box.
-     * @param ownerFrame
-     * @param message
-     * @param t
-     */
-    public static void reportException(Frame ownerFrame, String message, Throwable t) {
-        System.err.println(message);
-        t.printStackTrace(System.err);
-
-        // Show error dialog box.
-        String detailsText = null;
-        if (t instanceof S3ServiceException) {
-            S3ServiceException s3se = (S3ServiceException) t;
-            if (s3se.getErrorCode() != null) {
-                detailsText = "S3 Error Code: " + s3se.getErrorCode();
-            } 
-            
-            if (s3se.getMessage() != null) {
-                detailsText += "\n" + s3se.getMessage();
-            }
-            
-            Throwable cause = s3se.getCause();
-            while (cause != null) {
-                detailsText += "\nCaused by: " + cause;
-                cause = cause.getCause();
-            }
-        } else {
-            detailsText = "Error details: " + t.getMessage();
-        }
-        JOptionPane.showMessageDialog(ownerFrame, message + "\n" + detailsText, "Error", JOptionPane.ERROR_MESSAGE);
-    }
-    
-    
     private class BucketTableModel extends DefaultTableModel {
         private static final long serialVersionUID = -2316561957299358428L;
         
