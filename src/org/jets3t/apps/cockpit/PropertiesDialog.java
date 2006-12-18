@@ -118,19 +118,28 @@ public class PropertiesDialog extends JDialog implements ActionListener {
             commonPropertiesContainer.add(new JLabel("Creation date:"), new GridBagConstraints(0,
                 1, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0,
                 0));
-            JTextField creationDateTF = new JTextField(bucket.getCreationDate().toString());
+            JTextField creationDateTF = new JTextField(
+                (bucket.getCreationDate() == null 
+                    ? "" 
+                    : bucket.getCreationDate().toString()));
             creationDateTF.setEditable(false);
             commonPropertiesContainer.add(creationDateTF, new GridBagConstraints(1, 1, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             commonPropertiesContainer.add(new JLabel("Owner Name:"), new GridBagConstraints(0, 2,
                 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-            JTextField ownerNameTF = new JTextField(bucket.getOwner().getDisplayName());
+            JTextField ownerNameTF = new JTextField(
+                (bucket.getOwner() == null
+                    ? ""
+                    : bucket.getOwner().getDisplayName()));
             ownerNameTF.setEditable(false);
             commonPropertiesContainer.add(ownerNameTF, new GridBagConstraints(1, 2, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             commonPropertiesContainer.add(new JLabel("Owner ID:"), new GridBagConstraints(0, 3, 1,
                 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-            JTextField ownerIdTF = new JTextField(bucket.getOwner().getId());
+            JTextField ownerIdTF = new JTextField(
+                (bucket.getOwner() == null
+                    ? ""
+                    : bucket.getOwner().getId()));
             ownerIdTF.setEditable(false);
             commonPropertiesContainer.add(ownerIdTF, new GridBagConstraints(1, 3, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
