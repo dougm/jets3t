@@ -109,7 +109,7 @@ public class CodeSamples {
             S3Bucket existingBucket = s3Service.createBucket("Test");
         } catch (S3ServiceException e) {
             System.err.println("Error code and message from S3: " 
-                + e.getErrorCode() + " - " + e.getErrorMessage());
+                + e.getS3ErrorCode() + " - " + e.getS3ErrorMessage());
         }
 
         /*

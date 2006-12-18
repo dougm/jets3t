@@ -246,6 +246,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     protected void performRequest(HttpMethodBase httpMethod, int expectedResponseCode) 
         throws S3ServiceException 
     {
+		// httpMethod.setRequestHeader("Cache-Control", "no-cache"); // TODO        
+        
         try {
             log.debug("Performing " + httpMethod.getName() 
                     + " request, expecting response code " + expectedResponseCode);
@@ -300,7 +302,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             new S3ServiceException("S3 " + httpMethod.getName() 
                                 + " failed.", sb.toString());
                         
-                        if ("RequestTimeout".equals(exception.getErrorCode())) {
+                        if ("RequestTimeout".equals(exception.getS3ErrorCode())) {
                             if (requestTimeoutErrorCount < 3) { // TODO
                                 requestTimeoutErrorCount++;                                
                                 log.warn("Retrying connection that failed with RequestTimeout error"
