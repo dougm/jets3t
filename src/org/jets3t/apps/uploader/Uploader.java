@@ -65,7 +65,6 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.LookAndFeel;
@@ -94,6 +93,7 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.skins.SkinsFactory;
@@ -232,7 +232,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     /*
      * Insets used throughout the application.
      */
-    private final Insets insetsDefault = new Insets(5, 7, 5, 7);
+    private final Insets insetsDefault = new Insets(3, 5, 3, 5);
     private final Insets insetsNone = new Insets(0, 0, 0, 0);
 
     private int currentState = 0;
@@ -588,15 +588,15 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         navigationPanel.setLayout(GRID_BAG_LAYOUT);
 
         appContentPanel.add(userGuidancePanel,
-            new GridBagConstraints(0, 0, 1, 1, 1, 0.2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsNone, 0, 0));
+            new GridBagConstraints(0, 0, 1, 1, 1, 0.2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         appContentPanel.add(primaryPanel,
-            new GridBagConstraints(0, 1, 1, 1, 1, 0.6, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsNone, 0, 0));
+            new GridBagConstraints(0, 1, 1, 1, 1, 0.6, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         appContentPanel.add(navigationPanel,
-            new GridBagConstraints(0, 2, 1, 1, 1, 0.2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsNone, 0, 0));
+            new GridBagConstraints(0, 2, 1, 1, 1, 0.2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         if (includeFooter) {
             log.debug("Adding footer for branding");
             appContentPanel.add(footerLabel, 
-                new GridBagConstraints(0, 3, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsNone, 0, 0));
+                new GridBagConstraints(0, 3, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         }
         this.getContentPane().add(appContentPanel);
 
@@ -698,7 +698,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                             }
                         }
                     } catch (Exception e) {
-                        reportException(ownerFrame, "Unable to accept dropped item", e);
+                        String errorMessage = "Unable to accept dropped item";
+                        log.error(errorMessage, e);
+                        ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                     }
                 } else {
                     dtde.rejectDrop();
@@ -733,8 +735,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     private boolean checkProposedUploadFiles(List fileList) {
         // Check number of files for upload is within constraints.
         if (fileMaxCount > 0 && fileList.size() > fileMaxCount) {
-            reportException(ownerFrame, "You may only upload " + fileMaxCount 
-                + (fileMaxCount == 1? " file" : " files") + " at a time", null);
+            String errorMessage = "You may only upload " + fileMaxCount 
+                + (fileMaxCount == 1? " file" : " files") + " at a time";
+            ErrorDialog.showDialog(ownerFrame, this, errorMessage, null);
             return false;
         }
         
@@ -745,11 +748,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             long fileSizeMB = file.length() / (1024 * 1024);
 
             if (fileMinSizeMB > 0 && fileSizeMB < fileMinSizeMB) {
-                reportException(ownerFrame, "File size must be greater than " + fileMinSizeMB + " MB", null);
+                ErrorDialog.showDialog(ownerFrame, this, "File size must be greater than " + fileMinSizeMB + " MB", null);
                 return false;
             }
             if (fileMaxSizeMB > 0 && fileSizeMB > fileMaxSizeMB) {
-                reportException(ownerFrame, "File size must be less than " + fileMaxSizeMB + " MB", null);
+                ErrorDialog.showDialog(ownerFrame, this, "File size must be less than " + fileMaxSizeMB + " MB", null);
                 return false;
             }
         }        
@@ -765,7 +768,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     String extList = validFileExtensions.toString();
                     extList = extList.substring(1, extList.length() -1);
                     extList = extList.replaceAll(",", " ");
-                    reportException(ownerFrame, "File name must end with one of the following extensions:\n" 
+                    
+                    ErrorDialog.showDialog(ownerFrame, this, "File name must end with one of the following extensions:\n" 
                         + extList, null);                                
                     return false;
                 }
@@ -1074,7 +1078,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     wizardStepBackward();
-                    reportException(ownerFrame, "File upload failed, please try again", e);
+                    ErrorDialog.showDialog(ownerFrame, null, "File upload failed, please try again", e);
                 };
             });                    
         } 
@@ -1206,7 +1210,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
             failWithFatalError(ERROR_CODE__S3_UPLOAD_FAILED);
-            reportException(ownerFrame, "File upload failed", event.getErrorCause());
+
+            ErrorDialog.showDialog(ownerFrame, this, "File upload failed", event.getErrorCause());
         }
     }
     
@@ -1218,12 +1223,17 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @param propertiesPrefix
      */
     private void configureButton(JButton button, String propertiesPrefix) {
+        button.setHorizontalAlignment(JLabel.CENTER);
+
         String buttonImagePath = uploaderProperties
             .getStringProperty(propertiesPrefix + ".image", null);
         String buttonText = uploaderProperties
             .getStringProperty(propertiesPrefix + ".text", null);
         String buttonTooltip = uploaderProperties
             .getStringProperty(propertiesPrefix + ".tooltip", null);
+        
+        boolean hasImage = false;
+        boolean hasText = false;
         
         if (buttonImagePath != null && buttonImagePath.length() > 0) {
             URL iconURL = getClass().getResource(buttonImagePath);
@@ -1232,17 +1242,21 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     + propertiesPrefix + "'. Image path: " + buttonImagePath);                        
             } else {
                 ImageIcon icon = new ImageIcon(iconURL);
-                button.setIcon(icon);                    
+                button.setIcon(icon);
+                hasImage = true;
             }
         }
-        if (buttonText != null) {
-            button.setText(replaceMessageVariables(buttonText));                
+        if (buttonText != null && buttonText.length() > 0) {
+            String text = replaceMessageVariables(buttonText);
+            button.setText(text);
+            button.setMnemonic(text.charAt(0));
+            hasText = true;
         }
-        if (buttonTooltip != null) {
+        if (buttonTooltip != null && buttonTooltip.length() > 0) {
             button.setToolTipText(buttonTooltip);
         }
 
-        if (buttonImagePath == null && buttonText == null) {
+        if (!hasImage && !hasText) {
             button.setVisible(false);
         } else {
             button.setVisible(true);
@@ -1542,48 +1556,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         } catch (IOException e) {
             throw new CredentialsNotAvailableException(e.getMessage(), e);
         }
-    }
-    
-    /**
-     * Displays a rudimentary error message dialog box.
-     * If the "debugMode" property is set to true, a detailed error message is displayed with
-     * technical details. If it is false, or not set, only a simple error message is displayed. 
-     * 
-     * @param ownerFrame
-     * @param message
-     * @param t
-     */
-    private void reportException(Frame ownerFrame, String message, Throwable t) {
-        log.error(message);
-        String detailsText = "";
+    }   
 
-        boolean debugModeOn = uploaderProperties.getBoolProperty("debugMode", false);
-        
-        if (t != null && debugModeOn) {
-            log.error(message, t);
-
-            // Show error dialog box.
-            if (t instanceof S3ServiceException) {
-                S3ServiceException s3se = (S3ServiceException) t;
-                if (s3se.getErrorCode() != null) {
-                    detailsText = "S3 Error Code: " + s3se.getErrorCode();
-                } 
-                
-                if (s3se.getMessage() != null) {
-                    detailsText += "\n" + s3se.getMessage();
-                }
-                
-                Throwable cause = s3se.getCause();
-                while (cause != null) {
-                    detailsText += "\nCaused by: " + cause;
-                    cause = cause.getCause();
-                }
-            } else {
-                detailsText = "Error details: " + t.getMessage();
-            }
-        }
-        JOptionPane.showMessageDialog(ownerFrame, message + "\n" + detailsText, "Error", JOptionPane.ERROR_MESSAGE);
-    }
     
     // S3 Service events that are not used in this Uploader application.
     public void s3ServiceEventPerformed(CreateBucketsEvent event) {}
