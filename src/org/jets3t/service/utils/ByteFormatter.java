@@ -47,13 +47,13 @@ public class ByteFormatter {
      * <li>Gigabyte suffix: " GB"</li> 
      * <li>Megabyte suffix: " MB"</li> 
      * <li>Kilobyte suffix: " KB"</li> 
-     * <li>Byte suffix: " b"</li> 
+     * <li>Byte suffix: " B"</li> 
      * <li>Precision: 2 decimal places</li>
      * </ul> 
      *
      */
     public ByteFormatter() {
-        this(" GB", " MB", " KB", " b", 2);
+        this(" GB", " MB", " KB", " B", 2);
     }
 
     /**
