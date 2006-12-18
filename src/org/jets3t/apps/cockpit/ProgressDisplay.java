@@ -46,7 +46,7 @@ import org.jets3t.service.multithread.CancelEventTrigger;
  */
 public class ProgressDisplay {
     private final ProgressDialog progressDialog;
-    
+
     /**
      * Constructor for creating a progress dialog.
      *  
@@ -77,10 +77,12 @@ public class ProgressDisplay {
     /**
      * Displays the progress dialog.
      */
-    public synchronized void startDialog() {
-        SwingUtilities.invokeLater(new Runnable(){
+    public void startDialog() {
+        SwingUtilities.invokeLater(new Runnable() {
            public void run() {
-               progressDialog.show();                           
+               synchronized (progressDialog) {        
+                   progressDialog.show();  
+               }               
            }
         });
     }
@@ -93,10 +95,12 @@ public class ProgressDisplay {
      *        value representing how far through the task we are, somewhere between 
      *        minTaskValue and maxTaskValue as set in the constructor.
      */
-    public synchronized void updateProgress(final int progressValue) {
-        SwingUtilities.invokeLater(new Runnable(){
+    public void updateProgress(final int progressValue) {
+        SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                progressDialog.updateProgress(progressValue);
+                synchronized (progressDialog) {        
+                    progressDialog.updateProgress(progressValue);
+                }
             }
         });
     }
@@ -107,10 +111,12 @@ public class ProgressDisplay {
      * @param text
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      */
-    public synchronized void updateStatusMessages(final String statusMessage, final String detailsText) {
-        SwingUtilities.invokeLater(new Runnable(){
+    public void updateStatusMessages(final String statusMessage, final String detailsText) {
+        SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                progressDialog.updateStatusMessages(statusMessage, detailsText);
+                synchronized (progressDialog) {        
+                    progressDialog.updateStatusMessages(statusMessage, detailsText);
+                }
             }
         });
     }
@@ -122,15 +128,11 @@ public class ProgressDisplay {
         return progressDialog.getCancelClicked();
     }
     
-    /**
-     * @return true if the dialog is active (currently displayed), false otherwise.
-     */
-    public boolean isActive() {
-        return progressDialog.isActive();
-    }
-        
     public void dispose() {
-        progressDialog.dispose();
+        if (progressDialog != null) {
+            progressDialog.setVisible(false); 
+            progressDialog.dispose();
+        }
     }
     
     /**
@@ -141,6 +143,8 @@ public class ProgressDisplay {
      * @author James Murty
      */
     private class ProgressDialog extends JDialog implements ActionListener {
+        private static final long serialVersionUID = 4606496619708095381L;
+
         private final Insets insetsDefault = new Insets(5, 7, 5, 7);
 
         private JLabel statusMessageLabel = null;
