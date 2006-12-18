@@ -30,7 +30,6 @@ import javax.swing.text.html.HTML;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.apps.uploader.Uploader;
 
 /**
  * Enhanced label component that changes the mouse curser to indicate when it passes over a
@@ -42,7 +41,7 @@ import org.jets3t.apps.uploader.Uploader;
 public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionListener {
     private static final long serialVersionUID = -2146502207121434264L;
 
-    private static final Log log = LogFactory.getLog(Uploader.class);
+    private static final Log log = LogFactory.getLog(JHtmlLabel.class);
 
     private HyperlinkActivatedListener listener = null;
 
