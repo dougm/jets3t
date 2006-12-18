@@ -25,8 +25,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -100,7 +100,7 @@ public class AWSCredentials {
     }
 
     /**
-     * Encrypts files with the given password and saves them to a file.
+     * Encrypts AWS Credentials with the given password and saves the encrypted data to a file.
      * 
      * @param password
      * the password used to encrypt the credentials.
@@ -122,26 +122,53 @@ public class AWSCredentials {
         IllegalStateException, IllegalBlockSizeException, BadPaddingException,
         InvalidAlgorithmParameterException, IOException
     {
-        BufferedOutputStream fileOS = null;
+        save(password, new FileOutputStream(file));
+    }
+    
+    /**
+     * Encrypts AWS Credentials with the given password and writes the encrypted data to an
+     * output stream.
+     * 
+     * @param password
+     * the password used to encrypt the credentials.
+     * @param outputStream
+     * the output stream to write the encrypted credentials data to.
+     * 
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     * @throws InvalidKeySpecException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws InvalidAlgorithmParameterException
+     * @throws IOException
+     */
+    public void save(String password, OutputStream outputStream) throws InvalidKeyException,
+        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+        IllegalStateException, IllegalBlockSizeException, BadPaddingException,
+        InvalidAlgorithmParameterException, IOException
+    {
+        BufferedOutputStream bufferedOS = null;
         try {
             EncryptionUtil encryptionUtil = new EncryptionUtil(password);
-            fileOS = new BufferedOutputStream(new FileOutputStream(file));
+            bufferedOS = new BufferedOutputStream(outputStream);
 
             // Encrypt AWS credentials
             String dataToEncrypt = getAccessKey() + KEYS_DELIMITER + getSecretKey();
             byte[] encryptedData = encryptionUtil.encrypt(dataToEncrypt);
             
             // Write plain-text header information to file.
-            fileOS.write((VERSION_PREFIX + EncryptionUtil.VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
-            fileOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
-            fileOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
+            bufferedOS.write((VERSION_PREFIX + EncryptionUtil.VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
+            bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
+            bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
             
-            fileOS.write(encryptedData);
-            fileOS.close();
+            bufferedOS.write(encryptedData);
+            bufferedOS.close();
         } finally {
-            if (fileOS != null) {
+            if (bufferedOS != null) {
                 try {
-                    fileOS.close();
+                    bufferedOS.close();
                 } catch (IOException e) {
                 }
             }
@@ -221,6 +248,8 @@ public class AWSCredentials {
                 .substring(delimOffset + KEYS_DELIMITER.length()), friendlyName.toString());
             
             return awsCredentials;
+        } catch (BadPaddingException bpe) {
+            throw new S3ServiceException("Unable to decrypt AWS credentials. Is your password correct?", bpe);
         } catch (Throwable t) {
             throw new S3ServiceException("Failed to load AWS credentials", t);
         } finally {
