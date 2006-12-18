@@ -18,6 +18,9 @@
  */
 package org.jets3t.service;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Exception for use by <code>S3Service</code>s and related utilities.
  * This exception can hold useful additional information about errors that occur
@@ -26,9 +29,15 @@ package org.jets3t.service;
  * @author James Murty
  */
 public class S3ServiceException extends Exception {
-	private static final long serialVersionUID = -7025759441563263552L;
+    private static final long serialVersionUID = 4788682643946844474L;
 
-	private String xmlMessage = null;
+    private String xmlMessage = null;
+    
+    // Fields from S3 error messages.
+    private String s3ErrorCode = null;
+    private String s3ErrorMessage = null;
+    private String s3ErrorRequestId = null;
+    private String s3ErrorHostId = null;
 
     /**
      * Constructor that includes the XML error document returned by S3.      
@@ -37,7 +46,7 @@ public class S3ServiceException extends Exception {
      */
 	public S3ServiceException(String message, String xmlMessage) {
 		super(message);
-		this.xmlMessage = xmlMessage;
+        parseS3XmlMessage(xmlMessage);
 	}
 
 	public S3ServiceException() {
@@ -59,33 +68,57 @@ public class S3ServiceException extends Exception {
 	public String toString() {
 		return super.toString() + (xmlMessage != null? " XML Error Message: " + xmlMessage: "");
 	}
+    
+    private String findXmlElementText(String xmlMessage, String elementName) {
+        Pattern pattern = Pattern.compile(".*<" + elementName + ">(.*)</" + elementName + ">.*");
+        Matcher matcher = pattern.matcher(xmlMessage);
+        if (matcher.matches() && matcher.groupCount() == 1) {
+            return matcher.group(1);
+        } else {
+            return null;
+        }
+    }
+    
+    private void parseS3XmlMessage(String xmlMessage) {
+        xmlMessage = xmlMessage.replaceAll("\n", "");
+        this.xmlMessage = xmlMessage;
+ 
+        this.s3ErrorCode = findXmlElementText(xmlMessage, "Code");
+        this.s3ErrorMessage = findXmlElementText(xmlMessage, "Message");
+        this.s3ErrorRequestId = findXmlElementText(xmlMessage, "RequestId");
+        this.s3ErrorHostId = findXmlElementText(xmlMessage, "HostId");
+    }
 	
     /**
      * @return The Error Code returned by S3, if this exception was created with the 
      * XML Message constructor.
      */
-	public String getErrorCode() {
-		if (xmlMessage != null && xmlMessage.indexOf("<Code>") >= 0) {
-			int startIndex = xmlMessage.indexOf("<Code>") + 6;
-			int endIndex = xmlMessage.indexOf("</Code>");
-			return xmlMessage.substring(startIndex, endIndex);
-		} else {
-			return null;
-		}
+	public String getS3ErrorCode() {
+        return this.s3ErrorCode;
 	}
     
     /**
      * @return The Error Message returned by S3, if this exception was created with the 
      * XML Message constructor.
      */
-    public String getErrorMessage() {
-        if (xmlMessage != null && xmlMessage.indexOf("<Message>") >= 0) {
-            int startIndex = xmlMessage.indexOf("<Message>") + 9;
-            int endIndex = xmlMessage.indexOf("</Message>");
-            return xmlMessage.substring(startIndex, endIndex);
-        } else {
-            return null;
-        }
+    public String getS3ErrorMessage() {
+        return this.s3ErrorMessage;
     }
-	
+
+    /**
+     * @return The Error Host ID returned by S3, if this exception was created with the 
+     * XML Message constructor.
+     */
+    public String getS3ErrorHostId() {
+        return s3ErrorHostId;
+    }
+
+    /**
+     * @return The Error Request ID returned by S3, if this exception was created with the 
+     * XML Message constructor.
+     */
+    public String getS3ErrorRequestId() {
+        return s3ErrorRequestId;
+    }
+        
 }
