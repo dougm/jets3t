@@ -37,10 +37,13 @@ public class LoginCredentialsPanel extends JPanel {
     private HyperlinkActivatedListener hyperlinkListener = null;
     private JTextField awsAccessKeyTextField = null;
     private JPasswordField awsSecretKeyPasswordField = null;
+    private JTextField friendlyNameTextField = null;
+    private boolean askForFriendlyName = false;
 
-    public LoginCredentialsPanel(HyperlinkActivatedListener hyperlinkListener) {
+    public LoginCredentialsPanel(boolean askForFriendlyName, HyperlinkActivatedListener hyperlinkListener) {
         super(new GridBagLayout());
         this.hyperlinkListener = hyperlinkListener;
+        this.askForFriendlyName = askForFriendlyName;
         
         initGui();
     }
@@ -51,6 +54,10 @@ public class LoginCredentialsPanel extends JPanel {
             "<html><center>View your " +
             "<a href=\"http://aws-portal.amazon.com/gp/aws/developer/account/index.html?ie=UTF8&action=access-key\" " +
             "target=\"_blank\">AWS Credentials</a> on Amazon's web site.<br></center></html>";
+        String friendlyNameLabelText = 
+            "<html><b>Nickname</b></html>";
+        String friendlyNameDescriptionText = 
+            "<html><font size=\"-2\">A nickname for your stored account</font></html>";
         String awsAccessKeyLabelText = 
             "<html><b>AWS Access Key</b></html>";
         String awsAccessKeyDescriptionText = 
@@ -63,6 +70,9 @@ public class LoginCredentialsPanel extends JPanel {
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
         descriptionLabel.setHorizontalAlignment(JLabel.CENTER);        
+        JHtmlLabel friendlyNameLabel = new JHtmlLabel(friendlyNameLabelText, hyperlinkListener);
+        friendlyNameTextField = new JTextField("My Credentials");
+        JHtmlLabel friendlyNameDescriptionLabel = new JHtmlLabel(friendlyNameDescriptionText, hyperlinkListener);
         JHtmlLabel awsAccessKeyLabel = new JHtmlLabel(awsAccessKeyLabelText, hyperlinkListener);
         awsAccessKeyTextField = new JTextField();
         JHtmlLabel awsAccessKeyDescriptionLabel = new JHtmlLabel(awsAccessKeyDescriptionText, hyperlinkListener);
@@ -73,6 +83,14 @@ public class LoginCredentialsPanel extends JPanel {
         int row = 0;
         add(descriptionLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+        if (askForFriendlyName) {
+            add(friendlyNameLabel, new GridBagConstraints(0, row++,
+                1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            add(friendlyNameTextField, new GridBagConstraints(0, row++,
+                1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            add(friendlyNameDescriptionLabel, new GridBagConstraints(0, row++,
+                1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        }        
         add(awsAccessKeyLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(awsAccessKeyTextField, new GridBagConstraints(0, row++,
@@ -98,5 +116,9 @@ public class LoginCredentialsPanel extends JPanel {
     public String getAWSSecretKey() {
         return new String(awsSecretKeyPasswordField.getPassword());
     }    
+    
+    public String getFriendlyName() {
+        return friendlyNameTextField.getText();
+    }
     
 }

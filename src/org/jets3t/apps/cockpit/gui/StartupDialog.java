@@ -138,9 +138,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
 
         loginPassphrasePanel = new LoginPassphrasePanel(this, hyperlinkListener);
-        loginLocalFolderPanel = new LoginLocalFolderPanel(
-            ownerFrame, Constants.DEFAULT_PREFERENCES_DIRECTORY, hyperlinkListener);
-        loginCredentialsPanel = new LoginCredentialsPanel(hyperlinkListener);
+        loginLocalFolderPanel = new LoginLocalFolderPanel(ownerFrame, hyperlinkListener);
+        loginCredentialsPanel = new LoginCredentialsPanel(false, hyperlinkListener);
         
         // Tabbed Pane.
         tabbedPane = new JTabbedPane();
@@ -161,7 +160,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         this.pack();
-        this.setSize(500, 400);
+        this.setSize(500, 450);
         this.setLocationRelativeTo(this.getOwner());
     }
 
@@ -178,8 +177,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                     retrieveCredentialsFromS3(
                         loginPassphrasePanel.getPassphrase(), loginPassphrasePanel.getPassword());
                 } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
-                    retrieveCredentialsFromDirectory(
-                        loginLocalFolderPanel.getHomeFolder(), loginLocalFolderPanel.getPassword());
+                    retrieveCredentialsFromDirectory(loginLocalFolderPanel.getHomeFolder(), 
+                        loginLocalFolderPanel.getAWSCredentialsFile(), loginLocalFolderPanel.getPassword());
                 } else if (loginMode == LOGIN_MODE_DIRECT) {
                     this.awsCredentials = new AWSCredentials(
                         loginCredentialsPanel.getAWSAccessKey(), loginCredentialsPanel.getAWSSecretKey());
@@ -268,17 +267,22 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         }
     }
     
-    private boolean validFolderInputs(File directory, String password) {
+    private boolean validFolderInputs(boolean isStoreAction, File directory, 
+        File credentialsFile, String password) 
+    {
         if (!directory.exists() || !directory.canWrite()) {
             String invalidInputsMessage = "Directory '" + directory.getAbsolutePath() 
             + "' does not exist or cannot be written to.";            
-
             ErrorDialog.showDialog(this, hyperlinkListener, invalidInputsMessage, null);
             return false;
         }
+        if (credentialsFile == null && !isStoreAction) {
+            String invalidInputsMessage = "You must choose which stored login to use";
+            ErrorDialog.showDialog(this, hyperlinkListener, invalidInputsMessage, null);
+            return false;            
+        }
         if (password.length() < 6) {
             String invalidInputsMessage = "Password must be at least 6 characters";
-
             ErrorDialog.showDialog(this, hyperlinkListener, invalidInputsMessage, null);
             return false;
         }
@@ -352,7 +356,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         }
         
         final AWSCredentials awsCredentials = 
-            AWSCredentialsDialog.showDialog(ownerFrame, hyperlinkListener);        
+            AWSCredentialsDialog.showDialog(ownerFrame, true, hyperlinkListener);        
         if (awsCredentials == null) {
             return;
         }
@@ -418,38 +422,45 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         })).start();
     }
     
-    private void retrieveCredentialsFromDirectory(File directory, String password) {
-        if (!validFolderInputs(directory, password)) {
+    private void retrieveCredentialsFromDirectory(File directory, File credentialsFile, String password) {
+        if (!validFolderInputs(false, directory, credentialsFile, password)) {
             return;
         }
         
-        File credentialsFile = new File(directory, Constants.JETS3T_CREDENTIALS_FILENAME);
         try {
             this.awsCredentials = AWSCredentials.load(password, credentialsFile);
             this.hide();
         } catch (Exception e) {
-            String message = "Unable to decrypt your AWS Credentials from a folder";
+            String message = "Unable to load your AWS Credentials from the file: " + credentialsFile;
             log.error(message, e);
             ErrorDialog.showDialog(this, hyperlinkListener, message, e);
         }
     }
     
     private void storeCredentialsInDirectory(File directory, String password) {
-        if (!validFolderInputs(directory, password)) {
+        if (!validFolderInputs(true, directory, null, password)) {
             return;
         }
-        
+                    
         AWSCredentials awsCredentials = 
-            AWSCredentialsDialog.showDialog(ownerFrame, hyperlinkListener);        
+            AWSCredentialsDialog.showDialog(ownerFrame, true, hyperlinkListener);
         if (awsCredentials == null) {
             return;
         }
+        if (awsCredentials.getFriendlyName() == null || awsCredentials.getFriendlyName().length() == 0) {
+            String message = "You must enter a nickname when storing your credentials";
+            log.error(message);
+            ErrorDialog.showDialog(this, hyperlinkListener, message, null);
+            return;
+        }
+        
+        File credentialsFile = new File(directory, awsCredentials.getFriendlyName() + ".enc"); 
         
         try {
-            File credentialsFile = new File(directory, Constants.JETS3T_CREDENTIALS_FILENAME);        
             awsCredentials.save(password, credentialsFile);
+            loginLocalFolderPanel.findAWSCredentialFiles();
     
-            JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored the file:\n" +
+            JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in the file:\n" +
                 credentialsFile.getAbsolutePath());
             actionModeComboBox.setSelectedIndex(ACTION_MODE_LOG_IN);
         } catch (Exception e) {

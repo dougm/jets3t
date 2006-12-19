@@ -43,10 +43,10 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
 
     
-    public AWSCredentialsDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener) {
+    public AWSCredentialsDialog(Frame ownerFrame, boolean askForFriendlyName, HyperlinkActivatedListener hyperlinkListener) {
         super(ownerFrame, "AWS Credentials", true);
         
-        this.loginCredentialsPanel = new LoginCredentialsPanel(hyperlinkListener);
+        this.loginCredentialsPanel = new LoginCredentialsPanel(askForFriendlyName, hyperlinkListener);
         
         JButton cancelButton = new JButton("Cancel");
         cancelButton.setActionCommand("Cancel");
@@ -67,7 +67,7 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
         this.getContentPane().add(buttonsPanel, new GridBagConstraints(0, 1, 
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
-        this.setSize(400, 250);
+        this.pack();
         this.setResizable(false);
         this.setLocationRelativeTo(ownerFrame);
     }
@@ -91,15 +91,19 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
         return loginCredentialsPanel.getAWSSecretKey();
     }
     
-    public static AWSCredentials showDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener) {
+    public String getFriendlyName() {
+        return loginCredentialsPanel.getFriendlyName();
+    }
+    
+    public static AWSCredentials showDialog(Frame ownerFrame, boolean askForFriendlyName, HyperlinkActivatedListener hyperlinkListener) {
         AWSCredentialsDialog dialog = new AWSCredentialsDialog(
-            ownerFrame, hyperlinkListener);
+            ownerFrame, askForFriendlyName, hyperlinkListener);
         dialog.show();
         
         AWSCredentials awsCredentials = null; 
         if (dialog.isConfirmed()) {
             awsCredentials = new AWSCredentials(
-                dialog.getAWSAccessKey(), dialog.getAWSSecretKey());
+                dialog.getAWSAccessKey(), dialog.getAWSSecretKey(), dialog.getFriendlyName());
         } else {
             awsCredentials = null;
         }
