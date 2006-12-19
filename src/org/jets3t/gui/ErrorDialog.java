@@ -105,12 +105,15 @@ public class ErrorDialog extends JDialog implements ActionListener {
                 detailsText += "<tr><td><b>S3 Host Id</b></td><td>" + s3se.getS3ErrorHostId() + "</td></tr>";
             }
 
-            String causeText = null;
-            if (s3se.getCause() != null && s3se.getCause().getMessage() != null) {
-                causeText = s3se.getCause().getMessage();
-            }
-            if (causeText != null) {
-                detailsText += "<tr><td><b>Cause</b></td></tr><tr><td>" + causeText + "</td></tr>";
+            boolean firstCause = true;
+            Throwable cause = s3se.getCause();
+            while (cause != null && cause.getMessage() != null) {
+                if (firstCause) {
+                    detailsText += "<tr><td><b>Cause</b></td></tr>";
+                }
+                detailsText += "<tr><td>" + cause.getMessage() + "</td></tr>";
+                firstCause = false;
+                cause = cause.getCause();
             }
             
             detailsText += "</table></html>";
