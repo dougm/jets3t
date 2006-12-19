@@ -281,11 +281,6 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             ErrorDialog.showDialog(this, hyperlinkListener, invalidInputsMessage, null);
             return false;            
         }
-        if (password.length() < 6) {
-            String invalidInputsMessage = "Password must be at least 6 characters";
-            ErrorDialog.showDialog(this, hyperlinkListener, invalidInputsMessage, null);
-            return false;
-        }
         return true;
     }
     

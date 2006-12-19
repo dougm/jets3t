@@ -97,7 +97,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         String passwordLabelText = 
             "<html><b>Password</b></html>";
         String passwordDescriptionText =
-            "<html><font size=\"-2\">A password of at least 6 characters.</font></html>";
+            null;
 
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
@@ -238,12 +238,6 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
             this.insertRow(insertRow, new Object[] {awsCredentials.getFriendlyName()});
             return insertRow;
         }
-        
-//        public void removeBucket(S3Bucket bucket) {
-//            int index = credentialFileList.indexOf(bucket);
-//            this.removeRow(index);
-//            credentialFileList.remove(bucket);
-//        }
         
         public void removeAll() {
             int rowCount = this.getRowCount();
