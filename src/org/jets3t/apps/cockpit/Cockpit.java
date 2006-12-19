@@ -56,8 +56,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -87,10 +85,11 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.apps.cockpit.gui.BucketTableModel;
+import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
@@ -315,7 +314,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             new GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         
         JPanel objectsContainer = new JPanel(new GridBagLayout());
-        objectsTable = new JTable(new ObjectTableModel());
+        objectsTable = new JTable();
+        objectsTable.setModel(new ObjectTableModel(objectsTable));
         objectsTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             private static final long serialVersionUID = 8990149746208400183L;
 
@@ -934,10 +934,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     });
                 } catch (final Exception e) {
                     stopProgressDisplay();
+                    logoutEvent();
 
-                    String message = "Unable to list your buckets in S3";
+                    String message = "Unable to list your buckets in S3, please log in again";
                     log.error(message, e);
                     ErrorDialog.showDialog(ownerFrame, null, message, e);
+
+                    loginEvent();
                 } finally {
                     stopProgressDisplay();
                 }
@@ -2334,133 +2337,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
         } else {
             BareBonesBrowserLaunch.openURL(url.toString());
-        }
-    }
-        
-    private class BucketTableModel extends DefaultTableModel {
-        private static final long serialVersionUID = -2316561957299358428L;
-        
-        ArrayList bucketList = new ArrayList();
-        
-        public BucketTableModel() {
-            super(new String[] {"Buckets"}, 0);
-        }
-        
-        public int addBucket(S3Bucket bucket) {
-            int insertRow = 
-                Collections.binarySearch(bucketList, bucket, new Comparator() {
-                    public int compare(Object o1, Object o2) {
-                        String b1Name = ((S3Bucket)o1).getName();
-                        String b2Name = ((S3Bucket)o2).getName();
-                        int result =  b1Name.compareToIgnoreCase(b2Name);
-                        return result;
-                    }
-                });
-            if (insertRow >= 0) {
-                // We already have an item with this key, replace it.
-                bucketList.remove(insertRow);
-                this.removeRow(insertRow);                
-            } else {
-                insertRow = (-insertRow) - 1;                
-            }
-            // New object to insert.
-            bucketList.add(insertRow, bucket);
-            this.insertRow(insertRow, new Object[] {bucket.getName()});
-            return insertRow;
-        }
-        
-        public void removeBucket(S3Bucket bucket) {
-            int index = bucketList.indexOf(bucket);
-            this.removeRow(index);
-            bucketList.remove(bucket);
-        }
-        
-        public void removeAllBuckets() {
-            int rowCount = this.getRowCount();
-            for (int i = 0; i < rowCount; i++) {
-                this.removeRow(0);
-            }
-            bucketList.clear();
-        }
-        
-        public S3Bucket getBucket(int row) {
-            return (S3Bucket) bucketList.get(row);
-        }
-        
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    }
-
-    public class ObjectTableModel extends DefaultTableModel {
-        private static final long serialVersionUID = -8168111242655844228L;
-        
-        ArrayList objectList = new ArrayList();
-        
-        public ObjectTableModel() {
-            super(new String[] {"Object Key","Size","Last Modified"}, 0);
-        }
-        
-        public void addObject(S3Object object, boolean highlightNewObject) {
-            int insertRow = 
-                Collections.binarySearch(objectList, object, new Comparator() {
-                    public int compare(Object o1, Object o2) {
-                        return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
-                    }
-                });
-            if (insertRow >= 0) {
-                // We already have an item with this key, replace it.
-                objectList.remove(insertRow);
-                this.removeRow(insertRow);                
-            } else {
-                insertRow = (-insertRow) - 1;                
-            }
-            // New object to insert.
-            objectList.add(insertRow, object);
-            this.insertRow(insertRow, new Object[] {object.getKey(), 
-                byteFormatter.formatByteSize(object.getContentLength()), 
-                object.getLastModifiedDate() /*, object.getHash(), object.getStorageClass()*/});
-            
-            // Automatically select (highlight) a newly aded object, if required.
-            if (highlightNewObject) {
-                objectsTable.addRowSelectionInterval(insertRow, insertRow);
-            }
-        }
-        
-        public void addObjects(S3Object[] objects, boolean highlightNewObject) {
-            for (int i = 0; i < objects.length; i++) {
-                addObject(objects[i], highlightNewObject);
-            }
-        }
-        
-        public void removeObject(S3Object object) {
-            int index = objectList.indexOf(object);
-            this.removeRow(index);
-            objectList.remove(object);
-        }
-        
-        public void removeAllObjects() {
-            int rowCount = this.getRowCount();
-            for (int i = 0; i < rowCount; i++) {
-                this.removeRow(0);
-            }
-            objectList.clear();
-        }
-        
-        public S3Object getObject(int row) {
-            synchronized (objectList) {
-                return (S3Object) objectList.get(row);
-            }
-        }
-        
-        public S3Object[] getObjects() {
-            synchronized (objectList) {
-                return (S3Object[]) objectList.toArray(new S3Object[] {});
-            }            
-        }
-        
-        public boolean isCellEditable(int row, int column) {
-            return false;
         }
     }
     
