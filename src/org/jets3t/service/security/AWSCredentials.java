@@ -98,7 +98,7 @@ public class AWSCredentials {
     public String getFriendlyName() {
         return friendlyName;
     }
-
+    
     /**
      * Encrypts AWS Credentials with the given password and saves the encrypted data to a file.
      * 
@@ -197,14 +197,21 @@ public class AWSCredentials {
      * Loads encrypted credentials from a file.
      * 
      * @param password
-     * the password used to decrypt the credentials.
+     * the password used to decrypt the credentials. If null, the AWS Credentials are not decrypted
+     * and only the version and friendly-name information is loaded.
      * @param file
      * the file in which encrypted credential data is stored.
      * @return the decrypted credentials in an object.
      * @throws S3ServiceException
      */
     public static AWSCredentials load(String password, BufferedInputStream inputStream) throws S3ServiceException {
-        log.debug("Loading credentials from input stream");
+        boolean partialReadOnly = (password == null);
+        if (partialReadOnly) {
+            log.debug("Loading partial information about AWS Credentials from input stream");
+        } else {
+            log.debug("Loading AWS Credentials from input stream");
+        }
+        
         try {
             EncryptionUtil encryptionUtil = null; 
             byte[] encryptedKeys = new byte[2048];
@@ -222,16 +229,25 @@ public class AWSCredentials {
                 // Either this is not a valid AWS Credentials file, or it's an obsolete version.
                 // Try decrypting using the obsolete approach.
                 obsoleteVersion = true;
-                encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(password);
                 friendlyName = version;
-                algorithm = encryptionUtil.getAlgorithm();
+                
+                if (!partialReadOnly) {
+                    encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(password);
+                    algorithm = encryptionUtil.getAlgorithm();
+                }
             } else {
                 // Read algorithm and friendly name from file.
                 algorithm = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
                 friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);    
                 
-                encryptionUtil = new EncryptionUtil(password, algorithm);
+                if (!partialReadOnly) {
+                    encryptionUtil = new EncryptionUtil(password, algorithm);
+                }
             }
+            
+            if (partialReadOnly) {
+                return new AWSCredentials(null, null, friendlyName);                
+            }            
             
             // Read encrypted data bytes from file.
             encryptedDataIndex = inputStream.read(encryptedKeys);
