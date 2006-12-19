@@ -33,8 +33,6 @@ public class Constants {
     
     public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
     
-    public static final String JETS3T_CREDENTIALS_FILENAME = ".jets3t.credentials";
-
     /**
      * File name .jets3t-ignore file, that contains file paths to ignore. 
      */
@@ -43,7 +41,8 @@ public class Constants {
     /**
      * The default preferences directory is &lt;user.home&gt;/.jets3t
      */
-    public static File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home"));
+    public static File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home")
+        + "/.jets3t");
 
     /**
      * The file delimiter used by jets3t is the '/' character, which is compatible with standard
