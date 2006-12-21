@@ -894,7 +894,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         if (object.getDataInputStream() != null) {
             if (object.containsMetadata("Content-Length")) {
                 log.debug("Uploading object data with Content-Length: " + object.getContentLength());
-                requestEntity = new BufferedRequestEntity(                    
+                requestEntity = new RepeatableRequestEntity(                    
                     object.getDataInputStream(), object.getContentType(), object.getContentLength());
             } else {
                 // Use InputStreamRequestEntity for objects with an unknown content length, as the
@@ -1127,7 +1127,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         }
         
         if (object.getDataInputStream() != null) {
-            putMethod.setRequestEntity(new BufferedRequestEntity(
+            putMethod.setRequestEntity(new RepeatableRequestEntity(
                 object.getDataInputStream(), object.getContentType(), object.getContentLength()));
         }
 
