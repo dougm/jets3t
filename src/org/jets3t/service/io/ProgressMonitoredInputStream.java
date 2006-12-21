@@ -31,7 +31,7 @@ import java.io.InputStream;
  */
 public class ProgressMonitoredInputStream extends InputStream implements InputStreamWrapper {
     private InputStream inputStream = null;
-    private BytesTransferredWatcher bytesTransferredListener = null;
+    private BytesTransferredWatcher bytesTransferredWatcher = null;
     private long minimumBytesBeforeNotification = 1024;
     private long bytesTransferredTotal = 0;
     private long bytesTransferredLastUpdate = 0;
@@ -55,7 +55,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
                 "ProgressMonitoredInputStream cannot run with a null InputStream");
         }
         this.inputStream = inputStream;
-        this.bytesTransferredListener = bytesTransferredListener;
+        this.bytesTransferredWatcher = bytesTransferredListener;
         this.minimumBytesBeforeNotification = minimumBytesBeforeNotification;
     }
 
@@ -80,13 +80,15 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
      * 
      * @param bytesTransmitted
      */
-    private void maybeNotifyListener(long bytesTransmitted) {
+    public void sendNotificationUpdate(long bytesTransmitted) {
         bytesTransferredTotal += bytesTransmitted;
-        if (bytesTransferredListener != null) {
-            // Notify listener if more than the minimum number of bytes have been transferred since last time
+        
+        if (bytesTransferredWatcher != null) {
+            // Notify listener if more than the minimum number of bytes have been transferred since last
+            // time, or if a negative update value is received (ie if a transmission is being retried)
             long bytesSinceLastUpdate = bytesTransferredTotal - bytesTransferredLastUpdate;
-            if (bytesSinceLastUpdate > minimumBytesBeforeNotification) {
-                bytesTransferredListener.bytesTransferredUpdate(bytesSinceLastUpdate);
+            if (bytesSinceLastUpdate > minimumBytesBeforeNotification || bytesSinceLastUpdate < 0) {
+                bytesTransferredWatcher.bytesTransferredUpdate(bytesSinceLastUpdate);
                 bytesTransferredLastUpdate = bytesTransferredTotal;
             }
         }
@@ -95,7 +97,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
     public int read() throws IOException {
         int read = inputStream.read();
         if (read != -1) {
-            maybeNotifyListener(1);
+            sendNotificationUpdate(1);
         }
         return read; 
     }
@@ -103,7 +105,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
     public int read(byte[] b, int off, int len) throws IOException {
         int read = inputStream.read(b, off, len);
         if (read != -1) {
-            maybeNotifyListener(read);
+            sendNotificationUpdate(read);
         }
         return read;
     }
