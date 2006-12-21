@@ -25,12 +25,24 @@ import java.io.OutputStream;
 import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.io.UnrecoverableIOException;
+import org.jets3t.service.io.InputStreamWrapper;
+import org.jets3t.service.io.ProgressMonitoredInputStream;
 
 /**
  * A request entity that is repeatable provided only a small amount of data has been transmitted. 
  * This class buffers a small amount of data, and if the request fails having transmitted less than
  * this buffer holds the request can be repeated.
+ * <p><b>Properties</b></p>
+ * <p>This class uses the following properties:</p>
+ * <table>
+ * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
+ * <tr><td>httpclient.retry-buffer-size</td>
+ *   <td>How many bytes to buffer for use when retrying failed transmissions</td>
+ *   <td>1024000</td></tr>
+ * </table>
  * 
  * @author James Murty
  */
@@ -44,7 +56,8 @@ public class BufferedRequestEntity implements RequestEntity {
     
     private int bytesWritten = 0;
     private byte[] buffer = null;
-
+    private ProgressMonitoredInputStream progressMonitoredIS = null;
+    
     /**
      * Constructs a buffered entity with a given buffer size.
      * 
@@ -62,17 +75,29 @@ public class BufferedRequestEntity implements RequestEntity {
         this.contentLength = contentLength;
         this.contentType = contentType;
         buffer = new byte[this.bufferSize];
+        
+        InputStream isWrapper = is;
+        while (isWrapper instanceof InputStreamWrapper) {
+            if (isWrapper instanceof ProgressMonitoredInputStream) {
+                progressMonitoredIS = (ProgressMonitoredInputStream) isWrapper;
+            }
+            isWrapper = ((InputStreamWrapper) isWrapper).getWrappedInputStream();
+        }
     }
 
     /**
-     * Constructs a buffered entity with the default buffer size of 131,072 bytes.
+     * Constructs a buffered entity with the buffer size set by the JetS3t property
+     * <code>httpclient.retry-buffer-size</code>
      * 
      * @param is
      * @param contentType
      * @param contentLength
      */
     public BufferedRequestEntity(InputStream is, String contentType, long contentLength) {
-        this(131072, is, contentType, contentLength); // TODO
+        this(
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getIntProperty("httpclient.retry-buffer-size", 1024000),
+            is, contentType, contentLength);
     }
     
     public long getContentLength() {
@@ -91,8 +116,14 @@ public class BufferedRequestEntity implements RequestEntity {
     public boolean isRepeatable() {
         boolean repeatable = (bytesWritten < bufferSize);
         if (repeatable) {
-            log.info("Repeating buffered request entity. Buffer size is " // TODO 
-                + this.bytesWritten + " bytes of " + this.bufferSize + " available");
+            log.warn("Repeating " + this.bytesWritten + " bytes in buffered request entity. Buffer size is " 
+                 + this.bufferSize + " bytes ");
+
+            // Notify progress monitored input stream that we've gone backwards (if one is attached) 
+            if (progressMonitoredIS != null) {
+                progressMonitoredIS.sendNotificationUpdate(0 - bytesWritten);
+            }
+            
         } else {
             log.warn("Buffered request entity is not repeatable as " + this.bytesWritten 
                 + " bytes have been written, which exceeds the available buffer size " 
@@ -108,11 +139,30 @@ public class BufferedRequestEntity implements RequestEntity {
      * to the output.
      */
     public void writeRequest(OutputStream out) throws IOException {
+        byte[] tmp = new byte[8192];
+
         if (bytesWritten > 0) {
-            out.write(buffer, 0, bytesWritten);
+            // This entity is being repeated, flush data from buffer before reading from input stream.
+
+            // We write the buffered data in chunks so the progress monitor is only updated a
+            // little as a time, as the output stream actually pushes through data.
+            int offset = 0;
+            while (offset < bytesWritten) {
+                int length = tmp.length;
+                if (offset + length > bytesWritten) {
+                    length = bytesWritten - offset;
+                }
+                out.write(buffer, offset, length);
+                offset += length;
+                
+                // Notify the attached progress monitored input stream directly, as we are not
+                // actually reading from the wrapped input stream at this stage.
+                if (progressMonitoredIS != null) {
+                    progressMonitoredIS.sendNotificationUpdate(length);
+                }                
+            }
         }
         
-        byte[] tmp = new byte[8192];
         int count = 0;
 
         while ((count = is.read(tmp)) >= 0) {
@@ -122,7 +172,7 @@ public class BufferedRequestEntity implements RequestEntity {
             bytesWritten += count;
             
             out.write(tmp, 0, count);
-        }
+        }        
         
         if (bytesWritten < contentLength) {
             throw new UnrecoverableIOException(
