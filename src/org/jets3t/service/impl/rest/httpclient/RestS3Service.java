@@ -195,7 +195,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     log.debug("Retried connection " + maximumRetryCount + " times, it's time to give up");
                     return false;
                 }
-                log.warn("Retrying request - attempt " + executionCount + " of " + maximumRetryCount);
+                if (retryOnErrors) {
+	                log.warn("Retrying request - attempt " + executionCount + " of " + maximumRetryCount);
+	            }
                 return retryOnErrors;
             }
         });
