@@ -321,7 +321,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         } else {
                             throw exception;                            
                         }
-                    } else {
+                    } else {                        
                         // Consume response content and release connection.
                         String responseText = null; 
                         byte[] responseBody = httpMethod.getResponseBody();
@@ -332,12 +332,16 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         log.debug("Releasing error response without XML content");
                         httpMethod.releaseConnection();
                         
-                        // Throw exception containing the HTTP error fields.
-                        throw new S3ServiceException("S3 " 
-                            + httpMethod.getName() + " request failed. " 
-                            + "ResponseCode=" + httpMethod.getStatusCode()
-                            + ", ResponseMessage=" + httpMethod.getStatusText()
-                            + (responseText != null ? "\n" + responseText : ""));
+                        if (responseCode == 500) {
+                            // Retrying after InternalError 500, don't throw exception.
+                        } else {
+                            // Throw exception containing the HTTP error fields.
+                            throw new S3ServiceException("S3 " 
+                                + httpMethod.getName() + " request failed. " 
+                                + "ResponseCode=" + httpMethod.getStatusCode()
+                                + ", ResponseMessage=" + httpMethod.getStatusText()
+                                + (responseText != null ? "\n" + responseText : ""));   
+                        }
                     }
                 }
             } while (!completedWithoutRecoverableError);
