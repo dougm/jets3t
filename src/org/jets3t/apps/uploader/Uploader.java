@@ -1182,7 +1182,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 }
                 if (watcher.isTimeRemainingAvailable()) {
                     long secondsRemaining = watcher.getTimeRemaining();
-                    transferDetailsText += " - Time remaining: " + timeFormatter.formatTime(secondsRemaining);
+                    if (transferDetailsText.trim().length() > 0) {
+                        transferDetailsText += " - ";
+                    }
+                    transferDetailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining);
                 }
                                 
                 progressBar.setValue(percentage);

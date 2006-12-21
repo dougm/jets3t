@@ -2314,8 +2314,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
         }
         if (watcher.isTimeRemainingAvailable()) {
+            if (detailsText.trim().length() > 0) {
+                detailsText += " - ";
+            }
             long secondsRemaining = watcher.getTimeRemaining();
-            detailsText += " - Time remaining: " + timeFormatter.formatTime(secondsRemaining);
+            detailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining);
         }
         return detailsText;
     }
