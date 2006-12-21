@@ -195,7 +195,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     log.debug("Retried connection " + maximumRetryCount + " times, it's time to give up");
                     return false;
                 }
-                log.debug("Retrying request - attempt " + executionCount + " of " + maximumRetryCount);
+                log.warn("Retrying request - attempt " + executionCount + " of " + maximumRetryCount);
                 return retryOnErrors;
             }
         });
@@ -353,8 +353,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 httpMethod.releaseConnection();
             }
             
-            } catch (S3ServiceException e) {
-                throw e;
+        } catch (S3ServiceException e) {
+            throw e;
         } catch (Throwable t) {
             log.debug("Releasing method after error: " + t.getMessage());            
             httpMethod.releaseConnection();
@@ -887,8 +887,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         RequestEntity requestEntity = null;
         if (object.getDataInputStream() != null) {
             if (object.containsMetadata("Content-Length")) {
-                log.debug("Uploading object data with Content-Length: " + object.getContentLength());                                            
-                requestEntity = new BufferedRequestEntity(
+                log.debug("Uploading object data with Content-Length: " + object.getContentLength());
+                requestEntity = new BufferedRequestEntity(                    
                     object.getDataInputStream(), object.getContentType(), object.getContentLength());
             } else {
                 // Use InputStreamRequestEntity for objects with an unknown content length, as the
