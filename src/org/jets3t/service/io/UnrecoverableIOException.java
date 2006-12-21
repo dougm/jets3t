@@ -21,7 +21,7 @@ package org.jets3t.service.io;
 import java.io.IOException;
 
 /**
- * Indicates IOException that cannot, or should not, be recovered from. For example, if a user
+ * Indicates an IOException that cannot, or should not, be recovered from. For example, if a user
  * deliberately cancels an upload this exception should be thrown to indicate to jets3t that the
  * error was intended.
  *  
