@@ -142,7 +142,7 @@ public class ThreadWatcher {
      * the threads it is watching.  
      */
     public boolean isBytesTransferredInfoAvailable() {
-        return (bytesTotal != -1 && bytesTransferred != -1);
+        return (bytesTotal >= 0 && bytesTransferred >= 0);
     }    
     
     /**
@@ -181,7 +181,7 @@ public class ThreadWatcher {
      * true if this watcher contains an estimate of the per-second rate of data transfer.  
      */
     public boolean isBytesPerSecondAvailable() {
-        return (this.bytesPerSecond != -1);
+        return (this.bytesPerSecond >= 0);
     }
     
     /**
@@ -206,7 +206,7 @@ public class ThreadWatcher {
      * true if this watcher contains an estimate of the completion time for the data transfer.  
      */
     public boolean isTimeRemainingAvailable() {
-        return (this.timeRemainingSeconds != -1);
+        return (this.timeRemainingSeconds >= 0);
     }
     
     /**
