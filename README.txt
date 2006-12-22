@@ -5,15 +5,15 @@ Welcome to the jets3t toolkit and application suite.
 
 Each application can be run using a script in the "bin" directory.
 To run an application, such as Cockpit, run the appropriate script from
-the directory containing this README.txt file.
+the bin directory.
 
 Windows:
-cd jets3t-0.5.0
-bin\cockpit.bat
+cd jets3t-0.5.0\bin
+cockpit.bat
 
 Unixy:
-cd jets3t-0.5.0
-bash bin/cockpit.sh
+cd jets3t-0.5.0/bin
+bash cockpit.sh
 
 
 * Servlets
