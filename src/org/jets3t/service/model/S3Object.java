@@ -29,6 +29,7 @@ import java.util.Date;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.io.RepeatableFileInputStream;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -149,10 +150,11 @@ public class S3Object extends BaseS3Object {
      * 
      * @throws S3ServiceException 
      */
-	public InputStream getDataInputStream() throws S3ServiceException {
+	public InputStream getDataInputStream() throws S3ServiceException {        
         if (dataInputStream == null && dataInputFile != null) {
             try {
-                dataInputStream = new FileInputStream(dataInputFile);                
+                // Use a repeatable file data input stream, so transmissions can be retried if necessary.
+                dataInputStream = new RepeatableFileInputStream(dataInputFile);                
             } catch (FileNotFoundException e) {
                 throw new S3ServiceException("Cannot open file input stream", e); 
             }
