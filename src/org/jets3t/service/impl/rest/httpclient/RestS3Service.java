@@ -151,8 +151,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
         
         // Set HttpClient properties based on Jets3t Properties.
-        insecureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_INSECURE, PROTOCOL_INSECURE);
-        secureHostConfig.setHost(Constants.REST_SERVER_DNS, PORT_SECURE, PROTOCOL_SECURE);
+        insecureHostConfig.setHost("http://" + S3_ENDPOINT_HOST, PORT_INSECURE, PROTOCOL_INSECURE);
+        secureHostConfig.setHost("https://" + S3_ENDPOINT_HOST, PORT_SECURE, PROTOCOL_SECURE);
                         
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
         connectionParams.setConnectionTimeout(jets3tProperties.
@@ -618,9 +618,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         String url = null;
         if (isHttpsOnly()) {
             log.debug("REST/HTTP service is using HTTPS for all communication");
-            url = PROTOCOL_SECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_SECURE + resourceString;
+            url = PROTOCOL_SECURE + "://" + S3_ENDPOINT_HOST + ":" + PORT_SECURE + resourceString;
         } else {
-            url = PROTOCOL_INSECURE + "://" + Constants.REST_SERVER_DNS + ":" + PORT_INSECURE + resourceString;        
+            url = PROTOCOL_INSECURE + "://" + S3_ENDPOINT_HOST + ":" + PORT_INSECURE + resourceString;        
         }
         
         // Add additional request parameters to the URL for special cases (eg ACL operations)

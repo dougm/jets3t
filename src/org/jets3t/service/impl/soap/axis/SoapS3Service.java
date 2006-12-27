@@ -108,8 +108,11 @@ public class SoapS3Service extends S3Service {
         locator = new AmazonS3_ServiceLocator();
         if (super.isHttpsOnly()) {
             // Use an SSL connection, to further secure the signature. 
-            log.debug("SOAP service will use HTTPS for all communication");
-            locator.setAmazonS3EndpointAddress( locator.getAmazonS3Address().replaceAll( "http:", "https:" ) );
+            log.debug("SOAP service will use HTTPS for all communication");            
+            locator.setAmazonS3EndpointAddress("https://" + S3Service.S3_ENDPOINT_HOST + "/soap");
+        } else {
+            log.debug("SOAP service will use HTTP for all communication");
+            locator.setAmazonS3EndpointAddress("http://" + S3Service.S3_ENDPOINT_HOST + "/soap");            
         }
         // Ensure we can get the stub.
         getSoapBinding();

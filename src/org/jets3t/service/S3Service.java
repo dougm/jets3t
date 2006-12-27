@@ -48,6 +48,10 @@ import org.jets3t.service.utils.ServiceUtils;
  * <p>The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
  * <table>
  * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
+ * <tr><td>s3service.end-point-host</td>
+ *   <td>The DNS name or IP address of the S3 host end-point. This value can be over-ridden
+ *   programmatically using the method {@link #setS3Endpoint(String)}</td> 
+ *   <td>s3.amazonaws.com</td></tr>
  * <tr><td>s3service.https-only</td>
  *   <td>If true, all communication with S3 will be via encrypted HTTPS connections, otherwise
  *   communications will be sent unencrypted via HTTP</td> 
@@ -65,8 +69,9 @@ public abstract class S3Service {
     
     public static final String VERSION_NO__JETS3T_TOOLKIT = "0.5.0";
     
-    public static final String DEFAULT_S3_URL_SECURE = "https://" + Constants.REST_SERVER_DNS + "/";
-    public static final String DEFAULT_S3_URL_INSECURE = "http://" + Constants.REST_SERVER_DNS + "/";
+    public static String S3_ENDPOINT_HOST = 
+        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+        .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
 
     private AWSCredentials awsCredentials = null;
     private String invokingApplicationDescription = null;
@@ -91,7 +96,7 @@ public abstract class S3Service {
         isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getBoolProperty("s3service.https-only", true);        
         internalErrorRetryMax = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-        .getIntProperty("s3service.internal-error-retry-max", 5);        
+            .getIntProperty("s3service.internal-error-retry-max", 5);        
         
         // TODO Confirm this works as expected...
         // Set the InetAddress DNS caching time-to-live to 300 seconds.
@@ -124,6 +129,17 @@ public abstract class S3Service {
     
     public int getInternalErrorRetryMax() {
         return internalErrorRetryMax;
+    }
+    
+    /**
+     * Set the S3 endpoint to non-default location, over-riding any value specified in
+     * jets3t.properties. 
+     * 
+     * @param enpointHost
+     * The S3 host's DNS name or IP address
+     */
+    public static void setS3EndpointHost(String endpointHost) {
+        S3_ENDPOINT_HOST = endpointHost;
     }
     
     /**
@@ -363,7 +379,7 @@ public abstract class S3Service {
      * @throws S3ServiceException
      */
     public static String createTorrentUrl(String bucketName, String objectKey) {
-        return "http://" + Constants.REST_SERVER_DNS + "/" +
+        return "http://" + S3_ENDPOINT_HOST + "/" +
             bucketName + "/" + objectKey + "?torrent"; 
     }
     

@@ -106,7 +106,6 @@ public class Constants {
     public static String REST_HEADER_PREFIX = "x-amz-";
     public static String REST_METADATA_PREFIX = "x-amz-meta-";
     public static String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
-    public static String REST_SERVER_DNS = "s3.amazonaws.com";
     public static String XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
 
     ///////////////////////////////////
