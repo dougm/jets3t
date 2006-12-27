@@ -5,6 +5,7 @@ COCKPIT
 
 - Login credentials can now be stored in S3.
 - Added a dialog for configuring Bucket Logging.
+- Objects can be filtered by prefix and/or delimiter strings.
 - Remembered login credentials are automatically updated to the new PBE-based encryption files.
 - Third-party buckets can be added without first logging in.
 - User can cancel the listing of objects in large buckets.
@@ -54,7 +55,7 @@ TOOLKIT
 
   * General
 
-- Properties for many aspects of jets3t behaviour can be set by the user
+- Properties for many aspects of jets3t behaviour can be set by the user in a properties file.
 - Support for getting/setting Server Access Logging for buckets.
 - Improved encryption mechanism, which now uses PBE-based encryption and allows users to set 
   their preferred algorithm. 
