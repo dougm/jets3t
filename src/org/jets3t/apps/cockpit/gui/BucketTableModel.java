@@ -13,7 +13,7 @@ public class BucketTableModel extends DefaultTableModel {
     ArrayList bucketList = new ArrayList();
     
     public BucketTableModel() {
-        super(new String[] {"Buckets"}, 0);
+        super(new String[] {"Bucket Name"}, 0);
     }
     
     public int addBucket(S3Bucket bucket) {
