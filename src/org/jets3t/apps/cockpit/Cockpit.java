@@ -88,6 +88,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.apps.cockpit.gui.BucketLoggingDialog;
 import org.jets3t.apps.cockpit.gui.BucketTableModel;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
@@ -184,6 +185,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem generatePublicGetUrl = null;
     private JMenuItem generateTorrentUrl = null;
     private JMenuItem deleteObjectMenuItem = null;
+    
+    // Tools menu items.
+    private JMenuItem bucketLoggingMenuItem = null;    
 
     // Preference menu items.
     private JCheckBoxMenuItem prefAutomaticGzip = null;
@@ -485,6 +489,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         generatePublicGetUrl.setEnabled(false);
         generateTorrentUrl.setEnabled(false);
         deleteObjectMenuItem.setEnabled(false);
+        
+        // Tools menu.
+        JMenu toolsMenu = new JMenu("Tools");
+        bucketLoggingMenuItem = new JMenuItem("Configure Bucket logging...");
+        bucketLoggingMenuItem.setActionCommand("BucketLogging");
+        bucketLoggingMenuItem.addActionListener(this);
+        bucketLoggingMenuItem.setEnabled(false);
+        toolsMenu.add(bucketLoggingMenuItem);
 
         // Preferences menu.        
         JMenu preferencesMenu = new JMenu("Preferences");
@@ -535,6 +547,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         appMenuBar.add(serviceMenu);
         appMenuBar.add(bucketMenu);
         appMenuBar.add(objectMenu);
+        appMenuBar.add(toolsMenu);
         appMenuBar.add(preferencesMenu);
         appMenuBar.add(helpMenu);
     }
@@ -774,6 +787,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
         }
         
+        // Tools events
+        else if ("BucketLogging".equals(event.getActionCommand())) {
+            S3Bucket[] buckets = ((BucketTableModel)bucketsTable.getModel()).getBuckets();
+            BucketLoggingDialog.showDialog(ownerFrame, s3ServiceMulti.getS3Service(), buckets, this);
+        }
+        
         // Preference Events        
         else if ("PreferenceEncryptFiles".equals(event.getActionCommand())) {
             prefEncryptionPassword.setEnabled(prefAutomaticEncryption.isSelected());
@@ -845,6 +864,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             refreshBucketMenuItem.setEnabled(true);
             createBucketMenuItem.setEnabled(true);
+            bucketLoggingMenuItem.setEnabled(true);
         } catch (Exception e) {
             String message = "Unable to log in to S3";
             log.error(message, e);
@@ -877,6 +897,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             refreshBucketMenuItem.setEnabled(false);
             createBucketMenuItem.setEnabled(false);
+            bucketLoggingMenuItem.setEnabled(false);            
         } catch (Exception e) {
             String message = "Unable to log out from S3";
             log.error(message, e);

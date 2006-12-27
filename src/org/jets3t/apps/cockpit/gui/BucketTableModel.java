@@ -57,6 +57,10 @@ public class BucketTableModel extends DefaultTableModel {
         return (S3Bucket) bucketList.get(row);
     }
     
+    public S3Bucket[] getBuckets() {
+        return (S3Bucket[]) bucketList.toArray(new S3Bucket[] {});
+    }
+    
     public boolean isCellEditable(int row, int column) {
         return false;
     }
