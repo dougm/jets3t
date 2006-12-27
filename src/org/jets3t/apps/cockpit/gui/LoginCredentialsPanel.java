@@ -55,30 +55,30 @@ public class LoginCredentialsPanel extends JPanel {
             "<a href=\"http://aws-portal.amazon.com/gp/aws/developer/account/index.html?ie=UTF8&action=access-key\" " +
             "target=\"_blank\">AWS Credentials</a> on Amazon's web site.<br></center></html>";
         String friendlyNameLabelText = 
-            "<html><b>Nickname</b></html>";
-        String friendlyNameDescriptionText = 
-            "<html><font size=\"-2\">A nickname for your stored account</font></html>";
+            "Nickname";
+        String friendlyNameTooltipText = 
+            "A nickname for your stored account";
         String awsAccessKeyLabelText = 
-            "<html><b>AWS Access Key</b></html>";
-        String awsAccessKeyDescriptionText = 
-            null; 
+            "AWS Access Key";
+        String awsAccessKeyTooltipText = 
+            "Your Amazon Web Services access key"; 
         String awsSecretKeyLabelText = 
-            "<html><b>AWS Secret Key</b></html>";
-        String awsSecretKeyDescriptionText = 
-            null;
+            "AWS Secret Key";
+        String awsSecretKeyTooltipText = 
+            "Your Amazon Web Services secret key"; 
         
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
         descriptionLabel.setHorizontalAlignment(JLabel.CENTER);        
         JHtmlLabel friendlyNameLabel = new JHtmlLabel(friendlyNameLabelText, hyperlinkListener);
         friendlyNameTextField = new JTextField("My Credentials");
-        JHtmlLabel friendlyNameDescriptionLabel = new JHtmlLabel(friendlyNameDescriptionText, hyperlinkListener);
+        friendlyNameTextField.setToolTipText(friendlyNameTooltipText);
         JHtmlLabel awsAccessKeyLabel = new JHtmlLabel(awsAccessKeyLabelText, hyperlinkListener);
         awsAccessKeyTextField = new JTextField();
-        JHtmlLabel awsAccessKeyDescriptionLabel = new JHtmlLabel(awsAccessKeyDescriptionText, hyperlinkListener);
+        awsAccessKeyTextField.setToolTipText(awsAccessKeyTooltipText);
         JHtmlLabel awsSecretKeyLabel = new JHtmlLabel(awsSecretKeyLabelText, hyperlinkListener);
         awsSecretKeyPasswordField = new JPasswordField();
-        JHtmlLabel awsSecretKeyDescriptionLabel = new JHtmlLabel(awsSecretKeyDescriptionText, hyperlinkListener);
+        awsSecretKeyPasswordField.setToolTipText(awsSecretKeyTooltipText);
         
         int row = 0;
         add(descriptionLabel, new GridBagConstraints(0, row++,
@@ -88,20 +88,14 @@ public class LoginCredentialsPanel extends JPanel {
                 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             add(friendlyNameTextField, new GridBagConstraints(0, row++,
                 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-            add(friendlyNameDescriptionLabel, new GridBagConstraints(0, row++,
-                1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         }        
         add(awsAccessKeyLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(awsAccessKeyTextField, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(awsAccessKeyDescriptionLabel, new GridBagConstraints(0, row++,
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(awsSecretKeyLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(awsSecretKeyPasswordField, new GridBagConstraints(0, row++,
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(awsSecretKeyDescriptionLabel, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         // Padder.

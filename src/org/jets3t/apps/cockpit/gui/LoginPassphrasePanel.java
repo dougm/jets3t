@@ -53,16 +53,15 @@ public class LoginPassphrasePanel extends JPanel {
         // Textual information.
         String descriptionText = 
             "<html><center>Your AWS Credentials are stored in an encrypted object in your S3 account. " +
-            "To access your credentials you must provide your passphrase and password.</center></html>";
+            "To access your credentials you must provide your unique passphrase and a password.</center></html>";
         String passphraseLabelText = 
-            "<html><b>Passphrase</b></html>";
-        String passphraseDescriptionText = 
-            "<html><font size=\"-2\">An easy to remember phrase of 6 characters or more that is unlikely " +
-            "to be used by anyone else.</font></html>";
+            "Passphrase";
+        String passphraseTooltipText = 
+            "An easy to remember phrase of 6 characters or more that is unlikely to be used by anyone else";
         String passwordLabelText = 
-            "<html><b>Password</b></html>";
-        String passwordDescriptionText =
-            "<html><font size=\"-2\">A password of at least 6 characters.</font></html>";
+            "Password";
+        String passwordTooltipText =
+            "A password of at least 6 characters";
         
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
@@ -71,12 +70,12 @@ public class LoginPassphrasePanel extends JPanel {
         passphraseTextField = new JTextField();
         passphraseTextField.setName("LoginPassphrasePanel.Passphrase");
         passphraseTextField.addActionListener(actionListener);
-        JHtmlLabel passphraseDescriptionLabel = new JHtmlLabel(passphraseDescriptionText, hyperlinkListener);
+        passphraseTextField.setToolTipText(passphraseTooltipText);
         JHtmlLabel passwordLabel = new JHtmlLabel(passwordLabelText, hyperlinkListener);
         passwordPasswordField = new JPasswordField();
         passwordPasswordField.setName("LoginPassphrasePanel.Password");
         passwordPasswordField.addActionListener(actionListener);
-        JHtmlLabel passwordDescriptionLabel = new JHtmlLabel(passwordDescriptionText, hyperlinkListener);
+        passwordPasswordField.setToolTipText(passwordTooltipText);
         
         int row = 0;
         add(descriptionLabel, new GridBagConstraints(0, row++,
@@ -85,13 +84,9 @@ public class LoginPassphrasePanel extends JPanel {
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(passphraseTextField, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(passphraseDescriptionLabel, new GridBagConstraints(0, row++,
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(passwordLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(passwordPasswordField, new GridBagConstraints(0, row++,
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(passwordDescriptionLabel, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         // Padder.

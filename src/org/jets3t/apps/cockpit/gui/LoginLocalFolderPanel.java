@@ -83,31 +83,28 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         String descriptionText = 
             "<html><center>Your AWS Credentials are stored in encrypted files in a folder on " +
             "your computer. Each stored login has a nickname.</center></html>";
-        String folderLabelText = 
-            "<html><b>Folder</b></html>";
-        String folderDescriptionText = 
-            "<html><font size=\"-2\">The folder containing your AWS Credentials. By default this will " +
-            "be the JetS3t home folder.</font></html>";
+        String folderTooltipText = 
+            "The folder containing your AWS Credentials";
         String browseButtonText = 
             "Change Folder";
         String accountNicknameText =
-            "<html><b>Stored logins</b></html>";
-        String accountNicknameDescriptionText =
-            "<html><font size=\"-2\">Nicknames of the login credentials you have stored.</font></html>";
+            "Stored logins";
+        String accountNicknameTooltipText =
+            "Nicknames of the login credentials you have stored";
         String passwordLabelText = 
-            "<html><b>Password</b></html>";
-        String passwordDescriptionText =
-            null;
+            "Password";
+        String passwordTooltipText =
+            "The password that protects your encrypted file. "
+            + "This password may be left empty if you are sure your computer cannot be compromised";
 
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
         descriptionLabel.setHorizontalAlignment(JLabel.CENTER);        
-        JHtmlLabel folderPathLabel = new JHtmlLabel(folderLabelText, hyperlinkListener);
         folderPathTextField = new JTextField(this.jets3tHomeFolder.getAbsolutePath());
         folderPathTextField.setEnabled(false);
+        folderPathTextField.setToolTipText(folderTooltipText);
         JButton browseButton = new JButton(browseButtonText);
         browseButton.addActionListener(this);
-        JHtmlLabel folderPathDescriptionLabel = new JHtmlLabel(folderDescriptionText, hyperlinkListener);
         JHtmlLabel accountNicknamesLabel = new JHtmlLabel(accountNicknameText, hyperlinkListener);
         nicknamesTableModel = new AWSCredentialsFileTableModel();
         accountNicknameTable = new JTable(nicknamesTableModel);
@@ -115,34 +112,26 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         accountNicknameTable.setShowHorizontalLines(true);
         accountNicknameTable.getTableHeader().setVisible(false);
         JScrollPane accountNicknamesScrollPane = new JScrollPane(accountNicknameTable);
-        JHtmlLabel accountNicknamesDescriptionLabel = new JHtmlLabel(accountNicknameDescriptionText, hyperlinkListener);
+        accountNicknamesScrollPane.setToolTipText(accountNicknameTooltipText);
         JHtmlLabel passwordLabel = new JHtmlLabel(passwordLabelText, hyperlinkListener);
         passwordPasswordField = new JPasswordField();
-        JHtmlLabel passwordDescriptionLabel = new JHtmlLabel(passwordDescriptionText, hyperlinkListener);
+        passwordPasswordField.setToolTipText(passwordTooltipText);
         
         int row = 0;
         add(descriptionLabel, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-        add(folderPathLabel, new GridBagConstraints(0, row++,
-            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(folderPathTextField, new GridBagConstraints(0, row,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(browseButton, new GridBagConstraints(1, row++,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        add(folderPathDescriptionLabel, new GridBagConstraints(0, row++,
-            2, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(accountNicknamesLabel, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         add(accountNicknamesScrollPane, new GridBagConstraints(0, row++,
             2, 1, 0, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-        add(accountNicknamesDescriptionLabel, new GridBagConstraints(0, row++,
-            2, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(passwordLabel, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(passwordPasswordField, new GridBagConstraints(0, row++,
             2, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(passwordDescriptionLabel, new GridBagConstraints(0, row++,
-            2, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));        
     }    
     
     public void findAWSCredentialFiles() {

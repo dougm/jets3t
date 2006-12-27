@@ -150,17 +150,17 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         
         int row = 0;
         this.getContentPane().setLayout(new GridBagLayout());
+        this.getContentPane().add(tabbedPane, new GridBagConstraints(0, row++, 
+            2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
         this.getContentPane().add(actionLabel, new GridBagConstraints(0, row, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         this.getContentPane().add(actionModeComboBox, new GridBagConstraints(1, row++, 
             1, 1, 0, 0, GridBagConstraints.NORTHEAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        this.getContentPane().add(tabbedPane, new GridBagConstraints(0, row++, 
-            2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
         this.getContentPane().add(buttonsPanel, new GridBagConstraints(0, row++, 
             2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         this.pack();
-        this.setSize(500, 450);
+        this.setSize(500, 400);
         this.setLocationRelativeTo(this.getOwner());
     }
 
@@ -245,7 +245,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         String combinedString = passphrase + password;
         return ServiceUtils.toHex(
             ServiceUtils.computeMD5Hash(combinedString.getBytes(Constants.DEFAULT_ENCODING)))
-            + "-jets3t.credentials";        
+            + "/jets3t.credentials";        
     }
     
     private boolean validPassphraseInputs(String passphrase, String password) {
@@ -351,7 +351,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         }
         
         final AWSCredentials awsCredentials = 
-            AWSCredentialsDialog.showDialog(ownerFrame, true, hyperlinkListener);        
+            AWSCredentialsDialog.showDialog(ownerFrame, 
+                (loginMode == LOGIN_MODE_LOCAL_FOLDER), hyperlinkListener);        
         if (awsCredentials == null) {
             return;
         }
