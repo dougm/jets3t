@@ -63,8 +63,12 @@ import java.util.List;
 import java.util.Map;
 
 import javax.crypto.NoSuchPaddingException;
+import javax.swing.ImageIcon;
 import javax.swing.JApplet;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -80,6 +84,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
@@ -88,12 +93,14 @@ import javax.swing.table.DefaultTableCellRenderer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.exolab.castor.jdo.ObjectModifiedException;
 import org.jets3t.apps.cockpit.gui.BucketLoggingDialog;
 import org.jets3t.apps.cockpit.gui.BucketTableModel;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
+import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
@@ -146,7 +153,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public static final String APPLICATION_DESCRIPTION = "Cockpit/0.5.0";
     
     public static final String APPLICATION_TITLE = "jets3t Cockpit";
-    private static final int BUCKET_LIST_CHUNKING_SIZE = 500;
+    private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
     
     private File rememberedLoginsDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
     
@@ -171,6 +178,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem logoutMenuItem = null;    
     
     // Bucket main menu items
+    private JPopupMenu bucketActionMenu = null;
     private JMenuItem viewBucketPropertiesMenuItem = null;
     private JMenuItem refreshBucketMenuItem = null; 
     private JMenuItem createBucketMenuItem = null;
@@ -178,6 +186,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem deleteBucketMenuItem = null;
     
     // Object main menu items
+    private JPopupMenu objectActionMenu = null;
     private JMenuItem viewObjectPropertiesMenuItem = null;
     private JMenuItem refreshObjectMenuItem = null;
     private JMenuItem updateObjectACLMenuItem = null;
@@ -215,6 +224,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private File downloadDirectory = null;
     private Map downloadObjectsToFileMap = null;
     private boolean downloadingObjects = false;    
+    
+    private JPanel filterObjectsPanel = null;
+    private JCheckBox filterObjectsCheckBox = null;
+    private JTextField filterObjectsPrefix = null;
+    private JComboBox filterObjectsDelimiter = null;
     
     // File comparison options
     private final String UPLOAD_NEW_FILES_ONLY = "Only upload new file(s)";
@@ -304,20 +318,81 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         JPanel appContent = new JPanel(new GridBagLayout());
         this.getContentPane().add(appContent);
                 
-        // Listing section.        
-        JPanel bucketsContainer = new JPanel(new GridBagLayout());
+        // Buckets panel.        
+        JPanel bucketsPanel = new JPanel(new GridBagLayout());
+        
+        JButton bucketActionButton = new JButton();
+        bucketActionButton.setToolTipText("Bucket actions menu");
+        applyIcon(bucketActionButton, "/images/nuvola/16x16/actions/misc.png");
+        bucketActionButton.addActionListener(new ActionListener() {
+           public void actionPerformed(ActionEvent e) {
+                JButton sourceButton = (JButton) e.getSource();
+                bucketActionMenu.show(sourceButton, 0, sourceButton.getHeight());
+           } 
+        });                        
+        bucketsPanel.add(new JHtmlLabel("<html><b>Buckets</b></html>", this), 
+            new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+        bucketsPanel.add(bucketActionButton, 
+            new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+
         bucketsTable = new JTable(new BucketTableModel());
         bucketsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         bucketsTable.getSelectionModel().addListSelectionListener(this);
         bucketsTable.setShowHorizontalLines(true);
         bucketsTable.setShowVerticalLines(true);
         bucketsTable.addMouseListener(new ContextMenuListener());
-        bucketsContainer.add(new JScrollPane(bucketsTable), 
-            new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
-        bucketsContainer.add(new JLabel(" "), 
-            new GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        bucketsPanel.add(new JScrollPane(bucketsTable), 
+            new GridBagConstraints(0, 1, 2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
+        bucketsPanel.add(new JLabel(" "), 
+            new GridBagConstraints(0, 2, 2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         
-        JPanel objectsContainer = new JPanel(new GridBagLayout());
+        // Filter panel.
+        filterObjectsPanel = new JPanel(new GridBagLayout());
+        filterObjectsPrefix = new JTextField();
+        filterObjectsPrefix.setToolTipText("Only show objects with this prefix");
+        filterObjectsPrefix.addActionListener(this);
+        filterObjectsPrefix.setActionCommand("RefreshObjects");
+        filterObjectsDelimiter = new JComboBox(new String[] {"", "/", "?", "\\"});
+        filterObjectsDelimiter.setEditable(true);
+        filterObjectsDelimiter.setToolTipText("Object name delimiter");
+        filterObjectsDelimiter.addActionListener(this);
+        filterObjectsDelimiter.setActionCommand("RefreshObjects");
+        filterObjectsPanel.add(new JHtmlLabel("Prefix:", this), 
+            new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
+        filterObjectsPanel.add(filterObjectsPrefix, 
+            new GridBagConstraints(1, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        filterObjectsPanel.add(new JHtmlLabel("Delimiter:", this), 
+            new GridBagConstraints(2, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        filterObjectsPanel.add(filterObjectsDelimiter, 
+            new GridBagConstraints(3, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
+        filterObjectsPanel.setVisible(false);
+        
+        // Objects panel.
+        JPanel objectsPanel = new JPanel(new GridBagLayout());
+        int row = 0;
+        filterObjectsCheckBox = new JCheckBox("Filter objects");
+        filterObjectsCheckBox.addActionListener(this);
+        filterObjectsCheckBox.setToolTipText("Check this option to filter the objects listed");
+        objectsPanel.add(new JHtmlLabel("<html><b>Objects</b></html>", this), 
+            new GridBagConstraints(0, row, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+        objectsPanel.add(filterObjectsCheckBox, 
+            new GridBagConstraints(1, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                        
+        JButton objectActionButton = new JButton();
+        objectActionButton.setToolTipText("Object actions menu");
+        applyIcon(objectActionButton, "/images/nuvola/16x16/actions/misc.png");
+        objectActionButton.addActionListener(new ActionListener() {
+           public void actionPerformed(ActionEvent e) {
+                JButton sourceButton = (JButton) e.getSource();
+                objectActionMenu.show(sourceButton, 0, sourceButton.getHeight());
+           } 
+        });                        
+        objectsPanel.add(objectActionButton, 
+            new GridBagConstraints(2, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+        
+        objectsPanel.add(filterObjectsPanel, 
+            new GridBagConstraints(0, ++row, 3, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                
         objectsTable = new JTable();
         objectsTable.setModel(new ObjectTableModel(objectsTable));
         objectsTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
@@ -338,16 +413,17 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         objectsTable.setShowVerticalLines(true);
         objectsTable.addMouseListener(new ContextMenuListener());
         objectsTableSP = new JScrollPane(objectsTable);
-        objectsContainer.add(objectsTableSP, 
-                new GridBagConstraints(0, 0, 2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
-        objectsSummaryLabel = new JLabel("Please select a bucket", JLabel.CENTER);
+        objectsPanel.add(objectsTableSP, 
+                new GridBagConstraints(0, ++row, 3, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
+        objectsSummaryLabel = new JHtmlLabel("Please select a bucket", this);
+        objectsSummaryLabel.setHorizontalAlignment(JLabel.CENTER);
         objectsSummaryLabel.setFocusable(false);
-        objectsContainer.add(objectsSummaryLabel, 
-                new GridBagConstraints(0, 1, 2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        objectsPanel.add(objectsSummaryLabel, 
+                new GridBagConstraints(0, ++row, 3, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         // Combine sections.
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                bucketsContainer, objectsContainer);
+                bucketsPanel, objectsPanel);
         splitPane.setOneTouchExpandable(true);
         splitPane.setContinuousLayout(true);
 
@@ -360,13 +436,33 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         this.setBounds(new Rectangle(new Dimension(preferredWidth, preferredHeight)));
         
         splitPane.setResizeWeight(0.30);
-
+        
         // Initialize drop target.
         initDropTarget(new JComponent[] {objectsTableSP, objectsTable} );
         objectsTable.getDropTarget().setActive(false);
         objectsTableSP.getDropTarget().setActive(false);        
     }
     
+    private void applyIcon(JMenuItem menuItem, String iconResourcePath) {
+        URL iconUrl = getClass().getResource(iconResourcePath);
+        if (iconUrl != null) {
+            ImageIcon icon = new ImageIcon(iconUrl);
+            menuItem.setIcon(icon);
+        } else {
+            log.warn("Unable to load menu icon with resource path: " + iconResourcePath);
+        }
+    }
+    
+    private void applyIcon(JButton button, String iconResourcePath) {
+        URL iconUrl = getClass().getResource(iconResourcePath);
+        if (iconUrl != null) {
+            ImageIcon icon = new ImageIcon(iconUrl);
+            button.setIcon(icon);
+        } else {
+            log.warn("Unable to load button icon with resource path: " + iconResourcePath);
+        }
+    }
+
     /**
      * Initialise the application's menu bar.
      */
@@ -380,11 +476,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         loginMenuItem = new JMenuItem("Log in...");
         loginMenuItem.setActionCommand("LoginEvent");
         loginMenuItem.addActionListener(this);
+        applyIcon(loginMenuItem, "/images/nuvola/16x16/actions/connect_creating.png");
         serviceMenu.add(loginMenuItem);
         
         logoutMenuItem = new JMenuItem("Log out");
         logoutMenuItem.setActionCommand("LogoutEvent");
         logoutMenuItem.addActionListener(this);
+        applyIcon(logoutMenuItem, "/images/nuvola/16x16/actions/connect_no.png");
         serviceMenu.add(logoutMenuItem);
 
         if (isStandAloneApplication) {
@@ -393,6 +491,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             JMenuItem quitMenuItem = new JMenuItem("Quit");
             quitMenuItem.setActionCommand("QuitEvent");
             quitMenuItem.addActionListener(this);
+            applyIcon(quitMenuItem, "/images/nuvola/16x16/actions/exit.png");
             serviceMenu.add(quitMenuItem);
         }
 
@@ -400,39 +499,47 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         logoutMenuItem.setEnabled(false);
 
         // Bucket menu
-        JMenu bucketMenu = new JMenu("Buckets");
+        bucketActionMenu = new JPopupMenu();
         
         refreshBucketMenuItem = new JMenuItem("Refresh bucket listing");
         refreshBucketMenuItem.setActionCommand("RefreshBuckets");
         refreshBucketMenuItem.addActionListener(this);
-        bucketMenu.add(refreshBucketMenuItem);
+        applyIcon(refreshBucketMenuItem, "/images/nuvola/16x16/actions/reload.png");
+        bucketActionMenu.add(refreshBucketMenuItem);
         
         viewBucketPropertiesMenuItem = new JMenuItem("View bucket properties...");
         viewBucketPropertiesMenuItem.setActionCommand("ViewBucketProperties");
         viewBucketPropertiesMenuItem.addActionListener(this);
-        bucketMenu.add(viewBucketPropertiesMenuItem);
+        applyIcon(viewBucketPropertiesMenuItem, "/images/nuvola/16x16/actions/viewmag.png");
+        bucketActionMenu.add(viewBucketPropertiesMenuItem);
         
-        createBucketMenuItem = new JMenuItem("Create new bucket...");
-        createBucketMenuItem.setActionCommand("CreateBucket");
-        createBucketMenuItem.addActionListener(this);
-        bucketMenu.add(createBucketMenuItem);
-
         updateBucketACLMenuItem = new JMenuItem("Update bucket's Access Control List...");
         updateBucketACLMenuItem.setActionCommand("UpdateBucketACL");
         updateBucketACLMenuItem.addActionListener(this);
-        bucketMenu.add(updateBucketACLMenuItem);
+        applyIcon(updateBucketACLMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
+        bucketActionMenu.add(updateBucketACLMenuItem);
         
+        bucketActionMenu.add(new JSeparator());
+
+        createBucketMenuItem = new JMenuItem("Create new bucket...");
+        createBucketMenuItem.setActionCommand("CreateBucket");
+        createBucketMenuItem.addActionListener(this);
+        applyIcon(createBucketMenuItem, "/images/nuvola/16x16/actions/viewmag+.png");
+        bucketActionMenu.add(createBucketMenuItem);
+
         JMenuItem thirdPartyBucketMenuItem = new JMenuItem("Add third-party bucket...");
         thirdPartyBucketMenuItem.setActionCommand("AddThirdPartyBucket");
         thirdPartyBucketMenuItem.addActionListener(this);
-        bucketMenu.add(thirdPartyBucketMenuItem);
+        applyIcon(thirdPartyBucketMenuItem, "/images/nuvola/16x16/actions/viewmagfit.png");
+        bucketActionMenu.add(thirdPartyBucketMenuItem);
 
-        bucketMenu.add(new JSeparator());
+        bucketActionMenu.add(new JSeparator());
         
-        deleteBucketMenuItem = new JMenuItem("Delete selected bucket...");
+        deleteBucketMenuItem = new JMenuItem("Delete bucket...");
         deleteBucketMenuItem.setActionCommand("DeleteBucket");
         deleteBucketMenuItem.addActionListener(this);
-        bucketMenu.add(deleteBucketMenuItem);
+        applyIcon(deleteBucketMenuItem, "/images/nuvola/16x16/actions/cancel.png");
+        bucketActionMenu.add(deleteBucketMenuItem);
         
         viewBucketPropertiesMenuItem.setEnabled(false);
         refreshBucketMenuItem.setEnabled(false);
@@ -440,48 +547,55 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         updateBucketACLMenuItem.setEnabled(false);
         deleteBucketMenuItem.setEnabled(false);
 
-        // Object menu
-        JMenu objectMenu = new JMenu("Objects");
+        // Object action menu.
+        objectActionMenu = new JPopupMenu();
         
         refreshObjectMenuItem = new JMenuItem("Refresh object listing");
         refreshObjectMenuItem.setActionCommand("RefreshObjects");
         refreshObjectMenuItem.addActionListener(this);
-        objectMenu.add(refreshObjectMenuItem);
+        applyIcon(refreshObjectMenuItem, "/images/nuvola/16x16/actions/reload.png");
+        objectActionMenu.add(refreshObjectMenuItem);
         
         viewObjectPropertiesMenuItem = new JMenuItem("View object properties...");
         viewObjectPropertiesMenuItem.setActionCommand("ViewObjectProperties");
         viewObjectPropertiesMenuItem.addActionListener(this);
-        objectMenu.add(viewObjectPropertiesMenuItem);
+        applyIcon(viewObjectPropertiesMenuItem, "/images/nuvola/16x16/actions/viewmag.png");
+        objectActionMenu.add(viewObjectPropertiesMenuItem);
         
-        updateObjectACLMenuItem = new JMenuItem("Update selected object(s) Access Control List(s)...");
+        updateObjectACLMenuItem = new JMenuItem("Update object(s) Access Control List(s)...");
         updateObjectACLMenuItem.setActionCommand("UpdateObjectACL");
         updateObjectACLMenuItem.addActionListener(this);
-        objectMenu.add(updateObjectACLMenuItem);
+        applyIcon(updateObjectACLMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
+        objectActionMenu.add(updateObjectACLMenuItem);
 
-        downloadObjectMenuItem = new JMenuItem("Download selected object(s)...");
+        downloadObjectMenuItem = new JMenuItem("Download object(s)...");
         downloadObjectMenuItem.setActionCommand("DownloadObjects");
         downloadObjectMenuItem.addActionListener(this);
-        objectMenu.add(downloadObjectMenuItem);
+        applyIcon(downloadObjectMenuItem, "/images/nuvola/16x16/actions/1downarrow.png");
+        objectActionMenu.add(downloadObjectMenuItem);
             
-        objectMenu.add(new JSeparator());
+        objectActionMenu.add(new JSeparator());
 
         generatePublicGetUrl = new JMenuItem("Generate Public GET URL...");
         generatePublicGetUrl.setActionCommand("GeneratePublicGetURL");
         generatePublicGetUrl.addActionListener(this);
-        objectMenu.add(generatePublicGetUrl);        
+        applyIcon(generatePublicGetUrl, "/images/nuvola/16x16/actions/wizard.png");
+        objectActionMenu.add(generatePublicGetUrl);        
         
         generateTorrentUrl = new JMenuItem("Generate Torrent URL...");
         generateTorrentUrl.setActionCommand("GenerateTorrentURL");
         generateTorrentUrl.addActionListener(this);
-        objectMenu.add(generateTorrentUrl);        
+        applyIcon(generateTorrentUrl, "/images/nuvola/16x16/actions/wizard.png");
+        objectActionMenu.add(generateTorrentUrl);        
 
-        objectMenu.add(new JSeparator());
+        objectActionMenu.add(new JSeparator());
 
-        deleteObjectMenuItem = new JMenuItem("Delete selected object(s)...");
+        deleteObjectMenuItem = new JMenuItem("Delete object(s)...");
         deleteObjectMenuItem.setActionCommand("DeleteObjects");
         deleteObjectMenuItem.addActionListener(this);
-        objectMenu.add(deleteObjectMenuItem);
-
+        applyIcon(deleteObjectMenuItem, "/images/nuvola/16x16/actions/cancel.png");
+        objectActionMenu.add(deleteObjectMenuItem);
+        
         viewObjectPropertiesMenuItem.setEnabled(false);
         refreshObjectMenuItem.setEnabled(false);
         updateObjectACLMenuItem.setEnabled(false);
@@ -496,6 +610,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         bucketLoggingMenuItem.setActionCommand("BucketLogging");
         bucketLoggingMenuItem.addActionListener(this);
         bucketLoggingMenuItem.setEnabled(false);
+        applyIcon(bucketLoggingMenuItem, "/images/nuvola/16x16/actions/toggle_log.png");
         toolsMenu.add(bucketLoggingMenuItem);
 
         // Preferences menu.        
@@ -545,8 +660,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         // Build application menu bar.
         appMenuBar.add(serviceMenu);
-        appMenuBar.add(bucketMenu);
-        appMenuBar.add(objectMenu);
         appMenuBar.add(toolsMenu);
         appMenuBar.add(preferencesMenu);
         appMenuBar.add(helpMenu);
@@ -784,6 +897,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 String message = "Unable to download objects from S3";
                 log.error(message, ex);
                 ErrorDialog.showDialog(ownerFrame, this, message, ex);
+            }
+        } else if (event.getSource().equals(filterObjectsCheckBox)) {
+            if (filterObjectsCheckBox.isSelected()) {
+                filterObjectsPanel.setVisible(true);                 
+            } else {
+                filterObjectsPanel.setVisible(false);
+                filterObjectsPrefix.setText("");
+                if (filterObjectsDelimiter.getSelectedIndex() != 0) {
+                    filterObjectsDelimiter.setSelectedIndex(0);
+                }
             }
         }
         
@@ -1041,6 +1164,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * Starts a thread to run {@link S3ServiceMulti#listObjects}.
      */
     private void listObjects() {
+        if (getCurrentSelectedBucket() == null) {
+            // Oops, better do nothing.
+            return;
+        }
+        
         // This is all very convoluted, it was done this way to ensure we can display the dialog box.
         
         new Thread() {
@@ -1060,12 +1188,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                             ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                                                
                         }
                     });
+                    
+                    final String prefix = filterObjectsPrefix.getText();
+                    final String delimiter = (String) filterObjectsDelimiter.getSelectedItem();
 
                     final ArrayList allObjects = new ArrayList();
                     String priorLastKey = null;
                     do {
                         S3ObjectsChunk chunk = s3ServiceMulti.getS3Service().listObjectsChunked(
-                            getCurrentSelectedBucket().getName(), null, null, 
+                            getCurrentSelectedBucket().getName(), prefix, delimiter, 
                             BUCKET_LIST_CHUNKING_SIZE, priorLastKey);
                         
                         final S3Object[] objects = chunk.getObjects();
@@ -1115,7 +1246,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             String summary = "Please select a bucket";        
             long totalBytes = 0;
             if (objects != null) {
-                summary = objects.length + " item" + (objects.length != 1? "s" : "");
+                summary = "<html>" + objects.length + " item" + (objects.length != 1? "s" : "");
                 
                 for (int i = 0; i < objects.length; i++) {
                     totalBytes += objects[i].getContentLength();
@@ -1123,10 +1254,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 if (totalBytes > 0) {
                     summary += ", " + byteFormatter.formatByteSize(totalBytes);
                 }
-                summary += "  @ " + timeSDF.format(new Date());
-                if (isIncompleteListing) {
-                    summary += " - INCOMPLETE";
+                summary += " @ " + timeSDF.format(new Date());
+                
+                if (isObjectFilteringActive()) {
+                    summary += " - <font color=\"blue\">Filtered</font>";                    
                 }
+                if (isIncompleteListing) {
+                    summary += " - <font color=\"red\">Incomplete</font>";
+                }     
+                summary += "</html>";
             }        
             
             objectsSummaryLabel.setText(summary);
@@ -1147,31 +1283,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         if (s3ServiceMulti == null) {
             return;
         }
-        JPopupMenu menu = new JPopupMenu();
-        
-        JMenuItem mi0 = new JMenuItem("View bucket properties...");
-        mi0.setActionCommand("ViewBucketProperties");
-        mi0.addActionListener(this);
-        menu.add(mi0);
-        
-        JMenuItem mi1 = new JMenuItem("Refresh object listing");
-        mi1.setActionCommand("RefreshObjects");
-        mi1.addActionListener(this);
-        menu.add(mi1);
-
-        JMenuItem mi3 = new JMenuItem("Update bucket's Access Control List...");
-        mi3.setActionCommand("UpdateBucketACL");
-        mi3.addActionListener(this);
-        menu.add(mi3);
-            
-        menu.add(new JSeparator());
-        
-        JMenuItem mi4 = new JMenuItem("Delete bucket '" + getCurrentSelectedBucket().getName() + "'...");
-        mi4.setActionCommand("DeleteBucket");
-        mi4.addActionListener(this);
-        menu.add(mi4);
-        
-        menu.show(invoker, xPos, yPos);
+        bucketActionMenu.show(invoker, xPos, yPos);
     }
     
     /**
@@ -1196,69 +1308,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         if (getCurrentSelectedBucket() == null || getSelectedObjects().length == 0) {
             return;
         }
-        
-        JPopupMenu menu = new JPopupMenu();
-        
-        JMenuItem mi0 = new JMenuItem("View object properties...");
-        mi0.setActionCommand("ViewObjectProperties");
-        mi0.addActionListener(this);
-        menu.add(mi0);
-        if (objectsTable.getSelectedRows().length != 1) {
-            mi0.setEnabled(false);
-        }
-        
-        JMenuItem mi2 = new JMenuItem("Update object's Access Control List...");
-        mi2.setActionCommand("UpdateObjectACL");
-        mi2.addActionListener(this);
-        menu.add(mi2);
-
-        JMenuItem mi3 = null;
-        if (objectsTable.getSelectedRows().length == 1) {
-            S3Object object = 
-                ((ObjectTableModel)objectsTable.getModel()).getObject(
-                objectsTable.getSelectedRows()[0]);
-            mi3 = new JMenuItem("Download '" + object.getKey() + "'...");
-        } else {
-            mi3 = new JMenuItem("Download " + objectsTable.getSelectedRows().length + " object(s)...");
-        }        
-        mi3.setActionCommand("DownloadObjects");
-        mi3.addActionListener(this);
-        menu.add(mi3);
-            
-        menu.add(new JSeparator());
-
-        JMenuItem mi4 = new JMenuItem("Generate Public GET URL...");
-        mi4.setActionCommand("GeneratePublicGetURL");
-        mi4.addActionListener(this);
-        menu.add(mi4);
-        if (objectsTable.getSelectedRows().length != 1) {
-            mi4.setEnabled(false);
-        }        
-
-        JMenuItem mi5 = new JMenuItem("Generate Torrent URL...");
-        mi5.setActionCommand("GenerateTorrentURL");
-        mi5.addActionListener(this);
-        menu.add(mi5);
-        if (objectsTable.getSelectedRows().length != 1) {
-            mi5.setEnabled(false);
-        }        
-
-        menu.add(new JSeparator());
-
-        JMenuItem mi6 = null;
-        if (objectsTable.getSelectedRows().length == 1) {
-            S3Object object = 
-                ((ObjectTableModel)objectsTable.getModel()).getObject(
-                objectsTable.getSelectedRows()[0]);
-            mi6 = new JMenuItem("Delete '" + object.getKey() + "'...");
-        } else {
-            mi6 = new JMenuItem("Delete " + objectsTable.getSelectedRows().length + " objects...");
-        }        
-        mi6.setActionCommand("DeleteObjects");
-        mi6.addActionListener(this);
-        menu.add(mi6);
-        
-        menu.show(invoker, xPos, yPos);
+        objectActionMenu.show(invoker, xPos, yPos);
     }
     
     /**
@@ -2362,6 +2412,21 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
         } else {
             BareBonesBrowserLaunch.openURL(url.toString());
+        }
+    }
+    
+    private boolean isObjectFilteringActive() {
+        if (!filterObjectsCheckBox.isSelected()) {
+            return false;
+        } else {
+            String delimiter = (String) filterObjectsDelimiter.getSelectedItem();
+            if (filterObjectsPrefix.getText().length() > 0 
+                || delimiter.length() > 0) 
+            {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
     
