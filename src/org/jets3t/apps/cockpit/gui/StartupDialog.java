@@ -160,7 +160,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         this.pack();
-        this.setSize(500, 400);
+        this.setSize(500, 380);
         this.setLocationRelativeTo(this.getOwner());
     }
 
