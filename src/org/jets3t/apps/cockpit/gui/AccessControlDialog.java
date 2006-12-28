@@ -18,6 +18,7 @@
  */
 package org.jets3t.apps.cockpit.gui;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
@@ -31,7 +32,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
-import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -42,8 +42,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -68,7 +68,7 @@ import org.jets3t.service.model.S3Owner;
  * All S3 group types are supported:
  * <ul>
  * <li>Canonical Users</li>
- * <li>Groups: All Users, and Authenticated Users</li>
+ * <li>Groups: All Users, Authenticated Users, and Amazon S3 Log Writers</li>
  * <li>Users identified by Email address</li>
  * </ul>  
  * <p>
@@ -100,6 +100,18 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 	private GranteeTableModel emailGranteeTableModel = null;
 	private JTable groupGranteeTable = null;	
 	private GranteeTableModel groupGranteeTableModel = null;
+    
+    private static final String[] canonicalUserTableColumnNames = new String[] {
+        "Canonical ID", "Display Name", "Permission"
+    };
+    
+    private static final String[] groupTableColumnNames = new String[] {
+        "Group URL", "Permission"
+    };
+
+    private static final String[] emailTableColumnNames = new String[] {
+        "Email Address", "Permission"
+    };
 	
     /**
      * The set of access permission values.
@@ -409,7 +421,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      * @author James Murty
 	 */
 	private class GranteeTable extends JTable {
-		public GranteeTable(TableModel granteeTableModel) {
+		public GranteeTable(GranteeTableModel granteeTableModel) {
 			super();
             TableSorter sorter = new TableSorter(granteeTableModel);
             this.setModel(sorter);
@@ -420,9 +432,15 @@ public class AccessControlDialog extends JDialog implements ActionListener {
             DefaultCellEditor groupCellEditor = new DefaultCellEditor(groupGranteeComboBox);
             groupCellEditor.setClickCountToStart(2);
 			setDefaultEditor(GroupGrantee.class, groupCellEditor);
+            setDefaultRenderer(GroupGrantee.class, new DefaultTableCellRenderer() {
+                public Component getTableCellRendererComponent(JTable arg0, Object value, boolean arg2, boolean arg3, int arg4, int arg5) {
+                    GroupGrantee groupGrantee = (GroupGrantee) value;
+                    return super.getTableCellRendererComponent(arg0, groupGrantee.getIdentifier(), arg2, arg3, arg4, arg5);
+                }
+            });
             DefaultCellEditor permissionCellEditor = new DefaultCellEditor(permissionComboBox);
             permissionCellEditor.setClickCountToStart(2);
-			setDefaultEditor(Permission.class, permissionCellEditor);			
+			setDefaultEditor(Permission.class, permissionCellEditor);
 		}
 	}
 
@@ -435,16 +453,17 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 	private class GranteeTableModel extends DefaultTableModel {
 		private Class granteeClass = null;
 		ArrayList currentGrantees  = new ArrayList();
-		
-		public GranteeTableModel(Class granteeClass) {
-			super(new String[] {
-				(CanonicalGrantee.class.equals(granteeClass) ? "Canonical ID" :
-					EmailAddressGrantee.class.equals(granteeClass) ? "Email Address" :
-						GroupGrantee.class.equals(granteeClass) ? "Group URI" :
-							granteeClass.toString()
-				),
-				"Permission"}, 0);
+        int permissionColumn = 0;
+        
+        public GranteeTableModel(Class granteeClass) {
+			super(
+				(CanonicalGrantee.class.equals(granteeClass) ? canonicalUserTableColumnNames :
+					EmailAddressGrantee.class.equals(granteeClass) ? emailTableColumnNames :
+						GroupGrantee.class.equals(granteeClass) ? groupTableColumnNames :
+							new String[] {}
+				), 0);            
 			this.granteeClass = granteeClass;
+            permissionColumn = (CanonicalGrantee.class.equals(granteeClass) ? 2 : 1);
 		}
 		
 		public int addGrantee(GranteeInterface grantee, Permission permission) {
@@ -466,7 +485,11 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 			// New object to insert.
 			currentGrantees.add(insertRow, gap);
 			if (GroupGrantee.class.equals(granteeClass)) {
-                this.insertRow(insertRow, new Object[] {grantee, permission});				
+                this.insertRow(insertRow, new Object[] {grantee, permission});
+            } else if (CanonicalGrantee.class.equals(granteeClass)) {
+                CanonicalGrantee canonicalGrantee = (CanonicalGrantee) grantee;
+                this.insertRow(insertRow, new Object[] {canonicalGrantee.getIdentifier(), 
+                    canonicalGrantee.getDisplayName(), permission});
 			} else {
                 this.insertRow(insertRow, new Object[] {grantee.getIdentifier(), permission});
 			}
@@ -487,7 +510,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		}
 		
 		public Permission getPermission(int index) {
-			return (Permission) this.getValueAt(index, 1);
+			return (Permission) this.getValueAt(index, permissionColumn);
 		}
 		
 		public GranteeInterface getGrantee(int index) {
@@ -503,8 +526,8 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 			}
 		}
 
-		public boolean isCellEditable(int row, int column) {
-            return true;
+		public boolean isCellEditable(int row, int column) {            
+            return (column == 0 || column == permissionColumn);
 		}
 		
 		public Class getColumnClass(int columnIndex) {
@@ -513,9 +536,11 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 					return GroupGrantee.class;
 				else
 					return String.class;
-			} else {
+			} else if (columnIndex == permissionColumn) {
 				return Permission.class;
-			}
+			} else {
+			    return String.class;
+            }
 		}
 	}
 	
@@ -537,6 +562,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 
 		grantee = new CanonicalGrantee();
 		grantee.setIdentifier("abc");
+        ((CanonicalGrantee)grantee).setDisplayname("jamesmurty");
 		acl.grantPermission(grantee, Permission.PERMISSION_FULL_CONTROL);
 		grantee = new CanonicalGrantee();
 		grantee.setIdentifier("aaa");
