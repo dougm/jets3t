@@ -16,9 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.cockpit;
+package org.jets3t.apps.cockpit.gui;
 
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
@@ -26,24 +25,31 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
+import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.HyperlinkActivatedListener;
+import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.TableSorter;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
@@ -78,12 +84,16 @@ import org.jets3t.service.model.S3Owner;
  * @author James Murty
  */
 public class AccessControlDialog extends JDialog implements ActionListener {
+    private static final Log log = LogFactory.getLog(AccessControlDialog.class);
+    
 	private static AccessControlDialog accessControlDialog = null;
+    
+    private HyperlinkActivatedListener hyperlinkListener = null;
 	
 	private AccessControlList originalAccessControlList = null;
 	private AccessControlList updatedAccessControlList = null;
 	
-	private JLabel itemsDescription = null;
+	private JHtmlLabel itemsDescription = null;
 	private JTable canonicalGranteeTable = null;	
 	private GranteeTableModel canonicalGranteeTableModel = null;
 	private JTable emailGranteeTable = null;	
@@ -107,20 +117,21 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      */
 	private final JComboBox groupGranteeComboBox = new JComboBox(new GroupGrantee[] {
 		GroupGrantee.ALL_USERS,
-		GroupGrantee.AUTHENTICATED_USERS
+		GroupGrantee.AUTHENTICATED_USERS,
+        GroupGrantee.LOG_DELIVERY
 		});
 	
 	private final Insets insetsZero = new Insets(0, 0, 0, 0);
 	private final Insets insetsDefault = new Insets(5, 7, 5, 7);
-	private final Insets insetsTable = new Insets(5, 7, 0, 7);
-	private final Insets insetsAddRemoveButtons = new Insets(0, 7, 5, 7);
+	private final Insets insetsZeroAtBottom = new Insets(5, 7, 0, 7);
+	private final Insets insetsZeroAtTop = new Insets(0, 7, 5, 7);
 
 	/**
      * Creates a modal dialog box with a title.
      *  
      * @param owner the frame within which this dialog will be displayed and centred.
 	 */
-	protected AccessControlDialog(Frame owner) {
+	protected AccessControlDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) {
 		super(owner, "Update Access Control List Permissions", true);
 		initGui();
 	}
@@ -137,12 +148,12 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		// Item(s) description.
 		if (s3Items.length > 1) {
 			// Only objects can be updated in multiples, buckets are always single.
-			itemsDescription.setText("Items: " + s3Items.length + " objects");
+			itemsDescription.setText("<html><b>Object count</b>: " + s3Items.length + " objects");
 		} else {
 			if (s3Items[0] instanceof S3Bucket) {
-				itemsDescription.setText("Bucket: " + ((S3Bucket)s3Items[0]).getName());
+				itemsDescription.setText("<html><b>Bucket</b><br>" + ((S3Bucket)s3Items[0]).getName());
 			} else {
-				itemsDescription.setText("Object: " + ((S3Object)s3Items[0]).getKey());				
+				itemsDescription.setText("<html><b>Object</b><br>" + ((S3Object)s3Items[0]).getKey());				
 			}
 		}		
 		
@@ -174,82 +185,105 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		this.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
 
 		// Canonical Grantee Table and add/remove buttons.
-		canonicalGranteeTableModel = new GranteeTableModel(CanonicalGrantee.class);
-		canonicalGranteeTable = new GranteeTable(canonicalGranteeTableModel);
-		JButton removeCanonical = new JButton("-");
+		canonicalGranteeTableModel = new GranteeTableModel(CanonicalGrantee.class);        
+		canonicalGranteeTable = new GranteeTable(canonicalGranteeTableModel);        
+		JButton removeCanonical = new JButton();
+        removeCanonical.setToolTipText("Remove the selected Canonical User grantee");
+        applyIcon(removeCanonical, "/images/nuvola/16x16/actions/viewmag-.png");
 		removeCanonical.addActionListener(this);
 		removeCanonical.setActionCommand("removeCanonicalGrantee");
-		JButton addCanonical = new JButton("+");
+		JButton addCanonical = new JButton();
+        addCanonical.setToolTipText("Add a new Canonical User grantee");
+        applyIcon(addCanonical, "/images/nuvola/16x16/actions/viewmag+.png");
 		addCanonical.setActionCommand("addCanonicalGrantee");
 		addCanonical.addActionListener(this);
 
 		// Email Address Grantee Table and add/remove buttons.
 		emailGranteeTableModel = new GranteeTableModel(EmailAddressGrantee.class);
 		emailGranteeTable = new GranteeTable(emailGranteeTableModel);
-		JButton removeEmail = new JButton("-");
+		JButton removeEmail = new JButton();
+        removeEmail.setToolTipText("Remove the selected Email Address grantee");
+        applyIcon(removeEmail, "/images/nuvola/16x16/actions/viewmag-.png");        
 		removeEmail.setActionCommand("removeEmailGrantee");
 		removeEmail.addActionListener(this);
-		JButton addEmail = new JButton("+");
+		JButton addEmail = new JButton();
+        addEmail.setToolTipText("Add a new Email Address grantee");
+        applyIcon(addEmail, "/images/nuvola/16x16/actions/viewmag+.png");
 		addEmail.setActionCommand("addEmailGrantee");
 		addEmail.addActionListener(this);
 
 		// Group grantee table and add/remove buttons.
 		groupGranteeTableModel = new GranteeTableModel(GroupGrantee.class);
 		groupGranteeTable = new GranteeTable(groupGranteeTableModel);
-		JButton removeGroup = new JButton("-");
+		JButton removeGroup = new JButton();
+        removeGroup.setToolTipText("Remove the selected Group grantee");
+        applyIcon(removeGroup, "/images/nuvola/16x16/actions/viewmag-.png");        
 		removeGroup.setActionCommand("removeGroupGrantee");
 		removeGroup.addActionListener(this);
-		JButton addGroup = new JButton("+");
+		JButton addGroup = new JButton();
+        addGroup.setToolTipText("Add a new Group grantee");
+        applyIcon(addGroup, "/images/nuvola/16x16/actions/viewmag+.png");
 		addGroup.setActionCommand("addGroupGrantee");
 		addGroup.addActionListener(this);
 
 		// Action buttons.
 		JPanel buttonsContainer = new JPanel(new GridBagLayout());
-		JButton cancel = new JButton("Cancel Permission Changes");
-		cancel.addActionListener(this);
-		cancel.setActionCommand("Cancel");
-		JButton ok = new JButton("Save Permission Changes");
-		ok.setActionCommand("OK");
-		ok.addActionListener(this);
+		JButton cancelButton = new JButton("Cancel Permission Changes");
+        cancelButton.setDefaultCapable(true);
+		cancelButton.addActionListener(this);
+		cancelButton.setActionCommand("Cancel");
+		JButton okButton = new JButton("Save Permission Changes");
+		okButton.setActionCommand("OK");
+		okButton.addActionListener(this);
 			
 		// Overall container.		
 		JPanel container = new JPanel(new GridBagLayout());
-
-		itemsDescription = new JLabel();
-		container.add(itemsDescription, //itemBorderPanel, 
-			new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        int row = 0;
+        
+		itemsDescription = new JHtmlLabel("", hyperlinkListener);
+		container.add(itemsDescription, 
+			new GridBagConstraints(0, row, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
 		JPanel canonicalAddRemovePanel = new JPanel();
 		canonicalAddRemovePanel.add(removeCanonical);
 		canonicalAddRemovePanel.add(addCanonical);
-		container.add(new JScrollPane(canonicalGranteeTable),  
-			new GridBagConstraints(0, 1, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsTable, 0, 0));
+
+        container.add(new JHtmlLabel("<html><b>Canonical User Grantees</b></html>", hyperlinkListener),
+            new GridBagConstraints(0, ++row, 2, 1, 0, 0, GridBagConstraints.SOUTHWEST, GridBagConstraints.HORIZONTAL, insetsZeroAtBottom, 0, 0));
+        container.add(new JScrollPane(canonicalGranteeTable),  
+			new GridBagConstraints(0, ++row, 2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZeroAtBottom, 0, 0));
+        
+        container.add(new JHtmlLabel("<html><b>Group Grantees</b></html>", hyperlinkListener),
+            new GridBagConstraints(0, ++row, 1, 1, 1, 0, GridBagConstraints.SOUTHWEST, GridBagConstraints.HORIZONTAL, insetsZeroAtBottom, 0, 0));
 		container.add(canonicalAddRemovePanel,
-			new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsAddRemoveButtons, 0, 0));
+			new GridBagConstraints(1, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZeroAtTop, 0, 0));
 
 		JPanel groupAddRemovePanel = new JPanel();
 		groupAddRemovePanel.add(removeGroup);
 		groupAddRemovePanel.add(addGroup);
 		container.add(new JScrollPane(groupGranteeTable),  
-			new GridBagConstraints(0, 3, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsTable, 0, 0));
+			new GridBagConstraints(0, ++row, 2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZeroAtBottom, 0, 0));
+
+        container.add(new JHtmlLabel("<html><b>Email Address Grantees</b></html>", hyperlinkListener),
+            new GridBagConstraints(0, ++row, 1, 1, 1, 0, GridBagConstraints.SOUTHWEST, GridBagConstraints.HORIZONTAL, insetsZeroAtBottom, 0, 0));
 		container.add(groupAddRemovePanel,
-			new GridBagConstraints(0, 4, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsAddRemoveButtons, 0, 0));
+			new GridBagConstraints(1, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZeroAtTop, 0, 0));
 		
 		JPanel emailAddRemovePanel = new JPanel();
 		emailAddRemovePanel.add(removeEmail);
 		emailAddRemovePanel.add(addEmail);
 		container.add(new JScrollPane(emailGranteeTable),  
-			new GridBagConstraints(0, 5, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsTable, 0, 0));
+			new GridBagConstraints(0, ++row, 2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZeroAtBottom, 0, 0));
 		container.add(emailAddRemovePanel,
-			new GridBagConstraints(0, 6, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsAddRemoveButtons, 0, 0));
+			new GridBagConstraints(1, ++row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZeroAtTop, 0, 0));
 
-		buttonsContainer.add(cancel, 
+		buttonsContainer.add(cancelButton, 
 			new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsZero, 0, 0)); 
-		buttonsContainer.add(ok, 
+		buttonsContainer.add(okButton, 
 			new GridBagConstraints(1, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsZero, 0, 0)); 
 		
 		container.add(buttonsContainer, 
-			new GridBagConstraints(0, 7, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+			new GridBagConstraints(0, ++row, 2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 				
 		this.getContentPane().add(container);
 		this.pack();
@@ -265,6 +299,16 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		groupGranteeTable.getColumnModel().getColumn(0).setPreferredWidth((int)
 			(groupGranteeTable.getParent().getBounds().getWidth() * 0.9));
 	}
+    
+    private void applyIcon(JButton button, String iconResourcePath) {
+        URL iconUrl = getClass().getResource(iconResourcePath);
+        if (iconUrl != null) {
+            ImageIcon icon = new ImageIcon(iconUrl);
+            button.setIcon(icon);
+        } else {
+            log.warn("Unable to load button icon with resource path: " + iconResourcePath);
+        }
+    }
 	
     /**
      * @return the ACL settings as set by the user in the dialog
@@ -348,9 +392,11 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      * @param accessControlList the original ACL settings for the S3Bucket or S3Objects provided
      * @return  the update ACL settings if the user applies changes, null if the dialog is cancelled.
      */
-	public static AccessControlList showDialog(Frame owner, BaseS3Object[] s3Items, AccessControlList accessControlList) {
+	public static AccessControlList showDialog(Frame owner, BaseS3Object[] s3Items, 
+        AccessControlList accessControlList, HyperlinkActivatedListener hyperlinkListener) 
+    {
 		if (accessControlDialog == null) {
-			accessControlDialog = new AccessControlDialog(owner);
+			accessControlDialog = new AccessControlDialog(owner, hyperlinkListener);
 		}
 		accessControlDialog.initData(s3Items, accessControlList);
 		accessControlDialog.show();
@@ -363,18 +409,20 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      * @author James Murty
 	 */
 	private class GranteeTable extends JTable {
-		public GranteeTable(GranteeTableModel granteeTableModel) {
-			super(granteeTableModel);		
+		public GranteeTable(TableModel granteeTableModel) {
+			super();
+            TableSorter sorter = new TableSorter(granteeTableModel);
+            this.setModel(sorter);
+            sorter.setTableHeader(this.getTableHeader());
 			
 			getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			getSelectionModel().addListSelectionListener(this);
-			setDefaultRenderer(GroupGrantee.class, new DefaultTableCellRenderer() {
-				public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-					return super.getTableCellRendererComponent(table, ((GranteeInterface)value).getIdentifier(), isSelected, hasFocus, row, column);
-				}
-			});			
-			setDefaultEditor(GroupGrantee.class, new DefaultCellEditor(groupGranteeComboBox));		
-			setDefaultEditor(Permission.class, new DefaultCellEditor(permissionComboBox));			
+            DefaultCellEditor groupCellEditor = new DefaultCellEditor(groupGranteeComboBox);
+            groupCellEditor.setClickCountToStart(2);
+			setDefaultEditor(GroupGrantee.class, groupCellEditor);
+            DefaultCellEditor permissionCellEditor = new DefaultCellEditor(permissionComboBox);
+            permissionCellEditor.setClickCountToStart(2);
+			setDefaultEditor(Permission.class, permissionCellEditor);			
 		}
 	}
 
@@ -418,28 +466,28 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 			// New object to insert.
 			currentGrantees.add(insertRow, gap);
 			if (GroupGrantee.class.equals(granteeClass)) {
-				super.insertRow(insertRow, new Object[] {grantee, permission});				
+                this.insertRow(insertRow, new Object[] {grantee, permission});				
 			} else {
-				super.insertRow(insertRow, new Object[] {grantee.getIdentifier(), permission});
+                this.insertRow(insertRow, new Object[] {grantee.getIdentifier(), permission});
 			}
 			return insertRow;
 		}
 		
 		public void removeGrantAndPermission(int index) {
-			super.removeRow(index);
+			this.removeRow(index);
 			currentGrantees.remove(index);
 		}
 		
 		public void removeAllGrantAndPermissions() {
-			int rowCount = super.getRowCount();
+			int rowCount = this.getRowCount();
 			for (int i = 0; i < rowCount; i++) {
-				super.removeRow(0);
+                this.removeRow(0);
 			}
 			currentGrantees.clear();
 		}
 		
 		public Permission getPermission(int index) {
-			return (Permission) super.getValueAt(index, 1);
+			return (Permission) this.getValueAt(index, 1);
 		}
 		
 		public GranteeInterface getGrantee(int index) {
@@ -456,7 +504,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		}
 
 		public boolean isCellEditable(int row, int column) {
-			return true; // (column > 0);
+            return true;
 		}
 		
 		public Class getColumnClass(int columnIndex) {
@@ -509,7 +557,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		bucket.setName("SomeReallyLongAndWackyBucketNamePath.HereItIs");
 		
 		AccessControlList updatedACL = acl;
-		while ((updatedACL = AccessControlDialog.showDialog(f, new S3Bucket[] {bucket}, updatedACL)) != null) { 
+		while ((updatedACL = AccessControlDialog.showDialog(f, new S3Bucket[] {bucket}, updatedACL, null)) != null) { 
 			System.out.println(updatedACL.toXml());
 		}		
 		
