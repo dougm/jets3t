@@ -104,6 +104,7 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.TableSorter;
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
@@ -157,7 +158,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public static final String APPLICATION_TITLE = "jets3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
     
-    private File rememberedLoginsDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
+    private File cockpitHomeDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
     
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
@@ -288,13 +289,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 this.ownerFrame = (Frame) c;                    
             }
         }
-        
-        // Ensure the preferences directory exists.
-        if (!rememberedLoginsDirectory.exists()) {
-            log.info("Creating remembered logins directory " + rememberedLoginsDirectory);
-            rememberedLoginsDirectory.mkdir();
-        }
-        
+                
         // Initialise the GUI.
         initGui();      
 
@@ -308,6 +303,37 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, message, e);
         }
+        
+        // Ensure cockpit's home directory exists.
+        if (!cockpitHomeDirectory.exists()) {
+            log.info("Creating home directory for Cockpit: " + cockpitHomeDirectory);
+            cockpitHomeDirectory.mkdirs();
+        }
+        
+        // Load Cockpit configuration files from cockpit's home directory.
+        File mimeTypesFile = new File(cockpitHomeDirectory, "mime.types");
+        if (mimeTypesFile.exists()) {
+            try {
+                Mimetypes.getInstance().loadAndReplaceMimetypes(
+                    new FileInputStream(mimeTypesFile));
+            } catch (IOException e) {
+                String message = "Unable to load mime.types file: " + mimeTypesFile;
+                log.error(message, e);
+                ErrorDialog.showDialog(ownerFrame, this, message, e);
+            }
+        }
+        File jets3tPropertiesFile = new File(cockpitHomeDirectory, "jets3t.properties");
+        if (jets3tPropertiesFile.exists()) {
+            try {
+                Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                    .loadAndReplaceProperties(new FileInputStream(jets3tPropertiesFile),
+                        "jets3t.properties in Cockpit's home folder " + cockpitHomeDirectory);
+            } catch (IOException e) {
+                String message = "Unable to load jets3t.properties file: " + jets3tPropertiesFile;
+                log.error(message, e);
+                ErrorDialog.showDialog(ownerFrame, this, message, e);
+            }
+        }        
         
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {

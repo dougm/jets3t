@@ -75,7 +75,7 @@ public abstract class S3Service {
     
     public static String S3_ENDPOINT_HOST = 
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-        .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
+            .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
 
     private AWSCredentials awsCredentials = null;
     private String invokingApplicationDescription = null;
@@ -105,6 +105,11 @@ public abstract class S3Service {
         // TODO Confirm this works as expected...
         // Set the InetAddress DNS caching time-to-live to 300 seconds.
         System.setProperty("networkaddress.cache.ttl", "300");
+        
+        // Update the end-point, in case the properties have changed.
+        S3_ENDPOINT_HOST = 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
     }
 
     /**

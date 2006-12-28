@@ -105,7 +105,7 @@ public class Jets3tProperties {
      * @param propertiesSource
      * @throws IOException
      */
-    private void loadAndReplaceProperties(InputStream is, String propertiesSource) 
+    public void loadAndReplaceProperties(InputStream is, String propertiesSource) 
         throws IOException 
     {
         Properties newProperties = new Properties();
