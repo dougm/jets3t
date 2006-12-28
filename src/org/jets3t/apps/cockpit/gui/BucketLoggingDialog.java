@@ -73,7 +73,8 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
         this.s3Service = s3Service;
         
         String introductionText = "<html><center>View and modify your bucket logging settings<br>"
-            + "Select a bucket in the <b>Log to</b> list to apply changes<p>&nbsp;</center></html>";
+            + "Select a bucket in the <b>Log to</b> list to apply changes<br><b>Note</b>: The target "
+            + "bucket's ACL permissions are updated if necessary to allow logging<p>&nbsp;</center></html>";
         JHtmlLabel introductionLabel = new JHtmlLabel(introductionText, hyperlinkListener);
         introductionLabel.setHorizontalAlignment(JLabel.CENTER);
         JHtmlLabel loggingStatusLabel = new JHtmlLabel("<html><b>Logging status</b></html>", hyperlinkListener);
@@ -147,7 +148,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
         } else {
             loggedToBucketComboBox.setSelectedIndex(0);
             if (loggedBucketComboBox.getSelectedIndex() != 0) {
-                prefixTextField.setText(loggedBucketComboBox.getSelectedItem() + "-");                
+                prefixTextField.setText(loggedBucketComboBox.getSelectedItem() + ".");                
             } else {
                 prefixTextField.setText("");
             }
@@ -232,7 +233,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
                     try {
                         S3BucketLoggingStatus loggingStatus =
                             new S3BucketLoggingStatus(loggedToBucketName[0], loggingFilePrefix[0]);
-                        s3Service.setBucketLoggingStatus(loggedBucketName, loggingStatus);
+                        s3Service.setBucketLoggingStatus(loggedBucketName, loggingStatus, true);
                         
                         loggingStatusMap.put(loggedBucketName, loggingStatus);
                     } catch (Exception e) {
