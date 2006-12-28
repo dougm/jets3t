@@ -20,11 +20,15 @@ package org.jets3t.service;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.GrantAndPermission;
+import org.jets3t.service.acl.GroupGrantee;
+import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
@@ -951,12 +955,64 @@ public abstract class S3Service {
      * the name of the bucket the logging settings will apply to.
      * @param status
      * the logging status settings to apply to the bucket.
+     * @param updateTargetACLifRequired
+     * if true, the method will check the target bucket to ensure it has the necessary ACL
+     * permissions set to allow logging (that is, WRITE and READ_ACP for the group
+     * <tt>http://acs.amazonaws.com/groups/s3/LogDelivery</tt>). If the target bucket does not
+     * have the correct permissions the bucket's ACL will be updated to have the correct 
+     * permissions. If this parameter is false, no ACL checks or updates will occur. 
+     * 
      * @throws S3ServiceException
      */
-    public void setBucketLoggingStatus(String bucketName, S3BucketLoggingStatus status) 
+    public void setBucketLoggingStatus(String bucketName, S3BucketLoggingStatus status, 
+        boolean updateTargetACLifRequired) 
         throws S3ServiceException
     {
         setBucketLoggingStatusImpl(bucketName, status);
+        
+        if (updateTargetACLifRequired) {            
+            // Check whether the target bucket has the ACL permissions necessary for logging.
+            log.debug("Checking whether the target logging bucket '" + 
+                status.getTargetBucketName() + "' has the appropriate ACL settings");
+            boolean isSetLoggingGroupWrite = false;
+            boolean isSetLoggingGroupReadACP = false;
+            String groupIdentifier = GroupGrantee.LOG_DELIVERY.getIdentifier();
+            
+            AccessControlList logBucketACL = getBucketAcl(status.getTargetBucketName());
+            
+            Iterator grantIter = logBucketACL.getGrants().iterator();
+            while (grantIter.hasNext()) {
+                GrantAndPermission gap = (GrantAndPermission) grantIter.next();
+                
+                if (groupIdentifier.equals(gap.getGrantee().getIdentifier())) {
+                    // Found a Group Grantee.                    
+                    if (gap.getPermission().equals(Permission.PERMISSION_WRITE)) {
+                        isSetLoggingGroupWrite = true;
+                        log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
+                            + "permission " + Permission.PERMISSION_WRITE + " for group " + 
+                            groupIdentifier);
+                    } else if (gap.getPermission().equals(Permission.PERMISSION_READ_ACP)) {
+                        isSetLoggingGroupReadACP = true;
+                        log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
+                            + "permission " + Permission.PERMISSION_READ_ACP + " for group " + 
+                            groupIdentifier);
+                    }
+                }
+            }
+            
+            // Update target bucket's ACL if necessary.
+            if (!isSetLoggingGroupWrite || !isSetLoggingGroupReadACP) {
+                log.warn("Target logging bucket '" + status.getTargetBucketName() 
+                    + "' does not have the necessary ACL settings, updating ACL now");
+                
+                logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_WRITE);
+                logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_READ_ACP);
+                putBucketAcl(status.getTargetBucketName(), logBucketACL);
+            } else {
+                log.debug("Target logging bucket '" + status.getTargetBucketName() 
+                    + "' has the necessary ACL settings");                
+            }
+        }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////

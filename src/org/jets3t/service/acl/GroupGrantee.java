@@ -21,9 +21,10 @@ package org.jets3t.service.acl;
 /**
  * Represents a Group grantee.
  * <p>
- * Only two groups are available in S3:<br>
+ * Only three groups are available in S3:<br>
  * <tt>ALL_USERS</tt>: The general public<br>
  * <tt>AUTHENTICATED_USERS</tt>: Authenticated Amazon S3 users<br> 
+ * <tt>LOG_DELIVERY</tt>: Amazon's S3 Log Delivery group, who deliver bucket log files<br> 
  * 
  * @author James Murty
  *
@@ -31,6 +32,7 @@ package org.jets3t.service.acl;
 public class GroupGrantee implements GranteeInterface {
 	public static final GroupGrantee ALL_USERS = new GroupGrantee("http://acs.amazonaws.com/groups/global/AllUsers");
 	public static final GroupGrantee AUTHENTICATED_USERS = new GroupGrantee("http://acs.amazonaws.com/groups/global/AuthenticatedUsers");
+    public static final GroupGrantee LOG_DELIVERY = new GroupGrantee("http://acs.amazonaws.com/groups/s3/LogDelivery");
 	
 	private String uri = null;
 	
