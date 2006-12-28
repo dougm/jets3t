@@ -98,6 +98,7 @@ import org.jets3t.apps.cockpit.gui.BucketLoggingDialog;
 import org.jets3t.apps.cockpit.gui.BucketTableModel;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
+import org.jets3t.apps.uploader.UploaderFileExtensionFilter;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
@@ -192,6 +193,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem refreshObjectMenuItem = null;
     private JMenuItem updateObjectACLMenuItem = null;
     private JMenuItem downloadObjectMenuItem = null;
+    private JMenuItem uploadFilesMenuItem = null;
     private JMenuItem generatePublicGetUrl = null;
     private JMenuItem generateTorrentUrl = null;
     private JMenuItem deleteObjectMenuItem = null;
@@ -509,7 +511,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         loginMenuItem.setEnabled(true);
         logoutMenuItem.setEnabled(false);
 
-        // Bucket menu
+        // Bucket action menu.
         bucketActionMenu = new JPopupMenu();
         
         refreshBucketMenuItem = new JMenuItem("Refresh bucket listing");
@@ -585,6 +587,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         applyIcon(downloadObjectMenuItem, "/images/nuvola/16x16/actions/1downarrow.png");
         objectActionMenu.add(downloadObjectMenuItem);
             
+        uploadFilesMenuItem = new JMenuItem("Upload file(s)...");
+        uploadFilesMenuItem.setActionCommand("UploadFiles");
+        uploadFilesMenuItem.addActionListener(this);
+        applyIcon(uploadFilesMenuItem, "/images/nuvola/16x16/actions/1uparrow.png");
+        objectActionMenu.add(uploadFilesMenuItem);
+        
         objectActionMenu.add(new JSeparator());
 
         generatePublicGetUrl = new JMenuItem("Generate Public GET URL...");
@@ -611,6 +619,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         refreshObjectMenuItem.setEnabled(false);
         updateObjectACLMenuItem.setEnabled(false);
         downloadObjectMenuItem.setEnabled(false);
+        uploadFilesMenuItem.setEnabled(false);
         generatePublicGetUrl.setEnabled(false);
         generateTorrentUrl.setEnabled(false);
         deleteObjectMenuItem.setEnabled(false);
@@ -909,6 +918,36 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 log.error(message, ex);
                 ErrorDialog.showDialog(ownerFrame, this, message, ex);
             }
+        } else if ("UploadFiles".equals(event.getActionCommand())) {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setMultiSelectionEnabled(true);
+            fileChooser.setDialogTitle("Choose file(s) to upload");
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+            fileChooser.setApproveButtonText("Upload files");
+            
+            int returnVal = fileChooser.showOpenDialog(ownerFrame);
+            if (returnVal != JFileChooser.APPROVE_OPTION) {
+                    return;
+            }
+            
+            final File[] uploadFiles = fileChooser.getSelectedFiles();
+            if (uploadFiles.length == 0) {
+                return;
+            }
+
+            final Frame myOwnerFrame = ownerFrame;
+            final HyperlinkActivatedListener hyperLinkListener = this;
+            new Thread() {
+                public void run() {                           
+                    try {
+                        uploadFilesToS3(uploadFiles);
+                    } catch (Exception ex) {
+                        String message = "Unable to upload files to S3";
+                        log.error(message, ex);
+                        ErrorDialog.showDialog(myOwnerFrame, hyperLinkListener, message, ex);                
+                    }
+                }
+            }.start();
         } else if (event.getSource().equals(filterObjectsCheckBox)) {
             if (filterObjectsCheckBox.isSelected()) {
                 filterObjectsPanel.setVisible(true);                 
@@ -1127,6 +1166,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             deleteBucketMenuItem.setEnabled(false);
             
             refreshObjectMenuItem.setEnabled(false);
+            uploadFilesMenuItem.setEnabled(false);
             
             objectTableModel.removeAllObjects();
             
@@ -1142,6 +1182,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         deleteBucketMenuItem.setEnabled(true);
         
         refreshObjectMenuItem.setEnabled(true);
+        uploadFilesMenuItem.setEnabled(true);
         
         objectsTable.getDropTarget().setActive(true);
         objectsTableSP.getDropTarget().setActive(true);
