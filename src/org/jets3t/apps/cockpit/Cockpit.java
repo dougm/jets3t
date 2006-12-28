@@ -93,7 +93,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.exolab.castor.jdo.ObjectModifiedException;
+import org.jets3t.apps.cockpit.gui.AccessControlDialog;
 import org.jets3t.apps.cockpit.gui.BucketLoggingDialog;
 import org.jets3t.apps.cockpit.gui.BucketTableModel;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
@@ -101,6 +101,7 @@ import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.TableSorter;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
@@ -211,6 +212,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JTable bucketsTable = null;
     private JTable objectsTable = null;
     private JScrollPane objectsTableSP = null;
+    private BucketTableModel bucketTableModel =  null;
+    private TableSorter bucketTableModelSorter = null;
+    private ObjectTableModel objectTableModel =  null;
+    private TableSorter objectTableModelSorter = null;
     
     private JLabel objectsSummaryLabel = null;
         
@@ -335,7 +340,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         bucketsPanel.add(bucketActionButton, 
             new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
 
-        bucketsTable = new JTable(new BucketTableModel());
+        bucketTableModel = new BucketTableModel();
+        bucketTableModelSorter = new TableSorter(bucketTableModel);        
+        bucketsTable = new JTable(bucketTableModelSorter);
+        bucketTableModelSorter.setTableHeader(bucketsTable.getTableHeader());        
         bucketsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         bucketsTable.getSelectionModel().addListSelectionListener(this);
         bucketsTable.setShowHorizontalLines(true);
@@ -394,19 +402,22 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             new GridBagConstraints(0, ++row, 3, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
                 
         objectsTable = new JTable();
-        objectsTable.setModel(new ObjectTableModel(objectsTable));
-        objectsTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            private static final long serialVersionUID = 8990149746208400183L;
-
+        objectTableModel = new ObjectTableModel(objectsTable);
+        objectTableModelSorter = new TableSorter(objectTableModel);        
+        objectTableModelSorter.setTableHeader(objectsTable.getTableHeader());        
+        objectsTable.setModel(objectTableModelSorter);        
+        objectsTable.setDefaultRenderer(Long.class, new DefaultTableCellRenderer() {
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                if (value instanceof Date) {
-                    Date date = (Date) value;
-                    return super.getTableCellRendererComponent(table, yearAndTimeSDF.format(date), isSelected, hasFocus, row, column);                    
-                } else {
-                    return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                }
+                String formattedSize = byteFormatter.formatByteSize(((Long)value).longValue()); 
+                return super.getTableCellRendererComponent(table, formattedSize, isSelected, hasFocus, row, column);
             }
         });
+        objectsTable.setDefaultRenderer(Date.class, new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Date date = (Date) value;
+                return super.getTableCellRendererComponent(table, yearAndTimeSDF.format(date), isSelected, hasFocus, row, column);
+            }
+        });        
         objectsTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         objectsTable.getSelectionModel().addListSelectionListener(this);
         objectsTable.setShowHorizontalLines(true);
@@ -912,7 +923,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         // Tools events
         else if ("BucketLogging".equals(event.getActionCommand())) {
-            S3Bucket[] buckets = ((BucketTableModel)bucketsTable.getModel()).getBuckets();
+            S3Bucket[] buckets = bucketTableModel.getBuckets();
             BucketLoggingDialog.showDialog(ownerFrame, s3ServiceMulti.getS3Service(), buckets, this);
         }
         
@@ -1009,8 +1020,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
             
             bucketsTable.clearSelection();
-            ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
-            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();
+            bucketTableModel.removeAllBuckets();
+            objectTableModel.removeAllObjects();
                         
             updateObjectsSummary(false);
 
@@ -1063,8 +1074,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                             startProgressDisplay("Listing buckets for " + s3ServiceMulti.getAWSCredentials().getAccessKey());
                             cachedBuckets.clear();
                             bucketsTable.clearSelection();       
-                            ((BucketTableModel)bucketsTable.getModel()).removeAllBuckets();
-                            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();   
+                            bucketTableModel.removeAllBuckets();
+                            objectTableModel.removeAllObjects();   
                         }
                     });                   
                     
@@ -1072,7 +1083,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             for (int i = 0; i < buckets.length; i++) {
-                                ((BucketTableModel)bucketsTable.getModel()).addBucket(buckets[i]);
+                                bucketTableModel.addBucket(buckets[i]);
                             }
                         }
                     });
@@ -1117,7 +1128,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             refreshObjectMenuItem.setEnabled(false);
             
-            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();
+            objectTableModel.removeAllObjects();
             
             objectsTable.getDropTarget().setActive(false);
             objectsTableSP.getDropTarget().setActive(false);
@@ -1138,8 +1149,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         if (cachedBuckets.containsKey(newlySelectedBucket.getName())) {
             S3Object[] objects = (S3Object[]) cachedBuckets.get(newlySelectedBucket.getName());
             
-            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                    
-            ((ObjectTableModel)objectsTable.getModel()).addObjects(objects, false);
+            objectTableModel.removeAllObjects();                    
+            objectTableModel.addObjects(objects, false);
             updateObjectsSummary(false);
         } else {        
             listObjects();
@@ -1185,7 +1196,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         public void run() {
                             startProgressDisplay("Listing objects in " + getCurrentSelectedBucket().getName(),
                                 0, 0, "Cancel bucket listing", cancelListener);
-                            ((ObjectTableModel)objectsTable.getModel()).removeAllObjects();                                                
+                            objectTableModel.removeAllObjects();                                                
                         }
                     });
                     
@@ -1205,7 +1216,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
                         SwingUtilities.invokeLater(new Runnable() {
                             public void run() {
-                                ((ObjectTableModel)objectsTable.getModel()).addObjects(objects, false);
+                                objectTableModel.addObjects(objects, false);
                                 updateObjectsSummary(true);
                                 updateProgressDisplay("Listed " + allObjects.size() + " objects in " 
                                     + getCurrentSelectedBucket().getName(), 0);
@@ -1216,7 +1227,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             updateObjectsSummary(listingCancelled[0]);
-                            S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+                            S3Object[] allObjects = objectTableModel.getObjects();
                             cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
                         }
                     });                        
@@ -1240,7 +1251,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      *
      */
     private void updateObjectsSummary(boolean isIncompleteListing) {
-        S3Object[] objects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+        S3Object[] objects = objectTableModel.getObjects();
         
         try {
             String summary = "Please select a bucket";        
@@ -1293,8 +1304,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         if (bucketsTable.getSelectedRows().length == 0) {
             return null;
         } else {
-            return ((BucketTableModel)bucketsTable.getModel()).getBucket(
-                    bucketsTable.getSelectedRows()[0]);
+            return bucketTableModel.getBucket(
+                bucketTableModelSorter.modelIndex(
+                    bucketsTable.getSelectedRows()[0]));
         }
     }
     
@@ -1353,7 +1365,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     for (int i = 0; i < event.getCreatedBuckets().length; i++) {                
-                        int insertRow = ((BucketTableModel) bucketsTable.getModel()).addBucket(
+                        int insertRow = bucketTableModel.addBucket(
                             event.getCreatedBuckets()[i]);
                         bucketsTable.setRowSelectionInterval(insertRow, insertRow);                
                     }
@@ -1400,7 +1412,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         try {
             s3ServiceMulti.getS3Service().deleteBucket(currentBucket.getName());
-            ((BucketTableModel)bucketsTable.getModel()).removeBucket(currentBucket);
+            bucketTableModel.removeBucket(currentBucket);
         } catch (Exception e) {
             String message = "Unable to delete bucket";
             log.error(message, e);
@@ -1423,7 +1435,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             if (bucketName != null) {
                 if (s3ServiceMulti.getS3Service().isBucketAccessible(bucketName)) {
                     S3Bucket thirdPartyBucket = new S3Bucket(bucketName);
-                    ((BucketTableModel)bucketsTable.getModel()).addBucket(thirdPartyBucket);
+                    bucketTableModel.addBucket(thirdPartyBucket);
                 } else {
                     String message = "Unable to access third-party bucket: " + bucketName;
                     log.error(message);
@@ -1445,7 +1457,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             S3Bucket currentBucket = getCurrentSelectedBucket();
             AccessControlList bucketACL = s3ServiceMulti.getS3Service().getBucketAcl(currentBucket);
             
-            AccessControlList updatedBucketACL = AccessControlDialog.showDialog(ownerFrame, new S3Bucket[] {currentBucket}, bucketACL);
+            AccessControlList updatedBucketACL = AccessControlDialog.showDialog(
+                ownerFrame, new S3Bucket[] {currentBucket}, bucketACL, this);
             if (updatedBucketACL != null) {
                 currentBucket.setAcl(updatedBucketACL);
                 s3ServiceMulti.getS3Service().putBucketAcl(currentBucket);
@@ -1461,13 +1474,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @return the set of objects currently selected in the gui, or an empty array if none are selected.
      */
     private S3Object[] getSelectedObjects() {
-        int selRows[] = objectsTable.getSelectedRows();
-        if (selRows.length == 0) {
+        int viewRows[] = objectsTable.getSelectedRows();
+        if (viewRows.length == 0) {
             return new S3Object[] {};
         } else {
-            S3Object objects[] = new S3Object[selRows.length];
-            for (int i = 0; i < selRows.length; i++) {
-                objects[i] = ((ObjectTableModel)objectsTable.getModel()).getObject(selRows[i]);
+            S3Object objects[] = new S3Object[viewRows.length];
+            for (int i = 0; i < viewRows.length; i++) {
+                int modelRow = objectTableModelSorter.modelIndex(viewRows[i]);
+                objects[i] = objectTableModel.getObject(modelRow);
             }
             return objects;
         }
@@ -1510,7 +1524,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             stopProgressDisplay();                
             
-            final S3Object[] objectsWithACL = getSelectedObjects();
+            final S3Object[] objectsWithACL = getSelectedObjects();            
+            final HyperlinkActivatedListener hyperlinkListener = this;
             
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -1527,7 +1542,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     }
                     
                     // Show ACL dialog box for user to change ACL settings for all objects.
-                    AccessControlList updatedObjectACL = AccessControlDialog.showDialog(ownerFrame, objectsWithACL, mergedACL);
+                    AccessControlList updatedObjectACL = AccessControlDialog.showDialog(
+                        ownerFrame, objectsWithACL, mergedACL, hyperlinkListener);
                     if (updatedObjectACL != null) {
                         // Update ACLs for each object.
                         for (int i = 0; i < objectsWithACL.length; i++) {
@@ -1933,7 +1949,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.
             List objectsWithExistingKeys = new ArrayList();
-            S3Object[] existingObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+            S3Object[] existingObjects = objectTableModel.getObjects();
             for (int i = 0; i < existingObjects.length; i++) {
                 if (filesForUploadMap.keySet().contains(existingObjects[i].getKey()))
                 {
@@ -2093,7 +2109,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {            
                     for (int i = 0; i < event.getCreatedObjects().length; i++) {
-                        ((ObjectTableModel)objectsTable.getModel()).addObject(
+                        objectTableModel.addObject(
                             event.getCreatedObjects()[i], false);
                     }
                 }
@@ -2130,7 +2146,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     updateObjectsSummary(false);
-                    S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+                    S3Object[] allObjects = objectTableModel.getObjects();
                     cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
                 }
             });
@@ -2258,7 +2274,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {            
                     for (int i = 0; i < event.getDeletedObjects().length; i++) {
-                        ((ObjectTableModel)objectsTable.getModel()).removeObject(
+                        objectTableModel.removeObject(
                             event.getDeletedObjects()[i]);
                     }
                 }
@@ -2273,7 +2289,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     updateObjectsSummary(false);
-                    S3Object[] allObjects = ((ObjectTableModel)objectsTable.getModel()).getObjects();
+                    S3Object[] allObjects = objectTableModel.getObjects();
                     cachedBuckets.put(getCurrentSelectedBucket().getName(), allObjects);
                 }
             });
@@ -2341,7 +2357,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     for (int i = 0; i < event.getCompletedObjects().length; i++) {
                         S3Object object = event.getCompletedObjects()[i];
                         boolean highlightUpdatedObjects = downloadingObjects || viewingObjectProperties; 
-                        ((ObjectTableModel)objectsTable.getModel()).addObject(object, highlightUpdatedObjects);
+                        objectTableModel.addObject(object, highlightUpdatedObjects);
                         log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());                
                     }
                 }

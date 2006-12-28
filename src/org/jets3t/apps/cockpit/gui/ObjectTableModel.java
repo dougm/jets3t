@@ -3,19 +3,16 @@ package org.jets3t.apps.cockpit.gui;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.utils.ByteFormatter;
 
 public class ObjectTableModel extends DefaultTableModel {
-    private static final long serialVersionUID = -8168111242655844228L;
-    
     private JTable objectsTable = null;
     private ArrayList objectList = new ArrayList();
-    private ByteFormatter byteFormatter = new ByteFormatter();
     
     public ObjectTableModel(JTable objectsTable) {
         super(new String[] {"Object Key","Size","Last Modified"}, 0);
@@ -39,8 +36,7 @@ public class ObjectTableModel extends DefaultTableModel {
         // New object to insert.
         objectList.add(insertRow, object);
         this.insertRow(insertRow, new Object[] {object.getKey(), 
-            byteFormatter.formatByteSize(object.getContentLength()), 
-            object.getLastModifiedDate() /*, object.getHash(), object.getStorageClass()*/});
+            new Long(object.getContentLength()), object.getLastModifiedDate()});
         
         // Automatically select (highlight) a newly aded object, if required.
         if (highlightNewObject) {
@@ -82,6 +78,16 @@ public class ObjectTableModel extends DefaultTableModel {
     
     public boolean isCellEditable(int row, int column) {
         return false;
+    }
+    
+    public Class getColumnClass(int columnIndex) {
+        if (columnIndex == 0) {
+            return String.class;
+        } else if (columnIndex == 1) {
+            return Long.class;
+        } else {
+            return Date.class;
+        }
     }
     
 }
