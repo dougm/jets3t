@@ -118,9 +118,19 @@ public class ErrorDialog extends JDialog implements ActionListener {
             
             detailsText += "</table></html>";
         } else {
-            if (throwable != null && throwable.getMessage() != null) {
-                detailsText = "<html><b>Cause</b><br>" + throwable.getMessage() + "</html>";
+            detailsText = "<html>";
+            
+            boolean firstCause = true;
+            Throwable cause = throwable;
+            while (cause != null && cause.getMessage() != null) {
+                if (firstCause) {
+                    detailsText += "<tr><td><b>Cause</b></td></tr>";
+                }
+                detailsText += "<tr><td>" + cause.getMessage() + "</td></tr>";
+                firstCause = false;
+                cause = cause.getCause();
             }
+            detailsText += "</html>";
         }
         return detailsText;
     }
