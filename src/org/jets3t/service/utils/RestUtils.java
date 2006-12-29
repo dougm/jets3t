@@ -20,8 +20,10 @@ package org.jets3t.service.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -35,6 +37,36 @@ import org.jets3t.service.S3ServiceException;
  * @author James Murty
  */
 public class RestUtils {
+
+    /**
+     * A list of HTTP-specific header names, that may be present in S3Objects as metadata but
+     * which should be treated as plain HTTP headers during transmission (ie not converted into
+     * S3 Object metadata items). All items in this list are in lower case.
+     * <p>
+     * This list includes the items:
+     * <table>
+     * <tr><th>Unchanged metadata names</th></tr>
+     * <tr><td>content-type</td></tr>
+     * <tr><td>content-md5</td></tr>
+     * <tr><td>content-length</td></tr>
+     * <tr><td>content-language</td></tr>
+     * <tr><td>expires</td></tr>
+     * <tr><td>cache-control</td></tr>
+     * <tr><td>content-disposition</td></tr>
+     * <tr><td>content-encoding</td></tr>
+     * </table>
+     */
+    public static final List HTTP_HEADER_METADATA_NAMES = Arrays.asList(new String[] {
+        "content-type",
+        "content-md5",
+        "content-length",
+        "content-language",
+        "expires",
+        "cache-control",
+        "content-disposition",
+        "content-encoding"
+        }); 
+
 
     /**
      * Encodes a URL string, and ensures that spaces are encoded as "%20" instead of "+" to keep
@@ -161,18 +193,8 @@ public class RestUtils {
     /**
      * Renames metadata property names to be suitable for use as HTTP Headers. This is done
      * by renaming any non-HTTP headers to have the prefix <code>x-amz-meta-</code> and leaving the 
-     * HTTP header names unchanged. The HTTP header names left unchanged are:
-     * <table>
-     * <tr><th>Unchanged metadata names</th></tr>
-     * <tr><td>content-type</td></tr>
-     * <tr><td>content-md5</td></tr>
-     * <tr><td>content-length</td></tr>
-     * <tr><td>content-language</td></tr>
-     * <tr><td>expires</td></tr>
-     * <tr><td>cache-control</td></tr>
-     * <tr><td>content-disposition</td></tr>
-     * <tr><td>content-encoding</td></tr>
-     * </table>
+     * HTTP header names unchanged. The HTTP header names left unchanged are those found in 
+     * {@link #HTTP_HEADER_METADATA_NAMES} 
      * 
      * @param metadata
      * @return
@@ -186,14 +208,7 @@ public class RestUtils {
                 String key = (String) metaDataIter.next();
                 Object value = metadata.get(key);
 
-                if (!key.equalsIgnoreCase("content-type") 
-                    && !key.equalsIgnoreCase("content-md5")
-                    && !key.equalsIgnoreCase("content-length")
-                    && !key.equalsIgnoreCase("content-language")
-                    && !key.equalsIgnoreCase("expires")
-                    && !key.equalsIgnoreCase("cache-control")
-                    && !key.equalsIgnoreCase("content-disposition")
-                    && !key.equalsIgnoreCase("content-encoding")
+                if (!HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase()) 
                     && !key.startsWith(Constants.REST_HEADER_PREFIX)) 
                 {
                     key = Constants.REST_METADATA_PREFIX + key;
