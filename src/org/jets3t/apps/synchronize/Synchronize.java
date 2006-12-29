@@ -35,6 +35,7 @@ import java.util.Map;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.GZipInflatingOutputStream;
@@ -156,10 +157,25 @@ public class Synchronize {
      * @param bucket    the bucket to create the object in 
      * @param targetKey the key name for the object
      * @param file      the file to upload to S3
+     * @param aclString the ACL to apply to the uploaded object
+     * 
      * @throws Exception
      */
-    private S3Object prepareUploadObject(String targetKey, File file) throws Exception {
+    private S3Object prepareUploadObject(String targetKey, File file, String aclString) 
+        throws Exception 
+    {
         S3Object newObject = new S3Object(targetKey);
+        
+        if ("PUBLIC_READ".equalsIgnoreCase(aclString)) {
+            newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);                        
+        } else if ("PUBLIC_READ_WRITE".equalsIgnoreCase(aclString)) {
+            newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ_WRITE);            
+        } else if ("PRIVATE".equalsIgnoreCase(aclString)) {
+            // Private is the default, no need to ad an ACL
+        } else {
+            throw new Exception("Invalid value for ACL string: " + aclString);
+        }
+        
         newObject.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE, 
             ServiceUtils.formatIso8601Date(new Date(file.lastModified())));
 
@@ -292,10 +308,12 @@ public class Synchronize {
      *                      '/'-delimited file paths as keys
      * @param bucket        the bucket to put the objects in (will be created if necessary)
      * @param rootObjectPath    the root path where objects are put (will be created if necessary)
+     * @param aclString     the ACL to apply to the uploaded object
+     * 
      * @throws Exception
      */
     public void uploadLocalDirectoryToS3(FileComparerResults disrepancyResults, Map filesMap, 
-        Map s3ObjectsMap, S3Bucket bucket, String rootObjectPath) throws Exception 
+        Map s3ObjectsMap, S3Bucket bucket, String rootObjectPath, String aclString) throws Exception 
     {        
         List objectsToUpload = new ArrayList();
         
@@ -316,14 +334,14 @@ public class Synchronize {
 
             if (disrepancyResults.onlyOnClientKeys.contains(keyPath)) {
                 printLine("N " + keyPath);
-                objectsToUpload.add(prepareUploadObject(targetKey, file));
+                objectsToUpload.add(prepareUploadObject(targetKey, file, aclString));
             } else if (disrepancyResults.updatedOnClientKeys.contains(keyPath)) {
                 printLine("U " + keyPath);
-                objectsToUpload.add(prepareUploadObject(targetKey, file));
+                objectsToUpload.add(prepareUploadObject(targetKey, file, aclString));
             } else if (disrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
                 if (isForce) {
                     printLine("F " + keyPath);
-                    objectsToUpload.add(prepareUploadObject(targetKey, file));
+                    objectsToUpload.add(prepareUploadObject(targetKey, file, aclString));
                 } else {
                     printLine("- " + keyPath);
                 }
@@ -333,7 +351,7 @@ public class Synchronize {
                     printLine("r " + keyPath);                    
                 } else {
                     printLine("R " + keyPath);
-                    objectsToUpload.add(prepareUploadObject(targetKey, file));
+                    objectsToUpload.add(prepareUploadObject(targetKey, file, aclString));
                 }
             } else {
                 // Uh oh, program error here. The safest thing to do is abort!
@@ -544,9 +562,13 @@ public class Synchronize {
      * the action to perform, UP(load) or DOWN(load)
      * @param cryptoPassword      
      * if non-null, an {@link EncryptionUtil} object is created with the provided password to encrypt or decrypt files.
+     * @param aclString 
+     * the ACL to apply to the uploaded object
+     * 
      * @throws Exception
      */
-    public void run(String s3Path, List fileList, String actionCommand, String cryptoPassword) throws Exception 
+    public void run(String s3Path, List fileList, String actionCommand, String cryptoPassword, 
+        String aclString) throws Exception 
     {
         String bucketName = null;
         String objectPath = "";        
@@ -626,7 +648,7 @@ public class Synchronize {
 
         // Perform the requested action on the set of disrepancies.
         if ("UP".equals(actionCommand)) {
-            uploadLocalDirectoryToS3(discrepancyResults, filesMap, s3ObjectsMap, bucket, objectPath);
+            uploadLocalDirectoryToS3(discrepancyResults, filesMap, s3ObjectsMap, bucket, objectPath, aclString);
         } else if ("DOWN".equals(actionCommand)) {
             restoreFromS3ToLocalDirectory(discrepancyResults, filesMap, s3ObjectsMap, objectPath, (File) fileList.get(0), bucket);
         }
@@ -815,13 +837,24 @@ public class Synchronize {
         // Load the AWS credentials from encrypted file.
         AWSCredentials awsCredentials = new AWSCredentials(
             properties.getStringProperty("accesskey", null), 
-            properties.getStringProperty("secretkey", null));        
+            properties.getStringProperty("secretkey", null));       
+        
+        String aclString = properties.getStringProperty("acl", "PRIVATE");        
+        if (!"PUBLIC_READ".equalsIgnoreCase(aclString) 
+            && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString) 
+            && !"PRIVATE".equalsIgnoreCase(aclString)) 
+        {
+            System.err.println("ERROR: Acess Control List setting \"acl\" must have one of the values "
+                + "PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE");
+            System.exit(2);                                    
+        }
          
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
             doAction, isQuiet, isForce, isKeepFiles, isGzipEnabled, isEncryptionEnabled);
-        client.run(s3Path, fileList, actionCommand, properties.getStringProperty("password", null));
+        client.run(s3Path, fileList, actionCommand, 
+            properties.getStringProperty("password", null), aclString);
     }
         
 }
