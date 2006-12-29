@@ -12,6 +12,7 @@ COCKPIT
 - Files being sent to s3 are only opened when necessary, removing the potential for too many files
   to be open at once (exceeding an Operating System imposed limit).
 - When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
+- Access Control List permissions of uploaded files can be set to PRIVATE, PUBLIC_READ or PUBLIC_READ_WRITE
 
 
 SYNCHONIZE
@@ -19,6 +20,7 @@ SYNCHONIZE
 - Files being sent to s3 are only opened when necessary, removing the potential for too many files
   to be open at once (exceeding an Operating System imposed limit).
 - When uploading files, specific file/directory paths can be ignored using .jets3t-ignore settings files.
+- Access Control List permissions of uploaded files can be set to PRIVATE, PUBLIC_READ or PUBLIC_READ_WRITE
 
 
 UPLOADER
