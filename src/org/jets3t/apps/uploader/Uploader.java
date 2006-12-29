@@ -848,10 +848,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * the AWS credentials provided by the server-side script if access was allowed, null otherwise.
      * 
      * @throws HttpException
-     * @throws IOException
+     * @throws Exception
      */
     private GatekeeperMessage contactGatewayServer(S3Object[] objects) 
-        throws HttpException, IOException 
+        throws HttpException, Exception 
     {
         // Retrieve credentials from URL location value by the property 'credentialsServiceUrl'.  
         String gatekeeperUrl = uploaderProperties.getStringProperty(
@@ -879,13 +879,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
          */
         
         // Add all properties/parameters to credentials POST request.
-        PostMethod putMethod = new PostMethod(gatekeeperUrl);
+        PostMethod postMethod = new PostMethod(gatekeeperUrl);
         Properties properties = gatekeeperMessage.encodeToProperties();
         Iterator iter = properties.keySet().iterator();
         while (iter.hasNext()) { 
             String fieldName = (String) iter.next();
             String fieldValue = (String) properties.getProperty(fieldName);
-            putMethod.addParameter(fieldName, fieldValue);
+            postMethod.setParameter(fieldName, fieldValue);
         }
         
         // Try to detect any necessary proxy configurations.
@@ -911,19 +911,19 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Perform Gateway request.
         log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
         try {                        
-            int responseCode = httpClient.executeMethod(putMethod);
-            String contentType = putMethod.getResponseHeader("Content-Type").getValue();
+            int responseCode = httpClient.executeMethod(postMethod);
+            String contentType = postMethod.getResponseHeader("Content-Type").getValue();
             if (responseCode == 200 
                 && GatekeeperMessage.CONTENT_TYPE.equals(contentType)) 
             {
                 InputStream responseInputStream = null;
 
-                Header encodingHeader = putMethod.getResponseHeader("Content-Encoding");
+                Header encodingHeader = postMethod.getResponseHeader("Content-Encoding");
                 if (encodingHeader != null && "gzip".equalsIgnoreCase(encodingHeader.getValue())) {
                     log.debug("Inflating gzip-encoded response");
-                    responseInputStream = new GZIPInputStream(putMethod.getResponseBodyAsStream());
+                    responseInputStream = new GZIPInputStream(postMethod.getResponseBodyAsStream());
                 } else {
-                    responseInputStream = putMethod.getResponseBodyAsStream();
+                    responseInputStream = postMethod.getResponseBodyAsStream();
                 }                
                 
                 if (responseInputStream == null) {
@@ -931,17 +931,25 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 }         
                 
                 Properties responseProperties = new Properties();
-                responseProperties.load(responseInputStream);                
-                return GatekeeperMessage.decodeFromProperties(responseProperties);
+                responseProperties.load(responseInputStream);
+
+                GatekeeperMessage gatekeeperResponseMessage = 
+                    GatekeeperMessage.decodeFromProperties(responseProperties);
+                
+                if (gatekeeperResponseMessage.getSignatureRequests().length != objects.length) {
+                    throw new Exception("The Gatekeeper service did not provide the necessary " 
+                        + objects.length + " response items");
+                }
+                
+                return gatekeeperResponseMessage;
             } else {                
-                throw new IOException("Unexpected response code (" + responseCode
-                    + ") or response content type (" + contentType + ") from Gatekeeper request: " 
-                    + responseCode);
+                throw new Exception("Unexpected response code (" + responseCode
+                    + ") or response content type (" + contentType + ") from Gatekeeper request");
             }
         } catch (Exception e) {
-            throw new IOException("Unable to receive signed URLs from Gatekeeper at: " + gatekeeperUrl + ". " + e);
+            throw new Exception("Unable to receive signed URLs from Gatekeeper at: " + gatekeeperUrl, e);
         } finally {
-            putMethod.releaseConnection();            
+            postMethod.releaseConnection();            
         }
     }
     
@@ -1078,14 +1086,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     wizardStepBackward();
-                    ErrorDialog.showDialog(ownerFrame, null, "File upload failed, please try again", e);
+                    ErrorDialog.showDialog(ownerFrame, null, "File upload failed", e);
                 };
             });                    
         } 
     }
     
     private SignedUrlAndObject[] prepareSignedObjects(S3Object[] objects, 
-        SignatureRequest[] signatureRequests, XmlGenerator xmlGenerator) 
+        SignatureRequest[] signatureRequests, XmlGenerator xmlGenerator) throws Exception
     {
         List signedObjects = new ArrayList();
         String firstDeclineReason = null;
@@ -1101,7 +1109,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 xmlGenerator.addObjectRequestDetails(object.getKey(), object.getBucketName(), 
                     clonedMetadata, request);
             }
-            
+
             if (request.isSigned()) {
                 // Update object with any changes dictated by Gatekeeper.
                 if (request.getObjectKey() != null) {
@@ -1118,16 +1126,19 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 signedObjects.add(urlAndObject);
             } else {
                 // If ANY requests are declined, we will fail with a fatal error message.
-                log.warn("Object '" + objects[i].getKey() + "' was declined: "
-                    + request.getDeclineReason());
+                String declineReason = (request.getDeclineReason() == null
+                    ? "Unknown"
+                    : request.getDeclineReason());
+                log.warn("Object '" + objects[i].getKey() + "' was declined for reason: "
+                    + declineReason);
                 if (firstDeclineReason == null) {
-                    firstDeclineReason = request.getDeclineReason();
+                    firstDeclineReason = declineReason;
                 }
             }
         }
         if (firstDeclineReason != null) {
-            failWithFatalError("Your upload" + (objects.length > 1 ? "s were" : " was") 
-                + " declined: " + firstDeclineReason);
+            throw new Exception("Your upload" + (objects.length > 1 ? "s were" : " was") 
+                + " declined. Reason: " + firstDeclineReason);
         }
         return (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[] {});
     }
