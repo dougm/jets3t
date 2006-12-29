@@ -38,6 +38,8 @@ import org.apache.commons.logging.LogFactory;
 public class GatekeeperMessage {
     private static final Log log = LogFactory.getLog(GatekeeperMessage.class);
     
+    private static final String DELIM = "|";
+    
     public static final String PROPERTY_TRANSACTION_ID = "transactionId";
     public static final String CONTENT_TYPE = "application/x-message-properties";
     public static final String SUMMARY_DOCUMENT_METADATA_FLAG = "jets3t-uploader-summary-doc";
@@ -106,7 +108,7 @@ public class GatekeeperMessage {
         while (iter.hasNext()) {
             String key = (String) iter.next();
             String value = applicationProperties.getProperty(key);
-            encodeProperty(encodedProperties, prefix + "." + key, value);
+            encodeProperty(encodedProperties, prefix + DELIM + key, value);
         }
         
         prefix = "message";
@@ -114,21 +116,21 @@ public class GatekeeperMessage {
         while (iter.hasNext()) {
             String key = (String) iter.next();
             String value = messageProperties.getProperty(key);
-            encodeProperty(encodedProperties, prefix + "." + key, value);
+            encodeProperty(encodedProperties, prefix + DELIM + key, value);
         }
         
         prefix = "request";
         SignatureRequest[] requests = getSignatureRequests();
         for (int i = 0; i < requests.length; i++) {            
             SignatureRequest request = requests[i];
-            String propertyPrefix = prefix + "." + i + "." + request.getSignatureType() + ".";
+            String propertyPrefix = prefix + DELIM + i + DELIM + request.getSignatureType() + DELIM;
 
             encodeProperty(encodedProperties, propertyPrefix + "objectKey", request.getObjectKey());
             encodeProperty(encodedProperties, propertyPrefix + "bucketName", request.getBucketName());
             encodeProperty(encodedProperties, propertyPrefix + "signedUrl", request.getSignedUrl());
             encodeProperty(encodedProperties, propertyPrefix + "declineReason", request.getDeclineReason());
             
-            propertyPrefix += "metadata.";                
+            propertyPrefix += "metadata" + DELIM;                
             Map metadata = request.getObjectMetadata();
             iter = metadata.keySet().iterator();
             while (iter.hasNext()) {
@@ -160,13 +162,13 @@ public class GatekeeperMessage {
             }
             
             if (key.startsWith("application")) {
-                String propertyName = key.substring(key.lastIndexOf(".") + 1);
+                String propertyName = key.substring(key.lastIndexOf(DELIM) + 1);
                 gatekeeperMessage.addApplicationProperty(propertyName, propertyValue);
             } else if (key.startsWith("message")) {
-                String propertyName = key.substring(key.lastIndexOf(".") + 1);
+                String propertyName = key.substring(key.lastIndexOf(DELIM) + 1);
                 gatekeeperMessage.addMessageProperty(propertyName, propertyValue);                
             } else if (key.startsWith("request")) {
-                StringTokenizer st = new StringTokenizer(key, ".");
+                StringTokenizer st = new StringTokenizer(key, DELIM);
                 st.nextToken(); // Consume object prefix
                 String objectIndexStr = st.nextToken();
                 
