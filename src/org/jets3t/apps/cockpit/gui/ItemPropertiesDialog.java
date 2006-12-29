@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.cockpit;
+package org.jets3t.apps.cockpit.gui;
 
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
@@ -39,6 +39,8 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
+import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.TableSorter;
 import org.jets3t.service.Constants;
 import org.jets3t.service.model.BaseS3Object;
 import org.jets3t.service.model.S3Bucket;
@@ -56,7 +58,7 @@ import org.jets3t.service.security.AWSCredentials;
  * 
  * @author James Murty
  */
-public class PropertiesDialog extends JDialog implements ActionListener {
+public class ItemPropertiesDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -5001163487616690221L;
     
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
@@ -73,7 +75,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
      * @param bucket
      * the bucket whose details will be displayed
      */
-    protected PropertiesDialog(Frame owner, String title, S3Bucket bucket) {
+    protected ItemPropertiesDialog(Frame owner, String title, S3Bucket bucket) {
         super(owner, title, true);
         this.initGui(bucket);
     }
@@ -88,7 +90,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
      * @param object
      * the object whose details will be displayed
      */
-    protected PropertiesDialog(Frame owner, String title, S3Object object) {
+    protected ItemPropertiesDialog(Frame owner, String title, S3Object object) {
         super(owner, title, true);
         this.initGui(object);
     }
@@ -191,9 +193,10 @@ public class PropertiesDialog extends JDialog implements ActionListener {
             storageClassTF.setEditable(false);
             commonPropertiesContainer.add(storageClassTF, new GridBagConstraints(1, 6, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-            commonPropertiesContainer.add(new JLabel("Owner Name:"), new GridBagConstraints(0, 7,
-                1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+
             if (object.getOwner() != null) {
+                commonPropertiesContainer.add(new JLabel("Owner Name:"), new GridBagConstraints(0, 7,
+                    1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
                 JTextField ownerNameTF = new JTextField(object.getOwner().getDisplayName());
                 ownerNameTF.setEditable(false);
                 commonPropertiesContainer.add(ownerNameTF, new GridBagConstraints(1, 7, 1, 1, 1, 0,
@@ -231,12 +234,15 @@ public class PropertiesDialog extends JDialog implements ActionListener {
                 rowIndex++;
             }
 
-            JTable metadataTable = new JTable(new DefaultTableModel(metadata, 
+            DefaultTableModel metadataTableModel = new DefaultTableModel(metadata, 
                 new Object[] {"Name", "Value" }) {
                 public boolean isCellEditable(int row, int column) {
                     return false;
                 }
-            });
+            };
+            TableSorter metadataTableSorter = new TableSorter(metadataTableModel);            
+            JTable metadataTable = new JTable(metadataTableSorter);
+            metadataTableSorter.setTableHeader(metadataTable.getTableHeader());
             metadataContainer.add(new JScrollPane(metadataTable), new GridBagConstraints(0, 0, 1,
                 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         }
@@ -251,7 +257,10 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         container.add(commonPropertiesContainer, new GridBagConstraints(0, 0, 1, 1, 1, 0,
             GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
         if (s3Item instanceof S3Object) {
-            container.add(new JLabel("Metadata", JLabel.CENTER), new GridBagConstraints(0, 1, 1, 1,
+            JHtmlLabel metadataLabel = 
+                new JHtmlLabel("<html><b>Metadata</b></html>", null);
+            metadataLabel.setHorizontalAlignment(JLabel.CENTER);
+            container.add(metadataLabel, new GridBagConstraints(0, 1, 1, 1,
                 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
                 insetsVerticalSpace, 0, 0));
             container.add(metadataContainer, new GridBagConstraints(0, 2, 1, 1, 1, 1,
@@ -277,7 +286,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
      * @param bucket the bucket whose details will be displayed
      */
     public static void showDialog(Frame owner, S3Bucket bucket) {
-        PropertiesDialog dialog = new PropertiesDialog(owner, "Bucket properties", bucket);
+        ItemPropertiesDialog dialog = new ItemPropertiesDialog(owner, "Bucket properties", bucket);
         dialog.show();
         dialog.dispose();
     }
@@ -291,7 +300,7 @@ public class PropertiesDialog extends JDialog implements ActionListener {
      * @param object the object whose details will be displayed
      */
     public static void showDialog(Frame owner, S3Object object) {
-        PropertiesDialog dialog = new PropertiesDialog(owner, "Object properties", object);
+        ItemPropertiesDialog dialog = new ItemPropertiesDialog(owner, "Object properties", object);
         dialog.show();
         dialog.dispose();
     }
@@ -335,8 +344,8 @@ public class PropertiesDialog extends JDialog implements ActionListener {
         object.addMetadata("sample-metadata", "Valuable");
         object.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, "exampleAlgorithmName");
 
-        PropertiesDialog.showDialog(f, bucket);
-        PropertiesDialog.showDialog(f, object);
+        ItemPropertiesDialog.showDialog(f, bucket);
+        ItemPropertiesDialog.showDialog(f, object);
 
         f.dispose();
     }
