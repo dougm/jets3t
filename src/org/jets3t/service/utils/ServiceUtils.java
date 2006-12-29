@@ -229,6 +229,18 @@ public class ServiceUtils {
                 } else if (keyStr.startsWith(Constants.REST_HEADER_PREFIX)) {
                     key = keyStr.substring(Constants.REST_HEADER_PREFIX.length(), keyStr.length());
                     log.debug("Removed Amazon header prefix from key: " + keyStr + "=>" + key);
+                } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase())) {
+                    key = keyStr;
+                    log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);                    
+                } else if ("ETag".equalsIgnoreCase(keyStr)
+                    || "Date".equalsIgnoreCase(keyStr)
+                    || "Last-Modified".equalsIgnoreCase(keyStr))
+                {
+                    key = keyStr;
+                    log.debug("Leaving header item unchanged: " + key + "=" + value);                    
+                } else {
+                    log.debug("Ignoring metadata item: " + keyStr + "=" + value);
+                    continue;
                 }
 
                 // Convert connection header string Collections into simple strings (where
@@ -256,12 +268,7 @@ public class ServiceUtils {
                     }
                 }
 
-                // Ignore/remove x-amz-id-2 and x-amz-request-id AWS debugging headers.
-                if ("id-2".equals(key) || "request-id".equals(key)) {
-                    log.debug("Ignoring AWS debugging header: " + key + "=" + value);
-                } else {
-                    cleanMap.put(key, value);
-                }
+                cleanMap.put(key, value);
             }
         }
         return cleanMap;
