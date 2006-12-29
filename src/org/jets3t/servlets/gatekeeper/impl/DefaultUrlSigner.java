@@ -88,7 +88,7 @@ public class DefaultUrlSigner extends UrlSigner {
     {
         updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedDeleteUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
-            awsCredentials, calculateExpiryTime(), urlPrefix);
+            awsCredentials, calculateExpiryTime());
     }
 
     public String signGet(Properties applicationProperties,  Properties messageProperties, 
@@ -96,7 +96,7 @@ public class DefaultUrlSigner extends UrlSigner {
     {
         updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedGetUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
-            awsCredentials, calculateExpiryTime(), urlPrefix);
+            awsCredentials, calculateExpiryTime());
     }
 
     public String signHead(Properties applicationProperties,  Properties messageProperties, 
@@ -104,7 +104,7 @@ public class DefaultUrlSigner extends UrlSigner {
     {
         updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedHeadUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
-            awsCredentials, calculateExpiryTime(), urlPrefix);
+            awsCredentials, calculateExpiryTime());
     }
 
     public String signPut(Properties applicationProperties,  Properties messageProperties, 
@@ -112,7 +112,7 @@ public class DefaultUrlSigner extends UrlSigner {
     {
         updateObject(signatureRequest, messageProperties);
         return S3Service.createSignedPutUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(),
-            signatureRequest.getObjectMetadata(), awsCredentials, calculateExpiryTime(), urlPrefix);
+            signatureRequest.getObjectMetadata(), awsCredentials, calculateExpiryTime());
     }
 
 }

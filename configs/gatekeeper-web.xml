@@ -34,10 +34,6 @@
 			<param-name>AwsSecretKey</param-name>
 			<param-value><YourAWSSecretKey></param-value>
 		</init-param>
-		<init-param>
-			<param-name>UrlPrefix</param-name>
-			<param-value>https://s3.amazonaws.com/</param-value>
-		</init-param>
 		
 		<!-- Required parameters for DefaultUrlSigner -->
 		<init-param>

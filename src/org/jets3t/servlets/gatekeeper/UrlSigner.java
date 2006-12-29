@@ -29,12 +29,10 @@ import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 
 public abstract class UrlSigner {
     protected AWSCredentials awsCredentials = null;
-    protected String urlPrefix = null;
     
     public UrlSigner(ServletConfig servletConfig) throws ServletException {
         String awsAccessKey = servletConfig.getInitParameter("AwsAccessKey");
         String awsSecretKey = servletConfig.getInitParameter("AwsSecretKey");
-        String urlPrefix = servletConfig.getInitParameter("UrlPrefix");
 
         // Fail with an exception if required init params are missing.
         boolean missingInitParam = false;
@@ -47,16 +45,11 @@ public abstract class UrlSigner {
             errorMessage += "AwsSecretKey ";
             missingInitParam = true;
         }
-        if (urlPrefix == null || urlPrefix.length() == 0) {
-            errorMessage += "UrlPrefix ";
-            missingInitParam = true;
-        }
         if (missingInitParam) {
             throw new ServletException(errorMessage);
         }        
         
         this.awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
-        this.urlPrefix = urlPrefix;        
     }
 
     public abstract String signGet(Properties applicationProperties, Properties messageProperties,
