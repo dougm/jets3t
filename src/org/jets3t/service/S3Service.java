@@ -226,9 +226,6 @@ public abstract class S3Service {
      * @param secondsSinceEpoch
      * the time after which URL's signature will no longer be valid. This time cannot be null.
      *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds. 
-     * @param urlPrefix
-     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
-     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
      * 
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
@@ -236,7 +233,7 @@ public abstract class S3Service {
      * @throws S3ServiceException
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey, 
-        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch, String urlPrefix) 
+        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch) 
         throws S3ServiceException
     {
         String fullKey = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
@@ -252,11 +249,15 @@ public abstract class S3Service {
         String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
         fullKey += "&Signature=" + encodedCanonical;
 
-        if (!urlPrefix.endsWith("/")) {
-            return urlPrefix + "/" + fullKey;
-        } else {
-            return urlPrefix + fullKey;
-        }        
+        // Append URL prefix (protocol and host end point) to signed string
+        boolean isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("s3service.https-only", true);
+
+        if (isHttpsOnly) {
+            return "https://" + S3Service.S3_ENDPOINT_HOST + "/" + fullKey;
+        } else {            
+            return "http://" + S3Service.S3_ENDPOINT_HOST + "/" + fullKey;
+        }
     }
     
     /**
@@ -270,21 +271,18 @@ public abstract class S3Service {
      * the credentials of someone with sufficient privileges to grant access to the bucket/object 
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
-     * @param urlPrefix
-     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
-     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
      * 
      * @return
      * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
      * @throws S3ServiceException
      */
     public static String createSignedGetUrl(String bucketName, String objectKey,
-        AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        AWSCredentials awsCredentials, Date expiryTime) 
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        return createSignedUrl("GET", bucketName, objectKey, null, // headersMap, 
-            awsCredentials, secondsSinceEpoch, urlPrefix);
+        return createSignedUrl("GET", bucketName, objectKey, null, 
+            awsCredentials, secondsSinceEpoch);
     }
 
     /**
@@ -302,21 +300,18 @@ public abstract class S3Service {
      * the credentials of someone with sufficient privileges to grant access to the bucket/object 
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
-     * @param urlPrefix
-     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
-     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
      * 
      * @return
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
      * @throws S3ServiceException
      */
     public static String createSignedPutUrl(String bucketName, String objectKey, 
-        Map headersMap, AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        Map headersMap, AWSCredentials awsCredentials, Date expiryTime) 
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("PUT", bucketName, objectKey, headersMap, 
-            awsCredentials, secondsSinceEpoch, urlPrefix);
+            awsCredentials, secondsSinceEpoch);
     }
             
     /**
@@ -330,21 +325,18 @@ public abstract class S3Service {
      * the credentials of someone with sufficient privileges to grant access to the bucket/object 
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
-     * @param urlPrefix
-     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
-     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
      * 
      * @return
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
      * @throws S3ServiceException
      */
     public static String createSignedDeleteUrl(String bucketName, String objectKey, 
-        AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        AWSCredentials awsCredentials, Date expiryTime) 
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("DELETE", bucketName, objectKey, null, 
-            awsCredentials, secondsSinceEpoch, urlPrefix);
+            awsCredentials, secondsSinceEpoch);
     }
 
     /**
@@ -358,21 +350,18 @@ public abstract class S3Service {
      * the credentials of someone with sufficient privileges to grant access to the bucket/object 
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
-     * @param urlPrefix
-     * the prefix to apply to signed URLs, such as the default secure/insecure S3 URLs 
-     * {@link #DEFAULT_S3_URL_SECURE} and {@link #DEFAULT_S3_URL_INSECURE}.   
      * 
      * @return
      * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
      * @throws S3ServiceException
      */
     public static String createSignedHeadUrl(String bucketName, String objectKey, 
-        AWSCredentials awsCredentials, Date expiryTime, String urlPrefix) 
+        AWSCredentials awsCredentials, Date expiryTime) 
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("HEAD", bucketName, objectKey, null, 
-            awsCredentials, secondsSinceEpoch, urlPrefix);
+            awsCredentials, secondsSinceEpoch);
     }
 
     /**
@@ -961,8 +950,8 @@ public abstract class S3Service {
      * @param status
      * the logging status settings to apply to the bucket.
      * @param updateTargetACLifRequired
-     * if true, the method will check the target bucket to ensure it has the necessary ACL
-     * permissions set to allow logging (that is, WRITE and READ_ACP for the group
+     * if true, when logging is enabled the method will check the target bucket to ensure it has the 
+     * necessary ACL permissions set to allow logging (that is, WRITE and READ_ACP for the group
      * <tt>http://acs.amazonaws.com/groups/s3/LogDelivery</tt>). If the target bucket does not
      * have the correct permissions the bucket's ACL will be updated to have the correct 
      * permissions. If this parameter is false, no ACL checks or updates will occur. 
@@ -975,7 +964,7 @@ public abstract class S3Service {
     {
         setBucketLoggingStatusImpl(bucketName, status);
         
-        if (updateTargetACLifRequired) {            
+        if (status.isLoggingEnabled() && updateTargetACLifRequired) {            
             // Check whether the target bucket has the ACL permissions necessary for logging.
             log.debug("Checking whether the target logging bucket '" + 
                 status.getTargetBucketName() + "' has the appropriate ACL settings");

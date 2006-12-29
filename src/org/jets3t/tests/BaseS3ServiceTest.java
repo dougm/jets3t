@@ -574,7 +574,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
 
         // Create a signed HTTP PUT URL.
         String signedPutUrl = S3Service.createSignedPutUrl(bucket.getName(), object.getKey(), 
-            object.getMetadataMap(), awsCredentials, expiryDate, "https://" + S3Service.S3_ENDPOINT_HOST);
+            object.getMetadataMap(), awsCredentials, expiryDate);
 
         // Put the object in S3 using the signed URL (no AWS credentials required)
         RestS3Service restS3Service = new RestS3Service(null);
@@ -618,7 +618,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
 
         // Create a signed HTTP GET URL.
         String signedGetUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(), 
-            awsCredentials, expiryDate, s3Url);
+            awsCredentials, expiryDate);
 
         // Ensure the signed URL can retrieve the object.
         url = new URL(signedGetUrl);
