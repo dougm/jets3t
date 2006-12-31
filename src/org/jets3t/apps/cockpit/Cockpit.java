@@ -58,6 +58,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.ImageIcon;
 import javax.swing.JApplet;
@@ -107,7 +108,6 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
-import org.jets3t.service.io.GZipInflatingOutputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CancelEventTrigger;
@@ -115,10 +115,10 @@ import org.jets3t.service.multithread.CreateBucketsEvent;
 import org.jets3t.service.multithread.CreateObjectsEvent;
 import org.jets3t.service.multithread.DeleteObjectsEvent;
 import org.jets3t.service.multithread.DownloadObjectsEvent;
+import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
 import org.jets3t.service.multithread.GetObjectsEvent;
 import org.jets3t.service.multithread.LookupACLEvent;
-import org.jets3t.service.multithread.S3ObjectAndOutputStream;
 import org.jets3t.service.multithread.S3ServiceEventListener;
 import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.multithread.ServiceEvent;
@@ -151,7 +151,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     public static final String APPLICATION_DESCRIPTION = "Cockpit/0.5.0";
     
-    public static final String APPLICATION_TITLE = "jets3t Cockpit";
+    public static final String APPLICATION_TITLE = "JetS3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
     
     private File cockpitHomeDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
@@ -223,7 +223,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
     private Map downloadObjectsToFileMap = null;
-    private boolean downloadingObjects = false;    
+    private boolean downloadingObjects = false;   
+    private Map filesInDownloadDirectoryMap = null;
+    private Map s3DownloadObjectsMap = null;
+
     
     private JPanel filterObjectsPanel = null;
     private JCheckBox filterObjectsCheckBox = null;
@@ -1649,8 +1652,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
     /**
      * Prepares to perform a download of objects from S3 by prompting the user for a directory
-     * to store the files in, setting the {@#downloadingObjects} flag, and handing on control
-     * to the method {@#retrieveObjectsDetails}.
+     * to store the files in, then performing the download.
+     * 
      * @throws IOException
      */
     private void downloadSelectedObjects() throws IOException {
@@ -1671,28 +1674,53 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         downloadDirectory = fileChooser.getSelectedFile();
         
-        // Perform the download (via retrieving details with the downloadingObjects flag set)
-        downloadingObjects = true;
-        final S3Object[] objects = getSelectedObjects();
-        retrieveObjectsDetails(objects);
+        prepareForObjectsDownload();
     }
+    
+    private void prepareForObjectsDownload() {
+        // Build map of existing local files.
+        filesInDownloadDirectoryMap = FileComparer.
+            buildFileMap(downloadDirectory, null);
         
+        // Build map of S3 Objects being downloaded. 
+        s3DownloadObjectsMap = FileComparer.populateS3ObjectMap("", getSelectedObjects());
+
+        // Identify objects that may clash with existing files, or may be directories,
+        // and retrieve details for these.
+        ArrayList potentialClashingObjects = new ArrayList();
+        Set existingFilesObjectKeys = filesInDownloadDirectoryMap.keySet();
+        Iterator objectKeyIter = s3DownloadObjectsMap.keySet().iterator();
+        while (objectKeyIter.hasNext()) {
+            String objectKey = (String) objectKeyIter.next();
+            S3Object object = (S3Object) s3DownloadObjectsMap.get(objectKey);
+            if (object.getContentLength() == 0 || existingFilesObjectKeys.contains(objectKey)) {
+                potentialClashingObjects.add(object);
+            }
+        }
+        
+        if (potentialClashingObjects.size() > 0) {
+            // Retrieve details of potential clashes.
+            final S3Object[] clashingObjects = (S3Object[])
+                potentialClashingObjects.toArray(new S3Object[] {});
+            (new Thread() {
+                public void run() {
+                    downloadingObjects = true;
+                    retrieveObjectsDetails(clashingObjects);
+                }
+            }).start();
+        } else {
+            performObjectsDownload();
+        }
+    }
+    
     /**
      * Performs the real work of downloading files by comparing the download candidates against
      * existing files, prompting the user whether to overwrite any pre-existing file versions, 
      * and starting {@link S3ServiceMulti#downloadObjects} where the real work is done.
      *
      */
-    private void performObjectsDownload() {
+    private void performObjectsDownload() {        
         try {
-
-            // Build map of existing local files.
-            Map filesInDownloadDirectoryMap = FileComparer.
-                buildFileMap(downloadDirectory, null);
-            
-            // Build map of S3 Objects being downloaded. 
-            Map s3DownloadObjectsMap = FileComparer.populateS3ObjectMap("", getSelectedObjects());
-                            
             // Compare objects being downloaded and existing local files.
             FileComparerResults comparisonResults = 
                 FileComparer.buildDiscrepancyLists(filesInDownloadDirectoryMap, s3DownloadObjectsMap);
@@ -1763,7 +1791,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
                         
             downloadObjectsToFileMap = new HashMap();
-            ArrayList objAndOutList = new ArrayList();
+            ArrayList downloadPackageList = new ArrayList();
         
             // Setup files to write to, creating parent directories when necessary.
             for (int i = 0; i < objects.length; i++) {
@@ -1782,14 +1810,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 
                 downloadObjectsToFileMap.put(objects[i].getKey(), file);
 
-                OutputStream outputStream = new FileOutputStream(file);
+                boolean isZipped = false;
+                EncryptionUtil encryptionUtil = null;
                 
                 if ("gzip".equalsIgnoreCase(objects[i].getContentEncoding())
                     || objects[i].containsMetadata(Constants.METADATA_JETS3T_COMPRESSED))
                 {
                     // Automatically inflate gzipped data.
-                    log.debug("Inflating gzipped data for object: " + objects[i].getKey());                    
-                    outputStream = new GZipInflatingOutputStream(outputStream);
+                    isZipped = true;
                 }
                 if (objects[i].containsMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM) 
                     || objects[i].containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE))
@@ -1807,26 +1835,27 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         // Item is encrypted with obsolete crypto.
                         log.warn("Object is encrypted with out-dated crypto version, please update it when possible: " 
                             + objects[i].getKey());
-                        outputStream = EncryptionUtil.getObsoleteEncryptionUtil(
-                            cockpitPreferences.getEncryptionPassword()).decrypt(outputStream);                                            
+                        encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(
+                            cockpitPreferences.getEncryptionPassword());                                            
                     } else {
                         String algorithm = (String) objects[i].getMetadata(
                             Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
                         String version = (String) objects[i].getMetadata(
                             Constants.METADATA_JETS3T_CRYPTO_VERSION);
-                        outputStream = new EncryptionUtil(
-                            cockpitPreferences.getEncryptionPassword(), algorithm).decrypt(outputStream);                                            
+                        encryptionUtil = new EncryptionUtil(
+                            cockpitPreferences.getEncryptionPassword(), algorithm);                                            
                     }                    
                 }
-
-                objAndOutList.add(new S3ObjectAndOutputStream(objects[i], outputStream));            
+                
+                downloadPackageList.add(new DownloadPackage(
+                    objects[i], file, isZipped, encryptionUtil));            
             }
             
-            final S3ObjectAndOutputStream[] objAndOutArray = (S3ObjectAndOutputStream[])
-                objAndOutList.toArray(new S3ObjectAndOutputStream[] {});        
+            final DownloadPackage[] downloadPackagesArray = (DownloadPackage[])
+                downloadPackageList.toArray(new DownloadPackage[] {});        
             (new Thread() {
                 public void run() {
-                    s3ServiceMulti.downloadObjects(getCurrentSelectedBucket(), objAndOutArray);
+                    s3ServiceMulti.downloadObjects(getCurrentSelectedBucket(), downloadPackagesArray);
                 }
             }).start();
         } catch (Exception e) {
@@ -1936,7 +1965,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         // File must be pre-processed. Process data from original file 
         // and write it to a temporary one ready for upload.
-        final File tempUploadFile = File.createTempFile("jets3tCockpit",".tmp");
+        final File tempUploadFile = File.createTempFile("JetS3tCockpit",".tmp");
         tempUploadFile.deleteOnExit();
         
         OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempUploadFile));
@@ -2228,7 +2257,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         final S3Object[] objects = getSelectedObjects(); 
 
         if (objects.length != 1) {
-            System.err.println("Ignoring Generate Public URL object command, can only operate on a single object");
+            log.warn("Ignoring Generate Public URL object command, can only operate on a single object");
             return;            
         }
         S3Object currentObject = objects[0];
@@ -2275,7 +2304,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         final S3Object[] objects = getSelectedObjects(); 
 
         if (objects.length != 1) {
-            System.err.println("Ignoring Generate Public URL object command, can only operate on a single object");
+            log.warn("Ignoring Generate Public URL object command, can only operate on a single object");
             return;            
         }
         S3Object currentObject = objects[0];
@@ -2294,7 +2323,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         final S3Object[] objects = getSelectedObjects(); 
 
         if (objects.length == 0) {
-            System.err.println("Ignoring delete object(s) command, no currently selected objects");
+            log.warn("Ignoring delete object(s) command, no currently selected objects");
             return;            
         }
 
@@ -2408,9 +2437,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     // Retain selected status of objects for downloads or properties 
                     for (int i = 0; i < event.getCompletedObjects().length; i++) {
                         S3Object object = event.getCompletedObjects()[i];
-                        boolean highlightUpdatedObjects = downloadingObjects || viewingObjectProperties; 
+                        boolean highlightUpdatedObjects = downloadingObjects || viewingObjectProperties;
                         objectTableModel.addObject(object, highlightUpdatedObjects);
-                        log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());                
+                        log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());
+                        
+                        if (downloadingObjects) {
+                            s3DownloadObjectsMap.put(object.getKey(), object);
+                            log.debug("Updated object download list with " + object.getKey() 
+                                + ", content-type=" + object.getContentType());
+                        }
                     }
                 }
             });
@@ -2536,8 +2571,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     
     public static void main(String args[]) throws Exception {
-        JFrame ownerFrame = new JFrame("jets3t Cockpit");
-        ownerFrame.setName("jets3t Cockpit");
+        JFrame ownerFrame = new JFrame("JetS3t Cockpit");
         ownerFrame.addWindowListener(new WindowListener() {
             public void windowOpened(WindowEvent e) {
             }
