@@ -106,7 +106,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
     };
     
     private static final String[] groupTableColumnNames = new String[] {
-        "Group URL", "Permission"
+        "Group URI", "Permission"
     };
 
     private static final String[] emailTableColumnNames = new String[] {

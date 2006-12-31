@@ -53,7 +53,7 @@ public class LoginCredentialsPanel extends JPanel {
         String descriptionText = 
             "<html><center>View your " +
             "<a href=\"http://aws-portal.amazon.com/gp/aws/developer/account/index.html?ie=UTF8&action=access-key\" " +
-            "target=\"_blank\">AWS Credentials</a> on Amazon's web site.<br></center></html>";
+            "target=\"_blank\">AWS Access Identifiers</a> on Amazon's web site.<br></center></html>";
         String friendlyNameLabelText = 
             "Nickname";
         String friendlyNameTooltipText = 
