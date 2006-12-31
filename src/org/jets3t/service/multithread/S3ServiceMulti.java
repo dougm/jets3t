@@ -21,7 +21,6 @@ package org.jets3t.service.multithread;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -195,17 +194,15 @@ public class S3ServiceMulti {
         final List incompletedBucketList = new ArrayList();
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[buckets.length];
         CreateBucketRunnable[] runnables = new CreateBucketRunnable[buckets.length];
         for (int i = 0; i < runnables.length; i++) {
             incompletedBucketList.add(buckets[i]);
             
             runnables[i] = new CreateBucketRunnable(buckets[i]);
-            threads[i] = new Thread(runnables[i]);
         }
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(CreateBucketsEvent.newStartedEvent(threadWatcher));        
             }
@@ -247,16 +244,14 @@ public class S3ServiceMulti {
         };
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[objects.length];
         CreateObjectRunnable[] runnables = new CreateObjectRunnable[objects.length];
         for (int i = 0; i < runnables.length; i++) {
             incompletedObjectsList.add(objects[i]);
             runnables[i] = new CreateObjectRunnable(bucket, objects[i], bytesTransferredListener);
-            threads[i] = new Thread(runnables[i]);
         }        
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher));        
@@ -292,16 +287,14 @@ public class S3ServiceMulti {
         final List objectsToDeleteList = new ArrayList();
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[objects.length];
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[objects.length];
         for (int i = 0; i < runnables.length; i++) {
             objectsToDeleteList.add(objects[i]);
             runnables[i] = new DeleteObjectRunnable(bucket, objects[i]);
-            threads[i] = new Thread(runnables[i]);
         }
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -353,15 +346,13 @@ public class S3ServiceMulti {
         final List pendingObjectKeysList = new ArrayList();
 
         // Start all queries in the background.
-        Thread[] threads = new Thread[objectKeys.length];
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], false);
-            threads[i] = new Thread(runnables[i]);
         }
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -421,15 +412,13 @@ public class S3ServiceMulti {
         final List pendingObjectKeysList = new ArrayList();
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[objectKeys.length];
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], true);
-            threads[i] = new Thread(runnables[i]);
         }
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
@@ -472,15 +461,13 @@ public class S3ServiceMulti {
         final List pendingObjectsList = new ArrayList();
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[objects.length];
         GetACLRunnable[] runnables = new GetACLRunnable[objects.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectsList.add(objects[i]);
             runnables[i] = new GetACLRunnable(bucket, objects[i]);
-            threads[i] = new Thread(runnables[i]);
         }
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(LookupACLEvent.newStartedEvent(threadWatcher));        
             }
@@ -515,15 +502,13 @@ public class S3ServiceMulti {
         final List pendingObjectsList = new ArrayList();
 
         // Start all queries in the background.
-        Thread[] threads = new Thread[objects.length];
         PutACLRunnable[] runnables = new PutACLRunnable[objects.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectsList.add(objects[i]);
             runnables[i] = new PutACLRunnable(bucket, objects[i]);
-            threads[i] = new Thread(runnables[i]);
         }
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(UpdateACLEvent.newStartedEvent(threadWatcher));        
             }
@@ -552,11 +537,11 @@ public class S3ServiceMulti {
      * 
      * @param bucket
      * the bucket containing the objects
-     * @param objectAndOutputStream
-     * an array of S3Object/OutputStream pairs indicating the object to be downloaded, and the output 
-     * stream where the object's contents will be written.
+     * @param downloadPackages
+     * an array of download packages containing the object to be downloaded, and able to build
+     * an output stream where the object's contents will be written to.
      */
-    public void downloadObjects(final S3Bucket bucket, final S3ObjectAndOutputStream[] objectAndOutputStream) {
+    public void downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) {
         // Initialise byte transfer monitoring variables.
         final long bytesCompleted[] = new long[] {0};
         final BytesTransferredWatcher bytesTransferredListener = new BytesTransferredWatcher() {
@@ -567,23 +552,21 @@ public class S3ServiceMulti {
         final List incompleteObjectDownloadList = new ArrayList();
 
         // Start all queries in the background.
-        Thread[] threads = new Thread[objectAndOutputStream.length];
-        DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[objectAndOutputStream.length];
-        final S3Object[] objects = new S3Object[objectAndOutputStream.length];
+        DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
+        final S3Object[] objects = new S3Object[downloadPackages.length];
         for (int i = 0; i < runnables.length; i++) {
-            objects[i] = objectAndOutputStream[i].getObject();
+            objects[i] = downloadPackages[i].getObject();
                         
             incompleteObjectDownloadList.add(objects[i]);
             runnables[i] = new DownloadObjectRunnable(bucket, objects[i].getKey(), 
-                objectAndOutputStream[i].getOuputStream(), bytesTransferredListener);    
-            threads[i] = new Thread(runnables[i]);
+                downloadPackages[i], bytesTransferredListener);    
         }
 
         // Set total bytes to 0 to flag the fact we cannot monitor the bytes transferred. 
         final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher));
@@ -637,7 +620,6 @@ public class S3ServiceMulti {
         final List pendingObjectKeysList = new ArrayList();
 
         // Start all queries in the background.
-        Thread[] threads = new Thread[signedGetURLs.length];
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedGetURLs.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedGetURLs[i]);
@@ -645,10 +627,9 @@ public class S3ServiceMulti {
             pendingObjectKeysList.add(object);
             
             runnables[i] = new GetObjectRunnable(signedGetURLs[i], false);
-            threads[i] = new Thread(runnables[i]);
         }
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -703,7 +684,6 @@ public class S3ServiceMulti {
         final List pendingObjectKeysList = new ArrayList();
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[signedHeadURLs.length];
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedHeadURLs.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedHeadURLs[i]);
@@ -711,10 +691,9 @@ public class S3ServiceMulti {
             pendingObjectKeysList.add(object);
 
             runnables[i] = new GetObjectRunnable(signedHeadURLs[i], true);
-            threads[i] = new Thread(runnables[i]);
         }
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
@@ -768,7 +747,6 @@ public class S3ServiceMulti {
         final List objectsToDeleteList = new ArrayList();
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[signedDeleteUrls.length];
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[signedDeleteUrls.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedDeleteUrls[i]);
@@ -776,11 +754,10 @@ public class S3ServiceMulti {
             objectsToDeleteList.add(object);
             
             runnables[i] = new DeleteObjectRunnable(signedDeleteUrls[i]);
-            threads[i] = new Thread(runnables[i]);
         }
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -840,16 +817,14 @@ public class S3ServiceMulti {
         };
         
         // Start all queries in the background.
-        Thread[] threads = new Thread[signedPutUrlAndObjects.length];
         SignedPutRunnable[] runnables = new SignedPutRunnable[signedPutUrlAndObjects.length];
         for (int i = 0; i < runnables.length; i++) {
             incompletedObjectsList.add(signedPutUrlAndObjects[i].getObject());
             runnables[i] = new SignedPutRunnable(signedPutUrlAndObjects[i], bytesTransferredListener);
-            threads[i] = new Thread(runnables[i]);
         }        
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(threads, runnables) {
+        (new ThreadGroupManager(runnables) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher));        
@@ -882,7 +857,7 @@ public class S3ServiceMulti {
      * methods used to retrieve the result object from a completed thread (via {@link #getResult()}
      * or force a thread to be interrupted (via {@link #forceInterrupt}. 
      */
-    private abstract class AbstractThread implements Runnable {
+    private abstract class AbstractRunnable implements Runnable {
         private boolean forceInterrupt = false;
 
         public abstract Object getResult();
@@ -905,7 +880,7 @@ public class S3ServiceMulti {
     /**
      * Thread for performing the update/set of Access Control List information for an object.
      */
-    private class PutACLRunnable extends AbstractThread {
+    private class PutACLRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
         private S3Object s3Object = null;        
         private Object result = null;
@@ -940,7 +915,7 @@ public class S3ServiceMulti {
     /**
      * Thread for retrieving Access Control List information for an object.
      */
-    private class GetACLRunnable extends AbstractThread {
+    private class GetACLRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
         private S3Object object = null;        
         private Object result = null;
@@ -972,7 +947,7 @@ public class S3ServiceMulti {
     /**
      * Thread for deleting an object.
      */
-    private class DeleteObjectRunnable extends AbstractThread {
+    private class DeleteObjectRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
         private S3Object object = null;
         private String signedDeleteUrl = null;
@@ -1018,7 +993,7 @@ public class S3ServiceMulti {
     /**
      * Thread for creating a bucket.
      */
-    private class CreateBucketRunnable extends AbstractThread {
+    private class CreateBucketRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
         private Object result = null;
         
@@ -1048,7 +1023,7 @@ public class S3ServiceMulti {
      * {@link ProgressMonitoredInputStream} and can be can cancelled as the input stream is wrapped in
      * an {@link InterruptableInputStream}.
      */
-    private class CreateObjectRunnable extends AbstractThread {
+    private class CreateObjectRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
         private S3Object s3Object = null;    
         private InterruptableInputStream interruptableInputStream = null;
@@ -1096,7 +1071,7 @@ public class S3ServiceMulti {
     /**
      * Thread for retrieving an object.
      */
-    private class GetObjectRunnable extends AbstractThread {
+    private class GetObjectRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
         private String objectKey = null;
         private String signedGetOrHeadUrl = null;
@@ -1154,19 +1129,21 @@ public class S3ServiceMulti {
      * {@link ProgressMonitoredInputStream} and can be can cancelled as the input stream is wrapped in
      * an {@link InterruptableInputStream}.
      */
-    private class DownloadObjectRunnable extends AbstractThread {
+    private class DownloadObjectRunnable extends AbstractRunnable {
         private String objectKey = null;
         private S3Bucket bucket = null;
-        private OutputStream outputStream = null;
+        private DownloadPackage downloadPackage = null;
         private InterruptableInputStream interruptableInputStream = null;
         private BytesTransferredWatcher bytesTransferredListener = null;
         
         private Object result = null;
 
-        public DownloadObjectRunnable(S3Bucket bucket, String objectKey, OutputStream outputStream, BytesTransferredWatcher bytesTransferredListener) {
+        public DownloadObjectRunnable(S3Bucket bucket, String objectKey, DownloadPackage downloadPackage, 
+            BytesTransferredWatcher bytesTransferredListener) 
+        {
             this.bucket = bucket;
             this.objectKey = objectKey;
-            this.outputStream = outputStream;
+            this.downloadPackage = downloadPackage;
             this.bytesTransferredListener = bytesTransferredListener;
         }
         
@@ -1176,14 +1153,15 @@ public class S3ServiceMulti {
             S3Object object = null;
 
             try {
-                    object = s3Service.getObject(bucket, objectKey);
+                object = s3Service.getObject(bucket, objectKey);
 
                 // Setup monitoring of stream bytes tranferred. 
                 interruptableInputStream = new InterruptableInputStream(object.getDataInputStream()); 
                 bufferedInputStream = new BufferedInputStream(
                     new ProgressMonitoredInputStream(interruptableInputStream, bytesTransferredListener));
                 
-                bufferedOutputStream = new BufferedOutputStream(outputStream);
+                bufferedOutputStream = new BufferedOutputStream(
+                    downloadPackage.getOutputStream());
                 
                 byte[] buffer = new byte[1024];
                 int byteCount = -1;
@@ -1227,7 +1205,7 @@ public class S3ServiceMulti {
      * data is monitored with a {@link ProgressMonitoredInputStream} and can be can cancelled as 
      * the input stream is wrapped in an {@link InterruptableInputStream}.
      */
-    private class SignedPutRunnable extends AbstractThread {
+    private class SignedPutRunnable extends AbstractRunnable {
         private SignedUrlAndObject signedUrlAndObject = null;    
         private InterruptableInputStream interruptableInputStream = null;
         private BytesTransferredWatcher bytesTransferredListener = null;
@@ -1288,40 +1266,66 @@ public class S3ServiceMulti {
         private final int MaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getIntProperty("s3service.max-thread-count", 50);
         
-        private Thread[] threads = null;
-        private AbstractThread[] runnables = null;
+        /**
+         * the set of runnable objects to execute.
+         */
+        private AbstractRunnable[] runnables = null;
         
-        public ThreadGroupManager(Thread[] threads, AbstractThread[] runnables) {
-            this.threads = threads;
-            this.runnables = runnables;            
+        /**
+         * Thread objects that are currently running, where the index corresponds to the 
+         * runnables index. Any AbstractThread runnable that is not started, or has completed,
+         * will have a null value in this array.
+         */
+        private Thread[] threads = null;
+        
+        /**
+         * set of flags indicating which runnable items have been started
+         */
+        private boolean started[] = null;
+        
+        /**
+         * set of flags indicating which threads have already had In Progress events fired on
+         * their behalf. These threads have finished running.
+         */
+        private boolean alreadyFired[] = null;
+        
+        
+        public ThreadGroupManager(AbstractRunnable[] runnables) {
+            this.runnables = runnables;
+            this.threads = new Thread[runnables.length];
+            started = new boolean[runnables.length]; // All values initialized to false.
+            alreadyFired = new boolean[runnables.length]; // All values initialized to false.
         }
         
         /**
          * Determine which threads, if any, have finished since the last time an In Progress event
          * was fired.
          * 
-         * @param started
-         *        set of flags indicating which threads have been started
-         * @param alreadyFired
-         *        set of flags indicating which threads have already had In Progress events fired on
-         *        their behalf.
          * @return
          * a list of the threads that finished since the last In Progress event was fired. This list may
          * be empty.
+         * 
          * @throws Throwable
          */
-        private List getNewlyCompletedResults(boolean started[], boolean alreadyFired[]) throws Throwable {
+        private List getNewlyCompletedResults() throws Throwable 
+        {
             ArrayList completedResults = new ArrayList();
             
             for (int i = 0; i < threads.length; i++) {
                 if (!alreadyFired[i] && started[i] && !threads[i].isAlive()) {
                     alreadyFired[i] = true;
-                    log.debug("Thread " + (i+1) + " of " + threads.length + " has recently completed");
+                    log.debug("Thread " + (i+1) + " of " + threads.length 
+                        + " has recently completed, releasing resources");
 
                     if (runnables[i].getResult() instanceof Throwable) {
-                        throw (Throwable) runnables[i].getResult();
+                        Throwable throwable = (Throwable) runnables[i].getResult();
+                        runnables[i] = null;
+                        threads[i] = null;
+                        throw throwable;
                     } else {
                         completedResults.add(runnables[i].getResult());
+                        runnables[i] = null;
+                        threads[i] = null;
                     }                    
                 }
             }
@@ -1331,21 +1335,15 @@ public class S3ServiceMulti {
         /**
          * Starts pending threads such that the total of running threads never exceeds the 
          * maximum count set in the jets3t property <i>s3service.max-thread-count</i>.
-         * 
-         * @param started
-         *        set of flags indicating which threads have been started
-         * @param alreadyFired
-         *        set of flags indicating which threads have already had In Progress events fired on
-         *        their behalf. These threads have finished running.
          *        
          * @throws Throwable
          */
-        private void startPendingThreads(boolean started[], boolean alreadyFired[]) 
+        private void startPendingThreads() 
             throws Throwable 
         {
             // Count active threads that are running (ie have been started but final event not fired)
             int runningThreadCount = 0;
-            for (int i = 0; i < threads.length; i++) {
+            for (int i = 0; i < runnables.length; i++) {
                 if (started[i] && !alreadyFired[i]) {
                     runningThreadCount++;
                 }
@@ -1354,26 +1352,22 @@ public class S3ServiceMulti {
             // Start threads until we are running the maximum number allowed.
             for (int i = 0; runningThreadCount <= MaxThreadCount && i < started.length; i++) {
                 if (!started[i]) {
+                    threads[i] = new Thread(runnables[i]);                    
                     threads[i].start();
                     started[i] = true;
                     runningThreadCount++;
-                    log.debug("Thread " + (i+1) + " of " + threads.length + " has started");
+                    log.debug("Thread " + (i+1) + " of " + runnables.length + " has started");
                 }
             }
         }
         
         /**
-         * 
-         * @param alreadyFired
-         *        set of flags indicating which threads have already had In Progress events fired on
-         *        their behalf. These threads have finished running.
-         *        
          * @return
          * the number of threads that have not finished running (sum of those currently running, and those awaiting start)
          */
-        private int getPendingThreadCount(boolean[] alreadyFired) {
+        private int getPendingThreadCount() {
             int pendingThreadCount = 0;
-            for (int i = 0; i < threads.length; i++) {
+            for (int i = 0; i < runnables.length; i++) {
                 if (!alreadyFired[i]) {
                     pendingThreadCount++;
                 }
@@ -1382,7 +1376,7 @@ public class S3ServiceMulti {
         }
         
         /**
-         * Invokes the {@link AbstractThread#forceInterrupt} on all threads being managed.
+         * Invokes the {@link AbstractRunnable#forceInterrupt} on all threads being managed.
          *
          */
         private void forceInterruptAllRunnables() {
@@ -1415,17 +1409,11 @@ public class S3ServiceMulti {
                     forceInterruptAllRunnables();
                 }
             };
-            
-            // Flags to indicate which threads have had In Progress events fired on their behalf.
-            final boolean alreadyFired[] = new boolean[runnables.length]; // All values initialized to false.
-            
-            // Flags to indicate which threads are yet to be started, these are the Pending threads.
-            final boolean started[] = new boolean[runnables.length]; // All values initialized to false.
-            
+                        
             // Actual thread management happens in the code block below.
             try {
                 // Start some threads
-                startPendingThreads(started, alreadyFired);                
+                startPendingThreads();                
                 
                 // Create the thread's watcher object.
                 ThreadWatcher threadWatcher = new ThreadWatcher();
@@ -1435,7 +1423,7 @@ public class S3ServiceMulti {
                 
                 // Loop while threads haven't been interrupted/cancelled, and at least one thread is 
                 // still active (ie hasn't finished its work)
-                while (!interrupted[0] && getPendingThreadCount(alreadyFired) > 0) {
+                while (!interrupted[0] && getPendingThreadCount() > 0) {
                     try {
                         Thread.sleep(sleepTime);
     
@@ -1443,18 +1431,18 @@ public class S3ServiceMulti {
                             // Do nothing, we've been interrupted during sleep.                        
                         } else {
                             // Fire progress event.
-                            int completedThreads = runnables.length - getPendingThreadCount(alreadyFired);                    
+                            int completedThreads = runnables.length - getPendingThreadCount();                    
                             threadWatcher.setThreadsCompletedRatio(
                                 completedThreads, runnables.length, cancelEventTrigger);
-                            List completedResults = getNewlyCompletedResults(started, alreadyFired);                    
+                            List completedResults = getNewlyCompletedResults();                    
                             fireProgressEvent(threadWatcher, completedResults);
                             
                             if (completedResults.size() > 0) {
-                                log.debug(completedResults.size() + " of " + threads.length + " have completed");
+                                log.debug(completedResults.size() + " of " + runnables.length + " have completed");
                             }
                             
                             // Start more threads.
-                            startPendingThreads(started, alreadyFired);                
+                            startPendingThreads();                
                         }
                     } catch (InterruptedException e) {
                         interrupted[0] = true;
@@ -1465,13 +1453,13 @@ public class S3ServiceMulti {
                 if (interrupted[0]) {
                     fireCancelEvent();
                 } else {
-                    int completedThreads = runnables.length - getPendingThreadCount(alreadyFired);                    
+                    int completedThreads = runnables.length - getPendingThreadCount();                    
                     threadWatcher.setThreadsCompletedRatio(
                         completedThreads, runnables.length, cancelEventTrigger);
-                    List completedResults = getNewlyCompletedResults(started, alreadyFired);                    
+                    List completedResults = getNewlyCompletedResults();                    
                     fireProgressEvent(threadWatcher, completedResults);
                     if (completedResults.size() > 0) {
-                        log.debug(completedResults.size() + " of " + threads.length + " have completed");
+                        log.debug(completedResults.size() + " threads have recently completed");
                     }                    
                     fireCompletedEvent();
                 }

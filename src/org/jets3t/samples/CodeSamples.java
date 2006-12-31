@@ -38,7 +38,7 @@ import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.multithread.S3ObjectAndOutputStream;
+import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.S3ServiceSimpleMulti;
 import org.jets3t.service.security.AWSCredentials;
 
@@ -339,21 +339,21 @@ public class CodeSamples {
         // each object. This class is a simple container which merely associates an object with an 
         // output stream, to which the object's data will be written.
         
-        // Associate each object with a file output stream
-        S3ObjectAndOutputStream[] streams = new S3ObjectAndOutputStream[5];
-        streams[0] = new S3ObjectAndOutputStream(objects[0], 
-            new FileOutputStream(objects[0].getKey()));
-        streams[1] = new S3ObjectAndOutputStream(objects[1], 
-            new FileOutputStream(objects[1].getKey()));
-        streams[2] = new S3ObjectAndOutputStream(objects[2], 
-            new FileOutputStream(objects[2].getKey()));
-        streams[3] = new S3ObjectAndOutputStream(objects[3], 
-            new FileOutputStream(objects[3].getKey()));
-        streams[4] = new S3ObjectAndOutputStream(objects[4], 
-            new FileOutputStream(objects[4].getKey()));
+        // Associate each object with a file for output.
+        DownloadPackage[] downloadPackages = new DownloadPackage[5];
+        downloadPackages[0] = new DownloadPackage(objects[0], 
+            new File(objects[0].getKey()), false, null);
+        downloadPackages[1] = new DownloadPackage(objects[1], 
+            new File(objects[1].getKey()), false, null);
+        downloadPackages[2] = new DownloadPackage(objects[2], 
+            new File(objects[2].getKey()), false, null);
+        downloadPackages[3] = new DownloadPackage(objects[3], 
+            new File(objects[3].getKey()), false, null);
+        downloadPackages[4] = new DownloadPackage(objects[4], 
+            new File(objects[4].getKey()), false, null);
         
         // Download the objects.
-        simpleMulti.downloadObjects(bucket, streams);
+        simpleMulti.downloadObjects(bucket, downloadPackages);
         System.out.println("Downloaded objects to current working directory");
 
         /*

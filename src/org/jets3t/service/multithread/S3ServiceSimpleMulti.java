@@ -291,9 +291,9 @@ public class S3ServiceSimpleMulti {
      * stream where the object's contents will be written.
      * @throws S3ServiceException
      */
-    public void downloadObjects(final S3Bucket bucket, final S3ObjectAndOutputStream[] objectAndOutputStream) throws S3ServiceException {
+    public void downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) throws S3ServiceException {
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
-        (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, objectAndOutputStream);
+        (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, downloadPackages);
         throwError(adaptor);
     }
     
