@@ -38,10 +38,9 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
-import org.jets3t.service.io.GZipInflatingOutputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.multithread.S3ObjectAndOutputStream;
+import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.S3ServiceEventAdaptor;
 import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.security.AWSCredentials;
@@ -217,10 +216,11 @@ public class Synchronize {
      * 
      * @param bucket    the bucket to create the object in 
      * @param object    the object to download
-     * @param fileTarget    the file to save the S3 object to (which may also become a directory) 
+     * @param fileTarget    the file to save the S3 object to (which may also become a directory)
+     *  
      * @throws Exception
      */
-    private S3ObjectAndOutputStream prepareObjectForDownload(S3Object object, File fileTarget) 
+    private DownloadPackage prepareObjectForDownload(S3Object object, File fileTarget) 
         throws Exception 
     {
         if (!doAction) {
@@ -235,14 +235,15 @@ public class Synchronize {
                 fileTarget.getParentFile().mkdirs();
             }            
             
-            OutputStream outputStream = new FileOutputStream(fileTarget);
+            boolean isZipped = false;
+            EncryptionUtil encryptionUtil = null;
                         
             if (isGzipEnabled && 
                 ("gzip".equalsIgnoreCase(object.getContentEncoding())
                 || object.containsMetadata(Constants.METADATA_JETS3T_COMPRESSED)))
             {
                 // Automatically inflate gzipped data.
-                outputStream = new GZipInflatingOutputStream(outputStream);
+                isZipped = true;
             }
             if (isEncryptionEnabled 
                 && (object.containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)
@@ -252,19 +253,18 @@ public class Synchronize {
                 
                 if (object.containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)) {
                     // Item is encrypted with obsolete crypto.
-                    outputStream = EncryptionUtil.getObsoleteEncryptionUtil(
-                        cryptoPassword).decrypt(outputStream);                                            
+                    encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(
+                        cryptoPassword);                                            
                 } else {
                     String algorithm = (String) object.getMetadata(
                         Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
                     String version = (String) object.getMetadata(
                         Constants.METADATA_JETS3T_CRYPTO_VERSION);
-                    outputStream = new EncryptionUtil(cryptoPassword, algorithm).
-                        decrypt(outputStream);                                            
+                    encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm);                                            
                 }                    
             }
             
-            return new S3ObjectAndOutputStream(object, outputStream);                        
+            return new DownloadPackage(object, fileTarget, isZipped, encryptionUtil);                        
         }        
     }
     
@@ -435,7 +435,7 @@ public class Synchronize {
     public void restoreFromS3ToLocalDirectory(FileComparerResults disrepancyResults, Map filesMap, 
         Map s3ObjectsMap, String rootObjectPath, File localDirectory, S3Bucket bucket) throws Exception 
     {
-        List itemsToDownload = new ArrayList();
+        List downloadPackagesList = new ArrayList();
         
         ArrayList sortedS3ObjectKeys = new ArrayList(s3ObjectsMap.keySet());
         Collections.sort(sortedS3ObjectKeys);
@@ -448,25 +448,25 @@ public class Synchronize {
             
             if (disrepancyResults.onlyOnServerKeys.contains(keyPath)) {
                 printLine("N " + keyPath);
-                S3ObjectAndOutputStream item = prepareObjectForDownload(
+                DownloadPackage downloadPackage = prepareObjectForDownload(
                     s3Object, new File(localDirectory, keyPath));
-                if (item != null) {
-                    itemsToDownload.add(item);
+                if (downloadPackage != null) {
+                    downloadPackagesList.add(downloadPackage);
                 }
             } else if (disrepancyResults.updatedOnServerKeys.contains(keyPath)) {
                 printLine("U " + keyPath);
-                S3ObjectAndOutputStream item = prepareObjectForDownload(
+                DownloadPackage downloadPackage = prepareObjectForDownload(
                     s3Object, new File(localDirectory, keyPath));
-                if (item != null) {
-                    itemsToDownload.add(item);
+                if (downloadPackage != null) {
+                    downloadPackagesList.add(downloadPackage);
                 }
             } else if (disrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
                 if (isForce) {
                     printLine("F " + keyPath);
-                    S3ObjectAndOutputStream item = prepareObjectForDownload(
+                    DownloadPackage downloadPackage = prepareObjectForDownload(
                         s3Object, new File(localDirectory, keyPath));
-                    if (item != null) {
-                        itemsToDownload.add(item);
+                    if (downloadPackage != null) {
+                        downloadPackagesList.add(downloadPackage);
                     }
                 } else {
                     printLine("- " + keyPath);
@@ -477,10 +477,10 @@ public class Synchronize {
                     printLine("r " + keyPath);                    
                 } else {
                     printLine("R " + keyPath);
-                    S3ObjectAndOutputStream item = prepareObjectForDownload(
+                    DownloadPackage downloadPackage = prepareObjectForDownload(
                         s3Object, new File(localDirectory, keyPath));
-                    if (item != null) {
-                        itemsToDownload.add(item);
+                    if (downloadPackage != null) {
+                        downloadPackagesList.add(downloadPackage);
                     }
                 }
             } else {
@@ -492,11 +492,11 @@ public class Synchronize {
         }
         
         // Download New/Updated/Forced/Replaced objects from S3.
-        if (doAction && itemsToDownload.size() > 0) {
-            S3ObjectAndOutputStream[] items = (S3ObjectAndOutputStream[]) 
-                itemsToDownload.toArray(new S3ObjectAndOutputStream[] {});
+        if (doAction && downloadPackagesList.size() > 0) {
+            DownloadPackage[] downloadPackages = (DownloadPackage[]) 
+                downloadPackagesList.toArray(new DownloadPackage[] {});
             S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
-            (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, items);
+            (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, downloadPackages);
             if (adaptor.wasErrorThrown()) {
                 if (adaptor.getErrorThrown() instanceof Exception) {
                     throw (Exception) adaptor.getErrorThrown();
