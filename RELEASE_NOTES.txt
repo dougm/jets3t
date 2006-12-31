@@ -6,7 +6,6 @@ COCKPIT
 - Login credentials can now be stored in S3.
 - Added a dialog for configuring Bucket Logging.
 - Objects can be filtered by prefix and/or delimiter strings.
-- Remembered login credentials are automatically updated to the new PBE-based encryption files.
 - Third-party buckets can be added without first logging in.
 - User can cancel the listing of objects in large buckets.
 - Files being sent to s3 are only opened when necessary, removing the potential for too many files
