@@ -5,21 +5,18 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 
-import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.service.model.S3Object;
 
 public class ObjectTableModel extends DefaultTableModel {
-    private JTable objectsTable = null;
     private ArrayList objectList = new ArrayList();
     
-    public ObjectTableModel(JTable objectsTable) {
+    public ObjectTableModel() {
         super(new String[] {"Object Key","Size","Last Modified"}, 0);
-        this.objectsTable = objectsTable;
     }
     
-    public void addObject(S3Object object, boolean highlightNewObject) {
+    public void addObject(S3Object object) {
         int insertRow = 
             Collections.binarySearch(objectList, object, new Comparator() {
                 public int compare(Object o1, Object o2) {
@@ -37,16 +34,11 @@ public class ObjectTableModel extends DefaultTableModel {
         objectList.add(insertRow, object);
         this.insertRow(insertRow, new Object[] {object.getKey(), 
             new Long(object.getContentLength()), object.getLastModifiedDate()});
-        
-        // Automatically select (highlight) a newly aded object, if required.
-        if (highlightNewObject) {
-            objectsTable.addRowSelectionInterval(insertRow, insertRow);
-        }
     }
     
-    public void addObjects(S3Object[] objects, boolean highlightNewObject) {
+    public void addObjects(S3Object[] objects) {
         for (int i = 0; i < objects.length; i++) {
-            addObject(objects[i], highlightNewObject);
+            addObject(objects[i]);
         }
     }
     
