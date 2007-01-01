@@ -223,7 +223,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
     private Map downloadObjectsToFileMap = null;
-    private boolean downloadingObjects = false;   
+    private boolean isDownloadingObjects = false;   
     private Map filesInDownloadDirectoryMap = null;
     private Map s3DownloadObjectsMap = null;
 
@@ -425,7 +425,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             new GridBagConstraints(0, ++row, 3, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
                 
         objectsTable = new JTable();
-        objectTableModel = new ObjectTableModel(objectsTable);
+        objectTableModel = new ObjectTableModel();
         objectTableModelSorter = new TableSorter(objectTableModel);        
         objectTableModelSorter.setTableHeader(objectsTable.getTableHeader());        
         objectsTable.setModel(objectTableModelSorter);        
@@ -1184,7 +1184,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             S3Object[] objects = (S3Object[]) cachedBuckets.get(newlySelectedBucket.getName());
             
             objectTableModel.removeAllObjects();                    
-            objectTableModel.addObjects(objects, false);
+            objectTableModel.addObjects(objects);
             updateObjectsSummary(false);
         } else {        
             listObjects();
@@ -1250,7 +1250,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
                         SwingUtilities.invokeLater(new Runnable() {
                             public void run() {
-                                objectTableModel.addObjects(objects, false);
+                                objectTableModel.addObjects(objects);
                                 updateObjectsSummary(true);
                                 updateProgressDisplay("Listed " + allObjects.size() + " objects in " 
                                     + getCurrentSelectedBucket().getName(), 0);
@@ -1704,7 +1704,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 potentialClashingObjects.toArray(new S3Object[] {});
             (new Thread() {
                 public void run() {
-                    downloadingObjects = true;
+                    isDownloadingObjects = true;
                     retrieveObjectsDetails(clashingObjects);
                 }
             }).start();
@@ -1925,16 +1925,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             stopProgressDisplay();                
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            // Delete all incompletely downloaded object files.
-            S3Object[] incompleteObjects = event.getCancelledObjects();
-            for (int i = 0; i < incompleteObjects.length; i++) {
-                File file = (File) downloadObjectsToFileMap.get(incompleteObjects[i].getKey());
-                 if (file.length() != incompleteObjects[i].getContentLength()) {
-                    log.debug("Deleting incomplete object file: " + file.getName());                
-                    file.delete();
-                 }
-            }
-            
             stopProgressDisplay();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
@@ -2191,8 +2181,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {            
                     for (int i = 0; i < event.getCreatedObjects().length; i++) {
-                        objectTableModel.addObject(
-                            event.getCreatedObjects()[i], false);
+                        objectTableModel.addObject(event.getCreatedObjects()[i]);
                     }
                 }
             });
@@ -2437,11 +2426,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     // Retain selected status of objects for downloads or properties 
                     for (int i = 0; i < event.getCompletedObjects().length; i++) {
                         S3Object object = event.getCompletedObjects()[i];
-                        boolean highlightUpdatedObjects = downloadingObjects || viewingObjectProperties;
-                        objectTableModel.addObject(object, highlightUpdatedObjects);
+                        objectTableModel.addObject(object);
                         log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());
-                        
-                        if (downloadingObjects) {
+
+                        if (isDownloadingObjects) {
                             s3DownloadObjectsMap.put(object.getKey(), object);
                             log.debug("Updated object download list with " + object.getKey() 
                                 + ", content-type=" + object.getContentType());
@@ -2459,9 +2447,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Stop GetObjectHead progress display.
             stopProgressDisplay();        
             
-            if (downloadingObjects) {
+            if (isDownloadingObjects) {
                 performObjectsDownload();
-                downloadingObjects = false;
+                isDownloadingObjects = false;
             } else if (viewingObjectProperties) {
                 ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects()[0]);
                 viewingObjectProperties = false;                    
