@@ -113,6 +113,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
+    private HostConfiguration hostConfig = null;
     
     /**
      * Constructs the service and initialises the properties.
@@ -158,11 +159,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         connectionParams.setConnectionTimeout(jets3tProperties.
             getIntProperty("httpclient.connection-timeout-ms", 60000));
         connectionParams.setSoTimeout(jets3tProperties.
-            getIntProperty("httpclient.socket-timeout-ms", 60000));
-        connectionParams.setMaxConnectionsPerHost(insecureHostConfig, jets3tProperties.
-            getIntProperty("httpclient.max-connections", 10));
-        connectionParams.setMaxConnectionsPerHost(secureHostConfig, jets3tProperties.
-            getIntProperty("httpclient.max-connections", 10));
+            getIntProperty("httpclient.socket-timeout-ms", 60000));        
+        connectionParams.setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION,
+            jets3tProperties.getIntProperty("httpclient.max-connections", 10));
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
 
@@ -204,20 +203,19 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         httpClient = new HttpClient(clientParams, connectionManager);
 
+        if (isHttpsOnly()) {
+            hostConfig = secureHostConfig;
+        } else {
+            hostConfig = insecureHostConfig;
+        }
+        httpClient.setHostConfiguration(hostConfig);
+
         // Try to detect any proxy settings from applet.
         ProxyHost proxyHost = null;
-        try {
-            HostConfiguration hostConfig = null;
-            if (isHttpsOnly()) {
-                hostConfig = secureHostConfig;
-            } else {
-                hostConfig = insecureHostConfig;
-            }
-            
+        try {            
             proxyHost = PluginProxyUtil.detectProxy(new URL(hostConfig.getHostURL()));
             if (proxyHost != null) {
                 hostConfig.setProxyHost(proxyHost);
-                httpClient.setHostConfiguration(hostConfig);
             }                
         } catch (Throwable t) {
             log.error("Unable to set proxy configuration", t);
@@ -262,7 +260,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             // Perform the request, sleeping and retrying when S3 Internal Errors are encountered.
             int responseCode = -1;
             do {
-                responseCode = httpClient.executeMethod(httpMethod);
+                responseCode = httpClient.executeMethod(hostConfig, httpMethod);
 
                 if (responseCode == 500) {
                     // Retry on S3 Internal Server 500 errors.
@@ -586,7 +584,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         performRequest(httpMethod, 204);
 
         // Release connection after DELETE (there's no response content)
-        log.debug("Releasing HttpMethod after delete");            
+        log.debug("Releasing HttpMethod after delete");
         httpMethod.releaseConnection();
 
         return httpMethod;
