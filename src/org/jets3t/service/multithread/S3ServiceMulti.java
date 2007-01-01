@@ -63,8 +63,9 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
  * <tr><td>s3service.max-thread-count</td>
  *   <td>The maximum number of concurrent communication threads that will be started by the 
- *   multi-threaded service.</td> 
- *   <td>50</td></tr>
+ *   multi-threaded service. <b>Note</b>: This value should not exceed the maximum number of
+ *   connections available, such as is set by the property <tt>httpclient.max-connections</tt>.</td> 
+ *   <td>10</td></tr>
  * </table>
  * 
  * @author James Murty
@@ -1178,15 +1179,19 @@ public class S3ServiceMulti {
             } catch (Throwable t) {
                 result = t;
             } finally {
-                try {
-                    bufferedInputStream.close();    
-                } catch (Exception e) {                    
-                    log.error("Unable to close Object input stream", e);
+                if (bufferedInputStream != null) {
+                    try {
+                        bufferedInputStream.close();    
+                    } catch (Exception e) {                    
+                        log.error("Unable to close Object input stream", e);
+                    }
                 }
-                try {
-                    bufferedOutputStream.close();                    
-                } catch (Exception e) {
-                    log.error("Unable to close download output stream", e);
+                if (bufferedOutputStream != null) {
+                    try {
+                        bufferedOutputStream.close();                    
+                    } catch (Exception e) {
+                        log.error("Unable to close download output stream", e);
+                    }
                 }
             }
         }
@@ -1264,7 +1269,7 @@ public class S3ServiceMulti {
     private abstract class ThreadGroupManager {
         private final Log log = LogFactory.getLog(ThreadGroupManager.class);
         private final int MaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getIntProperty("s3service.max-thread-count", 50);
+            .getIntProperty("s3service.max-thread-count", 10);
         
         /**
          * the set of runnable objects to execute.
