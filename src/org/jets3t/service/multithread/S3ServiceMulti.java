@@ -1201,7 +1201,9 @@ public class S3ServiceMulti {
         }
 
         public void forceInterruptCalled() {
-            interruptableInputStream.interrupt();
+            if (interruptableInputStream != null) {
+                interruptableInputStream.interrupt();
+            }
         }
     }
     
@@ -1355,7 +1357,7 @@ public class S3ServiceMulti {
             }
 
             // Start threads until we are running the maximum number allowed.
-            for (int i = 0; runningThreadCount <= MaxThreadCount && i < started.length; i++) {
+            for (int i = 0; runningThreadCount < MaxThreadCount && i < started.length; i++) {
                 if (!started[i]) {
                     threads[i] = new Thread(runnables[i]);                    
                     threads[i].start();
@@ -1446,7 +1448,7 @@ public class S3ServiceMulti {
                             fireProgressEvent(threadWatcher, completedResults);
                             
                             if (completedResults.size() > 0) {
-                                log.debug(completedResults.size() + " of " + runnables.length + " have completed");
+                                // log.debug(completedResults.size() + " of " + runnables.length + " have completed");
                             }
                             
                             // Start more threads.
