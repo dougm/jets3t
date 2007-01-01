@@ -121,4 +121,12 @@ public class S3ServiceException extends Exception {
         return s3ErrorRequestId;
     }
         
+    /**
+     * @return The XML Error message returned by S3, if this exception was created with the 
+     * XML Message constructor. Null if no XML message is available.
+     */
+    public String getXmlMessage() {
+        return xmlMessage;
+    }
+    
 }
