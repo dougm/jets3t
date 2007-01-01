@@ -1387,7 +1387,10 @@ public class S3ServiceMulti {
         private void forceInterruptAllRunnables() {
             log.debug("Setting force interrupt flag on all runnables");
             for (int i = 0; i < runnables.length; i++) {
-                runnables[i].forceInterrupt();
+                if (runnables[i] != null) {
+                    runnables[i].forceInterrupt();
+                    runnables[i] = null;
+                }
             }
         }
         
