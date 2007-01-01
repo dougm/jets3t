@@ -24,7 +24,7 @@ public class CockpitPreferences {
     public static final String UPLOAD_ACL_PERMISSION_PUBLIC_READ = "PUBLIC_READ";
     public static final String UPLOAD_ACL_PERMISSION_PUBLIC_READ_WRITE = "PUBLIC_READ_WRITE";
 
-    private String uploadACLPermission = null;
+    private String uploadACLPermission = UPLOAD_ACL_PERMISSION_PRIVATE;
     private boolean uploadCompressionActive = false;
     private boolean uploadEncryptionActive = false;
     private String encryptionPassword = null;
