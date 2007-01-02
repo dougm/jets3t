@@ -65,7 +65,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  *   <td>The maximum number of concurrent communication threads that will be started by the 
  *   multi-threaded service. <b>Note</b>: This value should not exceed the maximum number of
  *   connections available, such as is set by the property <tt>httpclient.max-connections</tt>.</td> 
- *   <td>10</td></tr>
+ *   <td>4</td></tr>
  * </table>
  * 
  * @author James Murty
@@ -1271,7 +1271,7 @@ public class S3ServiceMulti {
     private abstract class ThreadGroupManager {
         private final Log log = LogFactory.getLog(ThreadGroupManager.class);
         private final int MaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getIntProperty("s3service.max-thread-count", 10);
+            .getIntProperty("s3service.max-thread-count", 4);
         
         /**
          * the set of runnable objects to execute.

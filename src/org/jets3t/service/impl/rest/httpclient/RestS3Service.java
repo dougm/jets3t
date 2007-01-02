@@ -88,7 +88,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  *   <td>How many milliseconds to wait before a socket connection times out. 0 means infinity</td>
  *   <td>60000</td></tr>
  * <tr><td>httpclient.max-connections</td>
- *   <td>The maximum number of simultaneous connections to allow</td><td>10</td></tr>
+ *   <td>The maximum number of simultaneous connections to allow</td><td>4</td></tr>
  * <tr><td>httpclient.stale-checking-enabled</td>
  *   <td>"Determines whether stale connection check is to be used. Disabling stale connection check may  
  *   result in slight performance improvement at the risk of getting an I/O error when executing a request 
@@ -161,12 +161,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         connectionParams.setSoTimeout(jets3tProperties.
             getIntProperty("httpclient.socket-timeout-ms", 60000));        
         connectionParams.setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION,
-            jets3tProperties.getIntProperty("httpclient.max-connections", 10));
+            jets3tProperties.getIntProperty("httpclient.max-connections", 4));
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
 
         connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
-                             
+        connectionParams.setTcpNoDelay(true);
+        
         connectionManager = new MultiThreadedHttpConnectionManager();
         connectionManager.setParams(connectionParams);
         
