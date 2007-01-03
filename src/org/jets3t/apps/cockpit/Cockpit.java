@@ -1859,13 +1859,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
             }).start();
         } catch (Exception e) {
-            // Delete any download target files already created.
-            Iterator fileIter = downloadObjectsToFileMap.values().iterator();
-            while (fileIter.hasNext()) {
-                File file = (File) fileIter.next();
-                file.delete();
-            }
-            
             String message = "Unable to download objects";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, message, e);
@@ -2423,16 +2416,21 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Store detail-complete objects in table.
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    // Retain selected status of objects for downloads or properties 
+                    // Retain selected status of objects for downloads or properties
                     for (int i = 0; i < event.getCompletedObjects().length; i++) {
                         S3Object object = event.getCompletedObjects()[i];
-                        objectTableModel.addObject(object);
+                        int modelIndex = objectTableModel.addObject(object);
                         log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());
 
                         if (isDownloadingObjects) {
                             s3DownloadObjectsMap.put(object.getKey(), object);
                             log.debug("Updated object download list with " + object.getKey() 
                                 + ", content-type=" + object.getContentType());
+                        }
+                        
+                        int viewIndex = objectTableModelSorter.viewIndex(modelIndex);
+                        if (isDownloadingObjects || viewingObjectProperties) {
+                            objectsTable.addRowSelectionInterval(viewIndex, viewIndex);
                         }
                     }
                 }

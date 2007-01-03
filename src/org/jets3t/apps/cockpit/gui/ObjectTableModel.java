@@ -16,7 +16,7 @@ public class ObjectTableModel extends DefaultTableModel {
         super(new String[] {"Object Key","Size","Last Modified"}, 0);
     }
     
-    public void addObject(S3Object object) {
+    public int addObject(S3Object object) {
         int insertRow = 
             Collections.binarySearch(objectList, object, new Comparator() {
                 public int compare(Object o1, Object o2) {
@@ -34,6 +34,8 @@ public class ObjectTableModel extends DefaultTableModel {
         objectList.add(insertRow, object);
         this.insertRow(insertRow, new Object[] {object.getKey(), 
             new Long(object.getContentLength()), object.getLastModifiedDate()});
+        
+        return insertRow;
     }
     
     public void addObjects(S3Object[] objects) {
