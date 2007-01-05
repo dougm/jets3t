@@ -102,6 +102,11 @@ TOOLKIT
 
 KNOWN ISSUES
 
+- Uploading or downloading multiple large files can result in connection errors if the network
+  connection is flooded. The chances of such errors can be reduced by using low values (eg 2) for
+  for the jets3t.properties settings s3service.max-thread-count and httpclient.max-connections.
+
+
 CONTRIBUTORS
 
 Thankyou to the following contributors, who helped make this release possible:
