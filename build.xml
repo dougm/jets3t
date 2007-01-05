@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <!-- ====================================================================== 
-     jets3t    
+     JetS3t    
      Toolkit for Amazon's S3 online storage service.
                    
      James Murty                                                                
      ====================================================================== -->
-<project name="jets3t" default="dist">
+<project name="JetS3t" default="dist">
     <description>
-    		jets3t : Toolkit for Amazon's S3 online storage service
+    		JetS3t : Toolkit for Amazon's S3 online storage service
     </description>
 	
 	<property file="build.properties"/>
@@ -26,7 +26,7 @@
 			srcdir="${dir.src}"
 			destdir="${dir.build}"
 			debug="${debug}"
-			target="1.4"
+			source="1.4"
 		>
 			<classpath refid="classpath"/>
 		</javac>
@@ -171,11 +171,11 @@
 	</target>
 		
 	<target name="package-applet-uploader" depends="dist">		
-		<mkdir dir="${dir.dist}/jets3t-${version}-applets/uploader"/>
+		<mkdir dir="${dir.dist-applets}"/>
 		
 		<!-- Copy jars required by Uploader applet -->
 		<copy 			
-			todir="${dir.dist}/jets3t-${version}-applets/uploader"
+			todir="${dir.dist-applets}"
 			flatten="true"
 			>
 			<fileset dir="${dir.dist}/jets3t-${version}/jars">
@@ -184,7 +184,7 @@
 			</fileset>
 		</copy>
 		<copy 			
-			todir="${dir.dist}/jets3t-${version}-applets/uploader"
+			todir="${dir.dist-applets}"
 			flatten="true"
 			>
 			<fileset dir="${dir.libs}">
@@ -198,14 +198,14 @@
 		<!-- Sign jars -->		
 		<signjar 
 			alias="jets3t"
-			keystore="applet/applet.keystore"
+			keystore="applet.keystore"
 			storepass="${storepass}"
 			lazy="true">
-			<fileset dir="${dir.dist}/jets3t-${version}-applets/uploader" includes="*.jar"/>
+			<fileset dir="${dir.dist-applets}" includes="*.jar"/>
 		</signjar>
 		
 		<!-- Copy relevant configuration files -->
-		<copy todir="${dir.dist}/jets3t-${version}-applets/uploader">
+		<copy todir="${dir.dist-applets}">
 			<fileset dir="configs">
 				<include name="jets3t.properties"/>
 				<include name="commons-logging.properties"/>
@@ -214,19 +214,19 @@
 				<include name="uploader.properties"/>
 			</fileset>
 		</copy>
-		
-		<!-- Copy applet site's HTML files -->
-		<copy todir="${dir.dist}/jets3t-${version}-applets">
-			<fileset dir="applet" includes="**/*.htm*"/>
+
+		<!-- Copy relevant resources files -->
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="resources"/>
 		</copy>
 	</target>
 		
 	<target name="package-applet-cockpit" depends="dist">
-		<mkdir dir="${dir.dist}/jets3t-${version}-applets/cockpit"/>
+		<mkdir dir="${dir.dist-applets}"/>
 		
 		<!-- Copy jars required by Cockpit applet -->
 		<copy 			
-			todir="${dir.dist}/jets3t-${version}-applets/cockpit"
+			todir="${dir.dist-applets}"
 			flatten="true"
 			>
 			<fileset dir="${dir.dist}/jets3t-${version}/jars">
@@ -235,7 +235,7 @@
 			</fileset>
 		</copy>
 		<copy 			
-			todir="${dir.dist}/jets3t-${version}-applets/cockpit"
+			todir="${dir.dist-applets}"
 			flatten="true"
 			>
 			<fileset dir="${dir.libs}">
@@ -249,14 +249,14 @@
 		<!-- Sign jars -->		
 		<signjar 
 			alias="jets3t"
-			keystore="applet/applet.keystore"
+			keystore="applet.keystore"
 			storepass="${storepass}"
 			lazy="true">
-			<fileset dir="${dir.dist}/jets3t-${version}-applets/cockpit" includes="*.jar"/>
+			<fileset dir="${dir.dist-applets}" includes="*.jar"/>
 		</signjar>
 		
 		<!-- Copy relevant configuration files -->
-		<copy todir="${dir.dist}/jets3t-${version}-applets/cockpit">
+		<copy todir="${dir.dist-applets}">
 			<fileset dir="configs">
 				<include name="jets3t.properties"/>
 				<include name="commons-logging.properties"/>
@@ -264,10 +264,10 @@
 				<include name="mime.types"/>
 			</fileset>
 		</copy>
-		
-		<!-- Copy applet site's HTML files -->
-		<copy todir="${dir.dist}/jets3t-${version}-applets">
-			<fileset dir="applet" includes="**/*.htm*"/>
+
+		<!-- Copy relevant resources files -->
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="resources"/>
 		</copy>
 	</target>
 
@@ -276,6 +276,7 @@
 		<delete dir="${dir.build}"/>
 		<delete dir="${dir.dist}"/>
 		<delete dir="${dir.apidocs}"/>
+		<delete dir="${dir.dist-applets}"/>
 	</target>
 
 	<target name="api-docs">		
@@ -284,7 +285,7 @@
 			author="false" 
 			version="true"
 			destdir="${dir.apidocs}" 
-			windowtitle="jets3t API : Amazon S3 Toolkit">
+			windowtitle="JetS3t API : Amazon S3 Toolkit">
 			
 			<classpath refid="classpath"/>
 			<fileset 
