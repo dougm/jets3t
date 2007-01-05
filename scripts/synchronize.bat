@@ -3,6 +3,9 @@
 REM Include configurations directory in classpath
 set CP=../configs
 
+REM Include resources directory in classpath
+set CP=%CP%;../resources
+
 REM Include libraries in classpath
 set CP=%CP%;../jars/jets3t-0.5.0.jar
 set CP=%CP%;../jars/synchronize-0.5.0.jar

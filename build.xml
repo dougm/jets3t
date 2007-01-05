@@ -26,6 +26,7 @@
 			srcdir="${dir.src}"
 			destdir="${dir.build}"
 			debug="${debug}"
+			target="1.4"
 		>
 			<classpath refid="classpath"/>
 		</javac>
@@ -52,14 +53,6 @@
 			<include name="org/jets3t/apps/cockpit/**"/>
 			<include name="org/jets3t/gui/**"/>
 		</jar>
-		<jar
-			update="true"
-			basedir="resources"
-			file="${dir.dist}/jets3t-${version}/jars/${dist.file.cockpit}"
-			>
-			<include name="images/nuvola/*"/>
-			<include name="images/nuvola/16x16/actions/*"/>
-		</jar>
 	</target>
 	
 	<target name="dist-app-synchronize" depends="dist-service">
@@ -71,6 +64,11 @@
 			>
 			<include name="org/jets3t/apps/synchronize/**"/>
 		</jar>
+		<mkdir dir="${dir.dist}/jets3t-${version}/resources"/>
+		<copy 			
+			todir="${dir.dist}/jets3t-${version}/resources">
+			<fileset dir="resources"/>
+		</copy>
 	</target>
 	
 	<target name="dist-app-uploader" depends="dist-service">
@@ -83,14 +81,11 @@
 			<include name="org/jets3t/apps/uploader/**"/>
 			<include name="org/jets3t/gui/**"/>
 		</jar>
-		<jar
-			update="true"
-			basedir="resources"
-			file="${dir.dist}/jets3t-${version}/jars/${dist.file.uploader}"
-			>
-			<include name="images/nuvola/*"/>
-			<include name="images/nuvola/32x32/**"/>
-		</jar>
+		<mkdir dir="${dir.dist}/jets3t-${version}/resources"/>
+		<copy 			
+			todir="${dir.dist}/jets3t-${version}/resources">
+			<fileset dir="resources"/>
+		</copy>
 	</target>
 	
 	<target name="dist-servlets" depends="dist-servlet-gatekeeper">
@@ -151,7 +146,7 @@
 		</copy>
     </target>
 	
-	<target name="package" depends="dist,api-docs">
+	<target name="package" depends="dist,api-docs,package-applets">
 		<!-- Copy documentation to dist directory so it's included in archive files -->
 		<mkdir dir="${dir.dist}/jets3t-${version}/docs/api"/>
 		<copy 			

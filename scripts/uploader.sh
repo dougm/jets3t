@@ -3,6 +3,9 @@
 # Include configurations directory in classpath
 CP=../configs
 
+# Include resources directory in classpath
+CP=$CP:../resources
+
 # Include libraries in classpath
 CP=$CP:../jars/jets3t-0.5.0.jar
 CP=$CP:../jars/uploader-0.5.0.jar
