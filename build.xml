@@ -276,7 +276,6 @@
 		<delete dir="${dir.build}"/>
 		<delete dir="${dir.dist}"/>
 		<delete dir="${dir.apidocs}"/>
-		<delete dir="${dir.dist-applets}"/>
 	</target>
 
 	<target name="api-docs">		
