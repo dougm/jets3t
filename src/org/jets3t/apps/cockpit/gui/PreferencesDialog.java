@@ -26,8 +26,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.URL;
 
+import javax.swing.AbstractAction;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -35,6 +37,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JRadioButton;
 import javax.swing.JTabbedPane;
+import javax.swing.KeyStroke;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -108,6 +111,16 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         okButton = new JButton("Apply preferences");
         okButton.setActionCommand("ApplyPreferences");
         okButton.addActionListener(this);
+        
+        // Set default ENTER and ESCAPE buttons.
+        this.getRootPane().setDefaultButton(okButton);        
+        this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
+        this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            public void actionPerformed(ActionEvent actionEvent) {
+                setVisible(false);
+            }
+        });        
 
         JPanel buttonsPanel = new JPanel(new GridBagLayout());
         buttonsPanel.add(cancelButton, new GridBagConstraints(0, 0, 
@@ -233,15 +246,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
      */
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(okButton)) {
-            // Save preferences to CockpitPreferences object.
-            cockpitPreferences.setUploadACLPermission(
-                aclButtonGroup.getSelection().getActionCommand());            
-            cockpitPreferences.setUploadCompressionActive(
-                "ACTIVE".equals(compressButtonGroup.getSelection().getActionCommand()));
-            cockpitPreferences.setUploadEncryptionActive(
-                "ACTIVE".equals(encryptButtonGroup.getSelection().getActionCommand()));
-            
-            if (cockpitPreferences.isUploadEncryptionActive()
+            if ("ACTIVE".equals(encryptButtonGroup.getSelection().getActionCommand())
                 && encryptPasswordField.getPassword().length == 0) 
             {
                 ErrorDialog.showDialog(ownerFrame, hyperlinkListener, 
@@ -249,6 +254,13 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
                 return;
             }
             
+            // Save preferences to CockpitPreferences object.
+            cockpitPreferences.setUploadACLPermission(
+                aclButtonGroup.getSelection().getActionCommand());            
+            cockpitPreferences.setUploadCompressionActive(
+                "ACTIVE".equals(compressButtonGroup.getSelection().getActionCommand()));
+            cockpitPreferences.setUploadEncryptionActive(
+                "ACTIVE".equals(encryptButtonGroup.getSelection().getActionCommand()));                        
             cockpitPreferences.setEncryptionPassword(
                 new String(encryptPasswordField.getPassword()));
             
@@ -294,6 +306,11 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         CockpitPreferences cockpitPreferences = new CockpitPreferences();
         
         PreferencesDialog.showDialog(cockpitPreferences, f, listener);
+        
+        System.out.println("Upload ACL: " + cockpitPreferences.getUploadACLPermission()
+            + ", Upload compressions? " + cockpitPreferences.isUploadCompressionActive()
+            + ", Upload encryption? " + cockpitPreferences.isUploadEncryptionActive()
+            + ", Encryption password: " + cockpitPreferences.getEncryptionPassword());
         
         preferencesDialog.dispose();
         f.dispose();

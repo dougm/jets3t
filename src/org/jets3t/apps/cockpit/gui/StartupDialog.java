@@ -30,13 +30,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.URL;
 
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
+import javax.swing.KeyStroke;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -106,7 +109,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     private StartupDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) {
         super(owner, "Cockpit Login", true);
         this.ownerFrame = owner;
-        this.hyperlinkListener = hyperlinkListener;
+        this.hyperlinkListener = hyperlinkListener;        
         this.initGui();
     }
     
@@ -130,6 +133,16 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         okButton = new JButton("Log in");
         okButton.setActionCommand("LogIn");
         okButton.addActionListener(this);
+        
+        // Set default ENTER and ESCAPE buttons.
+        this.getRootPane().setDefaultButton(okButton);        
+        this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
+        this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            public void actionPerformed(ActionEvent actionEvent) {
+                setVisible(false);
+            }
+        });        
 
         JPanel buttonsPanel = new JPanel(new GridBagLayout());
         buttonsPanel.add(cancelButton, new GridBagConstraints(0, 0, 
@@ -137,7 +150,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         buttonsPanel.add(okButton, new GridBagConstraints(1, 0, 
             1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
 
-        loginPassphrasePanel = new LoginPassphrasePanel(this, hyperlinkListener);
+        loginPassphrasePanel = new LoginPassphrasePanel(hyperlinkListener);
         loginLocalFolderPanel = new LoginLocalFolderPanel(ownerFrame, hyperlinkListener);
         loginCredentialsPanel = new LoginCredentialsPanel(false, hyperlinkListener);
         
@@ -483,6 +496,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         if (startupDialog == null) {
             startupDialog = new StartupDialog(owner, hyperlinkListener);
         }        
+        startupDialog.awsCredentials = null;
         startupDialog.show();
         
         return startupDialog.awsCredentials;
@@ -504,11 +518,13 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             }           
         };
         
-        AWSCredentials awsCredentials = StartupDialog.showDialog(f, listener);
+        AWSCredentials awsCredentials = StartupDialog.showDialog(f, listener);        
         
         if (awsCredentials != null) {
-            System.out.println("AWS Credentials " + awsCredentials.getAccessKey() 
+            System.out.println("AWS Credentials: " + awsCredentials.getAccessKey() 
                 + " : " + awsCredentials.getSecretKey());
+        } else {
+            System.out.println("AWS Credentials: null");            
         }
         
         startupDialog.dispose();

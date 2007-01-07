@@ -26,12 +26,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
 
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 
 import org.jets3t.apps.cockpit.ProgressDisplay;
 import org.jets3t.gui.ErrorDialog;
@@ -96,6 +99,16 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
         finishedButton = new JButton("Finished");
         finishedButton.setActionCommand("Finished");
         finishedButton.addActionListener(this);
+        
+        // Set default ENTER and ESCAPE buttons.
+        this.getRootPane().setDefaultButton(finishedButton);        
+        this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
+        this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            public void actionPerformed(ActionEvent actionEvent) {
+                setVisible(false);
+            }
+        });        
         
         loggedBucketComboBox.setSelectedIndex(0);
         loggedToBucketComboBox.setSelectedIndex(0);

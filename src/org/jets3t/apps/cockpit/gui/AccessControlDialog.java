@@ -32,15 +32,18 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
+import javax.swing.AbstractAction;
 import javax.swing.DefaultCellEditor;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -240,13 +243,23 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 
 		// Action buttons.
 		JPanel buttonsContainer = new JPanel(new GridBagLayout());
-		JButton cancelButton = new JButton("Cancel Permission Changes");
+		final JButton cancelButton = new JButton("Cancel Permission Changes");
         cancelButton.setDefaultCapable(true);
 		cancelButton.addActionListener(this);
 		cancelButton.setActionCommand("Cancel");
 		JButton okButton = new JButton("Save Permission Changes");
 		okButton.setActionCommand("OK");
 		okButton.addActionListener(this);
+        
+        // Set default ENTER and ESCAPE buttons.
+        this.getRootPane().setDefaultButton(okButton);        
+        this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
+        this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            public void actionPerformed(ActionEvent actionEvent) {
+                cancelButton.doClick();
+            }
+        });        
 			
 		// Overall container.		
 		JPanel container = new JPanel(new GridBagLayout());

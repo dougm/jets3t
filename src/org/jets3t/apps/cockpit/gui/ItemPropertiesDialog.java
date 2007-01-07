@@ -29,7 +29,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -37,6 +39,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.gui.JHtmlLabel;
@@ -205,6 +208,9 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         JButton okButton = new JButton("Finished");
         okButton.setActionCommand("OK");
         okButton.addActionListener(this);
+        
+        // Set default ENTER button.
+        this.getRootPane().setDefaultButton(okButton);        
 
         // Put it all together.
         int row = 0;

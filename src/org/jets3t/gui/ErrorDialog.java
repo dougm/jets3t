@@ -52,6 +52,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
         JButton okButton = new JButton("OK");
         okButton.setName("OK");
         okButton.addActionListener(this);
+        this.getRootPane().setDefaultButton(okButton);
 
         JPanel buttonsPanel = new JPanel(new GridBagLayout());
         buttonsPanel.add(okButton, new GridBagConstraints(0, 0, 

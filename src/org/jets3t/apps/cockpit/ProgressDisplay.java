@@ -26,11 +26,14 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 import org.jets3t.service.multithread.CancelEventTrigger;
@@ -212,13 +215,22 @@ public class ProgressDisplay {
             
             // Display the cancel button if a cancel event listener is available.
             if (this.cancelEventListener != null) {
-                JButton cancel = new JButton(cancelButtonText);
-                cancel.setActionCommand("Cancel");
-                cancel.addActionListener(this);
-                cancel.setDefaultCapable(true);
+                final JButton cancelButton = new JButton(cancelButtonText);
+                cancelButton.setActionCommand("Cancel");
+                cancelButton.addActionListener(this);
+                cancelButton.setDefaultCapable(true);
                             
-                container.add(cancel, 
+                container.add(cancelButton, 
                     new GridBagConstraints(0, 3, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
+                
+                // Set Cancel as the default operation when ESCAPE is pressed.
+                this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                    .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
+                this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+                    public void actionPerformed(ActionEvent actionEvent) {
+                        cancelButton.doClick();
+                    }
+                });        
             } else {
                 setCursor(new Cursor(Cursor.WAIT_CURSOR));                
             }

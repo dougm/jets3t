@@ -21,7 +21,6 @@ package org.jets3t.apps.cockpit.gui;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ActionListener;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -36,14 +35,12 @@ public class LoginPassphrasePanel extends JPanel {
 
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
     
-    private ActionListener actionListener = null;
     private HyperlinkActivatedListener hyperlinkListener = null;
     private JTextField passphraseTextField = null;
     private JPasswordField passwordPasswordField = null;
 
-    public LoginPassphrasePanel(ActionListener actionListener, HyperlinkActivatedListener hyperlinkListener) {
+    public LoginPassphrasePanel(HyperlinkActivatedListener hyperlinkListener) {
         super(new GridBagLayout());
-        this.actionListener = actionListener;
         this.hyperlinkListener = hyperlinkListener;
         
         initGui();
@@ -69,12 +66,10 @@ public class LoginPassphrasePanel extends JPanel {
         JHtmlLabel passphraseLabel = new JHtmlLabel(passphraseLabelText, hyperlinkListener);
         passphraseTextField = new JTextField();
         passphraseTextField.setName("LoginPassphrasePanel.Passphrase");
-        passphraseTextField.addActionListener(actionListener);
         passphraseTextField.setToolTipText(passphraseTooltipText);
         JHtmlLabel passwordLabel = new JHtmlLabel(passwordLabelText, hyperlinkListener);
         passwordPasswordField = new JPasswordField();
         passwordPasswordField.setName("LoginPassphrasePanel.Password");
-        passwordPasswordField.addActionListener(actionListener);
         passwordPasswordField.setToolTipText(passwordTooltipText);
         
         int row = 0;
