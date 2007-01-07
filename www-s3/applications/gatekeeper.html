@@ -157,20 +157,203 @@
 
         <h2>Introductory Concepts</h2>
 
-        <p>Although a Gatekeeper Java Servlet application is
+        <p>Although a Gatekeeper Java Servlet implementation is
         available as part of the JetS3t suite, the concepts
         involved in providing a gatekeeper-like service for S3
         could be easily implemented in other server-side languages.
-        These concepts are discussed in a generic way in the
-        section <a href="gatekeeper-concepts.html">Gatekeeper
-        Concepts</a>, please read this document first if you wish
-        to understand how the Gatekeeper works.</p>
+        These concepts are discussed in a generic way in <a href=
+        "gatekeeper-concepts.html">Gatekeeper Concepts</a>, please
+        read this document first if you wish to understand how the
+        Gatekeeper works, or implement your own version of the
+        Gatekeeper.</p>
 
         <h2>Running the Gatekeeper Servlet</h2>
 
+        <p>The Gatekeeper servlet is packaged as a standard WAR
+        (Web Application aRchive) file in the JetS3t distribution:
+        <br />
+        <b>servlets/gatekeeper/gatekeeper-0.5.0.war</b>
+        <br />
+        This WAR file can be deployed to any application server
+        able to run Java servlets.</p>
+
+        <p>For example, to deploy it to the <a href=
+        "http://tomcat.apache.org/"
+           target="_blank">Apache Tomcat</a> server simply copy the
+           WAR file to the $TOMCAT_HOME/webapps directory. When you
+           run Tomcat the servlet archive will be automatically
+           extracted and run, and will be available at a URL
+           looking something like this:
+        <br />
+        <b>http://localhost:8080/gatekeeper-0.5.0/GatekeeperServlet</b></p>
+
         <h2>Configuration</h2>
 
-        <h2>Specialising the Gatekeeper</h2>
+        <p>The JetS3t Gatekeeper is configurable in two ways: by
+        configuring the standard functionality included with the
+        servlet, and by adding <a href=
+        "#specialised-classes">specialised functionality</a> with
+        code modules. This section deals with the standard
+        configuration.</p>
+
+        <p>The Gatekeeper is configured by setting properties in
+        the servlet's <b>web.xml</b> configuration file (found in
+        the WEB-INF directory). The configuration includes two
+        steps:</p>
+
+        <ol>
+          <li>Which implementation classes to use for:
+          TransactionIdProvider, Gatekeeper, and UrlSigner</li>
+
+          <li>Specific configuration parameters required by the
+          implementation classes chosen above</li>
+        </ol>
+
+        <h3>Configuration Properties</h3>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">Implementation Classes</th>
+          </tr>
+
+          <tr>
+            <td valign="top"><b>TransactionIdProviderClass</b></td>
+
+            <td>A class that generates a unique transaction ID for
+            each message received from a client.
+            <br />
+            <sup>Default:
+            org.jets3t.servlets.gatekeeper.impl.DefaultTransactionIdProvider</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b>GatekeeperClass</b></td>
+
+            <td>A class that determines whether or allow or deny a
+            particular operation request
+            <br />
+            <sup>Default:
+            org.jets3t.servlets.gatekeeper.impl.DefaultGatekeeper</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b>UrlSignerClass</b></td>
+
+            <td>The class that generates signed URLs for GET, HEAD,
+            PUT and DELETE operations.
+            <br />
+            <sup>Default:
+            org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner</sup></td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">Properties for default implementation:
+                DefaultTransactionIdProvider</th>
+          </tr>
+
+          <tr>
+            <td valign="top"></td>
+
+            <td>No configuration required</td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">Properties for default implementation:
+                DefaultGatekeeper</th>
+          </tr>
+
+          <tr>
+            <td valign="top"></td>
+
+            <td>No configuration required</td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">Properties for default implementation:
+                DefaultUrlSigner</th>
+          </tr>
+
+          <tr>
+            <td valign="top"><b>AwsAccessKey</b></td>
+
+            <td>AWS Access Key for an S3 Account
+            <br />
+            <sup>Required by any UrlSigner
+            implementation</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b>AwsSecretKey</b></td>
+
+            <td>AWS Secret Key for an S3 Account
+            <br />
+            <sup>Required by any UrlSigner
+            implementation</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b>SecondsToSign</b></td>
+
+            <td>The number of seconds until signed URLs will expire
+            <br />
+            Note thatS3 operations <b>must be completed</b> before
+            the expiry time is reached</td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b>S3BucketName</b></td>
+
+            <td>The name of the bucket where objects are stored,
+            and where files will be uploaded to</td>
+          </tr>
+        </table>
+
+        <h2><a name="specialilsed-classes"
+           id="specialilsed-classes">Specialising the
+           Gatekeeper</a></h2>
+
+        <p>The Gatekeeper implementation can be specialised by
+        plugging in code components to perform the tasks of the
+        TransactionIdProvider, Gatekeeper, and UrlSigner. Each of
+        these components has an abstract base class named after the
+        component in the package <a href=
+        "../api/org/jets3t/servlets/gatekeeper/package-frame.html">org.jets3t.servlets.gatekeeper</a>.</p>
+
+        <p>The code components are plugged into the servlet by
+        making the new implementation classes available to the
+        servlet as a library or in the WEB-INF/classes directory,
+        and changing the appropriate implementation class
+        configuring property (see above) to refer to the new
+        implementation.</p>
+
+        <h3>Example implementation: RenameToUuidUrlSigner</h3>
+
+        <p>The example UrlSigner implementation class <a href=
+        "../api/org/jets3t/servlets/gatekeeper/impl/RenameToUuidUrlSigner.html">
+        RenameToUuidUrlSigner</a> exends the DefaultUrlSigner to
+        perform basic object renaming based on the Transaction ID
+        that uniquely identifies each request message from a
+        client. This class renames all objects to the format
+        <b><i>transactionId</i>.<i>objectCount</i>.<i>objectExtension</i></b>,
+        and adds a metadata property <b>transactionId</b> to store
+        the transaction id. For example, a file uploaded with the
+        name MyDocument.txt and assigned a transaction id ABC123
+        will be renamed to ABC123.0.txt and will have a metadata
+        property transactionId with the value ABC123.</p>
+
+        <p>This class also recognises a special type of object used
+        by the JetS3t Uploader application, and flagged with the
+        special object metadata item
+        <b>jets3t-uploader-summary-doc</b>. This special object is
+        an XML document that may be generated as a summary of the
+        files the Uploader has successfully stored to S3. This
+        object is not renamed, as the Uploader application itself
+        assigns the XML document with a name based on the
+        transaction ID used for the prior uploads.</p>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->
 

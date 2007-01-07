@@ -9,7 +9,7 @@
 		<key>page13</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-05T07:20:12Z</date>
+			<date>2007-01-07T07:36:06Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -20,10 +20,19 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					0dvUvz5bgTEwIWgrwEQNHw==
+					pK+45yLCbSOsUZy8z09iEA==
 					</data>
 					<key>Size</key>
-					<integer>9935</integer>
+					<integer>22264</integer>
+				</dict>
+				<key>gatekeeper-concepts_assets/gatekeeper-uml.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					qz5qb4Sz2W/UZP5VCEMNAg==
+					</data>
+					<key>Size</key>
+					<integer>38055</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -206,7 +215,7 @@
 		<key>page8</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-05T07:20:12Z</date>
+			<date>2007-01-07T08:28:52Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -217,10 +226,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					klIH9pGWs0u8mmskq5y7vg==
+					j+YkxN+wZXdgH3oFxTfncQ==
 					</data>
 					<key>Size</key>
-					<integer>5836</integer>
+					<integer>12632</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>

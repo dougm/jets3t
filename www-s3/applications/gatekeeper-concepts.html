@@ -1,5 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -36,6 +36,20 @@
         href=
         "../rw_common/themes/ideal/css/sidebar/sidebar_right.css" />
         
+<style type="text/css"
+       media="all">
+/*<![CDATA[*/
+pre {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+
+tt {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+/*]]>*/
+</style>
 <script type="text/javascript"
       src="../rw_common/themes/ideal/javascript.js">
 </script>
@@ -138,8 +152,11 @@
 
         <h1>Gatekeeper Concepts</h1>
 
-        <p>There are three main capabilities a Gatekeeper service
-        can provide:</p>
+        <p>A Gatekeeper service acts as an intermediary between a
+        Client and an S3 Account, on behalf of a Service Provider
+        who owns the S3 Account. The Service Provider configures
+        the gatekeeper service to perform one or more of the
+        following tasks:</p>
 
         <ol>
           <li>Allow clients to interact with S3 by providing the
@@ -154,51 +171,123 @@
           service provider</li>
         </ol>
 
-        <p>To provide these capabilities a gatekeeper-compatible
-        client application must be able to provide at least enough
-        information to the Gatekeeper service for it to generate
-        signed URLs. In addition to this, if the service performs
-        authorization or other tasks the client may have to provide
-        more information for the service to do its work. Finally,
-        for advanced services that might change object names or
-        metadata the service may need to be able to communicate
-        information about changes it has made back to the
-        client.</p>
+        <p>Gatekeeper services authorizes client operations using
+        the S3 <a href=
+        "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAuthentication.html"
+           target="_blank">Query String Authorization</a> URL
+           signing mechanism to generate time-limited URLs that
+           client applications use to Upload, Download, and Delete
+           objects in S3.</p>
 
-        <p>These requirements mean that the Gatekeeper requires a
-        flexible message format to communicate information between
-        clients and the service. The message format must be able to
+        <h2>Interaction</h2>
+
+        <p><img src=
+        "gatekeeper-concepts_assets/gatekeeper-uml.jpg" /></p>
+
+        <h3>Client request message</h3>
+
+        <p>A client application contacts the Gatekeeper service
+        when it wishes to perform an operation on objects in the S3
+        account. There operations can include:</p>
+
+        <ul>
+          <li><b>PUT</b>: The client will upload a file or some
+          data to S3</li>
+
+          <li><b>GET</b>: The client will retrieve an object from
+          S3</li>
+
+          <li><b>HEAD</b>: The client will retrieve information
+          about an object from S3 (this is not likely to be used
+          often)</li>
+
+          <li><b>DELETE</b>: The client will delete an object in
+          S3</li>
+        </ul>The client application includes a separate "request"
+        for each operation it wishes to perform.
+
+        <h3>Gatekeeper response message</h3>
+
+        <p>The Gatekeeper service evaluates the client's request(s)
+        and responds with a signed URL for each operation it will
+        allow, or without a signed URL for operations it will not
+        allow along with a brief explanation of the reason.</p>
+
+        <p>The evaluation the Gatekeeper service performs can vary
+        considerably - from allowing every operation, to
+        restricting operations to authorized clients, through to
+        manipulating the name, location and metadata of objects. If
+        the service is renaming objects or changing metadata, the
+        response message may include information about this changes
+        if it is necessary for the client application to react
+        appropriately. For example, if the Gateway service requires
+        the Content-Type of a client's file upload to be changed
+        the client application must be made aware of this change to
+        perform an upload that will match the signed URL returned
+        by the Gateway.</p>
+
+        <h3>Client performs operations</h3>
+
+        <p>Once the client application has received a response
+        message from the Gatekeeper service, it can perform the
+        operations for which the service provided signed URLs.</p>
+
+        <p>As mentioned above, if the Gatekeeper service applied
+        certain kinds of changes the client application will have
+        to recognise additional information in the Gatekeeper's
+        response message and react appropriately.</p>
+
+        <h2>Gatekeeper Messages</h2>
+
+        <p>To capture the information necessary to perform the
+        interactions described above a flexible message format is
+        required. The message format must provide means for the
+        client to provide information to the Gatekeeper describing
+        the operations it intends to perform, and for the
+        Gatekeeper to respond with allowed and/or denied operations
+        as well as any object changes it expects the client to make
+        before performing the operations. Finally, in more advanced
+        interaction scenarios the Gatekeeper or Client application
+        might need to capture additional application-specific
+        information in the message, such as transaction ID unique
+        to that interaction. So the message format must be able to
         represent client requests ranging from the simple to the
-        complex, and it must be compatible with any server-side
-        technology.</p>
-
-        <h2>Gatekeeper Message</h2>
+        complex, and it ideally it should also be compatible with a
+        wide range of server-side technologies.</p>
 
         <p>The Gatekeeper Message format meets these requirements
         by building messages based around a series of properties
         (name/value pairs) where the name of each property is
-        organised into a hierarchy. The client sends a message to
-        the Gatekeeper service as a request, and the service
-        replies with a response message.</p>
+        organised into a hierarchy. The message captures three
+        kinds of message properties:</p>
 
-        <table>
+        <ul>
+          <li><b>Request properties</b>: Properties describing the
+          operation a client wishes to perform, particularly the
+          type of operation and the S3 object the operation will be
+          performed on. There is a set of request properties for
+          each S3 object the client wishes to operate on, with each
+          set identified using a simple numbered <b>id</b> which
+          starts at 0 for the first object, is 1 for the second
+          object etc.</li>
+
+          <li><b>Message properties</b>: Properties concerning the
+          gatekeeper message as a whole, such as a unique
+          identifier the Gatekeeper may set for each message it
+          processes</li>
+
+          <li><b>Application properties</b>: Properties specific to
+          the client application sending the message. These may be
+          used to include additional information from or to the
+          client.</li>
+        </ul>
+
+        <h3>Gatekeeper Message Format</h3>
+
+        <table bgcolor="#FAFAFA">
           <tr>
-            <td colspan="2"><b>Request properties</b>
-            <br />
-            Properties describing the operation a client wishes to
-            perform, particularly the type of operation and the S3
-            object the operation will be performed on. There is a
-            set of request properties for each S3 object the client
-            wishes to operate on, with each set identified using a
-            simple numbered <b>id</b> which starts at 0 for the
-            first object, is 1 for the second object etc.</td>
-          </tr>
-
-          <tr>
-            <td valign="top">
-            <b>request|<i>id</i>|objectKey</b></td>
-
-            <td>The object's key</td>
+            <th align="left"
+                colspan="2">Request properties</th>
           </tr>
 
           <tr>
@@ -208,6 +297,13 @@
             <td>The type of operation the client wishes to perform
             on an object, one of: <b>put</b>, <b>get</b>,
             <b>head</b>, <b>delete</b></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b>request|<i>id</i>|objectKey</b></td>
+
+            <td>The object's key</td>
           </tr>
 
           <tr>
@@ -230,33 +326,32 @@
           </tr>
 
           <tr>
-            <td valign="top"><b>request|<i>id</i>|signedUrl</b>
-            <br />
-            <sup>Gatekeeper response only</sup></td>
+            <td valign="top">
+            <b>request|<i>id</i>|signedUrl</b></td>
 
             <td>A signed URL provided by the Gatekeeper service
-            when a requested operation is allowed</td>
+            when a requested operation is allowed
+            <br />
+            <sup>Gatekeeper response only</sup></td>
           </tr>
 
           <tr>
-            <td valign="top"><b>request|<i>id</i>|declineReason</b>
-            <br />
-            <sup>Gatekeeper response only</sup></td>
+            <td valign="top">
+            <b>request|<i>id</i>|declineReason</b></td>
 
             <td>An explanation as to why a requested operation was
             disallowed.
             <br />
             If this property is present in a Gatekeeper response
             there will be no corresponding <b>signedUrl</b>
-            property.</td>
+            property.
+            <br />
+            <sup>Gatekeeper response only</sup></td>
           </tr>
 
           <tr>
-            <td colspan="2"><b>Message properties</b>
-            <br />
-            Properties concerning the gatekeeper message as a
-            whole, such as a unique identifier the Gatekeeper may
-            set for each message it processes</td>
+            <th align="left"
+                colspan="2">Message properties</th>
           </tr>
 
           <tr>
@@ -271,11 +366,8 @@
           </tr>
 
           <tr>
-            <td colspan="2"><b>Application properties</b>
-            <br />
-            Properties specific to the client application sending
-            the message. These may be used to include additional
-            information from or to the client.</td>
+            <th align="left"
+                colspan="2">Application properties</th>
           </tr>
 
           <tr>
@@ -290,9 +382,191 @@
           </tr>
         </table>
 
-        <h3>Example Messages</h3>
+        <h3>Message Usage</h3>
 
-        <h2>Performing Requests</h2>
+        <p>The Gatekeeper request message is intended to be a
+        standard HTTP POST requests, where each property in the
+        message is sent as a POST parameter. The Gatekeeper
+        response should be a plain text document with the content
+        type <b>application/x-message-properties</b>, where each
+        property is on a separate line and is represented as
+        <b>propertyName=propertyValue</b>.</p>
+
+        <h2>Performing Client Operations</h2>
+
+        <p>TODO</p>
+
+        <h2>Gatekeeper Authorization and Control</h2>
+
+        <p>The level of control a Gatekeeper service imposes over
+        S3 operations can vary from none, where the service allows
+        any client to perform operations, through to the high
+        degree of control imposed when the service renames objects
+        and adds or changes object metadata. This section discusses
+        a few different ways that Gatekeeper control could be
+        implemented, though the exact level of control required
+        will depend entirely on the kind of service or application
+        a Service Provider is offering.</p>
+
+        <h3>Basic authorization</h3>
+
+        <p>The simplest form of client authorization would be to
+        use the standard web-server mechanism of Basic
+        Authorization, where a client must provider a valid
+        username and password before they can even submit a request
+        to the Gatekeeper service. With this mechanism the
+        Gatekeeper service could be extremely simple and allow all
+        operations requested by clients, knowing that the Basic
+        Authorization requirement will prevent any unauthorized
+        clients from reaching it.</p>
+
+        <h3>End-point authorization</h3>
+
+        <p>When clients submit HTTP POST requests over the Internet
+        certain information about that client will be available to
+        any server-side service. This information can include the
+        client's IP or DNS address, the User Agent description
+        provided by the client's application, and even the client's
+        authorized username if Basic Authorization is turned
+        on.</p>
+
+        <p>Gatekeeper services could use the client's end-point
+        information to control authorization, such as by only
+        authorizing clients with a specific end-point IP addresses
+        or clients in a particular address range (eg the computers
+        in a business' network).</p>
+
+        <h3>Object-specific authorization</h3>
+
+        <p>As the client must provide information about which
+        objects it wishes to operate upon to receive the
+        appropriate signed URL, the Gatekeeper service can use this
+        information to decide whether or not to allow particular
+        clients or even particular operations in a client's
+        request. The simplest example of this is the Content-Type
+        object metadata item, which clients must include in their
+        requests for PUT URLs before they can upload objects to S3.
+        If the Service Provider wished to limit the type of files
+        uploaded to S3, they could dis-allow any PUT operation
+        where the Content-Type was not allowed.</p>
+
+        <p>This technique relies on the client providing the
+        necessary information for the Gatekeeper to make a
+        decision. In some cases information must be provided by the
+        client for certain operations (such as with the
+        Content-Type for PUTs) so the Gatekeeper can count on
+        having this information available. In other cases the
+        obejct information available will depend entirely on what
+        metadata the client application applies to objects, and how
+        much of that information it includes in requests to the
+        Gatekeeper.</p>
+
+        <p>In the worst case, the Gatekeeper could simply deny
+        access to any client application which did not provide the
+        necessary information.</p>
+
+        <h3>Application-specific authorization</h3>
+
+        <p>The most sophisticated authorization control can be
+        imposed when a client application is designed to include
+        application-specific information in its request messages.
+        This information could be anything at all that is
+        appropriate for the kind of service the Service Provider is
+        offering. For example, the client application itself could
+        prompt for username and password details which are
+        encrypted before being sent to the Gatekeper - this would
+        be an improvement on standard Basic Authorization as
+        passwords would not be sent in easily readable
+        plain-text.</p>
+
+        <p>The possibilities of this approach are basically
+        unlimited, as long as the Service Provider has control over
+        both the Gatekeeper service and the client's
+        application.</p>
+
+        <h3>Controlling Objects</h3>
+
+        <p>A Gatekeeper service can have a reasonable degree of
+        control over the operations performed on objects in an S3
+        account. In addition to authorizing which clients can
+        perform operations, and even which particular operations a
+        client can perform, the service can control the name,
+        location and metadata of objects a client operates on.</p>
+
+        <p>This last level of control is possible due to the way
+        signed URLs work. When a Gatekeeper service provides a
+        client with a signed URL, that URL may or may not reference
+        the object the client actually requested. The client
+        application doesn't care about this, as long as the signed
+        URL works for performing the requested operation the
+        content of the URL is not important (though the client
+        application may have to be aware of some changes in the
+        case of PUT URLs).</p>
+
+        <p>For example, consider a client application that uploads
+        and downloads files in an S3 account. This application
+        doesn't know much about the S3 service or how it works, all
+        it knows is that it receives URLs from the Gatekeeper to do
+        its work.
+        <br />
+        Let's say the client wants to upload the file MyMovie.avi
+        to S3. The client application requests a PUT URL with the
+        following very simple request message:</p>
+        <pre>
+request|0|signatureType=put
+request|0|objectKey=MyMovie.avi
+</pre>Notice that there is no <tt>request.0.bucketName</tt>
+property, nor a <tt>request.0.metadata.content-type</tt> property.
+The client application only knows to provide the file's name.
+
+        <p>The Gatekeeper service now has the job of deciding where
+        this object should be stored. Because the client has been
+        authorized using some mechanism (such as Basic
+        Authorization) the service knows that the client is the
+        user <b>Mr Tickle</b>. The service decides that files from
+        this user belong in the <b>Mr Men</b> bucket in S3, and
+        that the object key should be prefixed with a "directory"
+        name specifically for Mr Tickle. Finally, the service
+        recognises that the .avi file is a movie with the mime type
+        <b>video/x-msvideo</b>.</p>
+
+        <p>The Gatekeeper service replies with the following
+        response message (signedUrl is all one line):</p>
+        <pre>
+request|0|signatureType=put
+request|0|objectKey=MrTickle/MyMovie.avi
+request|0|bucketName=MrMen
+request|0|metadata|content-type=video/x-msvideo
+request|0|signedUrl=http://s3.amazonaws.com/MrMen/MrTickle/MyMovie.avi
+                    ?AWSAccessKeyId=1FMFX9QNQHMZ32MPA7G2
+                    &amp;Expires=1168240995
+                    &amp;Signature=L%2BZLrgKNbjuOstt2SoTwxTGyaDE%3D
+</pre>The first three request properties, objectKey and bucketName,
+are returned as a courtesy and the client application can ignore
+them. The important item is the signedUrl, which is a signed PUT
+request for uploading a file to the bucket <b>MrMen</b> with the
+object key <b>MrTickle/MyMovie.avi</b>. When the client application
+uses this URL in a PUT operation with the file data, the file will
+be uploaded to the location the Gatekeeper service specified.
+
+        <p><b>Warning</b>: One important thing to note in this case
+        is that because the Gatekeeper changed the Content-Type
+        metadata item, the client application must also use the
+        same Content-Type HTTP header when performing the PUT
+        operation. As Content-Type HTTP header is among a small set
+        of headers that are always included in a signed PUT URL,
+        the client application must send the same value when
+        communicating with S3. The following metadata items must
+        match between the signed URL and the HTTP PUT headers:</p>
+
+        <ul>
+          <li>Content-Type</li>
+
+          <li>Content-MD5</li>
+
+          <li>Any S3-specific metadata item prefixed with
+          <b>x-amz</b></li>
+        </ul>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->
 
