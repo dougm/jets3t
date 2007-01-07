@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -39,6 +40,8 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.io.BytesTransferredWatcher;
+import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
@@ -348,7 +351,34 @@ public class FileComparer {
      * @throws IOException
      * @throws ParseException
      */
-    public static FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap)
+    public static FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap) 
+        throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
+    {
+        return buildDiscrepancyLists(filesMap, s3ObjectsMap, null);
+    }
+    
+    /**
+     * Compares the contents of a directory on the local file system with the contents of an
+     * S3 resource. This comparison is performed on a map of files and a map of S3 objects previously
+     * generated using other methods in this class.
+     * 
+     * @param filesMap
+     *        a map of keys/Files built using the method {@link #buildFileMap(File, String)}
+     * @param s3ObjectsMap
+     *        a map of keys/S3Objects built using the method 
+     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3ServiceEventListener)}
+     * @param hashWatcher
+     *        reports on the progress of file hash generation.
+     * @return
+     * an object containing the results of the file comparison.
+     * 
+     * @throws NoSuchAlgorithmException
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws ParseException
+     */
+    public static FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap, 
+        BytesTransferredWatcher hashWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
         List onlyOnServerKeys = new ArrayList();
@@ -373,8 +403,16 @@ public class FileComparer {
                     alreadySynchronisedKeys.add(keyPath);
                 } else {
                     // Compare file hashes.
+                    InputStream hashInputStream = null;
+                    if (hashWatcher != null) {
+                        hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
+                            new FileInputStream(file), hashWatcher);
+                    } else {
+                        hashInputStream = new FileInputStream(file);
+                    }
+                    
                     String fileHashAsBase64 = ServiceUtils.toBase64(
-                        ServiceUtils.computeMD5Hash(new FileInputStream(file)));
+                        ServiceUtils.computeMD5Hash(hashInputStream));
                     
                     // Get the S3 object's Base64 hash.
                     String objectHash = null;

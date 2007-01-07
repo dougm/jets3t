@@ -107,10 +107,10 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
+import org.jets3t.service.io.BytesTransferredWatcher;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.multithread.CancelEventTrigger;
 import org.jets3t.service.multithread.CreateBucketsEvent;
 import org.jets3t.service.multithread.CreateObjectsEvent;
@@ -226,7 +226,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private Map downloadObjectsToFileMap = null;
     private boolean isDownloadingObjects = false;   
     private boolean isUploadingFiles = false;
-    private Map filesInDownloadDirectoryMap = null;
+    private Map filesAlreadyInDownloadDirectoryMap = null;
     private Map s3DownloadObjectsMap = null;
     private Map filesForUploadMap = null;
     private Map s3ExistingObjectsMap = null;
@@ -1661,17 +1661,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private void downloadSelectedObjects() throws IOException {
         // Prompt user to choose directory location for downloaded files (or cancel download altogether)
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setAcceptAllFileFilterUsed(false);
         fileChooser.setDialogTitle("Choose directory to save S3 files in");
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        fileChooser.setApproveButtonText("Choose directory");
-        if (downloadDirectory != null && downloadDirectory.getParentFile() != null) {
-            fileChooser.setCurrentDirectory(downloadDirectory.getParentFile());
-        }
+        fileChooser.setMultiSelectionEnabled(false);
+        fileChooser.setSelectedFile(downloadDirectory);
         
-        int returnVal = fileChooser.showOpenDialog(ownerFrame);
+        int returnVal = fileChooser.showDialog(ownerFrame, "Choose Directory");
         if (returnVal != JFileChooser.APPROVE_OPTION) {
-                return;
+            return;
         }
         
         downloadDirectory = fileChooser.getSelectedFile();
@@ -1681,7 +1678,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     private void prepareForObjectsDownload() {
         // Build map of existing local files.
-        filesInDownloadDirectoryMap = FileComparer.buildFileMap(downloadDirectory, null);
+        Map filesInDownloadDirectoryMap = FileComparer.buildFileMap(downloadDirectory, null);
+        filesAlreadyInDownloadDirectoryMap = new HashMap();
         
         // Build map of S3 Objects being downloaded. 
         s3DownloadObjectsMap = FileComparer.populateS3ObjectMap("", getSelectedObjects());
@@ -1697,6 +1695,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             if (object.getContentLength() == 0 || existingFilesObjectKeys.contains(objectKey)) {
                 potentialClashingObjects.add(object);
             }
+            if (existingFilesObjectKeys.contains(objectKey)) {
+                filesAlreadyInDownloadDirectoryMap.put(
+                    objectKey, filesInDownloadDirectoryMap.get(objectKey));
+            }
         }
         
         if (potentialClashingObjects.size() > 0) {
@@ -1710,7 +1712,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
             }).start();
         } else {
-            compareRemoteAndLocalFiles(filesInDownloadDirectoryMap, s3DownloadObjectsMap, false);
+            compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
         }
     }
     
@@ -1769,12 +1771,38 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             public void run() {
                 try {
                     // Compare objects being downloaded and existing local files.
-                    startProgressDisplay(
+                    final String statusText =
                         "Comparing " + s3ObjectsMap.size() + " object" + (s3ObjectsMap.size() > 1 ? "s" : "") +
-                        " in S3 with " + localFilesMap.size() + " local file" + (localFilesMap.size() > 1 ? "s" : ""),
-                        0, 0, null, null); 
+                        " in S3 with " + localFilesMap.size() + " local file" + (localFilesMap.size() > 1 ? "s" : "");
+                    startProgressDisplay(statusText,
+                        0, 100, null, null); 
+                    
+                    // Calculate total files size.
+                    File[] files = (File[]) localFilesMap.values().toArray(new File[] {});
+                    final long filesSizeTotal[] = new long[1];
+                    for (int i = 0; i < files.length; i++) {
+                        filesSizeTotal[0] += files[i].length();
+                    }
+                    
+                    // Monitor generation of MD5 hash, and provide feedback via the progress bar. 
+                    final long hashedBytesTotal[] = new long[1];
+                    hashedBytesTotal[0] = 0;
+                    final BytesTransferredWatcher hashWatcher = new BytesTransferredWatcher() {
+                        public void bytesTransferredUpdate(long transferredBytes) {
+                            hashedBytesTotal[0] += transferredBytes;
+                            final int percentage = 
+                                (int) (100 * hashedBytesTotal[0] / filesSizeTotal[0]);
+                            SwingUtilities.invokeLater(new Runnable() {
+                                public void run() {
+                                    updateProgressDisplay(statusText, percentage);
+                                }
+                            });
+                        }
+                    };
+                    
                     FileComparerResults comparisonResults = 
-                        FileComparer.buildDiscrepancyLists(localFilesMap, s3ObjectsMap);
+                        FileComparer.buildDiscrepancyLists(localFilesMap, s3ObjectsMap, hashWatcher);
+                    
                     stopProgressDisplay(); 
                     
                     if (upload) {
@@ -2203,7 +2231,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             if (watcher.isBytesTransferredInfoAvailable()) {
                 String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                 String statusText = "Uploaded 0 of " + bytesTotalStr;                
-                startProgressDisplay(statusText, " ", 0, 100, "Cancel upload", 
+                startProgressDisplay(statusText, " ", 0, 100, "Cancel Upload", 
                     event.getThreadWatcher().getCancelEventListener());
             } 
             // ... otherwise show the number of completed threads.
@@ -2496,7 +2524,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             stopProgressDisplay();        
             
             if (isDownloadingObjects) {
-                compareRemoteAndLocalFiles(filesInDownloadDirectoryMap, s3DownloadObjectsMap, false);
+                compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
                 isDownloadingObjects = false;
             } else if (isUploadingFiles) {
                 compareRemoteAndLocalFiles(filesForUploadMap, s3ExistingObjectsMap, true);
