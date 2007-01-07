@@ -13,19 +13,19 @@
 		<!--
 		<init-param>
 			<param-name>TransactionIdProviderClass</param-name>
-			<param-value>org.jets3t.servlets.gatekeeper.impl.</param-value>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultTransactionIdProvider</param-value>
 		</init-param>		
 		<init-param>
 			<param-name>GatekeeperClass</param-name>
-			<param-value>org.jets3t.servlets.gatekeeper.impl.</param-value>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultGatekeeper</param-value>
 		</init-param>		
 		<init-param>
 			<param-name>UrlSignerClass</param-name>
-			<param-value>org.jets3t.servlets.gatekeeper.impl.RenameToUuidUrlSigner</param-value>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner</param-value>
 		</init-param>		
 		-->
 		
-		<!-- Required parameters for UrlSigner -->
+		<!-- Required parameters for any UrlSigner implementation -->
 		<init-param>
 			<param-name>AwsAccessKey</param-name>
 			<param-value><YourAWSAccessKey></param-value>
