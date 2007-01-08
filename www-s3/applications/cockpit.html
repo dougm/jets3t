@@ -36,6 +36,20 @@
         href=
         "../rw_common/themes/ideal/css/sidebar/sidebar_right.css" />
         
+<style type="text/css"
+       media="all">
+/*<![CDATA[*/
+pre {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+
+tt {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+/*]]>*/
+</style>
 <script type="text/javascript"
       src="../rw_common/themes/ideal/javascript.js">
 </script>
@@ -158,7 +172,7 @@
           <li>Manage <a href="#acls">Access Control List (ACL)
           permissions</a> for buckets and objects</li>
 
-          <li>Choose <a href="#acl">default ACL</a><font color=
+          <li>Choose <a href="#ulprefs">default ACL</a><font color=
           "red">*</font> permissions for uploaded files, to make
           them publicly readable or writable</li>
 
@@ -174,8 +188,8 @@
           URLs</a> to make your private objects publicly available
           to others for a limited time</li>
 
-          <li>Manage buckets owned by others (provided you have the
-          necessary ACL permissions)</li>
+          <li>Manage buckets owned by others (<a href=
+          "#buckets">third-party buckets</a>)</li>
 
           <li><a href="#login">Store your login credentials</a> in
           password-protected files on your computer, online in
@@ -324,6 +338,51 @@
           some objects you will get an error message.</li>
         </ul>
 
+        <h3><a name="logging"
+           id="logging">Bucket Logging</a></h3>
+
+        <p>Cockpit includes support for the new (beta) <a target=
+        "_blank"
+           href=
+           "http://developer.amazonwebservices.com/connect/entry.jspa?externalID=422&amp;categoryID=49">
+        Server Access Logging</a> capabilities of S3. Server Access
+        Logging allows you to specific that some or all of your
+        buckets will have their activity logged by Amazon. Amazon
+        then delivers log files summarising the activity on your
+        logged buckets to a bucket of your choice.</p>
+
+        <p><img src="cockpit_assets/BucketLogging.jpg"
+             alt="Picture of the Bucket Logging dialog" /></p>
+
+        <p>To activate logging for a bucket, start the Bucket
+        Logging Status dialog via the menu <b>Tools -&gt; Configure
+        Bucket logging...</b>. In this dialog you simply choose a
+        bucket to be logged from the <b>Bucket</b> list, set a log
+        file prefix (text added as a prefix to the generated log
+        files), and select a bucket to log to from the <b>Log
+        to</b> list. Any changes you make in this dialog are
+        applied when the <b>Log to</b> bucket is changed or
+        selected.</p>
+
+        <p>The Bucket Logging Status dialog also shows the status
+        of bucket logging for the selected <b>Bucket</b>. In other
+        words, selecting a bucket from the <b>Bucket</b> list will
+        cause Cockpit to query S3 for that bucket's logging status,
+        which will then be displayed. Once the current status is
+        displayed, you can change it or leave it as it is.</p>
+
+        <p>Be aware that the <b>Log to</b> bucket used for Server
+        Access Logging must have special ACL permissions to allow
+        the Amazon logging service to write log files to it. The
+        ACL settings required are that the Amazon Logging group
+        (http://acs.amazonaws.com/groups/s3/Delivery) have both
+        READ_ACP and WRITE permission. Cockpit <i>automatically
+        makes the necessary ACL changes</i> when you choose a
+        <b>Log to</b> bucket in the Bucket Logging Status dialog,
+        but if you wish to remove these settings later on you will
+        have to do this yourself using the standard Bucket ACL
+        Permissions dialog.</p>
+
         <h3><a name="objects"
            id="objects">Manage your objects</a></h3>
 
@@ -389,6 +448,65 @@
           selected object or objects, after prompting for
           confirmation.</li>
         </ul>
+
+        <h3><a name="filtering"
+           id="filtering">Object Filtering</a></h3>
+
+        <p>Cockpit allows you to apply filtering to determine which
+        objects are listed in the objects pane. This filtering
+        provides a convenient way to reduce the number of objects
+        displayed by Cockpit, and as the filtering is applied by S3
+        when listing objects it can also greatly reduce the time
+        required to list the relevant contents of buckets with many
+        objects.</p>
+
+        <p><img src="cockpit_assets/Filtering.jpg"
+             alt="Picture of the Filtering options" /></p>
+
+        <p>Filtering is turned on by selecting the <b>Filter
+        objects</b> check box. By default no filtering is applied
+        as the <b>Prefix</b> and <b>Delimiter</b> filtering options
+        are blank. Filtering is applied by entering a prefix or a
+        delimiter or both:</p>
+
+        <ul>
+          <li><b>Prefix</b>: Only objects with keys that start with
+          the prefix will be listed. The prefix can be anything
+          from a partial string or single character, up to the
+          entire name of an object.
+          <br />
+          If object keys are divided into logical "directories" in
+          your S3 account using forward-slashes (/), or indeed any
+          character, only the contents of a "directory" can be
+          displayed by using the directory name and the slash (eg
+          "Documents/").</li>
+
+          <li><b>Delimiter</b>: Only objects with keys that match
+          the prefix (if it set) and that end with the delimiter
+          will be displayed. The delimiter is most useful when your
+          object keys are divided into logical "directories"
+          separated by a character, such as a forward-slash (/). In
+          this case, specifying "/" as the delimiter will limit the
+          object listing to only top-level items or
+          directories.</li>
+        </ul>
+
+        <p>Filtering can be applied before objects are listed, such
+        as by specifying a filter before clicking on a bucket for
+        the first time- this is particularly useful for buckets
+        with many objects. Alternately, filtering can be applied on
+        a current listing by changing the prefix and/or delimiter
+        and pressing return to trigger a refresh of the
+        objects.</p>
+
+        <p>The exact behaviour of the S3 filtering mechanism can be
+        a little hard to understand, so play around with it to get
+        a feel for how it works. There is also some documentation
+        available in the Amazon Resource Center's S3 Developer
+        Guide, in the section on <a target="_blank"
+           href=
+           "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/ListingKeysHierarchy.html">
+        Listing Keys Hierarchically</a>.</p>
 
         <h3><a name="uploads"
            id="uploads">Upload files to S3</a></h3>

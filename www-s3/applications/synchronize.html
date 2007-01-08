@@ -1,5 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -36,6 +36,20 @@
         href=
         "../rw_common/themes/ideal/css/sidebar/sidebar_right.css" />
         
+<style type="text/css"
+       media="all">
+/*<![CDATA[*/
+pre {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+
+tt {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+/*]]>*/
+</style>
 <script type="text/javascript"
       src="../rw_common/themes/ideal/javascript.js">
 </script>
@@ -131,12 +145,11 @@
         <h1>JetS3t Synchronize</h1>
 
         <p>Synchronize is a console (text mode) Java application
-        for synchronizing directories on a computer with an
-        <a href="http://s3.amazonaws.com">Amazon S3</a>
-        account.</p>
+        for synchronizing directories on a computer with an Amazon
+        S3 account.</p>
 
         <p>It is freely available as part of the <a href=
-        "http://jets3t.dev.java.net">jets3t</a> project which
+        "http://jets3t.dev.java.net">JetS3t</a> project which
         provides applications and a Java toolkit for Amazon's
         S3.</p>
 
@@ -148,19 +161,31 @@
           <li>Download a directory and all its contents from
           S3</li>
 
-          <li>Automatically compress (gzip) files sent to S3</li>
-
-          <li>Automatically password-encrypt files sent to S3</li>
+          <li>Automatically compress (gzip) and/or encrypt files
+          sent to S3</li>
 
           <li>Sophisticated file comparisons used to determine
           whether files have changed, so only new or changed files
           are transferred</li>
-        </ul>
+
+          <li>Upload any number of files and/or directories at one
+          time<font color="red">*</font></li>
+
+          <li>Access Control List permissions of uploaded files can
+          be set to PRIVATE, PUBLIC_READ or
+          PUBLIC_READ_WRITE<font color="red">*</font></li>
+
+          <li>When uploading files, specific file/directory paths
+          can be ignored using .jets3t-ignore settings
+          files<font color="red">*</font></li>
+        </ul><sup>Items with a red star (<font color=
+        "red">*</font>) are new in JetS3t version 0.5.x</sup>
 
         <h2>Getting Started</h2>
 
         <p>Synchronize can be run from the command line using the
-        scripts included with the jets3t toolkit.</p>
+        scripts included in the <b>bin</b> directory of the JetS3t
+        distribution.</p>
 
         <p>For Windows computers use the script
         <tt>synchronize.bat</tt>.</p>
@@ -168,30 +193,47 @@
         <p>For Unixy computers, use the script
         <tt>synchronize.sh</tt>.</p>
 
-        <p>Files are copied to S3 with an UPLOAD operation, and
-        copied from S3 with a DOWNLOAD. By default, files are only
-        transferred only if they are new or have changed relative
-        to the destination.</p>
+        <p>Files are copied to S3 with an UP(load) operation, and
+        copied from S3 with a DOWN(load). By default, files are
+        only transferred only if they are new or have changed
+        relative to the destination.</p>
 
         <h3>Properties File</h3>
 
-        <p>Synchronize requires a Java properties file to run. This
-        properties file must include at least the properties
-        <tt>accesskey</tt> and <tt>secretkey</tt>, and may also
-        require the property <tt>password</tt> if you use the
-        crypto option. This file is a plain text file that will
+        <p>Synchronize requires a Java properties file named
+        <b>synchronize.properties</b> to be available in the
+        classpath. This properties file must include at least the
+        properties <tt>accesskey</tt> and <tt>secretkey</tt>, and
+        may also require the property <tt>password</tt> if you use
+        the crypto option. This file is a plain text file that will
         look something like this:</p>
         <pre>
-accesskey=FAKEAMAZONS3ACCESSKEY
-secretkey=faKeAmazOnS3SecretKey
-password=prettyplease
+####################################
+# Synchronize application properties
+#
+# This file must be available on the 
+# classpath when Synchronize is run
+####################################
+
+# AWS Access Key (required)
+accesskey=&lt;YourAWSAccessKey&gt;
+
+# AWS Secret Key (required)
+secretkey=&lt;YourAWSSecretKey&gt;
+
+# Access Control List setting to apply to uploads, must be one of: PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE
+# The ACL setting defaults to PRIVATE if this setting is missing.
+acl=PRIVATE
+
+# Password used when encrypting/decrypting files. Only required when the --crypto setting is used.
+# password=
 </pre>
 
         <p>We use a properties file to store this information as we
         believe it will help keep your passwords secret. Storing
         them in a properties file is slightly more secure that
         typing them on the command line, and depending on the
-        operating system you use it should be possible to set
+        operating system you use it should be possible to set the
         access permissions on this file so no-one but you can read
         it.</p>
 
@@ -202,22 +244,30 @@ password=prettyplease
         the command-line parameters required by Synchronize and the
         options available. To see some example commands see the
         <a href="#examples">Examples</a> section below.</p>
-        <pre>
- Usage: Synchronize [options] UPLOAD &lt;Directory&gt; &lt;S3Path&gt; &lt;Properties File&gt;
-    or: Synchronize [options] DOWNLOAD &lt;Directory&gt; &lt;S3Path&gt; &lt;Properties File&gt;
-    
-UPLOAD   : Synchronize the contents of the Local Directory with S3.
-DOWNLOAD : Synchronize the contents of S3 with the Local Directory
-S3Path   : A path to the resource in S3. This must include at least the
-           bucket name, but may also specify a path inside the bucket.
-           E.g. /Backups/Documents/20060623
-Directory: A directory on your computer
-Properties File : A properties file containing the following properties:
-          accesskey : Your AWS Access Key
-          secretkey : Your AWS Secret Key
-          password  : Encryption password (only required when using crypto)
 
-For more help : Synchronize --help
+        <p><b>Changes</b>: Note that the parameters required by
+        Synchronize, and their ordering, has changed in the 0.5.0
+        release. Please update any scripts you have that use the
+        outdated synchronize commands from release 0.4.0.</p>
+        <pre>
+Usage: Synchronize [options] UP &lt;S3Path&gt; &lt;File/Directory&gt; (&lt;File/Directory&gt;...)
+   or: Synchronize [options] DOWN &lt;S3Path&gt; &lt;DownloadDirectory&gt;
+
+UP      : Synchronize the contents of the Local Directory with S3.
+DOWN    : Synchronize the contents of S3 with the Local Directory
+S3Path  : A path to the resource in S3. This must include at least the
+          bucket name, but may also specify a path inside the bucket.
+          E.g. &lt;bucketName&gt;/Backups/Documents/20060623
+File/Directory : A file or directory on your computer to upload
+DownloadDirectory : A directory on your computer where downloaded files
+          will be stored
+
+A property file with the name 'synchronize.properties' must be available in the
+classpath and contains the following properties:
+          accesskey : Your AWS Access Key (Required)
+          secretkey : Your AWS Secret Key (Required)
+          password  : Encryption password (only required when using crypto)
+          acl       : ACL permissions for uploads (optional)
 
 Options
 -------
@@ -267,42 +317,64 @@ F: A file identical locally and in S3 was updated due to the Force option.
 
 </pre>
 
+        <p><b><font color="red">WARNING</font></b>: Be <i>very</i>
+        careful when restoring files from S3 to a directory that
+        already contains files. By default Synchronize will delete
+        any files in the target directory that are not present in
+        S3, as it is helpfully synchronizing the contents of your
+        the directory on your computer with the contents of S3.
+        Mind you, if you do this for the wrong directory you can
+        lose all your files!
+        <br />
+        For this reason, <b>always</b> test your Synchronize
+        commands with the <tt>--noaction</tt> option before you run
+        them for real - just to make sure you are not about to do
+        something you will later regret.</p>
+
         <h2><a name="examples"
            id="examples">Examples</a></h2>
 
         <p>The best way to get the hang of Synchronize is to
         experiment with the commands on some test files you don't
-        care about, and use the jets3t Cockpit application to see
-        how uploads are stored in S3.</p>
+        care about, and use the <a href="cockpit.html">JetS3t
+        Cockpit</a> application to see how uploads are stored in
+        S3.</p>
 
-        <p>Before you start, create a text file called
-        <tt>synchronize.properties</tt> with your own S3 Access Key
-        and Secret Key settings (see Getting Started above).</p>
+        <p>Before you start, modify the sample properties text file
+        called <tt>synchronize.properties</tt> located in the
+        <b>configs</b> directory to include your own S3 Access Key
+        and Secret Key settings (see Getting Started above). Use
+        the synchronize run scripts provided in the <b>bin</b>
+        directory to run Synchronize.</p>
 
-        <p>The examples below to get an idea of what you can do
-        with Synchronize.</p>
+        <h3>Backing up files in S3</h3>
 
-        <h3>Backing up a directory in S3</h3>
-
-        <p>Let's say you have a Documents directory containing
-        important files you want to back-up to an S3 bucket called
-        MyBackups (note that you should really use a more unique
-        bucket name, like FAKEAMAZONS3ACCESSKEY.MyBackups):</p>
+        <p>Let's say you have two directories containing important
+        files (eg Documents and Reports) and you want to back them
+        up to an S3 bucket called MyBackups (note that you should
+        really use a more unique bucket name, like
+        &lt;MyAWSAccessKey&gt;.MyBackups):</p>
         <pre>
-synchronize.sh UPLOAD Documents MyBackups/Documents synchronize.properties
+synchronize.sh UP MyBackups Documents Reports
 </pre>
 
-        <p>Try running the same command again. Synchronize will
-        look at the contents of your S3 account and work out that
-        it already contains your files, so it will not have to do
-        any work.</p>
+        <p>After you have run this command once on your own
+        computer and uploaded some files, try running the same
+        command again. Synchronize will look at the contents of
+        your S3 account and work out that it already contains your
+        files, so it will not have any work to do.</p>
 
         <p>Now add a file or two to your Documents directory, and
         perhaps change one of the files as well. This time when you
         run the command, Synchronize will upload the new and
-        changed files.</p>
+        changed files. Alternately, you can run the command with
+        the <b>--noaction</b> option to make Synchronize tell you
+        what it would do without actually doing the work:</p>
+        <pre>
+synchronize.sh --noaction UP MyBackups Documents Reports
+</pre>
 
-        <h3>Restoring a directory from S3</h3>
+        <h3>Restoring files from S3</h3>
 
         <p>There are a few cases where you might want to restore a
         directory from S3. The simplest cases are when none of the
@@ -312,21 +384,23 @@ synchronize.sh UPLOAD Documents MyBackups/Documents synchronize.properties
         computer.</p>
 
         <p>Let's simulate this simple case by downloading your S3
-        Documents to a new directory name:</p>
+        Documents to a new directory:</p>
         <pre>
-synchronize.sh DOWNLOAD NewDocumentsDir MyBackups/Documents synchronize.properties
+mkdir NewDocumentsDirectory
+synchronize.sh DOWN MyBackups NewDocumentsDirectory
 </pre>
 
         <p>Synchronize will download all the contents of the S3
         directory to the new directory name. Like the UPLOAD
         example above, re-running this command will do nothing as
-        Synchronize will detect that your NewDocumentsDir directory
-        has the same contents as the S3 directory.</p>
+        Synchronize will detect that your NewDocumentsDirectory
+        directory has the same contents as the S3 directory.</p>
 
         <p>This same command can restore missing files, such as if
         you accidently deleted a single file in your Documents
         directory. Try it now, delete one of the files in
-        NewDocumentsDir and re-run the command to restore it.</p>
+        NewDocumentsDirectory and re-run the command to restore
+        it.</p>
 
         <h3>Changed files</h3>
 
@@ -353,7 +427,7 @@ synchronize.sh DOWNLOAD NewDocumentsDir MyBackups/Documents synchronize.properti
         the corrupted file then run the following Synchronize
         command:</p>
         <pre>
-synchronize.sh --keepfiles DOWNLOAD NewDocumentsDir MyBackups/Documents synchronize.properties
+synchronize.sh --keepfiles DOWN MyBackups NewDocumentsDirectory
 </pre>
 
         <p>With the keepfiles option, Synchronize will replace any

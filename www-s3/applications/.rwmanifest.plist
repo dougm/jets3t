@@ -68,7 +68,7 @@
 		<key>page5</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-08T02:57:24Z</date>
+			<date>2007-01-08T06:50:34Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -79,10 +79,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					vrzTjONHqhz6KNGWqNm1jA==
+					AdRhK4KdTPLzgbOkTDh2DA==
 					</data>
 					<key>Size</key>
-					<integer>25465</integer>
+					<integer>30844</integer>
 				</dict>
 				<key>cockpit_assets/ACLDialog.jpg</key>
 				<dict>
@@ -92,6 +92,15 @@
 					</data>
 					<key>Size</key>
 					<integer>23966</integer>
+				</dict>
+				<key>cockpit_assets/BucketLogging.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					gp++Iv//dtMaOK30F70ODQ==
+					</data>
+					<key>Size</key>
+					<integer>53952</integer>
 				</dict>
 				<key>cockpit_assets/BucketMenu.jpg</key>
 				<dict>
@@ -115,10 +124,19 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					MFH5OLK6BXyrXq2BI7qfXA==
+					byNjLTdc4YLVFfKJQgE3Xw==
 					</data>
 					<key>Size</key>
-					<integer>51857</integer>
+					<integer>36431</integer>
+				</dict>
+				<key>cockpit_assets/Filtering.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					8kTP1kN8CbiLE4owT/CzPg==
+					</data>
+					<key>Size</key>
+					<integer>50589</integer>
 				</dict>
 				<key>cockpit_assets/LoginDialog.jpg</key>
 				<dict>
@@ -151,10 +169,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					16ZvT2Ew18XI5XoK6uzkaQ==
+					q8SUlSfEco1Qxjsev/0fwA==
 					</data>
 					<key>Size</key>
-					<integer>28478</integer>
+					<integer>22171</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -165,7 +183,7 @@
 		<key>page6</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-08T02:57:25Z</date>
+			<date>2007-01-08T06:48:24Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -176,10 +194,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					uqL2k9yeZbPGEIWCRa82RA==
+					N1oIm4j8wkYoCqwbODydTA==
 					</data>
 					<key>Size</key>
-					<integer>16703</integer>
+					<integer>19688</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
