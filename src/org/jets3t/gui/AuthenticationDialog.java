@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.uploader;
+package org.jets3t.gui;
 
 import java.awt.Dialog;
 import java.awt.Frame;
@@ -26,12 +26,16 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+
 
 /**
  * Dialog box for user to enter authentication information for NT or Basic 
@@ -49,16 +53,17 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
 
     private boolean isNtAuthentication = false;
     
-    private String domain = null;
-    private String user = null;
-    private String password = null;
+    private String domain = "";
+    private String user = "";
+    private String password = "";
 
     /**
      * Construct modal dialog for display over a Frame.
      * 
      * @param owner     Frame over which this dialog will be displayed and centred.
      * @param title     the dialog's title text
-     * @param question  the question/statement to prompt the user for their password
+     * @param question  the question/statement to prompt the user for their password, may be html 
+     *                  compatible with {@link JHtmlLabel}
      * @param isNtAuthentication   if true a domain name is required in addition to the username and password.  
      */
     public AuthenticationDialog(Frame owner, String title, String question, boolean isNtAuthentication) {
@@ -93,8 +98,9 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
         int rowIndex = 0;
 
         JPanel container = new JPanel(new GridBagLayout());
-        container.add(new JLabel(question), new GridBagConstraints(0, rowIndex++, 2, 1, 0, 0,
-            GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        JHtmlLabel questionLabel = new JHtmlLabel(question, null);
+        container.add(questionLabel, new GridBagConstraints(0, rowIndex++, 2, 1, 0, 0,
+            GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
         
         domainField = new JTextField();
         usernameField = new JTextField();        
@@ -117,20 +123,30 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
             GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
         JPanel buttonsContainer = new JPanel(new GridBagLayout());
-        JButton cancel = new JButton("Cancel");
-        cancel.setActionCommand("Cancel");
-        cancel.addActionListener(this);
+        final JButton cancelButton = new JButton("Cancel");
+        cancelButton.setActionCommand("Cancel");
+        cancelButton.addActionListener(this);
         JButton okButton = new JButton("Authenticate me");
         okButton.setActionCommand("OK");
         okButton.setDefaultCapable(true);
         okButton.addActionListener(this);
-        buttonsContainer.add(cancel, new GridBagConstraints(0, 0, 1, 1, 0, 0,
+        buttonsContainer.add(cancelButton, new GridBagConstraints(0, 0, 1, 1, 0, 0,
             GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
         buttonsContainer.add(okButton, new GridBagConstraints(1, 0, 1, 1, 0, 0,
             GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
 
         container.add(buttonsContainer, new GridBagConstraints(0, rowIndex++, 2, 1, 0, 0,
             GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        
+        // Set default ENTER and ESCAPE buttons.
+        this.getRootPane().setDefaultButton(okButton);        
+        this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
+        this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            public void actionPerformed(ActionEvent actionEvent) {
+                cancelButton.doClick();
+            }
+        });        
 
         this.getContentPane().add(container);
         this.pack();
@@ -148,9 +164,9 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
             this.user = usernameField.getText();
             this.password = new String(passwordField.getPassword());
         } else if ("Cancel".equals(e.getActionCommand())) {
-            this.domain = null;
-            this.user = null;
-            this.password = null;
+            this.domain = "";
+            this.user = "";
+            this.password = "";
         }
         this.setVisible(false);
     }
