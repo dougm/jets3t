@@ -672,10 +672,11 @@ public class Synchronize {
         System.out.println("          will be stored");
         System.out.println();
         System.out.println("A property file with the name 'synchronize.properties' must be available in the");
-        System.out.println("classpath and must contain the following properties:");
+        System.out.println("classpath and contains the following properties:");
         System.out.println("          accesskey : Your AWS Access Key (Required)");
         System.out.println("          secretkey : Your AWS Secret Key (Required)");
         System.out.println("          password  : Encryption password (only required when using crypto)");
+        System.out.println("          acl       : ACL permissions for uploads (optional)");
         System.out.println("");
         System.out.println("For more help : Synchronize --help");
         if (!fullHelp)
