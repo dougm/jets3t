@@ -41,7 +41,6 @@ public class GatekeeperMessage {
     private static final String DELIM = "|";
     
     public static final String PROPERTY_TRANSACTION_ID = "transactionId";
-    public static final String CONTENT_TYPE = "application/x-message-properties";
     public static final String SUMMARY_DOCUMENT_METADATA_FLAG = "jets3t-uploader-summary-doc";
     
     private Properties applicationProperties = new Properties();
@@ -123,8 +122,9 @@ public class GatekeeperMessage {
         SignatureRequest[] requests = getSignatureRequests();
         for (int i = 0; i < requests.length; i++) {            
             SignatureRequest request = requests[i];
-            String propertyPrefix = prefix + DELIM + i + DELIM + request.getSignatureType() + DELIM;
+            String propertyPrefix = prefix + DELIM + i + DELIM;
 
+            encodeProperty(encodedProperties, propertyPrefix + "signatureType", request.getSignatureType());
             encodeProperty(encodedProperties, propertyPrefix + "objectKey", request.getObjectKey());
             encodeProperty(encodedProperties, propertyPrefix + "bucketName", request.getBucketName());
             encodeProperty(encodedProperties, propertyPrefix + "signedUrl", request.getSignedUrl());
@@ -169,10 +169,8 @@ public class GatekeeperMessage {
                 gatekeeperMessage.addMessageProperty(propertyName, propertyValue);                
             } else if (key.startsWith("request")) {
                 StringTokenizer st = new StringTokenizer(key, DELIM);
-                st.nextToken(); // Consume object prefix
+                st.nextToken(); // Consume request prefix
                 String objectIndexStr = st.nextToken();
-                
-                String signatureType = st.nextToken();
                 
                 boolean isMetadata = false;
                 String propertyName = st.nextToken();
@@ -187,14 +185,16 @@ public class GatekeeperMessage {
                 if (signatureRequestMap.containsKey(objectIndex)) {
                     request = (SignatureRequest) signatureRequestMap.get(objectIndex);
                 } else {
-                    request = new SignatureRequest(signatureType, null);
+                    request = new SignatureRequest();
                     signatureRequestMap.put(objectIndex, request);
                 }
                 
                 if (isMetadata) {
                     request.addObjectMetadata(propertyName, propertyValue);
                 } else {
-                    if ("objectKey".equals(propertyName)) {
+                    if ("signatureType".equals(propertyName)) {
+                        request.setSignatureType(propertyValue);
+                    } else if ("objectKey".equals(propertyName)) {
                         request.setObjectKey(propertyValue);
                     } else if ("bucketName".equals(propertyName)) {
                         request.setBucketName(propertyValue);
