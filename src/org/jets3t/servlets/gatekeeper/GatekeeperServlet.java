@@ -176,7 +176,7 @@ public class GatekeeperServlet extends HttpServlet {
             
             // Send successful response.
             response.setStatus(200);                
-            response.setContentType(GatekeeperMessage.CONTENT_TYPE);
+            response.setContentType("text/plain");
             response.getOutputStream().write(baos.toByteArray());
         } catch (Exception e) {
             log.error("Gatekeeper failed to send valid response", e);  
