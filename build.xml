@@ -146,7 +146,7 @@
 		</copy>
     </target>
 	
-	<target name="package" depends="dist,api-docs,package-applets">
+	<target name="package" depends="dist,package-applets,api-docs">
 		<!-- Copy documentation to dist directory so it's included in archive files -->
 		<mkdir dir="${dir.dist}/jets3t-${version}/docs/api"/>
 		<copy 			
@@ -197,9 +197,9 @@
 
 		<!-- Sign jars -->		
 		<signjar 
-			alias="jets3t"
-			keystore="applet.keystore"
-			storepass="${storepass}"
+			alias="${keystore.alias}"
+			keystore="${keystore.file}"
+			storepass="${keystore.storepass}"
 			lazy="true">
 			<fileset dir="${dir.dist-applets}" includes="*.jar"/>
 		</signjar>
@@ -218,6 +218,11 @@
 		<!-- Copy relevant resources files -->
 		<copy todir="${dir.dist-applets}">
 			<fileset dir="resources"/>
+		</copy>
+		
+		<!-- Copy applet running HTML files -->
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="applet" includes="*uploader*"/>
 		</copy>
 	</target>
 		
@@ -248,9 +253,9 @@
 
 		<!-- Sign jars -->		
 		<signjar 
-			alias="jets3t"
-			keystore="applet.keystore"
-			storepass="${storepass}"
+			alias="${keystore.alias}"
+			keystore="${keystore.file}"
+			storepass="${keystore.storepass}"
 			lazy="true">
 			<fileset dir="${dir.dist-applets}" includes="*.jar"/>
 		</signjar>
@@ -268,6 +273,11 @@
 		<!-- Copy relevant resources files -->
 		<copy todir="${dir.dist-applets}">
 			<fileset dir="resources"/>
+		</copy>
+
+		<!-- Copy applet running HTML files -->
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="applet" includes="*cockpit*"/>
 		</copy>
 	</target>
 
