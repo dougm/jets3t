@@ -93,6 +93,7 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
@@ -193,6 +194,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     private UserInputFields userInputFields = null;
     private Properties userInputProperties = null;
     
+    private HttpClient httpClientGatekeeper = null;
+    private S3ServiceMulti s3ServiceMulti = null;
+    
     /**
      * The files to upload to S3.
      */
@@ -212,12 +216,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * Properties set in stand-alone application from the command line arguments.
      */
     private Properties standAlongArgumentProperties = null;
-    
-    /**
-     * Stores cached authentication credentials provided by the user, with the Auth scheme
-     * as key.
-     */
-    private HashMap cachedAuthCredentials = new HashMap();
     
     private final ByteFormatter byteFormatter = new ByteFormatter();
     private final TimeFormatter timeFormatter = new TimeFormatter();
@@ -889,33 +887,33 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         
         // Try to detect any necessary proxy configurations.
-        HttpClient httpClient = new HttpClient();
-        httpClient.getParams().setParameter(
-            CredentialsProvider.PROVIDER, this);     
-        httpClient.getParams().setParameter(HttpMethodParams.USER_AGENT, 
-            ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
-
-        ProxyHost proxyHost = null;
-        try {
-            proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
-            if (proxyHost != null) {
-                HostConfiguration hostConfig = new HostConfiguration();
-                hostConfig.setProxyHost(proxyHost);
-                httpClient.setHostConfiguration(hostConfig);
-                httpClient.getParams().setAuthenticationPreemptive(true);
+        if (httpClientGatekeeper == null) {
+            httpClientGatekeeper = new HttpClient();
+            httpClientGatekeeper.getParams().setParameter(
+                CredentialsProvider.PROVIDER, this);     
+            httpClientGatekeeper.getParams().setParameter(HttpMethodParams.USER_AGENT, 
+                ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
+    
+            ProxyHost proxyHost = null;
+            try {
+                proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
+                if (proxyHost != null) {
+                    HostConfiguration hostConfig = new HostConfiguration();
+                    hostConfig.setProxyHost(proxyHost);
+                    httpClientGatekeeper.setHostConfiguration(hostConfig);
+                    httpClientGatekeeper.getParams().setAuthenticationPreemptive(true);
+                }
+            } catch (Throwable t) {
+                log.error("Unable to set proxy", t);
             }
-        } catch (Throwable t) {
-            log.error("Unable to set proxy", t);
         }
 
         // Perform Gateway request.
         log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
         try {                        
-            int responseCode = httpClient.executeMethod(postMethod);
+            int responseCode = httpClientGatekeeper.executeMethod(postMethod);            
             String contentType = postMethod.getResponseHeader("Content-Type").getValue();
-            if (responseCode == 200 
-                && GatekeeperMessage.CONTENT_TYPE.equals(contentType)) 
-            {
+            if (responseCode == 200) {
                 InputStream responseInputStream = null;
 
                 Header encodingHeader = postMethod.getResponseHeader("Content-Encoding");
@@ -1043,8 +1041,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             SignedUrlAndObject[] uploadItems = prepareSignedObjects(
                 objectsForUpload, gatekeeperMessage.getSignatureRequests(), xmlGenerator);
             
-            S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(null, APPLICATION_DESCRIPTION, this), this); 
+            if (s3ServiceMulti == null) {
+                s3ServiceMulti = new S3ServiceMulti(
+                    new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
+            }
                       
             /*
              * Prepare XML Summary document for upload, it the summary option is set.
@@ -1138,7 +1138,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         if (firstDeclineReason != null) {
             throw new Exception("Your upload" + (objects.length > 1 ? "s were" : " was") 
-                + " declined. Reason: " + firstDeclineReason);
+                + " declined by the Gatekeeper. Reason: " + firstDeclineReason);
         }
         return (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[] {});
     }
@@ -1522,6 +1522,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     }
 
     /**
+     * Implementation method for the CredentialsProvider interface.
+     * 
      * Based on sample code InteractiveAuthenticationExample from: 
      * http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup
      */
@@ -1530,20 +1532,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             return null;
         }
         try {
-            String realm = authscheme.getRealm();
-            if (cachedAuthCredentials.containsKey(realm)) {
-                log.debug("Using cached credentials for authentication realm '" + realm + "'");
-                return (Credentials) cachedAuthCredentials.get(realm);
-            }
-            
             Credentials credentials = null;
             
             if (authscheme instanceof NTLMScheme) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Proxy Authentication", 
-                    host + ":" + port + " requires Windows authentication", true);
+                    ownerFrame, "Authentication Required", 
+                    "<html>Host <b>" + host + ":" + port + "</b> requires Windows authentication</html>", true);
                 pwDialog.setVisible(true);
-                if (pwDialog.getUser() != null) {
+                if (pwDialog.getUser().length() > 0) {
                     credentials = new NTCredentials(pwDialog.getUser(), pwDialog.getPassword(), 
                         host, pwDialog.getDomain());
                 }
@@ -1551,20 +1547,17 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             } else
             if (authscheme instanceof RFC2617Scheme) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Proxy Authentication", host + ":" + port 
-                    + " requires authentication for the realm '" + authscheme.getRealm() + "'", false);
+                    ownerFrame, "Authentication Required", 
+                    "<html><center>Host <b>" + host + ":" + port + "</b>" 
+                    + " requires authentication for the realm:<br><b>" + authscheme.getRealm() + "</b></center></html>", false);
                 pwDialog.setVisible(true);
-                if (pwDialog.getUser() != null) {
+                if (pwDialog.getUser().length() > 0) {
                     credentials = new UsernamePasswordCredentials(pwDialog.getUser(), pwDialog.getPassword());
                 }
                 pwDialog.dispose();
             } else {
                 throw new CredentialsNotAvailableException("Unsupported authentication scheme: " +
                     authscheme.getSchemeName());
-            }
-            if (credentials != null) {
-                log.debug("Caching credentials for realm '" + realm + "'");
-                cachedAuthCredentials.put(realm, credentials);
             }
             return credentials;
         } catch (IOException e) {
