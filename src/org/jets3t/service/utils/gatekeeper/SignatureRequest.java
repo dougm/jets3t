@@ -34,16 +34,11 @@ public class SignatureRequest {
     private String signedUrl = null;
     private String declineReason = null;
     
+    public SignatureRequest() {    
+    }
+    
     public SignatureRequest(String signatureType, String objectKey) {
-        if (!SIGNATURE_TYPE_GET.equals(signatureType)
-            && !SIGNATURE_TYPE_HEAD.equals(signatureType)
-            && !SIGNATURE_TYPE_PUT.equals(signatureType)
-            && !SIGNATURE_TYPE_DELETE.equals(signatureType)) 
-        {            
-            throw new IllegalArgumentException("Illegal signature type: " + signatureType);
-        }
-        
-        this.signatureType = signatureType;
+        setSignatureType(signatureType);
         this.objectKey = objectKey;
     }
 
@@ -79,6 +74,17 @@ public class SignatureRequest {
         return signatureType;
     }
     
+    public void setSignatureType(String signatureType) {
+        if (!SIGNATURE_TYPE_GET.equals(signatureType)
+            && !SIGNATURE_TYPE_HEAD.equals(signatureType)
+            && !SIGNATURE_TYPE_PUT.equals(signatureType)
+            && !SIGNATURE_TYPE_DELETE.equals(signatureType)) 
+        {            
+            throw new IllegalArgumentException("Illegal signature type: " + signatureType);
+        }
+        this.signatureType = signatureType;
+    }
+     
     public void signRequest(String signedUrl) {
         this.signedUrl = signedUrl;
     }
