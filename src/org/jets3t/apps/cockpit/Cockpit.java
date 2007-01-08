@@ -87,6 +87,14 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import org.apache.commons.httpclient.Credentials;
+import org.apache.commons.httpclient.NTCredentials;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScheme;
+import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
+import org.apache.commons.httpclient.auth.CredentialsProvider;
+import org.apache.commons.httpclient.auth.NTLMScheme;
+import org.apache.commons.httpclient.auth.RFC2617Scheme;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.apps.cockpit.gui.AccessControlDialog;
@@ -96,6 +104,7 @@ import org.jets3t.apps.cockpit.gui.ItemPropertiesDialog;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.PreferencesDialog;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
+import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
@@ -145,7 +154,9 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * 
  * @author jmurty
  */
-public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener, ListSelectionListener, HyperlinkActivatedListener {
+public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener, 
+    ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
+    
     private static final long serialVersionUID = 8122461453115708538L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
@@ -296,7 +307,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         try {
             // Revert to anonymous service.
             s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
+                new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
         } catch (S3ServiceException e) {
             String message = "Unable to start anonymous service";
             log.error(message, e);
@@ -951,8 +962,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 return;
             }
 
-            final Frame myOwnerFrame = ownerFrame;
-            final HyperlinkActivatedListener hyperLinkListener = this;
             new Thread() {
                 public void run() {                           
                     prepareForFilesUpload(uploadFiles);
@@ -1012,7 +1021,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 StartupDialog.showDialog(ownerFrame, this);
 
             s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null), this);
+                new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, this), this);
 
             if (awsCredentials == null) {
                 log.debug("Log in cancelled by user");
@@ -1047,7 +1056,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         try {
             // Revert to anonymous service.
             s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(null, APPLICATION_DESCRIPTION, null), this);
+                new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
             
             bucketsTable.clearSelection();
             bucketTableModel.removeAllBuckets();
@@ -2584,6 +2593,50 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             BareBonesBrowserLaunch.openURL(url.toString());
         }
     }
+    
+    /**
+     * Implementation method for the CredentialsProvider interface.
+     * 
+     * Based on sample code InteractiveAuthenticationExample from: 
+     * http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup
+     */
+    public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
+        if (authscheme == null) {
+            return null;
+        }
+        try {
+            Credentials credentials = null;
+            
+            if (authscheme instanceof NTLMScheme) {
+                AuthenticationDialog pwDialog = new AuthenticationDialog(
+                    ownerFrame, "Authentication Required", 
+                    "<html>Host <b>" + host + ":" + port + "</b> requires Windows authentication</html>", true);
+                pwDialog.setVisible(true);
+                if (pwDialog.getUser().length() > 0) {
+                    credentials = new NTCredentials(pwDialog.getUser(), pwDialog.getPassword(), 
+                        host, pwDialog.getDomain());
+                }
+                pwDialog.dispose();
+            } else
+            if (authscheme instanceof RFC2617Scheme) {
+                AuthenticationDialog pwDialog = new AuthenticationDialog(
+                    ownerFrame, "Authentication Required", 
+                    "<html><center>Host <b>" + host + ":" + port + "</b>" 
+                    + " requires authentication for the realm:<br><b>" + authscheme.getRealm() + "</b></center></html>", false);
+                pwDialog.setVisible(true);
+                if (pwDialog.getUser().length() > 0) {
+                    credentials = new UsernamePasswordCredentials(pwDialog.getUser(), pwDialog.getPassword());
+                }
+                pwDialog.dispose();
+            } else {
+                throw new CredentialsNotAvailableException("Unsupported authentication scheme: " +
+                    authscheme.getSchemeName());
+            }
+            return credentials;
+        } catch (IOException e) {
+            throw new CredentialsNotAvailableException(e.getMessage(), e);
+        }
+    }   
     
     private boolean isObjectFilteringActive() {
         if (!filterObjectsCheckBox.isSelected()) {
