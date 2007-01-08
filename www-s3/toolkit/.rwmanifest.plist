@@ -9,7 +9,7 @@
 		<key>page1</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-05T07:20:11Z</date>
+			<date>2007-01-08T02:57:24Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -20,10 +20,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					QGcZQQBg1hsjoMiEecgoJw==
+					UpFU4Qn0GFwfH0NsxQYiQA==
 					</data>
 					<key>Size</key>
-					<integer>6621</integer>
+					<integer>7763</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -34,7 +34,7 @@
 		<key>page10</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-05T07:20:11Z</date>
+			<date>2007-01-08T02:57:24Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -45,10 +45,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					zNXTp7/mjPf598SIA3ppAg==
+					yshk0LulXzYtVP9f/pNYMA==
 					</data>
 					<key>Size</key>
-					<integer>4321</integer>
+					<integer>4513</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -59,7 +59,7 @@
 		<key>page11</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-05T07:20:12Z</date>
+			<date>2007-01-08T02:57:24Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -70,10 +70,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					0pxKdVNTzKBHq/E0qGcdBQ==
+					Y0Jxl3x8HgtLpib4rI+p/w==
 					</data>
 					<key>Size</key>
-					<integer>4283</integer>
+					<integer>4475</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -81,10 +81,35 @@
 			<key>Version</key>
 			<integer>3</integer>
 		</dict>
+		<key>page12</key>
+		<dict>
+			<key>CreationDate</key>
+			<date>2007-01-08T02:57:53Z</date>
+			<key>DigestAlgorithm</key>
+			<string>MD5</string>
+			<key>DocumentGUID</key>
+			<string>99C26C57-A186-485A-830C-81E26E3A1288</string>
+			<key>PageDigests</key>
+			<dict>
+				<key>configuration.html</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					t3mJumZok8kopPUzXPuCCw==
+					</data>
+					<key>Size</key>
+					<integer>4106</integer>
+				</dict>
+			</dict>
+			<key>PageID</key>
+			<string>page12</string>
+			<key>Version</key>
+			<integer>3</integer>
+		</dict>
 		<key>page2</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-05T07:20:11Z</date>
+			<date>2007-01-08T02:57:24Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -95,10 +120,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					4mtY4YhzNUdaVFkKSbJ3eQ==
+					yMzkl5/Tze8umS+Va0+wvw==
 					</data>
 					<key>Size</key>
-					<integer>29443</integer>
+					<integer>29635</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>

@@ -89,6 +89,9 @@
 
           <li><a href="../downloads.html"
              rel="self">Downloads</a></li>
+
+          <li><a href="../support.html"
+             rel="self">Support</a></li>
         </ul>
       </div><!-- End navigation -->
 
@@ -123,30 +126,115 @@
 
         <h1>JetS3t Applications</h1>
 
-        <h2>Running Applications from Release</h2>
+        <p><b>Disclaimer</b>: Please be careful using JetS3t
+        applications with important data, it is Beta software and
+        we cannot guarantee your data will be safe.</p>
 
-        <h2>JetS3t Cockpit Online</h2>
+        <h2><a name="cockpit"
+           id="cockpit">Cockpit</a></h2>
 
-        <p>Click the link below to run Cockpit as a Java Applet in
-        your web browser. Sun's JRE plugin version 1.4 or later is
-        required, and you will have to accept the certificate used
-        to sign the applet.</p>
+        <p>Cockpit is a graphical Java application for viewing and
+        managing the contents of an Amazon S3 account.
+        <br />
+        To learn how to use Cockpit, or to see what new features
+        are available in the latest version, please refer to the
+        <a href="cockpit.html">Cockpit Manual</a>.</p>
 
-        <center>
-          <a href="jets3t-cockpit.html"><font size="+1">Cockpit
-          Online</font></a>
-        </center>
+        <p>To run Cockpit as a stand-alone application, download
+        the JetS3t suite from the <a href=
+        "../downloads.html">Downloads page</a>. De-compress the
+        archive and run one of the cockpit scripts in the
+        <b>bin</b> directory (eg cockpit.bat for Windows,
+        cockpit.sh for Linux/Mac OSX).</p>
 
-        <center>
-          Approximate download size: 1.3 MB
-        </center>
+        <p>To run Cockpit as a Java Applet in your web browser
+        visit the Cockpit Online page:
+        <br />
+        <a target="_blank"
+           href=
+           "../applets-jets3t-0.5.0/jets3t-cockpit.html"><font size=
+           "2em">Cockpit Online</font></a>
+        <br />
+        <sub>Version 0.5.0, approximate download size 1.3 MB</sub>
+        <br />
+        Sun's JRE plugin version 1.4 or later is required, and you
+        will have to accept the certificate used to sign the
+        applet.</p>
 
-        <p>To learn how to use Cockpit, please refer to the
-        <a href="/applications/cockpit.html">online manual</a>.</p>
+        <h2><a name="synchronize"
+           id="synchronize">Synchronize</a></h2>
 
-        <p><b>Disclaimer</b>: Please be careful using Cockpit with
-        important data, it is Beta software and we cannot guarantee
-        your data will be safe.</p>
+        <p>Synchronize is a command-line application for
+        synchronizing directories on your computer with an Amazon
+        S3 account. It is ideal for performing back-ups or
+        synchronizing files between different computers.</p>
+
+        <p>To learn how to use Synchronize, please refer to the
+        <a href="synchronize.html">Synchronize Manual</a>.</p>
+
+        <p>To run Synchronize you must download the JetS3t suite
+        from the <a href="../downloads.html">Downloads page</a>.
+        De-compress the archive and run one of the synchronize
+        scripts in the <b>bin</b> directory (eg synchronize.bat for
+        Windows, synchronize.sh for Linux/Mac OSX).</p>
+
+        <h2><a name="uploader"
+           id="uploader">Uploader</a></h2>
+
+        <p>Uploader is a simple wizard-based application that S3
+        account holders (Service Providers) may provide to clients
+        to allow them to upload files to S3 without requiring
+        access to the Service Provider's S3 credentials. The
+        Uploader accesses S3 accounts via a Gatekeeper service. The
+        Gatekeeper is a specialised application that will only be
+        of interest to Service Providers who use S3 for storage
+        behind the scenes.</p>
+
+        <p>To learn how to use the Uploader, please refer to the
+        <a href="uploader.html">Uploader Manual</a>.</p>
+
+        <p>In real usage the Uploader will be customised by Service
+        Providers to look the way they want and to work with the
+        Provider's own Gatekeeper service. However, to give an idea
+        of what the Uploader is and how it performs, a
+        <b>Demonstration</b> version is available. This version
+        does not communicate with a Gatekeeper, and instead
+        requires that users provide their AWS Credentials.</p>
+
+        <p>To run the Demo Uploader as a stand-alone application,
+        download the JetS3t suite from the <a href=
+        "../downloads.html">Downloads page</a>. De-compress the
+        archive and run one of the uploader scripts in the
+        <b>bin</b> directory (eg uploader.bat for Windows,
+        uploader.sh for Linux/Mac OSX).</p>
+
+        <p>To run the Demo Uploader as a Java Applet in your web
+        browser visit the Uploader Online page:
+        <br />
+        <a target="_blank"
+           href=
+           "../applets-jets3t-0.5.0/jets3t-uploader.html"><font size=
+           "2em">Uploader Online</font></a>
+        <br />
+        <sub>Version 0.5.0, approximate download size 1.2 MB</sub>
+        <br />
+        Sun's JRE plugin version 1.4 or later is required, and you
+        will have to accept the certificate used to sign the
+        applet.</p>
+
+        <h2><a name="gatekeeper"
+           id="gatekeeper">Gatekeeper</a></h2>
+
+        <p>The Gatekeeper is a server-side Servlet application that
+        authorizes client applications, such as the JetS3t
+        Uploader, to perform tasks in S3 accounts such as uploads,
+        downloads and deletes. The Gatekeeper is a specialised
+        application that will only be of interest to Service
+        Providers who use S3 for storage behind the scenes.</p>
+
+        <p>To learn how to use the Gatekeeper, please refer to the
+        <a href="applications/gatekeeper.html">Gatekeeper
+        Manual</a> .</p>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->
 
