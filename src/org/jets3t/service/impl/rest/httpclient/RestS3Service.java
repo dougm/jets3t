@@ -93,7 +93,9 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  *   <td>"Determines whether stale connection check is to be used. Disabling stale connection check may  
  *   result in slight performance improvement at the risk of getting an I/O error when executing a request 
  *   over a connection that has been closed at the server side."</td><td>true</td></tr>
- * <tr><td>httpclient.retry-on-errors</td><td></td><td>true</td></tr>
+ * <tr><td>httpclient.retry-max</td>
+ *   <td>How many times to retry connections when they fail with IO errors</td>
+ *   <td>5</td></tr>
  * <tr><td>httpclient.useragent</td><td>Overrides the default jets3t user agent string</td>
  *     <td>The value set by {@link S3Service#setUserAgentDescription()}</td></tr>
  * </table>
@@ -182,23 +184,21 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
         
         // Replace default error retry handler.
-        final boolean retryOnErrors = jets3tProperties.getBoolProperty("httpclient.retry-on-errors", true);
-        final int maximumRetryCount = 3;
+        final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
         
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             public boolean retryMethod(HttpMethod method, IOException ioe, int executionCount) {
+                if (executionCount > retryMaxCount) {
+                    log.warn("Retried connection " + executionCount 
+                        + " times, which exceeds the maximum retry count of " + retryMaxCount);
+                    return false;                    
+                }
                 if  (ioe instanceof UnrecoverableIOException) {
                     log.debug("Deliberate interruption, will not retry");
                     return false;
                 }
-                if (executionCount > maximumRetryCount) {
-                    log.debug("Retried connection " + maximumRetryCount + " times, it's time to give up");
-                    return false;
-                }
-                if (retryOnErrors) {
-	                log.warn("Retrying request - attempt " + executionCount + " of " + maximumRetryCount);
-	            }
-                return retryOnErrors;
+                log.warn("Retrying request - attempt " + executionCount + " of " + retryMaxCount);
+                return true;
             }
         });
         

@@ -45,7 +45,6 @@ import javax.crypto.spec.PBEParameterSpec;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 
 /**

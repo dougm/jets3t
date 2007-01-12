@@ -61,8 +61,12 @@ import org.jets3t.service.utils.ServiceUtils;
  *   communications will be sent unencrypted via HTTP</td> 
  *   <td>true</td></tr>
  * <tr><td>s3service.internal-error-retry-max</td>
- *   <td>The number of times</td> 
- *   <td>true</td></tr>
+ *   <td>The maximum number of times each connection that fails with S3 InternalServer errors will be 
+ *   retried. To disable retries of InternalError failures set this to 0.
+ *   <br><b>Note</b>: After each failure the service waits before retrying. The time to wait is 
+ *   calculated with the formula: <tt>50 * (<i>internalErrorCount</i> ^ 2)</tt>.
+ *   </td> 
+ *   <td>5</td></tr>
  * </table>
  * 
  * 
