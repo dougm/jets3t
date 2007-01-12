@@ -202,6 +202,9 @@ tt {
           <li><a href="#filtering">Filter</a><font color=
           "red">*</font> which S3 objects are listed, to find
           exactly what you are interested in</li>
+
+          <li><a href="#config">Advanced configuration</a>
+          options<font color="red">*</font></li>
         </ul><sup>Items with a red star (<font color=
         "red">*</font>) are new in JetS3t version 0.5.x</sup>
 
@@ -737,6 +740,27 @@ tt {
             web browser, but only for the length of time you
             specified. Send this URL to the person who needs the
             object.</p>
+
+            <h3><a name="config"
+               id="config">Advanced Configuration</a></h3>
+
+            <p>Users can configure Cockpit using the advanced
+            configuration files described in the <a href=
+            "../toolkit/configuration.html">Configuration</a>
+            section.</p>
+
+            <p>When Cockpit starts it looks for configuration files
+            in the directory <b>&lt;UserHome&gt;/.jets3t</b>. If
+            this directory exists and contains files called
+            <tt>jets3t.properties</tt> and/or <tt>mime.types</tt>
+            it will load the properties from these files, adding to
+            or replacing any default configurations.</p>
+
+            <p>Files in the user's home directory will be read
+            whether Cockpit is run in stand-alone more, or as an
+            applet. This configuration option is most useful for
+            those users who run Cockpit as an online applet, but
+            wish to have more control over their own settings.</p>
           </li>
         </ul>
       </div><!-- End content -->

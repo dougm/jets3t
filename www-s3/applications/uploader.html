@@ -1,5 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -36,6 +36,20 @@
         href=
         "../rw_common/themes/ideal/css/sidebar/sidebar_right.css" />
         
+<style type="text/css"
+       media="all">
+/*<![CDATA[*/
+pre {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+
+tt {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+/*]]>*/
+</style>
 <script type="text/javascript"
       src="../rw_common/themes/ideal/javascript.js">
 </script>
@@ -129,6 +143,736 @@
         </div><!-- End breadcrumb -->
 
         <h1>JetS3t Uploader</h1>
+
+        <p>Uploader is a simple wizard-based application that S3
+        account holders (Service Providers) may provide to clients
+        to allow them to upload files to S3 without requiring
+        access to the Service Provider's S3 credentials. The
+        Uploader accesses S3 accounts via a Gatekeeper service. The
+        Gatekeeper is a specialised application that will only be
+        of interest to Service Providers who use S3 for storage
+        behind the scenes.</p>
+
+        <p>The Uploader is likely to be useful mainly to Service
+        Providers who will use this document to customise and brand
+        the application, and configure it to interact with their
+        own Gatekeeper service which the Uploader will contact for
+        permission to perform operations in S3. All configuration
+        is performed in the <tt>uploader.properties</tt>
+        configuration file, such as the one available in the
+        <b>configs</b> directory of the JetS3t distribution.</p>
+
+        <p>A demonstration version of the Uploader, which doesn't
+        require a Gatekeeper service, is available via the <a href=
+        "applications.html">Applications</a> page.</p>
+
+        <p><img src="uploader_assets/Uploader.Screen4.jpg"
+             alt="Picture of the Uploader Demo application" /></p>
+
+        <p>Uploader offers the following capabilities:
+        <br /></p>
+
+        <ul>
+          <li>Simple <a href="#wizard">wizard</a> workflow to
+          upload files</li>
+
+          <li>Configurable limits on the number, size and type of
+          <a href="#filesconfig">files</a> that can be
+          uploaded</li>
+
+          <li>Configurable <a href="#fields">user input
+          fields</a></li>
+
+          <li>Highly configurable <a href="#gui">GUI</a>
+          display</li>
+
+          <li>Works with <a href="#gatekeeper">Gatekeeper</a>
+          server-side authentication servlet</li>
+
+          <li>Basic <a href="#skinning">skinning</a> support (this
+          is fairly primitive though)</li>
+
+          <li>Basic <a href="#branding">branding</a> support</li>
+
+          <li>Option to generate an <a href="#xmlsummary">XML
+          Summary document</a> after successful uploads</li>
+
+          <li>When run as an applet, can read variables from the
+          surrounding HTML web page via <a href=
+          "#appletparams">applet parameters</a></li>
+        </ul>
+
+        <h2><a name="wizard"
+           id="wizard">Workflow Wizard</a></h2>
+
+        <p>The Uploader displays a simple wizard-based user
+        interface that allows users to step through the process of
+        uploading files. Each step in the process displays a
+        separate Screen - there are five in total.
+        <br />
+        <sup>The content of each screen is configurable (see
+        <a href="#gui">GUI Configuration</a> below).</sup></p>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th valign="top">Screen 1 - User Input</th>
+
+            <th valign="top">Screen 2 - Choose File</th>
+          </tr>
+
+          <tr>
+            <td align="center"
+                valign="top">Displays the <a href="#fields">User
+                Input</a> fields that prompt a user for
+                information</td>
+
+            <td align="center"
+                valign="top">Prompts the user to choose a file to
+                upload, by drag-and-dropping a file into a drop
+                zone or by selecting it with a browse button.</td>
+          </tr>
+
+          <tr>
+            <td align="center"><img src=
+            "uploader_assets/Uploader.Screen1.jpg"
+                 alt=
+                 "Picture of the Uploader's first screen" /></td>
+
+            <td align="center"><img src=
+            "uploader_assets/Uploader.Screen2.jpg"
+                 alt=
+                 "Picture of the Uploader's second screen" /></td>
+          </tr>
+
+          <tr>
+            <th valign="top">Screen 3 - Confirm Upload</th>
+
+            <th valign="top">Screen 4 - Upload Progress</th>
+          </tr>
+
+          <tr>
+            <td align="center"
+                valign="top">Displays the file(s) the user has
+                selected to upload</td>
+
+            <td align="center"
+                valign="top">Displays the progress of a file
+                upload, and allows a user to cancel the upload</td>
+          </tr>
+
+          <tr>
+            <td align="center"><img src=
+            "uploader_assets/Uploader.Screen3.jpg"
+                 alt=
+                 "Picture of the Uploader's third screen" /></td>
+
+            <td align="center"><img src=
+            "uploader_assets/Uploader.Screen4.jpg"
+                 alt=
+                 "Picture of the Uploader's fourth screen" /></td>
+          </tr>
+
+          <tr>
+            <th valign="top">Screen 5 - Finished</th>
+          </tr>
+
+          <tr>
+            <td align="center"
+                valign="top">Displays a message telling the user
+                the upload was successful, or an error message if a
+                fatal error occurred</td>
+          </tr>
+
+          <tr>
+            <td align="center"><img src=
+            "uploader_assets/Uploader.Screen5.jpg"
+                 alt=
+                 "Picture of the Uploader's fifth screen" /></td>
+          </tr>
+        </table>
+
+        <h2><a name="filesconfig"
+           id="filesconfig">Limiting Files</a></h2>
+
+        <p>The Uploader can be set to limit the number, size and
+        type of files it will accept. These settings are configured
+        in <tt>uploader.properties</tt></p>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">File Upload Limiting</th>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>file.maxCount</tt></b></td>
+
+            <td valign="top">How many files may be uploaded at a
+            time
+            <br />
+            Should be a value greater than or equal to 1.
+            <br />
+            Default: <tt>1</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>file.minSizeMB</tt></b></td>
+
+            <td valign="top">The minimum size of each file the
+            Uploader will allow, in Megabytes. If set to 0, even
+            empty files can be uploaded
+            <br />
+            Default: <tt>0</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>file.maxSizeMB</tt></b></td>
+
+            <td valign="top">The maximum size of each file the
+            Uploader will allow, in Megabytes. If set to 0, the
+            files can be any size.
+            <br />
+            Default: <tt>200</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>file.extensions</tt></b></td>
+
+            <td valign="top">If specified, only files with an
+            extension matching one in the comma-separated list will
+            be allowed. If this property is not set, any file
+            type/name can be uploaded
+            <br />
+            Default: Not set</td>
+          </tr>
+        </table>
+
+        <h2><a name="fields"
+           id="fields">User Input Fields</a></h2>
+
+        <p>The Uploader can be set to display User Input fields to
+        the user on Screen 1. These fields can have any name, and a
+        range of GUI elements can be used for the user to provide
+        an answer. When the user enters information for these
+        fields, this information is provided to the Gatekeeper
+        service when the Uploader requests permission to perform
+        operations.</p>
+
+        <p><img src="uploader_assets/Uploader.UserInputs.jpg"
+             alt="Picture of sample Uploader User Inputs" /></p>
+
+        <p>The demonstration version of the Uploader, as available
+        online or in the JetS3t distribution archive, includes the
+        field names AwsAccessKey, AwsSecretKey and S3BucketName.
+        These are "magic" field names to allow the Uploader to be
+        run in demonstration mode, where there is no Gatekeeper
+        service available and users are required to specify their
+        AWS credentials and the target S3 bucket. These fields
+        should not be used except for demonstration mode.</p>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">User Input Fields</th>
+          </tr>
+
+          <tr>
+            <td colspan="2">Each field must have a unique id number
+            which determines the order in which the fields are
+            displayed. This id number must be from 1 to <i>n</i>,
+            where <i>n</i> is the number of fields.</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>field.<i>id</i>.name</tt></b></td>
+
+            <td valign="top">A unique name for the field. This name
+            is not displayed to the user and should be a single
+            word without spaces, eg favouriteColour
+            <br />
+            <sup>Always required</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>field.<i>id</i>.type</tt></b></td>
+
+            <td valign="top">The GUI element to display for the
+            field, one of: <b>textarea</b>, <b>text</b>,
+            <b>password</b>, <b>selection</b>, <b>radio</b>
+            <br />
+            <sup>Always required</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>field.<i>id</i>.options</tt></b></td>
+
+            <td valign="top">For <b>selection</b> or <b>radio</b>
+            fields, a comma-separated list of options the user can
+            choose from
+            <br />
+            For example, in the image above the options setting
+            used is <tt>One,Two,Three</tt><sup>Only required for
+            selection or radio fields</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>field.<i>id</i>.prompt</tt></b></td>
+
+            <td valign="top">The text to display to the user for
+            the field. This text can be HTML text containing simple
+            text formatting, such as colour or font changes
+            <br />
+            <sup>Always required</sup></td>
+          </tr>
+        </table>
+
+        <h2><a name="guid"
+           id="guid">GUI Configuration</a></h2>
+
+        <p>The content of the Screens displayed in the Uploader is
+        configurable in <tt>uploader.properties</tt>. The different
+        screens have different display items, these are mentioned
+        when relevant.</p>
+
+        <p>The Uploader allows for parameter substitution to be
+        performed in text messages it displays. Replacement
+        variables are used with the format
+        <tt>${variableName}</tt>, where variableName is any of the
+        following items:</p>
+
+        <ul>
+          <li>Properties in the file
+          <tt>uploader.properties</tt></li>
+
+          <li>User Inputs</li>
+
+          <li>Applet or stand-alone parameters</li>
+
+          <li>File constraints (from uploader.properties):
+          maxFileSize, maxFileCount, validFileExtensions</li>
+
+          <li>Chosen file information (only available after files
+          have been chosen): fileNameList, filesSize</li>
+        </ul>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">Screen Display Settings</th>
+          </tr>
+
+          <tr>
+            <td colspan="2">Each Screen has a unique <i>id</i>
+            number which references the screen number, from 1 to 5.
+            Screens all have a title, and images/text/tooltips for
+            the back and next buttons - though it may not make
+            sense to display buttons on some screens. See the
+            sample <tt>uploader.properties</tt> file included in
+            the <b>configs</b> directory of the JetS3t
+            distributions for more information and examples.</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.<i>id</i>.title</tt></b></td>
+
+            <td valign="top">Text displayed at the top of the
+            Uploader display, may be HTML
+            <br />
+            <sup>Always required</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.<i>id</i>.nextButton.text</tt></b></td>
+
+            <td valign="top">The text displayed on the Next button
+            <br />
+            <sup>Required only when the next button should be
+            visible: Screens 1, 3</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.<i>id</i>.nextButton.tooltip</tt></b></td>
+
+            <td valign="top">Tooltip text for the Next button
+            <br />
+            <sup>Required only when the next button should be
+            visible: Screens 1, 3</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.<i>id</i>.nextButton.image</tt></b></td>
+
+            <td valign="top">Path to an image icon for the Next
+            button
+            <br />
+            <sup>Required only when the next button should be
+            visible: Screens 1, 3</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.<i>id</i>.backButton.text</tt></b></td>
+
+            <td valign="top">The text displayed on the Back button
+            <br />
+            <sup>Required only when the back button should be
+            visible: Screens 2, 3</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.<i>id</i>.backButton.tooltip</tt></b></td>
+
+            <td valign="top">Tooltip text for the Back button
+            <br />
+            <sup>Required only when the back button should be
+            visible: Screens 2, 3</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.<i>id</i>.backButton.image</tt></b></td>
+
+            <td valign="top">Path to an image icon for the Back
+            button
+            <br />
+            <sup>Required only when the back button should be
+            visible: Screens 2, 3</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.2.dragDropPrompt</tt></b></td>
+
+            <td valign="top">Instructions for user to drag-drop
+            file onto pane, or use browse button
+            <br />
+            <sup>Screen 2 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.2.browseButton.text</tt></b></td>
+
+            <td valign="top">The text displayed on the file Browse
+            button
+            <br />
+            <sup>Screen 2 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.2.browseButton.tooltip</tt></b></td>
+
+            <td valign="top">Tooltip text for the file Browse
+            button
+            <br />
+            <sup>Screen 2 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.2.browseButton.image</tt></b></td>
+
+            <td valign="top">Path to an image icon for the file
+            Browse button
+            <br />
+            <sup>Screen 2 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.3.fileInformation</tt></b></td>
+
+            <td valign="top">Text with information about the file
+            to be uploaded
+            <br />
+            <sup>Screen 3 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.4.connectingMessage</tt></b></td>
+
+            <td valign="top">Message displayed while Uploader makes
+            initial connection to S3
+            <br />
+            <sup>Screen 4 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.4.hashingMessage</tt></b></td>
+
+            <td valign="top">Message displayed while Uploader
+            hashes the upload file
+            <br />
+            <sup>Screen 4 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.4.fileInformation</tt></b></td>
+
+            <td valign="top">Text with information about the
+            file(s) being uploaded
+            <br />
+            <sup>Screen 4 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.4.cancelButton.<i>*</i></tt></b></td>
+
+            <td valign="top">Button properties for the Cancel
+            Upload button: text, image, tooltip
+            <br />
+            <sup>Screen 4 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.5.thankyouMessage</tt></b></td>
+
+            <td valign="top">Thankyou message to display when the
+            upload completes successfully
+            <br />
+            <sup>Screen 5 only</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>screen.5.errorMessage</tt></b></td>
+
+            <td valign="top">Error message to display when an
+            upload fails with a fatal error.
+            <br />
+            <sup>Screen 5 only</sup></td>
+          </tr>
+        </table>
+
+        <h2><a name="skinning"
+           id="skinning">Skinning</a></h2>
+
+        <p>Uploader support a fairly primitive skinning mechanism.
+        To fully control the skinning special Java classes must be
+        created (see documentation for <a href=
+        "../api/org/jets3t/gui/skins/SkinFactory.html">SkinFactory</a>)
+        but there is an example implementation for HTML skinning
+        included with Uploader. The HTML implementation is intended
+        for when Uploader is run as an applet embedded in a Service
+        Provider's web site, and will allow the provider to make
+        the applet better match their web page design.</p>
+
+        <p>The Uploader with HTML skinning applied. The background
+        colour is white, and the font is Verdana:
+        <br />
+        <img src="uploader_assets/Uploader.HtmlSkin.jpg"
+             alt=
+             "Picture of the Uploader with HTML Skinning applied" /></p>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">Skinning Properties</th>
+          </tr>
+
+          <tr>
+            <td colspan="2">Each Screen has a unique <i>id</i>
+            number which references the screen number, from 1 to 5.
+            Screens all have a title, and images/text/tooltips for
+            the back and next buttons - though it may not make
+            sense to display buttons on some screens. See the
+            sample <tt>uploader.properties</tt> file included in
+            the <b>configs</b> directory of the JetS3t
+            distributions for more information and examples.</td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>skin.name</tt></b></td>
+
+            <td valign="top">The name of the skin implementation
+            code package to use. This must be available in a
+            package matching the skin.name inside
+            <tt>org.jets3t.gui.skins</tt>.
+            <br />
+            <b>Note</b>: The only skin implementation included with
+            the Uploader is called <b>html</b>
+            <br />
+            If this property is not set, or the value is
+            <b>default</b>, no skinning is applied.</td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">HTML Skinning Properties</th>
+          </tr>
+
+          <tr>
+            <td colspan="2">Skinning properties specific to the
+            HTML implementation</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>skin.html.textColor</tt></b></td>
+
+            <td valign="top">The colour of the text, in
+            HTML-compatible format (eg "red", "#FAFAFA")</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>skin.html.backgroundColor</tt></b></td>
+
+            <td valign="top">The colour of the background, in
+            HTML-compatible format (eg "red", "#FAFAFA")</td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>skin.html.font</tt></b></td>
+
+            <td valign="top">The font to use, specified in a format
+            compatible with the Java font class method
+            <tt>Font.decode(fontValue)</tt> (eg
+            "Verdana-PLAIN-15")</td>
+          </tr>
+        </table>
+
+        <h2><a name="branding"
+           id="branding">Branding</a></h2>
+
+        <p>In addition to having configurable text content and
+        skins, the Uploader can be branded with settings that
+        control the application title, icon, and footer text.</p>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">Branding Properties</th>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>gui.applicationTitle</tt></b></td>
+
+            <td valign="top">The text displayed in the
+            application's title bar, if it's running in stand-alone
+            mode
+            <br />
+            <sup>Only applicable to stand-alone mode</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>gui.applicationIcon</tt></b></td>
+
+            <td valign="top">The icon displayed in the
+            application's title bar, if it's running in stand-alone
+            mode
+            <br />
+            <sup>Only applicable to stand-alone mode</sup></td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>gui.footerHtml</tt></b></td>
+
+            <td valign="top">HTML text displayed in the bottom of
+            the Uploader's window. This would most commonly be used
+            to contain a link to a Service Provider's website</td>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>gui.footerIcon</tt></b></td>
+
+            <td valign="top">An icon displayed in the bottom of the
+            Uploader's window, next to the footer text</td>
+          </tr>
+        </table>
+
+        <h2><a name="gatekeeper"
+           id="gatekeeper">Gatekeeper Authorization</a></h2>
+
+        <p>The Uploader communicates with a Gatekeeper service to
+        request authorization to perform its uploads. A general
+        description of a Gatekeeper service is documented in
+        <a href="gatekeeper-concepts.html">Gatekeeper Concepts</a>.
+        Uploader should work with any Gatekeeper service
+        implemented following these guidelines, but the easiest way
+        to provide an authorization service may be to use the
+        <a href="gatekeeper.html">Gatekeeper Servlet</a>
+        implementation provided with JetS3t.</p>
+
+        <p>The only configuration required to have the Uploader
+        communicate with a Gatekeeper service is:</p>
+
+        <ul>
+          <li>Remove the user input fields AwsAccessKey,
+          AwsSecretKey and S3BucketName - these should only ever be
+          used in the demonstration version of Uploader</li>
+
+          <li>Provider the URL to a Gatekeeper service</li>
+        </ul>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">Gatekeeper Properties</th>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>gatekeeperUrl</tt></b></td>
+
+            <td valign="top">The URL of a Gatekeeper service</td>
+          </tr>
+        </table>
+
+        <h2><a name="xmlsummary"
+           id="xmlsummary">XML Summary</a></h2>
+
+        <p>An XML Summary document can be created by the Uploader
+        to describe an upload operation that has completed
+        successfully. The XML document includes information about
+        the files uploaded, and a full summary of the User Input
+        field values provided by the user.</p>
+
+        <p>The XML Summary is turned on by setting the property
+        <b>applet.params</b> in <tt>uploader.properties</tt> to
+        true. The Uploader also requires that the Gatekeeper it
+        uses support Transaction IDs, such that the Gatekeeper's
+        response message will include a transactionId. This
+        transaction ID is used as a prefix for the name for the XML
+        summary document object uploaded to S3:
+        <b><i>transactionId</i>.xml</b>.</p>
+
+        <p><b>Note</b>: If the XML Summary is turned on the
+        Uploader will perform two series of uploads. The first
+        series will upload the actual files, and the second will
+        only upload the XML Summary document. This way, you can be
+        assured that if a particular XML document exists in S3, the
+        corresponding upload transaction was completed
+        successfully.</p>
+
+        <h2><a name="appletparams"
+           id="appletparams">Applet Parameters</a></h2>
+
+        <p>When the Uploader is run as an applet it can be
+        convenient to provide it with configuration information
+        through the HTML page the applet is embedded in. This could
+        allow Service Providers to include a client's name in the
+        Uploader's text messages. The Uploader refers to the
+        property <b>applet.params</b> in
+        <tt>uploader.properties</tt> to learn which applet
+        parameters it should expect. This property can include
+        multiple parameter names in a comma-separated list.</p>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->
 

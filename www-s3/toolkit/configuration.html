@@ -1,5 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -36,6 +36,20 @@
         href=
         "../rw_common/themes/ideal/css/sidebar/sidebar_right.css" />
         
+<style type="text/css"
+       media="all">
+/*<![CDATA[*/
+pre {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+
+tt {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+/*]]>*/
+</style>
 <script type="text/javascript"
       src="../rw_common/themes/ideal/javascript.js">
 </script>
@@ -129,11 +143,272 @@
 
         <p>JetS3t includes a number of configuration mechanisms
         that allow users with specialised requirements to control
-        how the toolkit and applications will operate.</p>
+        how the toolkit and applications will operate:</p>
 
-        <h2>JetS3t Properties</h2>
+        <ul>
+          <li><a href="#jets3t">JetS3t Properties</a>: Advanced
+          communication properties</li>
 
-        <h2>Mimetypes</h2>
+          <li><a href="#mimetypes">Mime Types</a>: Mime type
+          recognition based on file extensions</li>
+        </ul>
+
+        <h2><a name="jets3t"
+           id="jets3t">JetS3t Properties</a></h2>
+
+        <p>The main configuration properties for the JetS3t toolkit
+        and applications are stored in a file called
+        <tt>jets3t.properties</tt>. This file specifies advanced
+        communication properties. A properties file with default
+        settings is included in the <b>configs</b> directory JetS3t
+        release.</p>
+
+        <p>The <tt>jets3t.properties</tt> file is a standard text
+        document that lists properties in the standard Java
+        Properties file format, containing name value pairs and
+        comments:</p>
+        <pre>
+   # Comments start with a hash character.
+   # Empty lines are ignored...
+
+   # Properties are set as name=value, for example:
+   propertyName=propertyValue
+   my.favourite.colour=blue
+</pre>
+
+        <h3>Guide to jets3t.properties</h3>
+
+        <table bgcolor="#FAFAFA">
+          <tr>
+            <th align="left"
+                colspan="2">Common S3Service communication
+                properties</th>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>s3service.end-point-host</tt></b></td>
+
+            <td valign="top">The DNS name or IP address of the S3
+            host end-point
+            <br />
+            Default: <tt>s3.amazonaws.com</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>s3service.https-only</tt></b></td>
+
+            <td valign="top">If true, all communication with S3
+            will be via encrypted HTTPS connections, otherwise
+            communications will be sent unencrypted via HTTP
+            <br />
+            Default: <tt>true</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>s3service.max-thread-count</tt></b></td>
+
+            <td valign="top">The maximum number of concurrent
+            communication threads that will be started by the
+            multi-threaded service.
+            <br />
+            <b>Note</b>: This value should not exceed the maximum
+            number of connections available, such as is set by the
+            property <tt>httpclient.max-connections</tt>
+            <br />
+            Default: <tt>4</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>s3service.stream-retry-buffer-size</tt></b></td>
+
+            <td valign="top">How many bytes to buffer for use when
+            retrying failed transmissions. This value must be small
+            enough that applications using multiple upload threads
+            will not exceed their available memory by buffering
+            data
+            <br />
+            <b>Note</b>: Applies only to InputStream-based uploads,
+            not uploads based on files
+            <br />
+            Default: <tt>131072</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>s3service.internal-error-retry-max</tt></b></td>
+
+            <td valign="top">The maximum number of times each
+            connection that fails with S3 InternalServer errors
+            will be retried. To disable retries of InternalError
+            failures set this to 0.
+            <br />
+            <b>Note</b>: After each failure the service waits
+            before retrying. The time to wait is calculated with
+            the formula:
+            <br />
+            <tt>50 * (<i>internalErrorCount</i> ^ 2)</tt>
+            <br />
+            Default: <tt>5</tt></td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">REST/HTTP HttpClient Implementation
+                properties</th>
+          </tr>
+
+          <tr>
+            <td colspan="2">JetS3t's REST/HTTP implementation is
+            based on HttpClient but uses only a small subset of the
+            many <a href=
+            "http://jakarta.apache.org/commons/httpclient/preference-api.html">
+            options available for HttpClient</a>.</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>httpclient.connection-timeout-ms</tt></b></td>
+
+            <td valign="top">How many milliseconds to wait before a
+            connection times out. 0 means infinity.
+            <br />
+            Default: <tt>60000</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>httpclient.socket-timeout-ms</tt></b></td>
+
+            <td valign="top">How many milliseconds to wait before a
+            socket connection times out. 0 means infinity.
+            <br />
+            Default: <tt>60000</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>httpclient.max-connections</tt></b></td>
+
+            <td valign="top">The maximum number of simultaneous
+            connections to allow
+            <br />
+            <b>Note</b>: Be careful increasing this from the
+            default value, as communications errors can result if
+            it is set too high for your system/connection/usage
+            scenarios
+            <br />
+            Default: <tt>4</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>httpclient.stale-checking-enabled</tt></b></td>
+
+            <td valign="top">"Determines whether stale connection
+            check is to be used. Disabling stale connection check
+            may result in slight performance improvement at the
+            risk of getting an I/O error when executing a request
+            over a connection that has been closed at the server
+            side."
+            <br />
+            Default: <tt>true</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>httpclient.retry-max</tt></b></td>
+
+            <td valign="top">How many times to retry connections
+            when they fail with IO errors. Set this to 0 to disable
+            retries.
+            <br />
+            Default: <tt>5</tt></td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>httpclient.useragent</tt></b></td>
+
+            <td valign="top">The user agent string sent with HTTP
+            requests.
+            <br />
+            Default: Application-specific</td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">Encryption properties</th>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>crypto.algorithm</tt></b></td>
+
+            <td valign="top">Name of the PBE cryptographic
+            algorithm to used by JetS3t applications that encrypt
+            items uploaded to S3.
+            <br />
+            <b>Note</b>: The default algorithm isn't a strong one,
+            and should be improved if security is important
+            <br />
+            <b>Note 2</b>: The algorithms available will depend on
+            the cryptography provider libraries installed on a
+            system, and the Java policy file settings. This is a
+            complicated topic that is not specific to JetS3t,
+            please refer to documentation elsewhere.
+            <br />
+            Default: <tt>PBEWithMD5AndDES</tt></td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">GUI properties</th>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>gui.verboseErrorDialog</tt></b></td>
+
+            <td valign="top">If true, JetS3t applications that
+            display error dialogs will include more information
+            about errors.
+            <br />
+            Default: <tt>true</tt></td>
+          </tr>
+        </table>
+
+        <h2><a name="mimetypes"
+           id="mimetypes">Mimetypes</a></h2>
+
+        <p>JetS3t applications, and any toolkit-based application
+        that use the <a href=
+        "../api/org/jets3t/service/utils/Mimetypes.html">Mimetypes</a>
+        utility class, can recognise the mime/content type of a
+        file based on the file's extension. For example,
+        <tt>.html</tt> files are recognised as <tt>text/html</tt>.
+        A properties file with default settings is included in the
+        <b>configs</b> directory JetS3t release.</p>
+
+        <p>Mimetype recognition is configured in the
+        <tt>mime.types</tt> configuration file, which is exactly
+        the same format as is used by the Apache Web Server (in
+        fact, we pinched the whole mimetypes file from Apache).</p>
+
+        <p>The <tt>mime.types</tt> file is a standard text document
+        that lists the recognised mime types, each on a new line.
+        The mimetype is listed, followed by one or more tabs, then
+        one or more space-separated file extensions that map to the
+        mimetype. The best way to understand the file format is to
+        look at some examples:</p>
+        <pre>
+text/html               html htm
+text/plain              asc txt
+application/pdf         pdf
+audio/mpeg              mpga mp2 mp3
+</pre>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->
 

@@ -68,7 +68,7 @@
 		<key>page5</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-08T06:50:34Z</date>
+			<date>2007-01-12T02:08:32Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -79,10 +79,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					AdRhK4KdTPLzgbOkTDh2DA==
+					XV6vfx1MCxrMhobboHIxDQ==
 					</data>
 					<key>Size</key>
-					<integer>30844</integer>
+					<integer>31965</integer>
 				</dict>
 				<key>cockpit_assets/ACLDialog.jpg</key>
 				<dict>
@@ -208,7 +208,7 @@
 		<key>page7</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-08T02:57:25Z</date>
+			<date>2007-01-12T05:59:00Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -219,10 +219,73 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					UWXrCuUm90D6vrPRN42UUA==
+					Jtls5AEwX2DCA13tI4Eb3A==
 					</data>
 					<key>Size</key>
-					<integer>3942</integer>
+					<integer>29647</integer>
+				</dict>
+				<key>uploader_assets/Uploader.HtmlSkin.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					dUK2FaB54YHT8MFy0jkUPA==
+					</data>
+					<key>Size</key>
+					<integer>47500</integer>
+				</dict>
+				<key>uploader_assets/Uploader.Screen1.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					Whk+WcQFNyxbcXg4avHUog==
+					</data>
+					<key>Size</key>
+					<integer>62956</integer>
+				</dict>
+				<key>uploader_assets/Uploader.Screen2.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					HpIvn5dljlKg8V569xXgbA==
+					</data>
+					<key>Size</key>
+					<integer>52944</integer>
+				</dict>
+				<key>uploader_assets/Uploader.Screen3.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					/c32zsuNSVo/dDcbD/HFBA==
+					</data>
+					<key>Size</key>
+					<integer>53659</integer>
+				</dict>
+				<key>uploader_assets/Uploader.Screen4.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					LxC+tJWNUzB2QeuEVx+xog==
+					</data>
+					<key>Size</key>
+					<integer>45135</integer>
+				</dict>
+				<key>uploader_assets/Uploader.Screen5.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					m6PlOxk1UqCmoIvQyIZbgw==
+					</data>
+					<key>Size</key>
+					<integer>32104</integer>
+				</dict>
+				<key>uploader_assets/Uploader.UserInputs.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					S8jqU6Kfc+2UdzauGRvlxw==
+					</data>
+					<key>Size</key>
+					<integer>21024</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
