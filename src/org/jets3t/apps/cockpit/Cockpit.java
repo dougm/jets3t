@@ -2075,8 +2075,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             actionText += "Compressing";                
         } 
         if (cockpitPreferences.isUploadEncryptionActive()) {
+            String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
             EncryptionUtil encryptionUtil = new EncryptionUtil(
-                cockpitPreferences.getEncryptionPassword());
+                cockpitPreferences.getEncryptionPassword(), algorithm);
             inputStream = encryptionUtil.encrypt(inputStream);
             contentEncoding = null;
             newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);

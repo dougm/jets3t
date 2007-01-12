@@ -186,7 +186,9 @@ public class Synchronize {
 
             EncryptionUtil encryptionUtil = null;
             if (isEncryptionEnabled) {
-                encryptionUtil = new EncryptionUtil(cryptoPassword);
+                String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                    .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
+                encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm);
             }
             File uploadFile = prepareUploadFile(file, newObject, encryptionUtil);
             
