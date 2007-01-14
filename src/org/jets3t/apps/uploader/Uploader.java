@@ -328,7 +328,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         
         // Read properties from classpath.
-        InputStream propertiesIS = Thread.currentThread().getClass().getResourceAsStream("/uploader.properties");
+        InputStream propertiesIS = this.getClass().getResourceAsStream("/uploader.properties");
         try {
             uploaderProperties = Jets3tProperties.getInstance(propertiesIS);
         } catch (IOException e) {
@@ -426,7 +426,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         String applicationIconPath = uploaderProperties.getStringProperty("gui.applicationIcon", null);
         if (!isRunningAsApplet && applicationIconPath != null) {            
             try {
-                URL iconUrl = Thread.currentThread().getClass().getResource(applicationIconPath);
+                URL iconUrl = this.getClass().getResource(applicationIconPath);
                 if (iconUrl != null) {
                     ImageIcon icon = new ImageIcon(iconUrl);
                     ownerFrame.setIconImage(icon.getImage());
@@ -451,7 +451,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         if (footerIconPath != null) {
             try {
-                URL iconUrl = Thread.currentThread().getClass().getResource(footerIconPath);
+                URL iconUrl = this.getClass().getResource(footerIconPath);
                 if (iconUrl != null) {
                     ImageIcon icon = new ImageIcon(iconUrl);
                     footerLabel.setIcon(icon);
@@ -1260,7 +1260,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         boolean hasText = false;
         
         if (buttonImagePath != null && buttonImagePath.length() > 0) {
-            URL iconURL = Thread.currentThread().getClass().getResource(buttonImagePath);
+            URL iconURL = this.getClass().getResource(buttonImagePath);
             if (iconURL == null) {
                 log.error("Unable to load image URL for a button with property prefix '" 
                     + propertiesPrefix + "'. Image path: " + buttonImagePath);                        

@@ -501,7 +501,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     private void applyIcon(JMenuItem menuItem, String iconResourcePath) {
-        URL iconUrl = Thread.currentThread().getClass().getResource(iconResourcePath);
+        URL iconUrl = this.getClass().getResource(iconResourcePath);
         if (iconUrl != null) {
             ImageIcon icon = new ImageIcon(iconUrl);
             menuItem.setIcon(icon);
@@ -511,7 +511,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     private void applyIcon(JButton button, String iconResourcePath) {
-        URL iconUrl = Thread.currentThread().getClass().getResource(iconResourcePath);
+        URL iconUrl = this.getClass().getResource(iconResourcePath);
         if (iconUrl != null) {
             ImageIcon icon = new ImageIcon(iconUrl);
             button.setIcon(icon);

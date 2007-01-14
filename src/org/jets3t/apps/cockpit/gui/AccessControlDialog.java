@@ -331,7 +331,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 	}
     
     private void applyIcon(JButton button, String iconResourcePath) {
-        URL iconUrl = Thread.currentThread().getClass().getResource(iconResourcePath);
+        URL iconUrl = this.getClass().getResource(iconResourcePath);
         if (iconUrl != null) {
             ImageIcon icon = new ImageIcon(iconUrl);
             button.setIcon(icon);
