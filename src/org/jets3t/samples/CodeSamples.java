@@ -21,12 +21,9 @@ package org.jets3t.samples;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Properties;
 
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
@@ -55,15 +52,6 @@ import org.jets3t.service.security.AWSCredentials;
 public class CodeSamples {
     
     public static void main(String[] args) throws Exception {
-        // Load AWS properties from the properties file example.properties in the current working directory. 
-        Properties exampleProps = new Properties();
-        exampleProps.load(new FileInputStream("example.properties"));        
-        String awsAccessKey = exampleProps.getProperty("awsAccessKey");
-        String awsSecretKey = exampleProps.getProperty("awsSecretKey");
-        if (awsAccessKey == null || awsSecretKey == null) {
-            throw new Exception("example.properties file must contain properties awsAccessKey and awsSecretKey");
-        }
-        
         /* ************
          * Code Samples
          * ************
@@ -76,8 +64,7 @@ public class CodeSamples {
         // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. 
         // These credentials are stored in an AWSCredentials object:
 
-        AWSCredentials awsCredentials = 
-            new AWSCredentials(awsAccessKey, awsSecretKey);
+        AWSCredentials awsCredentials = SamplesUtils.loadAWSCredentials();
 
         // To communicate with S3, create a class that implements an S3Service. 
         // We will use the REST/HTTP implementation based on HttpClient, as this is the most 
@@ -89,6 +76,7 @@ public class CodeSamples {
         // If a bucket listing produces no exceptions, all is well.
 
         S3Bucket[] myBuckets = s3Service.listAllBuckets();
+        System.out.println("How many buckets to I have in S3? " + myBuckets.length);
 
         /*
          * Create a bucket 
@@ -96,7 +84,7 @@ public class CodeSamples {
         
         // To store data in S3 you must first create a bucket, a container for objects.
 
-        S3Bucket testBucket = s3Service.createBucket(awsAccessKey + ".Test");
+        S3Bucket testBucket = s3Service.createBucket(awsCredentials.getAccessKey() + ".Test");
         System.out.println("Created test bucket: " + testBucket.getName());
 
         // Notice how the code above used your AWS Access Key as a prefix to the bucket name? 
@@ -107,6 +95,7 @@ public class CodeSamples {
         // This will probably fail, as someone else has already created a 'Test' bucket.
         try {
             S3Bucket existingBucket = s3Service.createBucket("Test");
+            System.out.println("You have created a bucket called: " + existingBucket.getName());
         } catch (S3ServiceException e) {
             System.err.println("Error code and message from S3: " 
                 + e.getS3ErrorCode() + " - " + e.getS3ErrorMessage());
@@ -168,7 +157,7 @@ public class CodeSamples {
         // commonly-used kinds of data such as files and text strings.
 
         // Create an S3Object with data from a File
-        S3Object fileObject = new S3Object(testBucket, new File("example.properties"));
+        S3Object fileObject = new S3Object(testBucket, new File("CodeSamples.java"));
 
         // Create an S3Object with data from a String
         S3Object textObject = new S3Object(testBucket, "textObject.txt", "Hello World!");
@@ -296,7 +285,7 @@ public class CodeSamples {
         // To demonstrate multiple uploads, let's create some small text-data objects and a bucket to put them in.
 
         // First, create a bucket.
-        S3Bucket bucket = new S3Bucket(awsAccessKey + ".TestMulti");
+        S3Bucket bucket = new S3Bucket(awsCredentials.getAccessKey() + ".TestMulti");
         bucket = s3Service.createBucket(bucket);
 
         // Create an array of data objects to upload.
@@ -431,7 +420,7 @@ public class CodeSamples {
         // access settings, then making it public.
         
         // Create a bucket in S3.
-        S3Bucket publicBucket = new S3Bucket(awsAccessKey + ".publicBucket");
+        S3Bucket publicBucket = new S3Bucket(awsCredentials.getAccessKey() + ".publicBucket");
         s3Service.createBucket(publicBucket);
         
         // Retrieve the bucket's ACL and modify it to grant public access, 
@@ -484,7 +473,7 @@ public class CodeSamples {
         // a date and time after which the URL will no longer work.
         
         // Create a private object in S3.
-        S3Bucket privateBucket = new S3Bucket(awsAccessKey + ".privateBucket");
+        S3Bucket privateBucket = new S3Bucket(awsCredentials.getAccessKey() + ".privateBucket");
         S3Object privateObject = new S3Object(
             privateBucket, "privateObject.txt", "This object is private");
         s3Service.createBucket(privateBucket);
