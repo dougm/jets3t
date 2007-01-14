@@ -20,11 +20,11 @@ package org.jets3t.gui.skins.html;
 
 import java.util.Properties;
 
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 
 public class SkinnedJButton extends JButton {
-    
+    private static final long serialVersionUID = 7544903896112071279L;
+
     public SkinnedJButton(Properties skinProperties, String itemName) {
         super();
     }

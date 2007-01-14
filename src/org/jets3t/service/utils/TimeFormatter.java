@@ -39,11 +39,11 @@ public class TimeFormatter {
         int hours = 0;
         if (seconds > 3600) {
             hours = (int) seconds / 3600;
-            seconds = seconds - (hours * 3600); 
+            seconds = seconds - (hours * 3600L); 
         } 
         
         int mins = (int) seconds / 60;
-        seconds = seconds - (mins * 60); 
+        seconds = seconds - (mins * 60L); 
         
         if (hours > 0) {
             if (mins > 45) {

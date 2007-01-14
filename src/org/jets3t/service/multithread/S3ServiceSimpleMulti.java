@@ -56,10 +56,11 @@ public class S3ServiceSimpleMulti {
      */
     protected void throwError(S3ServiceEventAdaptor adaptor) throws S3ServiceException {
         if (adaptor.wasErrorThrown()) {
-            if (adaptor.getErrorThrown() instanceof S3ServiceException) {
-                throw (S3ServiceException) adaptor.getErrorThrown();
+            Throwable thrown = adaptor.getErrorThrown();
+            if (thrown instanceof S3ServiceException) {
+                throw (S3ServiceException) thrown;
             } else {
-                throw new S3ServiceException(adaptor.getErrorThrown());
+                throw new S3ServiceException(thrown);
             }
         }        
     }
@@ -85,7 +86,7 @@ public class S3ServiceSimpleMulti {
         };
         (new S3ServiceMulti(s3Service, adaptor)).createBuckets(buckets);
         throwError(adaptor);
-        return (S3Bucket[]) bucketList.toArray(new S3Bucket[] {});
+        return (S3Bucket[]) bucketList.toArray(new S3Bucket[bucketList.size()]);
     }
     
     /**
@@ -111,7 +112,7 @@ public class S3ServiceSimpleMulti {
         };
         (new S3ServiceMulti(s3Service, adaptor)).putObjects(bucket, objects);
         throwError(adaptor);
-        return (S3Object[]) objectList.toArray(new S3Object[] {});
+        return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
     
     /**
@@ -165,7 +166,7 @@ public class S3ServiceSimpleMulti {
      * the key names of the objects to retrieve.
      * @return
      * the retrieved objects.
-     * @return
+     * 
      * @throws S3ServiceException
      */
     public S3Object[] getObjects(final S3Bucket bucket, final String[] objectKeys) throws S3ServiceException {
@@ -180,7 +181,7 @@ public class S3ServiceSimpleMulti {
         };
         (new S3ServiceMulti(s3Service, adaptor)).getObjects(bucket, objectKeys);
         throwError(adaptor);
-        return (S3Object[]) objectList.toArray(new S3Object[] {});
+        return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
 
     /**
@@ -225,7 +226,7 @@ public class S3ServiceSimpleMulti {
         };
         (new S3ServiceMulti(s3Service, adaptor)).getObjectsHeads(bucket, objectKeys);
         throwError(adaptor);
-        return (S3Object[]) objectList.toArray(new S3Object[] {});
+        return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
     
     /**
@@ -251,7 +252,7 @@ public class S3ServiceSimpleMulti {
         };
         (new S3ServiceMulti(s3Service, adaptor)).getObjectACLs(bucket, objects);
         throwError(adaptor);
-        return (S3Object[]) objectList.toArray(new S3Object[] {});
+        return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
 
     /**
@@ -277,7 +278,7 @@ public class S3ServiceSimpleMulti {
         };
         (new S3ServiceMulti(s3Service, adaptor)).putACLs(bucket, objects);
         throwError(adaptor);
-        return (S3Object[]) objectList.toArray(new S3Object[] {});
+        return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
     
     /**
@@ -286,9 +287,9 @@ public class S3ServiceSimpleMulti {
      * 
      * @param bucket
      * the bucket containing the objects
-     * @param objectAndOutputStream
-     * an array of S3Object/OutputStream pairs indicating the object to be downloaded, and the output 
-     * stream where the object's contents will be written.
+     * @param downloadPackages
+     * an array of download package objects that manage the output of data for an S3Object.
+     * 
      * @throws S3ServiceException
      */
     public void downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) throws S3ServiceException {

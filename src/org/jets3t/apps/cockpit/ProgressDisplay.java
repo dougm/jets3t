@@ -25,6 +25,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.Serializable;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
@@ -47,7 +48,9 @@ import org.jets3t.service.multithread.CancelEventTrigger;
  * 
  * @author James Murty
  */
-public class ProgressDisplay {
+public class ProgressDisplay implements Serializable {
+    private static final long serialVersionUID = -6956894803606807995L;
+    
     private final ProgressDialog progressDialog;
 
     /**
@@ -111,8 +114,10 @@ public class ProgressDisplay {
     /**
      * Updates the dialog's status messages.
      *  
-     * @param text
-     *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+     * @param statusMessage
+     * text describing the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+     * @param detailsText
+     * detailed description of the task's status, such as the current transfer rate and remaining time.
      */
     public void updateStatusMessages(final String statusMessage, final String detailsText) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -154,7 +159,7 @@ public class ProgressDisplay {
         private JLabel detailsTextLabel = null;
         private JProgressBar progressBar = null;
         private boolean wasCancelClicked = false;
-        private CancelEventTrigger cancelEventListener = null;
+        private CancelEventTrigger cancelEventTrigger = null;
         private int maximumLabelLength = 120;
 
         /**
@@ -180,7 +185,7 @@ public class ProgressDisplay {
             int minTaskValue, int maxTaskValue, CancelEventTrigger cancelEventListener, String cancelButtonText) 
         {
             super(owner, title, true);
-            this.cancelEventListener = cancelEventListener;
+            this.cancelEventTrigger = cancelEventListener;
             initGui(statusMessage, detailsText, cancelButtonText, minTaskValue, maxTaskValue);
         }
 
@@ -214,7 +219,7 @@ public class ProgressDisplay {
                 new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             
             // Display the cancel button if a cancel event listener is available.
-            if (this.cancelEventListener != null) {
+            if (this.cancelEventTrigger != null) {
                 final JButton cancelButton = new JButton(cancelButtonText);
                 cancelButton.setActionCommand("Cancel");
                 cancelButton.addActionListener(this);
@@ -227,6 +232,8 @@ public class ProgressDisplay {
                 this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
                     .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
                 this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+                    private static final long serialVersionUID = 4397881858674185924L;
+
                     public void actionPerformed(ActionEvent actionEvent) {
                         cancelButton.doClick();
                     }
@@ -254,8 +261,8 @@ public class ProgressDisplay {
         public void actionPerformed(ActionEvent e) {
             if ("Cancel".equals(e.getActionCommand())) {
                 wasCancelClicked = true;
-                if (cancelEventListener != null) {
-                    cancelEventListener.cancelTask(this);
+                if (cancelEventTrigger != null) {
+                    cancelEventTrigger.cancelTask(this);
                 }
                 this.dispose();
             }

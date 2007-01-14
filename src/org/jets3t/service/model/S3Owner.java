@@ -18,13 +18,17 @@
  */
 package org.jets3t.service.model;
 
+import java.io.Serializable;
+
 /**
  * Represents an S3 owner object with a canonical ID and, optionally, a display name.
  * 
  * @author James Murty
  */
-public class S3Owner {
-	private String displayName;
+public class S3Owner implements Serializable {
+    private static final long serialVersionUID = -8916731456944569115L;
+    
+    private String displayName;
 	private String id;
     
     public S3Owner() {        

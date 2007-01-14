@@ -63,7 +63,7 @@ public class CanonicalGrantee implements GranteeInterface {
 		return id;
 	}
 	
-	public void setDisplayname(String displayName) {
+	public void setDisplayName(String displayName) {
 		this.displayName = displayName;
 	}
     

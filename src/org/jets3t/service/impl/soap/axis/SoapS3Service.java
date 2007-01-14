@@ -86,6 +86,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class SoapS3Service extends S3Service {
+    private static final long serialVersionUID = 6421138869712673819L;
+    
     private final Log log = LogFactory.getLog(SoapS3Service.class);
     private AmazonS3_ServiceLocator locator = null;
 
@@ -109,10 +111,10 @@ public class SoapS3Service extends S3Service {
         if (super.isHttpsOnly()) {
             // Use an SSL connection, to further secure the signature. 
             log.debug("SOAP service will use HTTPS for all communication");            
-            locator.setAmazonS3EndpointAddress("https://" + S3Service.S3_ENDPOINT_HOST + "/soap");
+            locator.setAmazonS3EndpointAddress("https://" + getS3EndpointHost() + "/soap");
         } else {
             log.debug("SOAP service will use HTTP for all communication");
-            locator.setAmazonS3EndpointAddress("http://" + S3Service.S3_ENDPOINT_HOST + "/soap");            
+            locator.setAmazonS3EndpointAddress("http://" + getS3EndpointHost() + "/soap");            
         }
         // Ensure we can get the stub.
         getSoapBinding();
@@ -123,10 +125,6 @@ public class SoapS3Service extends S3Service {
      * sets the SOAP endpoint to use HTTP or HTTPS protocols.
      * 
      * @param awsCredentials
-     * @param invokingApplicationDescription
-     * a short description of the application using the service, suitable for inclusion in a
-     * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.5.0</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
     public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException { 
@@ -208,7 +206,7 @@ public class SoapS3Service extends S3Service {
                 CanonicalUser canonicalUser = (CanonicalUser) grantee;
                 CanonicalGrantee jets3tGrantee = new CanonicalGrantee();
                 jets3tGrantee.setIdentifier(canonicalUser.getID());
-                jets3tGrantee.setDisplayname(canonicalUser.getDisplayName());
+                jets3tGrantee.setDisplayName(canonicalUser.getDisplayName());
                 acl.grantPermission(jets3tGrantee, permission);                
             } else if (grantee instanceof AmazonCustomerByEmail) {
                 AmazonCustomerByEmail customerByEmail = (AmazonCustomerByEmail) grantee;
@@ -281,16 +279,17 @@ public class SoapS3Service extends S3Service {
      */
     private MetadataEntry[] convertMetadata(Map metadataMap) {
         MetadataEntry[] metadata = new MetadataEntry[metadataMap.size()];
-        Iterator keyIter = metadataMap.keySet().iterator();
+        Iterator metadataIter = metadataMap.entrySet().iterator();
         int index = 0;
-        while (keyIter.hasNext()) {
-            Object metadataName = keyIter.next();
-            Object metadataValue = metadataMap.get(metadataName);
+        while (metadataIter.hasNext()) {
+            Map.Entry entry = (Map.Entry) metadataIter.next();
+            Object metadataName = entry.getKey();
+            Object metadataValue = entry.getValue();
             log.debug("Setting metadata: " + metadataName + "=" + metadataValue);
-            MetadataEntry entry = new MetadataEntry();
-            entry.setName(metadataName.toString());
-            entry.setValue(metadataValue.toString());
-            metadata[index++] = entry;
+            MetadataEntry mdEntry = new MetadataEntry();
+            mdEntry.setName(metadataName.toString());
+            mdEntry.setValue(metadataValue.toString());
+            metadata[index++] = mdEntry;
         }
         return metadata;
     }
@@ -321,6 +320,8 @@ public class SoapS3Service extends S3Service {
                 bucket.setCreationDate(entry.getCreationDate().getTime());
                 buckets[index++] = bucket;
             }
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to List Buckets", e);
         }
@@ -340,6 +341,8 @@ public class SoapS3Service extends S3Service {
             
             // If we get this far, the bucket exists.
             return true;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get Bucket: " + bucketName, e);   
         }
@@ -406,16 +409,18 @@ public class SoapS3Service extends S3Service {
                 if (!automaticallyMergeChunks)
                     break;
             }
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to List Objects in bucket: " + bucketName, e);   
         }
         if (automaticallyMergeChunks) {
             log.debug("Found " + objects.size() + " objects in total");
             return new S3ObjectsChunk(
-                (S3Object[]) objects.toArray(new S3Object[] {}), null);
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]), null);
         } else {
             return new S3ObjectsChunk(
-                (S3Object[]) objects.toArray(new S3Object[] {}), priorLastKey);            
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]), priorLastKey);            
         }
     }
 
@@ -435,6 +440,8 @@ public class SoapS3Service extends S3Service {
             S3Bucket bucket = new S3Bucket(bucketName);
             bucket.setAcl(acl);
             return bucket;            
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Create Bucket: " + bucketName, e);   
         }
@@ -448,6 +455,8 @@ public class SoapS3Service extends S3Service {
                 Constants.SOAP_SERVICE_NAME + "DeleteBucket" + convertDateToString(timestamp));
             s3SoapBinding.deleteBucket(
                 bucketName, getAWSAccessKey(), timestamp, signature, null);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Delete Bucket: " + bucketName, e);   
         }            
@@ -484,13 +493,20 @@ public class SoapS3Service extends S3Service {
                     BufferedInputStream bis = new BufferedInputStream(object.getDataInputStream());
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     BufferedOutputStream bos = new BufferedOutputStream(baos);
-                    byte[] buffer = new byte[8192];
-                    int read = -1;
-                    while ((read = bis.read(buffer)) != -1) {
-                        bos.write(buffer, 0, read);
+                    try {
+                        byte[] buffer = new byte[8192];
+                        int read = -1;
+                        while ((read = bis.read(buffer)) != -1) {
+                            bos.write(buffer, 0, read);
+                        }
+                    } finally {
+                        if (bis != null) {
+                            bis.close();                            
+                        }
+                        if (bos != null) {
+                            bos.close();                        
+                        }
                     }
-                    bis.close();
-                    bos.close();
 
                     contentLength = baos.size();
                     object.setDataInputStream(new ByteArrayInputStream(baos.toByteArray()));
@@ -530,6 +546,8 @@ public class SoapS3Service extends S3Service {
             object.setETag(result.getETag());
             object.setContentLength(contentLength);
             object.setContentType(contentType);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Create Object: " + object.getKey(), e);   
         }
@@ -544,6 +562,8 @@ public class SoapS3Service extends S3Service {
                 Constants.SOAP_SERVICE_NAME + "DeleteObject" + convertDateToString(timestamp));
             s3SoapBinding.deleteObject(bucketName, objectKey, 
                 getAWSAccessKey(), timestamp, signature, null);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Delete Object: " + objectKey, e);   
         } 
@@ -649,6 +669,8 @@ public class SoapS3Service extends S3Service {
             object.setMetadataComplete(true);
             
             return object;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get Object: " + objectKey, e);   
         } 
@@ -666,6 +688,8 @@ public class SoapS3Service extends S3Service {
                 Constants.SOAP_SERVICE_NAME + "SetObjectAccessControlPolicy" + convertDateToString(timestamp));
             s3SoapBinding.setObjectAccessControlPolicy(bucketName, objectKey, grants, 
                 getAWSAccessKey(), timestamp, signature, null);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Put Object ACL", e);   
         }
@@ -683,6 +707,8 @@ public class SoapS3Service extends S3Service {
                 Constants.SOAP_SERVICE_NAME + "SetBucketAccessControlPolicy" + convertDateToString(timestamp));
             s3SoapBinding.setBucketAccessControlPolicy(bucketName, grants, 
                 getAWSAccessKey(), timestamp, signature, null);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Put Bucket ACL", e);   
         }        
@@ -698,6 +724,8 @@ public class SoapS3Service extends S3Service {
                 bucketName, objectKey, getAWSAccessKey(), 
                 timestamp, signature, null);
             return convertAccessControlTypes(result);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get ACL", e);   
         }
@@ -712,6 +740,8 @@ public class SoapS3Service extends S3Service {
             AccessControlPolicy result = s3SoapBinding.getBucketAccessControlPolicy(bucketName, 
                 getAWSAccessKey(), timestamp, signature, null);
             return convertAccessControlTypes(result);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get ACL", e);   
         }
@@ -732,6 +762,8 @@ public class SoapS3Service extends S3Service {
             } else {
                 return new S3BucketLoggingStatus();
             }
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Get Bucket logging status for " + bucketName, e);   
         }        
@@ -752,6 +784,8 @@ public class SoapS3Service extends S3Service {
             s3SoapBinding.setBucketLoggingStatus(
                 bucketName, getAWSAccessKey(), timestamp, signature, null, 
                 new BucketLoggingStatus(loggingSettings)); 
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Set Bucket logging status for " + bucketName
                 + ": " + status, e);   

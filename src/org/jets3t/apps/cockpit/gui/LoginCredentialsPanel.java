@@ -31,7 +31,8 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 
 public class LoginCredentialsPanel extends JPanel {
-    
+    private static final long serialVersionUID = 5819631423081597078L;
+
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
     
     private HyperlinkActivatedListener hyperlinkListener = null;

@@ -18,6 +18,7 @@ public class SamplesUtils {
      * {@link #AWS_SECRET_KEY_PROPERTY_NAME}.
      * 
      * @return
+     * the AWS credentials loaded from the samples properties file.
      */
     public static AWSCredentials loadAWSCredentials() throws IOException {
         InputStream propertiesIS = 

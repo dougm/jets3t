@@ -28,7 +28,9 @@ import org.jets3t.service.acl.AccessControlList;
  * @author James Murty
  */
 public class S3Bucket extends BaseS3Object {
-	public static final String METADATA_HEADER_CREATION_DATE = "Date";
+    private static final long serialVersionUID = -8646831898339939580L;
+    
+    public static final String METADATA_HEADER_CREATION_DATE = "Date";
 	public static final String METADATA_HEADER_OWNER = "Owner";
 	
 	private String name = null;

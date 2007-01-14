@@ -65,6 +65,8 @@ public class DownloadPackage {
      * non-null EncryptionUtil.
      * 
      * @return
+     * an output stream that writes data to the output file managed by this class. 
+     * 
      * @throws Exception
      */
     public OutputStream getOutputStream() throws Exception {

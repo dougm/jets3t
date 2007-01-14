@@ -48,13 +48,13 @@ public class Mimetypes {
     private static final Log log = LogFactory.getLog(Mimetypes.class);
     
     // Mimetypes used frequently in jets3t.
-    public static String MIMETYPE_XML = "application/xml";
-    public static String MIMETYPE_HTML = "text/html";
-    public static String MIMETYPE_OCTET_STREAM = "application/octet-stream";
-    public static String MIMETYPE_GZIP = "application/x-gzip";
+    public static final String MIMETYPE_XML = "application/xml";
+    public static final String MIMETYPE_HTML = "text/html";
+    public static final String MIMETYPE_OCTET_STREAM = "application/octet-stream";
+    public static final String MIMETYPE_GZIP = "application/x-gzip";
     
     // Mimetypes specific to jetS3T.
-    public static String MIMETYPE_JETS3T_DIRECTORY = "application/x-directory";
+    public static final String MIMETYPE_JETS3T_DIRECTORY = "application/x-directory";
     
     private static Mimetypes mimetypes = null;
     

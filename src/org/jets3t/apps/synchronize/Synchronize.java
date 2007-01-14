@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.jets3t.service.Constants;
@@ -116,35 +117,46 @@ public class Synchronize {
         tempUploadFile.deleteOnExit();
 
         // Transform data from original file, gzipping or encrypting as specified in user's options.
-        InputStream inputStream = new BufferedInputStream(new FileInputStream(originalFile));       
-        String contentEncoding = null;        
-        if (isGzipEnabled) {
-            inputStream = new GZipDeflatingInputStream(inputStream);
-            contentEncoding = "gzip";
-            newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
-        } 
-        if (isEncryptionEnabled) {
-            inputStream = encryptionUtil.encrypt(inputStream);
-            contentEncoding = null;
-            newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
-            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, 
-                encryptionUtil.getAlgorithm()); 
-            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_VERSION, 
-                EncryptionUtil.VERSION); 
+        OutputStream outputStream = null;
+        InputStream inputStream = null;
+        
+        try {
+            inputStream = new BufferedInputStream(new FileInputStream(originalFile));       
+            outputStream = new BufferedOutputStream(new FileOutputStream(tempUploadFile));
+            
+            String contentEncoding = null;        
+            if (isGzipEnabled) {
+                inputStream = new GZipDeflatingInputStream(inputStream);
+                contentEncoding = "gzip";
+                newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
+            } 
+            if (isEncryptionEnabled) {
+                inputStream = encryptionUtil.encrypt(inputStream);
+                contentEncoding = null;
+                newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
+                newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, 
+                    encryptionUtil.getAlgorithm()); 
+                newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_VERSION, 
+                    EncryptionUtil.DEFAULT_VERSION); 
+            }
+            if (contentEncoding != null) {
+                newObject.addMetadata("Content-Encoding", contentEncoding);
+            }
+    
+            // Write transformed data to temporary file.
+            byte[] buffer = new byte[8192];
+            int c = -1;
+            while ((c = inputStream.read(buffer)) >= 0) {
+                outputStream.write(buffer, 0, c);
+            }
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (outputStream != null) {
+                outputStream.close();
+            }            
         }
-        if (contentEncoding != null) {
-            newObject.addMetadata("Content-Encoding", contentEncoding);
-        }
-
-        // Write transformed data to temporary file.
-        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempUploadFile));
-        byte[] buffer = new byte[8192];
-        int c = -1;
-        while ((c = inputStream.read(buffer)) >= 0) {
-            outputStream.write(buffer, 0, c);
-        }
-        inputStream.close();
-        outputStream.close();
         
         return tempUploadFile;
     }
@@ -188,7 +200,7 @@ public class Synchronize {
             if (isEncryptionEnabled) {
                 String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
                     .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
-                encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm);
+                encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm, EncryptionUtil.DEFAULT_VERSION);
             }
             File uploadFile = prepareUploadFile(file, newObject, encryptionUtil);
             
@@ -262,7 +274,10 @@ public class Synchronize {
                         Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
                     String version = (String) object.getMetadata(
                         Constants.METADATA_JETS3T_CRYPTO_VERSION);
-                    encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm);                                            
+                    if (version == null) {
+                        version = EncryptionUtil.DEFAULT_VERSION;
+                    }
+                    encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm, version);                                            
                 }                    
             }
             
@@ -365,14 +380,15 @@ public class Synchronize {
         
         // Upload New/Updated/Forced/Replaced objects to S3.
         if (doAction && objectsToUpload.size() > 0) {
-            S3Object[] objects = (S3Object[]) objectsToUpload.toArray(new S3Object[] {});
+            S3Object[] objects = (S3Object[]) objectsToUpload.toArray(new S3Object[objectsToUpload.size()]);
             S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
             (new S3ServiceMulti(s3Service, adaptor)).putObjects(bucket, objects);
             if (adaptor.wasErrorThrown()) {
-                if (adaptor.getErrorThrown() instanceof Exception) {
-                    throw (Exception) adaptor.getErrorThrown();
+                Throwable thrown = adaptor.getErrorThrown();
+                if (thrown instanceof Exception) {
+                    throw (Exception) thrown;
                 } else {
-                    throw new Exception(adaptor.getErrorThrown());
+                    throw new Exception(thrown);
                 }
             }
         }
@@ -418,9 +434,9 @@ public class Synchronize {
      * <p>
      * If an object is gzipped (according to its Content-Type) and the gzip option is set, the object
      * is inflated. If an object is encrypted (according to the metadata item 
-     * {@link Constants#METADATA_JETS3T_ENCRYPTED}) and the crypt option is set, the object is decrypted.
-     * If encrypted and/or gzipped objects are restored without the corresponding option being set, the
-     * user will be responsible for inflating or decrypting the data.
+     * {@link Constants#METADATA_JETS3T_CRYPTO_ALGORITHM}) and the crypt option is set, the object 
+     * is decrypted. If encrypted and/or gzipped objects are restored without the corresponding option 
+     * being set, the user will be responsible for inflating or decrypting the data.
      * <p>
      * <b>Note</b>: If a file was backed-up with both encryption and gzip options it cannot be 
      * restored with only the gzip option set, as files are gzipped prior to being encrypted and cannot
@@ -496,14 +512,15 @@ public class Synchronize {
         // Download New/Updated/Forced/Replaced objects from S3.
         if (doAction && downloadPackagesList.size() > 0) {
             DownloadPackage[] downloadPackages = (DownloadPackage[]) 
-                downloadPackagesList.toArray(new DownloadPackage[] {});
+                downloadPackagesList.toArray(new DownloadPackage[downloadPackagesList.size()]);
             S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
             (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, downloadPackages);
             if (adaptor.wasErrorThrown()) {
-                if (adaptor.getErrorThrown() instanceof Exception) {
-                    throw (Exception) adaptor.getErrorThrown();
+                Throwable thrown = adaptor.getErrorThrown();
+                if (thrown instanceof Exception) {
+                    throw (Exception) thrown;
                 } else {
-                    throw new Exception(adaptor.getErrorThrown());
+                    throw new Exception(thrown);
                 }
             }
         }
@@ -618,14 +635,14 @@ public class Synchronize {
             // Create the S3Path.
             try {
                 String targetDirs[] = objectPath.split(Constants.FILE_PATH_DELIM);
-                String currentDirPath = "";
+                StringBuffer currentDirPathBuf = new StringBuffer();
                 for (int i = 0; i < targetDirs.length; i++) {
-                    currentDirPath += targetDirs[i];
+                    currentDirPathBuf.append(targetDirs[i]);
                     
-                    S3Object dirObject = new S3Object(currentDirPath);
+                    S3Object dirObject = new S3Object(currentDirPathBuf.toString());
                     dirObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
                     s3Service.putObject(bucket, dirObject);
-                    currentDirPath += Constants.FILE_PATH_DELIM;
+                    currentDirPathBuf.append(Constants.FILE_PATH_DELIM);
                 }
             } catch (Exception e) {
                 throw new SynchronizeException("Unable to create S3 path: " + objectPath, e);
@@ -635,7 +652,7 @@ public class Synchronize {
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         Map filesMap = null;
         if ("UP".equals(actionCommand)) {
-            filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[] {}));
+            filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[fileList.size()]));
         } else if ("DOWN".equals(actionCommand)) {
             filesMap = FileComparer.buildFileMap((File) fileList.get(0), null);
         }
@@ -743,7 +760,6 @@ public class Synchronize {
         // Required arguments
         String actionCommand = null;
         String s3Path = null;
-        File propertiesFile = null;
         int reqArgCount = 0;
         List fileList = new ArrayList();
         
@@ -781,7 +797,7 @@ public class Synchronize {
             } else {
                 // Argument is one of the required parameters.
                 if (reqArgCount == 0) {
-                    actionCommand = arg.toUpperCase();
+                    actionCommand = arg.toUpperCase(Locale.getDefault());
                     if (!"UP".equals(actionCommand) && !"DOWN".equals(actionCommand)) {
                         System.err.println("ERROR: Invalid action command " + actionCommand 
                             + ". Valid values are 'UP' or 'DOWN'");
@@ -820,20 +836,21 @@ public class Synchronize {
         }
         
         // Read the Properties file, and make sure it contains everything we need.
-        Jets3tProperties properties = Jets3tProperties.getInstance("synchronize.properties");
+        String propertiesFileName = "synchronize.properties";
+        Jets3tProperties properties = Jets3tProperties.getInstance(propertiesFileName);
         if (!properties.isLoaded()) {
-            System.err.println("ERROR: The properties file " + propertiesFile + " could not be found in the classpath");
+            System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found in the classpath");
             System.exit(2);                        
         }
         
         if (!properties.containsKey("accesskey")) {
-            System.err.println("ERROR: The properties file " + propertiesFile + " must contain the property: accesskey");
+            System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: accesskey");
             System.exit(2);            
         } else if (!properties.containsKey("secretkey")) {
-            System.err.println("ERROR: The properties file " + propertiesFile + " must contain the property: secretkey");
+            System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: secretkey");
             System.exit(2);                        
         } else if (isEncryptionEnabled && !properties.containsKey("password")) {
-            System.err.println("ERROR: You are using encryption, so the properties file " + propertiesFile + " must contain the property: password");
+            System.err.println("ERROR: You are using encryption, so the properties file " + propertiesFileName + " must contain the property: password");
             System.exit(2);                        
         }
         

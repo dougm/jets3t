@@ -195,6 +195,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
     }
         
     private class AWSCredentialsFileTableModel extends DefaultTableModel {
+        private static final long serialVersionUID = 8560515388653630790L;
         
         ArrayList awsCredentialsList = new ArrayList();
         ArrayList credentialFileList = new ArrayList();

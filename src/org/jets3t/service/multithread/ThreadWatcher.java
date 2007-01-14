@@ -117,7 +117,7 @@ public class ThreadWatcher {
             
             // Calculate the time until the transfer is complete, using the *overall* bytes/second rate.
             if (bytesRemaining > 0 && overallBytesPerSecond > 0) {
-                double remainingSecsDouble = bytesRemaining / overallBytesPerSecond;
+                double remainingSecsDouble = (double) bytesRemaining / overallBytesPerSecond;
                 this.timeRemainingSeconds = Math.round(remainingSecsDouble);
             } else {
                 this.timeRemainingSeconds = 0;
@@ -199,7 +199,7 @@ public class ThreadWatcher {
     }
     
     /**
-     * If this method returns true, the method {@link #getEtaTime()} will contain 
+     * If this method returns true, the method {@link #getTimeRemaining()} will contain 
      * an estimate of the completion time for the data transfer.
      * 
      * @return 

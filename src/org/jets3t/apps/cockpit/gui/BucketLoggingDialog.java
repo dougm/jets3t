@@ -55,7 +55,8 @@ import org.jets3t.service.model.S3BucketLoggingStatus;
  *
  */
 public class BucketLoggingDialog extends JDialog implements ActionListener {
-
+    private static final long serialVersionUID = 7251165117085406917L;
+    
     private Frame ownerFrame = null;
     private S3Service s3Service = null;
     private HashMap loggingStatusMap = new HashMap();
@@ -105,6 +106,8 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
         this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            private static final long serialVersionUID = -6225706489569112809L;
+
             public void actionPerformed(ActionEvent actionEvent) {
                 setVisible(false);
             }
@@ -235,7 +238,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
                 loggingFilePrefix[0] = prefixTextField.getText();
             }
             
-            (new Thread() {
+            (new Thread(new Runnable() {
                 public void run() {
                     ProgressDisplay progressDisplay = new ProgressDisplay(
                         ownerFrame, "Bucket Logging", "Setting bucket logging status", 
@@ -257,7 +260,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
                     progressDisplay.dispose();
                     
                 };
-            }).start();            
+            })).start();            
         }   
     }
         

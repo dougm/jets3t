@@ -18,12 +18,12 @@
  */
 package org.jets3t.service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -45,7 +45,9 @@ import org.apache.commons.logging.LogFactory;
  * 
  * @author James Murty
  */
-public class Jets3tProperties {
+public class Jets3tProperties implements Serializable {
+    private static final long serialVersionUID = -822234326095333142L;
+
     private static final Log log = LogFactory.getLog(Jets3tProperties.class);
     
     /**
@@ -111,15 +113,17 @@ public class Jets3tProperties {
         Properties newProperties = new Properties();
         newProperties.load(is);
         
-        Iterator iter = newProperties.keySet().iterator();
-        while (iter.hasNext()) {
-            String key = iter.next().toString();
-            if (properties.containsKey(key)) {
-                log.debug("Over-riding jets3t property [" + key + "=" + properties.getProperty(key)
+        Iterator propsIter = newProperties.entrySet().iterator();
+        while (propsIter.hasNext()) {
+            Map.Entry entry = (Map.Entry) propsIter.next();
+            String propertyName = (String) entry.getKey();
+            String propertyValue = (String) entry.getValue();            
+            if (properties.containsKey(propertyName)) {
+                log.debug("Over-riding jets3t property [" + propertyName + "=" + propertyValue
                     + "] with value from properties source " + propertiesSource 
-                    + ". New value: [" + key + "=" + trim(newProperties.getProperty(key)) + "]");
+                    + ". New value: [" + propertyName + "=" + trim(propertyValue) + "]");
             } 
-            properties.put(key, trim(newProperties.getProperty(key)));                
+            properties.put(propertyName, trim(propertyValue));                
         }
         
         loaded = true;

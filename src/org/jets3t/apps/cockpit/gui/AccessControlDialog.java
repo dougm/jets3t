@@ -87,6 +87,8 @@ import org.jets3t.service.model.S3Owner;
  * @author James Murty
  */
 public class AccessControlDialog extends JDialog implements ActionListener {
+    private static final long serialVersionUID = -6621927508514378546L;
+
     private static final Log log = LogFactory.getLog(AccessControlDialog.class);
     
 	private static AccessControlDialog accessControlDialog = null;
@@ -148,6 +150,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 	 */
 	protected AccessControlDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) {
 		super(owner, "Update Access Control List Permissions", true);
+        this.hyperlinkListener = hyperlinkListener;
 		initGui();
 	}
 	
@@ -256,6 +259,8 @@ public class AccessControlDialog extends JDialog implements ActionListener {
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
         this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            private static final long serialVersionUID = 4173433313456104263L;
+
             public void actionPerformed(ActionEvent actionEvent) {
                 cancelButton.doClick();
             }
@@ -326,7 +331,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 	}
     
     private void applyIcon(JButton button, String iconResourcePath) {
-        URL iconUrl = getClass().getResource(iconResourcePath);
+        URL iconUrl = Thread.currentThread().getClass().getResource(iconResourcePath);
         if (iconUrl != null) {
             ImageIcon icon = new ImageIcon(iconUrl);
             button.setIcon(icon);
@@ -434,7 +439,9 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      * @author James Murty
 	 */
 	private class GranteeTable extends JTable {
-		public GranteeTable(GranteeTableModel granteeTableModel) {
+        private static final long serialVersionUID = -5339684196750695854L;
+
+        public GranteeTable(GranteeTableModel granteeTableModel) {
 			super();
             TableSorter sorter = new TableSorter(granteeTableModel);
             this.setModel(sorter);
@@ -446,6 +453,8 @@ public class AccessControlDialog extends JDialog implements ActionListener {
             groupCellEditor.setClickCountToStart(2);
 			setDefaultEditor(GroupGrantee.class, groupCellEditor);
             setDefaultRenderer(GroupGrantee.class, new DefaultTableCellRenderer() {
+                private static final long serialVersionUID = 4938391147702620699L;
+
                 public Component getTableCellRendererComponent(JTable arg0, Object value, boolean arg2, boolean arg3, int arg4, int arg5) {
                     GroupGrantee groupGrantee = (GroupGrantee) value;
                     return super.getTableCellRendererComponent(arg0, groupGrantee.getIdentifier(), arg2, arg3, arg4, arg5);
@@ -464,7 +473,9 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      * @author James Murty
      */
 	private class GranteeTableModel extends DefaultTableModel {
-		private Class granteeClass = null;
+        private static final long serialVersionUID = -5533290183089426571L;
+        
+        private Class granteeClass = null;
 		ArrayList currentGrantees  = new ArrayList();
         int permissionColumn = 0;
         
@@ -497,9 +508,9 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 			}
 			// New object to insert.
 			currentGrantees.add(insertRow, gap);
-			if (GroupGrantee.class.equals(granteeClass)) {
+			if (grantee instanceof GroupGrantee) {
                 this.insertRow(insertRow, new Object[] {grantee, permission});
-            } else if (CanonicalGrantee.class.equals(granteeClass)) {
+            } else if (grantee instanceof CanonicalGrantee) {
                 CanonicalGrantee canonicalGrantee = (CanonicalGrantee) grantee;
                 this.insertRow(insertRow, new Object[] {canonicalGrantee.getIdentifier(), 
                     canonicalGrantee.getDisplayName(), permission});
@@ -575,7 +586,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 
 		grantee = new CanonicalGrantee();
 		grantee.setIdentifier("abc");
-        ((CanonicalGrantee)grantee).setDisplayname("jamesmurty");
+        ((CanonicalGrantee)grantee).setDisplayName("jamesmurty");
 		acl.grantPermission(grantee, Permission.PERMISSION_FULL_CONTROL);
 		grantee = new CanonicalGrantee();
 		grantee.setIdentifier("aaa");

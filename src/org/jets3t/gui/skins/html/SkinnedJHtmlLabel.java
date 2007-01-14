@@ -23,6 +23,7 @@ import java.util.Properties;
 import org.jets3t.gui.JHtmlLabel;
 
 public class SkinnedJHtmlLabel extends JHtmlLabel {
+    private static final long serialVersionUID = 6579194324630151579L;
 
     public SkinnedJHtmlLabel(Properties skinProperties, String itemName) {
         super(null);

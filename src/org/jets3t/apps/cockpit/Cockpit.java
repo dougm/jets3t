@@ -157,7 +157,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener, 
     ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
     
-    private static final long serialVersionUID = 8122461453115708538L;
+    private static final long serialVersionUID = 1541299315562775148L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
     
@@ -249,12 +249,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JComboBox filterObjectsDelimiter = null;
     
     // File comparison options
-    private final String UPLOAD_NEW_FILES_ONLY = "Only upload new file(s)";
-    private final String UPLOAD_NEW_AND_CHANGED_FILES = "Upload new and changed file(s)";
-    private final String UPLOAD_ALL_FILES = "Upload all files";
-    private final String DOWNLOAD_NEW_FILES_ONLY = "Only download new file(s)";
-    private final String DOWNLOAD_NEW_AND_CHANGED_FILES = "Download new and changed file(s)";
-    private final String DOWNLOAD_ALL_FILES = "Download all files";
+    private static final String UPLOAD_NEW_FILES_ONLY = "Only upload new file(s)";
+    private static final String UPLOAD_NEW_AND_CHANGED_FILES = "Upload new and changed file(s)";
+    private static final String UPLOAD_ALL_FILES = "Upload all files";
+    private static final String DOWNLOAD_NEW_FILES_ONLY = "Only download new file(s)";
+    private static final String DOWNLOAD_NEW_AND_CHANGED_FILES = "Download new and changed file(s)";
+    private static final String DOWNLOAD_ALL_FILES = "Download all files";
     
     /**
      * Flag used to indicate the "viewing objects" application state.
@@ -278,6 +278,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         this.ownerFrame = ownerFrame;
         isStandAloneApplication = true;
         init();
+        
+        ownerFrame.getContentPane().add(this);
+        ownerFrame.setBounds(this.getBounds());
+        ownerFrame.setVisible(true);
     }
     
     /**
@@ -445,12 +449,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         objectTableModelSorter.setTableHeader(objectsTable.getTableHeader());        
         objectsTable.setModel(objectTableModelSorter);        
         objectsTable.setDefaultRenderer(Long.class, new DefaultTableCellRenderer() {
+            private static final long serialVersionUID = 301092191828910402L;
+
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 String formattedSize = byteFormatter.formatByteSize(((Long)value).longValue()); 
                 return super.getTableCellRendererComponent(table, formattedSize, isSelected, hasFocus, row, column);
             }
         });
         objectsTable.setDefaultRenderer(Date.class, new DefaultTableCellRenderer() {
+            private static final long serialVersionUID = 7285511556343895652L;
+
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Date date = (Date) value;
                 return super.getTableCellRendererComponent(table, yearAndTimeSDF.format(date), isSelected, hasFocus, row, column);
@@ -493,7 +501,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     private void applyIcon(JMenuItem menuItem, String iconResourcePath) {
-        URL iconUrl = getClass().getResource(iconResourcePath);
+        URL iconUrl = Thread.currentThread().getClass().getResource(iconResourcePath);
         if (iconUrl != null) {
             ImageIcon icon = new ImageIcon(iconUrl);
             menuItem.setIcon(icon);
@@ -503,7 +511,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     private void applyIcon(JButton button, String iconResourcePath) {
-        URL iconUrl = getClass().getResource(iconResourcePath);
+        URL iconUrl = Thread.currentThread().getClass().getResource(iconResourcePath);
         if (iconUrl != null) {
             ImageIcon icon = new ImageIcon(iconUrl);
             button.setIcon(icon);
@@ -782,7 +790,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         if (fileList != null && fileList.size() > 0) {
                             new Thread() {
                                 public void run() {   
-                                    prepareForFilesUpload((File[]) fileList.toArray(new File[] {}));
+                                    prepareForFilesUpload((File[]) fileList.toArray(new File[fileList.size()]));
                                 }
                             }.start();
                         }
@@ -899,8 +907,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         } else if ("LogoutEvent".equals(event.getActionCommand())) {
             logoutEvent();
         } else if ("QuitEvent".equals(event.getActionCommand())) {
+            this.destroy();
             ownerFrame.dispose();
-            System.exit(0);
         } 
         
         // Bucket Events.
@@ -1228,6 +1236,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 try {
                     final boolean listingCancelled[] = new boolean[1]; // Default to false.
                     final CancelEventTrigger cancelListener = new CancelEventTrigger() {
+                        private static final long serialVersionUID = 6939193243303189876L;
+
                         public void cancelTask(Object eventSource) {
                             listingCancelled[0] = true;                            
                         }                        
@@ -1487,6 +1497,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     ErrorDialog.showDialog(ownerFrame, this, message, null);
                 }
             }            
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             String message = "Unable to access third-party bucket";
             log.error(message, e);
@@ -1697,10 +1709,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // and retrieve details for these.
         ArrayList potentialClashingObjects = new ArrayList();
         Set existingFilesObjectKeys = filesInDownloadDirectoryMap.keySet();
-        Iterator objectKeyIter = s3DownloadObjectsMap.keySet().iterator();
-        while (objectKeyIter.hasNext()) {
-            String objectKey = (String) objectKeyIter.next();
-            S3Object object = (S3Object) s3DownloadObjectsMap.get(objectKey);
+        Iterator objectsIter = s3DownloadObjectsMap.entrySet().iterator();
+        while (objectsIter.hasNext()) {
+            Map.Entry entry = (Map.Entry) objectsIter.next();
+            String objectKey = (String) entry.getKey();
+            S3Object object = (S3Object) entry.getValue();
+            
             if (object.getContentLength() == 0 || existingFilesObjectKeys.contains(objectKey)) {
                 potentialClashingObjects.add(object);
             }
@@ -1713,7 +1727,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         if (potentialClashingObjects.size() > 0) {
             // Retrieve details of potential clashes.
             final S3Object[] clashingObjects = (S3Object[])
-                potentialClashingObjects.toArray(new S3Object[] {});
+                potentialClashingObjects.toArray(new S3Object[potentialClashingObjects.size()]);
             (new Thread() {
                 public void run() {
                     isDownloadingObjects = true;
@@ -1751,7 +1765,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     objectsWithExistingKeys.add(existingObjects[i]);
                 }
             }
-            existingObjects = (S3Object[]) objectsWithExistingKeys.toArray(new S3Object[] {});
+            existingObjects = (S3Object[]) objectsWithExistingKeys
+                .toArray(new S3Object[objectsWithExistingKeys.size()]);
             
             s3ExistingObjectsMap = FileComparer.populateS3ObjectMap("", existingObjects);
             
@@ -1776,7 +1791,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     private void compareRemoteAndLocalFiles(final Map localFilesMap, final Map s3ObjectsMap, final boolean upload) {
         final HyperlinkActivatedListener hyperlinkListener = this;
-        (new Thread() {
+        (new Thread(new Runnable() {
             public void run() {
                 try {
                     // Compare objects being downloaded and existing local files.
@@ -1787,7 +1802,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         0, 100, null, null); 
                     
                     // Calculate total files size.
-                    File[] files = (File[]) localFilesMap.values().toArray(new File[] {});
+                    File[] files = (File[]) localFilesMap.values().toArray(new File[localFilesMap.size()]);
                     final long filesSizeTotal[] = new long[1];
                     for (int i = 0; i < files.length; i++) {
                         filesSizeTotal[0] += files[i].length();
@@ -1819,6 +1834,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     } else {
                         performObjectsDownload(comparisonResults, s3ObjectsMap);                
                     }
+                } catch (RuntimeException e) {
+                    throw e;
                 } catch (Exception e) {
                     stopProgressDisplay();                
                     String message = "Unable to download objects";
@@ -1826,7 +1843,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     ErrorDialog.showDialog(ownerFrame, hyperlinkListener, message, e);
                 }
             }
-        }).start();
+        })).start();
     }
     
     /**
@@ -1955,8 +1972,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                             Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
                         String version = (String) objects[i].getMetadata(
                             Constants.METADATA_JETS3T_CRYPTO_VERSION);
+                        if (version == null) {
+                            version = EncryptionUtil.DEFAULT_VERSION;
+                        }
                         encryptionUtil = new EncryptionUtil(
-                            cockpitPreferences.getEncryptionPassword(), algorithm);                                            
+                            cockpitPreferences.getEncryptionPassword(), algorithm, version);                                            
                     }                    
                 }
                 
@@ -1965,12 +1985,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
             
             final DownloadPackage[] downloadPackagesArray = (DownloadPackage[])
-                downloadPackageList.toArray(new DownloadPackage[] {});        
+                downloadPackageList.toArray(new DownloadPackage[downloadPackageList.size()]);        
             (new Thread() {
                 public void run() {
                     s3ServiceMulti.downloadObjects(getCurrentSelectedBucket(), downloadPackagesArray);
                 }
             }).start();
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             String message = "Unable to download objects";
             log.error(message, e);
@@ -2064,45 +2086,55 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         final File tempUploadFile = File.createTempFile("JetS3tCockpit",".tmp");
         tempUploadFile.deleteOnExit();
         
-        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempUploadFile));
-        InputStream inputStream = new BufferedInputStream(new FileInputStream(originalFile));
+        OutputStream outputStream = null;
+        InputStream inputStream = null;
         
-        String contentEncoding = null;
-        if (cockpitPreferences.isUploadCompressionActive()) {
-            inputStream = new GZipDeflatingInputStream(inputStream);
-            contentEncoding = "gzip";
-            newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
-            actionText += "Compressing";                
-        } 
-        if (cockpitPreferences.isUploadEncryptionActive()) {
-            String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
-            EncryptionUtil encryptionUtil = new EncryptionUtil(
-                cockpitPreferences.getEncryptionPassword(), algorithm);
-            inputStream = encryptionUtil.encrypt(inputStream);
-            contentEncoding = null;
-            newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
-            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, 
-                encryptionUtil.getAlgorithm()); 
-            newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_VERSION, 
-                EncryptionUtil.VERSION); 
-            actionText += (actionText.length() == 0? "Encrypting" : " and encrypting");                
-        }
-        if (contentEncoding != null) {
-            newObject.addMetadata("Content-Encoding", contentEncoding);
-        }
+        try {
+            outputStream = new BufferedOutputStream(new FileOutputStream(tempUploadFile));
+            inputStream = new BufferedInputStream(new FileInputStream(originalFile));
 
-        // updateProgressDisplay(actionText + " '" + originalFile.getName() + "' for upload", 0);
-        log.debug("Re-writing file data for '" + originalFile + "' to temporary file '" 
-            + tempUploadFile.getAbsolutePath() + "': " + actionText);
-        
-        byte[] buffer = new byte[4096];
-        int c = -1;
-        while ((c = inputStream.read(buffer)) >= 0) {
-            outputStream.write(buffer, 0, c);
+            String contentEncoding = null;
+            if (cockpitPreferences.isUploadCompressionActive()) {
+                inputStream = new GZipDeflatingInputStream(inputStream);
+                contentEncoding = "gzip";
+                newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
+                actionText += "Compressing";                
+            } 
+            if (cockpitPreferences.isUploadEncryptionActive()) {
+                String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                    .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");                
+                EncryptionUtil encryptionUtil = new EncryptionUtil(
+                    cockpitPreferences.getEncryptionPassword(), algorithm, EncryptionUtil.DEFAULT_VERSION);
+                inputStream = encryptionUtil.encrypt(inputStream);
+                contentEncoding = null;
+                newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
+                newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, 
+                    encryptionUtil.getAlgorithm()); 
+                newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_VERSION, 
+                    EncryptionUtil.DEFAULT_VERSION); 
+                actionText += (actionText.length() == 0? "Encrypting" : " and encrypting");                
+            }
+            if (contentEncoding != null) {
+                newObject.addMetadata("Content-Encoding", contentEncoding);
+            }
+    
+            // updateProgressDisplay(actionText + " '" + originalFile.getName() + "' for upload", 0);
+            log.debug("Re-writing file data for '" + originalFile + "' to temporary file '" 
+                + tempUploadFile.getAbsolutePath() + "': " + actionText);
+            
+            byte[] buffer = new byte[4096];
+            int c = -1;
+            while ((c = inputStream.read(buffer)) >= 0) {
+                outputStream.write(buffer, 0, c);
+            }
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (outputStream != null) {
+                outputStream.close();
+            }
         }
-        inputStream.close();
-        outputStream.close();
         
         return tempUploadFile;
     }
@@ -2227,6 +2259,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Upload the files.
             s3ServiceMulti.putObjects(getCurrentSelectedBucket(), objects);
 
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             String message = "Unable to upload object(s)";
             log.error(message, e);
@@ -2477,7 +2511,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         log.debug("Of " + candidateObjects.length + " object candidates for HEAD requests "
             + s3ObjectsIncompleteList.size() + " are incomplete, performing requests for these only");
         
-        final S3Object[] incompleteObjects = (S3Object[]) s3ObjectsIncompleteList.toArray(new S3Object[] {});        
+        final S3Object[] incompleteObjects = (S3Object[]) s3ObjectsIncompleteList
+            .toArray(new S3Object[s3ObjectsIncompleteList.size()]);        
         (new Thread() {
             public void run() {
                 s3ServiceMulti.getObjectsHeads(getCurrentSelectedBucket(), incompleteObjects);
@@ -2712,10 +2747,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }           
         });
         
-        Cockpit cockpit = new Cockpit(ownerFrame);
-        ownerFrame.getContentPane().add(cockpit);
-        ownerFrame.setBounds(cockpit.getBounds());
-        ownerFrame.setVisible(true);                        
+        new Cockpit(ownerFrame);
     }
 
 }

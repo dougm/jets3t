@@ -21,7 +21,8 @@ package org.jets3t.service.multithread;
 import org.jets3t.service.model.S3Object;
 
 /**
- * Multi-threaded service event fired by {@link S3ServiceMulti#downloadObjects(S3Bucket, S3ObjectAndOutputStream[])}.
+ * Multi-threaded service event fired by 
+ * {@link S3ServiceMulti#downloadObjects(org.jets3t.service.model.S3Bucket, DownloadPackage[])}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link S3Object}s that have finished downloading
  * since the last progress event was fired. These objects are available via 

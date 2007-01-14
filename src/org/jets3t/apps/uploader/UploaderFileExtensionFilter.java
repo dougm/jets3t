@@ -23,6 +23,7 @@ import javax.swing.filechooser.FileFilter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Defines which files can be selected within the Uploader's {@link javax.swing.JFileChooser} file chooser 
@@ -48,7 +49,7 @@ public class UploaderFileExtensionFilter extends FileFilter {
         for (Iterator iter = fileExtensionsList.iterator(); iter.hasNext();) {
             String extension = iter.next().toString();
             // Convert to lower case for case-insensitive matches.
-            extension = extension.toLowerCase();
+            extension = extension.toLowerCase(Locale.getDefault());
             acceptableFileExtensionsList.add(extension);
         }
     }
@@ -64,10 +65,10 @@ public class UploaderFileExtensionFilter extends FileFilter {
         }
         
         String fileName = file.getName();
-        if (fileName.indexOf(".") > 0 && fileName.lastIndexOf(".") < fileName.length()) {
+        if (fileName.indexOf(".") >= 0 && fileName.lastIndexOf(".") < fileName.length()) {
             String fileExt = fileName.substring(fileName.lastIndexOf(".") + 1);
             // Conver to lower case for case-insensitive matching.
-            fileExt = fileExt.toLowerCase();
+            fileExt = fileExt.toLowerCase(Locale.getDefault());
             return (acceptableFileExtensionsList.contains(fileExt));
         }
         return false;

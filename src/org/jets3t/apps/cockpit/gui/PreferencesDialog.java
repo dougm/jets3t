@@ -58,6 +58,8 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * @author James Murty
  */
 public class PreferencesDialog extends JDialog implements ActionListener, ChangeListener {
+    private static final long serialVersionUID = -5208140886913744801L;
+
     private static final Log log = LogFactory.getLog(PreferencesDialog.class);
 
     private static PreferencesDialog preferencesDialog = null;
@@ -117,6 +119,8 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
         this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            private static final long serialVersionUID = 1478626539912658292L;
+
             public void actionPerformed(ActionEvent actionEvent) {
                 setVisible(false);
             }

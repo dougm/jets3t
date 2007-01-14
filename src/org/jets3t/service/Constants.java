@@ -41,19 +41,19 @@ public class Constants {
     /**
      * The default preferences directory is &lt;user.home&gt;/.jets3t
      */
-    public static File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home")
+    public static final File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home")
         + "/.jets3t");
 
     /**
      * The file delimiter used by jets3t is the '/' character, which is compatible with standard
      * browser access to S3 files.
      */
-    public static String FILE_PATH_DELIM = "/";
+    public static final String FILE_PATH_DELIM = "/";
 
     /**
      * The default encoding used for text data. 
      */
-    public static String DEFAULT_ENCODING = "UTF8";
+    public static final String DEFAULT_ENCODING = "UTF8";
 
     /**
      * HMAC/SHA1 Algorithm per RFC 2104, used when generating S3 signatures.
@@ -67,28 +67,28 @@ public class Constants {
      * Metadata header for storing the original date of a local file uploaded to S3, so it can
      * be used subsequently to compare files instead of relying on the S3 upload date.
      */
-    public static String METADATA_JETS3T_LOCAL_FILE_DATE = "jets3t-original-file-date-iso860";
+    public static final String METADATA_JETS3T_LOCAL_FILE_DATE = "jets3t-original-file-date-iso860";
     
     /**
      * Metadata header for storing information about data encryption applied by jets3t tools.
      * @deprecated Obsolete after version 0.4.0
      */
-    public static String METADATA_JETS3T_ENCRYPTED_OBSOLETE = "jets3t-encryption";
+    public static final String METADATA_JETS3T_ENCRYPTED_OBSOLETE = "jets3t-encryption";
 
     /**
      * Metadata header for storing information about the data encryption algorithm applied by jets3t tools.
      */
-    public static String METADATA_JETS3T_CRYPTO_ALGORITHM = "jets3t-crypto-alg";
+    public static final String METADATA_JETS3T_CRYPTO_ALGORITHM = "jets3t-crypto-alg";
 
     /**
      * Metadata header for storing information about the jets3t version of encryption applied (to keep encryption compatibility between versions).
      */
-    public static String METADATA_JETS3T_CRYPTO_VERSION = "jets3t-crypto-ver";
+    public static final String METADATA_JETS3T_CRYPTO_VERSION = "jets3t-crypto-ver";
 
     /**
      * Metadata header for storing information about data compression applied by jets3t tools.
      */
-    public static String METADATA_JETS3T_COMPRESSED = "jets3t-compression";
+    public static final String METADATA_JETS3T_COMPRESSED = "jets3t-compression";
 
     ///////////////////////////////////
     // Settings used by all S3 Services
@@ -97,16 +97,16 @@ public class Constants {
     /**
      * Default number of objects to include in each chunk of an object listing.
      */
-    public static long DEFAULT_OBJECT_LIST_CHUNK_SIZE = 1000;
+    public static final long DEFAULT_OBJECT_LIST_CHUNK_SIZE = 1000;
     
     ///////////////////////////////////
     // Headers used by REST S3 Services
     ///////////////////////////////////
 
-    public static String REST_HEADER_PREFIX = "x-amz-";
-    public static String REST_METADATA_PREFIX = "x-amz-meta-";
-    public static String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
-    public static String XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
+    public static final String REST_HEADER_PREFIX = "x-amz-";
+    public static final String REST_METADATA_PREFIX = "x-amz-meta-";
+    public static final String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
+    public static final String XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
 
     ///////////////////////////////////
     // Headers used by SOAP S3 Services

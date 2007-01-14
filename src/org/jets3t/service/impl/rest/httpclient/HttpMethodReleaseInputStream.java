@@ -67,7 +67,9 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
     
     /**
      * Returns the underlying HttpMethod object that contains/manages the actual HTTP connection.
+     * 
      * @return
+     * the HTTPMethod object that provides the data input stream.
      */
     public HttpMethod getHttpMethod() {
         return httpMethod;

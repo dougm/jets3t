@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -112,7 +113,9 @@ public class XmlResponsesSaxParser {
     /**
      * Parses a ListBucket response XML document from an input stream.
      * @param inputStream
+     * XML data input stream.
      * @return
+     * the XML handler object populated with data parsed from the XML stream.
      * @throws S3ServiceException
      */
     public ListBucketHandler parseListBucketObjectsResponse(InputStream inputStream)
@@ -126,7 +129,9 @@ public class XmlResponsesSaxParser {
     /**
      * Parses a ListAllMyBuckets response XML document from an input stream.
      * @param inputStream
+     * XML data input stream.
      * @return
+     * the XML handler object populated with data parsed from the XML stream.
      * @throws S3ServiceException
      */
     public ListAllMyBucketsHandler parseListMyBucketsResponse(InputStream inputStream)
@@ -139,8 +144,12 @@ public class XmlResponsesSaxParser {
 
     /**
      * Parses an AccessControlListHandler response XML document from an input stream.
+     * 
      * @param inputStream
+     * XML data input stream.
      * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     * 
      * @throws S3ServiceException
      */
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream)
@@ -153,8 +162,12 @@ public class XmlResponsesSaxParser {
 
     /**
      * Parses a LoggingStatus response XML document for a bucket from an input stream.
+     * 
      * @param inputStream
+     * XML data input stream.
      * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     * 
      * @throws S3ServiceException
      */
     public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream)
@@ -215,7 +228,7 @@ public class XmlResponsesSaxParser {
          * the S3 objects contained in the listing.
          */
         public S3Object[] getObjects() {
-            return (S3Object[]) objects.toArray(new S3Object[] {});
+            return (S3Object[]) objects.toArray(new S3Object[objects.size()]);
         }
 
         public String getRequestPrefix() {
@@ -258,7 +271,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("MaxKeys")) {
                 requestMaxKeys = Long.parseLong(elementText);
             } else if (name.equals("IsTruncated")) {
-                String isTruncatedStr = elementText.toLowerCase();
+                String isTruncatedStr = elementText.toLowerCase(Locale.getDefault());
                 if (isTruncatedStr.startsWith("false")) {
                     listingTruncated = false;
                 } else if (isTruncatedStr.startsWith("true")) {
@@ -327,7 +340,7 @@ public class XmlResponsesSaxParser {
          * the buckets listed in the document.
          */
         public S3Bucket[] getBuckets() {
-            return (S3Bucket[]) buckets.toArray(new S3Bucket[] {});
+            return (S3Bucket[]) buckets.toArray(new S3Bucket[buckets.size()]);
         }
 
         public void startDocument() {
@@ -445,7 +458,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("URI")) {
                 currentGrantee.setIdentifier(elementText);
             } else if (name.equals("DisplayName")) {
-                ((CanonicalGrantee) currentGrantee).setDisplayname(elementText);
+                ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
             } else if (name.equals("Permission")) {
                 currentPermission = Permission.parsePermission(elementText);
             } else if (name.equals("Grant")) {

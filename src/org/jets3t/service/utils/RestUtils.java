@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -125,17 +126,20 @@ public class RestUtils {
         // is defined as Content-MD5, Content-Type, Date, and x-amz-
         SortedMap interestingHeaders = new TreeMap();
         if (headersMap != null && headersMap.size() > 0) {
-            Iterator headerIter = headersMap.keySet().iterator();
+            Iterator headerIter = headersMap.entrySet().iterator();
             while (headerIter.hasNext()) {
-                Object key = headerIter.next();
+                Map.Entry entry = (Map.Entry) headerIter.next();
+                Object key = entry.getKey();
+                Object value = entry.getValue();
+                
                 if (key == null) continue;                
-                String lk = key.toString().toLowerCase();
+                String lk = key.toString().toLowerCase(Locale.getDefault());
 
                 // Ignore any headers that are not particularly interesting.
                 if (lk.equals("content-type") || lk.equals("content-md5") || lk.equals("date") ||
                     lk.startsWith(Constants.REST_HEADER_PREFIX))
                 {                        
-                    interestingHeaders.put(lk, headersMap.get(key));
+                    interestingHeaders.put(lk, value);
                 }
             }
         }
@@ -160,12 +164,15 @@ public class RestUtils {
         }
 
         // Finally, add all the interesting headers (i.e.: all that startwith x-amz- ;-))
-        for (Iterator i = interestingHeaders.keySet().iterator(); i.hasNext(); ) {
-            String key = (String)i.next();
+        for (Iterator i = interestingHeaders.entrySet().iterator(); i.hasNext(); ) {
+            Map.Entry entry = (Map.Entry) i.next();
+            String key = (String) entry.getKey();
+            Object value = entry.getValue();
+            
             if (key.startsWith(Constants.REST_HEADER_PREFIX)) {
-                buf.append(key).append(':').append(interestingHeaders.get(key));
+                buf.append(key).append(':').append(value);
             } else {
-                buf.append(interestingHeaders.get(key));
+                buf.append(value);
             }
             buf.append("\n");
         }
@@ -198,17 +205,19 @@ public class RestUtils {
      * 
      * @param metadata
      * @return
+     * a map of metadata property name/value pairs renamed to be suitable for use as HTTP headers.
      */
     public static Map renameMetadataKeys(Map metadata) {
         Map convertedMetadata = new HashMap();
         // Add all meta-data headers.
         if (metadata != null) {
-            Iterator metaDataIter = metadata.keySet().iterator();
+            Iterator metaDataIter = metadata.entrySet().iterator();
             while (metaDataIter.hasNext()) {                
-                String key = (String) metaDataIter.next();
-                Object value = metadata.get(key);
+                Map.Entry entry = (Map.Entry) metaDataIter.next();
+                String key = (String) entry.getKey();
+                Object value = entry.getValue();
 
-                if (!HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase()) 
+                if (!HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase(Locale.getDefault())) 
                     && !key.startsWith(Constants.REST_HEADER_PREFIX)) 
                 {
                     key = Constants.REST_METADATA_PREFIX + key;

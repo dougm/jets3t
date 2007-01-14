@@ -29,9 +29,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.swing.AbstractAction;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -39,7 +37,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.KeyStroke;
 import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.gui.JHtmlLabel;
@@ -48,7 +45,6 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
-import org.jets3t.service.security.AWSCredentials;
 
 /**
  * Dialog to display detailed information about an S3Bucket or S3Object. The item's details cannot
@@ -193,6 +189,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
 
             // Build metadata table.
             objectMetadataTableModel = new DefaultTableModel(new Object[] {"Name", "Value" }, 0) {
+                private static final long serialVersionUID = -3762866886166776851L;
+
                 public boolean isCellEditable(int row, int column) {
                     return false;
                 }
@@ -316,10 +314,11 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         objectMetadata.remove(S3Object.METADATA_HEADER_OWNER);
 
         // Display remaining metadata items in the table.        
-        Iterator mdIter = objectMetadata.keySet().iterator();
+        Iterator mdIter = objectMetadata.entrySet().iterator();
         while (mdIter.hasNext()) {
-            Object name = mdIter.next();
-            Object value = objectMetadata.get(name);
+            Map.Entry entry = (Map.Entry) mdIter.next();
+            Object name = entry.getKey();
+            Object value = entry.getValue();
             objectMetadataTableModel.addRow(new Object[] {name, value});
         }
     }
@@ -345,7 +344,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      * 
      * @param owner
      * the Frame over which the dialog will be displayed and centered
-     * @param object the object whose details will be displayed
+     * @param objects
+     * the object whose details will be displayed
      */
     public static void showDialog(Frame owner, S3Object[] objects) {
         ItemPropertiesDialog dialog = new ItemPropertiesDialog(owner, "Object properties", true);
@@ -378,8 +378,6 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      */
     public static void main(String args[]) throws Exception {
         JFrame f = new JFrame();
-
-        AWSCredentials awsCredentials = null;
 
         S3Owner owner = new S3Owner("1234567890", "owner_name");
 

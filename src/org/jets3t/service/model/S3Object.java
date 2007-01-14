@@ -38,6 +38,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class S3Object extends BaseS3Object {
+    private static final long serialVersionUID = -2883501141593631181L;
+    
     /*
      * Listing of the metadata names that are required in S3 objects, or are used frequently
      * in jets3t applications.  
@@ -58,7 +60,7 @@ public class S3Object extends BaseS3Object {
 	
 	private String key = null;
 	private String bucketName = null;
-	private InputStream dataInputStream = null;
+	private transient InputStream dataInputStream = null;
 	private AccessControlList acl = null;
     private boolean isMetadataComplete = false;
     
@@ -165,7 +167,7 @@ public class S3Object extends BaseS3Object {
      * Sets an input stream containing the data content to associate with this object.
      * <p>
      * <b>Note</b>: If the data content comes from a file, use the alternate method
-     * {@link setDataInputFile} which allows object's to lazily open files and avoid any
+     * {@link #setDataInputFile(File)} which allows object's to lazily open files and avoid any
      * Operating System limits on the number of files that may be opened simultaneously. 
      * <p>
      * This method will set the object's file data reference to null.
@@ -181,7 +183,7 @@ public class S3Object extends BaseS3Object {
     /**
      * Sets the file containing the data content to associate with this object. This file will
      * be automatically opened as an input stream only when absolutely necessary, that is when
-     * {@ getDataInputStream} is called.
+     * {@link #getDataInputStream()} is called.
      * <p>
      * This method will set the object's input stream data reference to null.
      * 
@@ -266,7 +268,7 @@ public class S3Object extends BaseS3Object {
      * The hash value is stored as metadata under <code>Content-MD5</code> (Base64-encoded)
      * and the jets3t-specific <code>md5-hash</code> (Hex-encoded).
      * 
-     * @param hash
+     * @param md5Hash
      * the MD5 hash value of the object's data.
      */
     public void setMd5Hash(byte[] md5Hash) {

@@ -27,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -49,7 +50,9 @@ import org.jets3t.service.utils.ServiceUtils;
  * 
  * @author James Murty
  */
-public class AWSCredentials {
+public class AWSCredentials implements Serializable {
+    private static final long serialVersionUID = -9198887548912640773L;
+
     private static final Log log = LogFactory.getLog(AWSCredentials.class);    
     
     protected static final String KEYS_DELIMITER = "AWSKEYS";
@@ -159,7 +162,7 @@ public class AWSCredentials {
             byte[] encryptedData = encryptionUtil.encrypt(dataToEncrypt);
             
             // Write plain-text header information to file.
-            bufferedOS.write((VERSION_PREFIX + EncryptionUtil.VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
+            bufferedOS.write((VERSION_PREFIX + EncryptionUtil.DEFAULT_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
             bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
             bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
             
@@ -194,14 +197,16 @@ public class AWSCredentials {
     }
     
     /**
-     * Loads encrypted credentials from a file.
+     * Loads encrypted credentials from a data input stream.
      * 
      * @param password
      * the password used to decrypt the credentials. If null, the AWS Credentials are not decrypted
      * and only the version and friendly-name information is loaded.
-     * @param file
-     * the file in which encrypted credential data is stored.
-     * @return the decrypted credentials in an object.
+     * @param inputStream
+     * an input stream containing a data encoding of an AWSCredentials object.
+     * @return 
+     * the decrypted credentials in an object.
+     * 
      * @throws S3ServiceException
      */
     public static AWSCredentials load(String password, BufferedInputStream inputStream) throws S3ServiceException {
@@ -223,17 +228,14 @@ public class AWSCredentials {
             
             // Read version information from AWS credentials file.
             version = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
-            boolean obsoleteVersion = false;
             
             if (!version.startsWith(VERSION_PREFIX)) {
                 // Either this is not a valid AWS Credentials file, or it's an obsolete version.
                 // Try decrypting using the obsolete approach.
-                obsoleteVersion = true;
                 friendlyName = version;
                 
                 if (!partialReadOnly) {
                     encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(password);
-                    algorithm = encryptionUtil.getAlgorithm();
                 }
             } else {
                 // Read algorithm and friendly name from file.
@@ -241,7 +243,7 @@ public class AWSCredentials {
                 friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);    
                 
                 if (!partialReadOnly) {
-                    encryptionUtil = new EncryptionUtil(password, algorithm);
+                    encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
                 }
             }
             
@@ -261,7 +263,7 @@ public class AWSCredentials {
             }
 
             AWSCredentials awsCredentials = new AWSCredentials(keys.substring(0, delimOffset), keys
-                .substring(delimOffset + KEYS_DELIMITER.length()), friendlyName.toString());
+                .substring(delimOffset + KEYS_DELIMITER.length()), friendlyName);
             
             return awsCredentials;
         } catch (BadPaddingException bpe) {

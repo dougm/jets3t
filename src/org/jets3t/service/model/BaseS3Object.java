@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.model;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.Map;
  * 
  * @author James Murty
  */
-public abstract class BaseS3Object {
+public abstract class BaseS3Object implements Serializable {
     /**
      * Map to privately store metadata associated with this object.
      */

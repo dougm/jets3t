@@ -40,12 +40,12 @@ public interface SignedUrlHandler {
      * uploads the object by performing a standard HTTP PUT using the signed URL.
      * 
      * @param signedPutUrl
-     * a signed PUT URL generated with {@link S3Service.createSignedPutUrl()}.
+     * a signed PUT URL generated with {@link S3Service#createSignedPutUrl(String, String, java.util.Map, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
      * @param object
      * the object to upload, which must correspond to the object for which the URL was signed.
      * The object <b>must</b> have the correct content length set, and to apply a non-standard
      * ACL policy only the REST canned ACLs can be used
-     * (eg {@link AccessControlList.REST_CANNED_PUBLIC_READ_WRITE}). 
+     * (eg {@link AccessControlList#REST_CANNED_PUBLIC_READ_WRITE}). 
      * 
      * @return
      * the S3Object put to S3. The S3Object returned will be identical to the object provided, 
@@ -63,7 +63,8 @@ public interface SignedUrlHandler {
      * deletes the object by performing a standard HTTP DELETE using the signed URL.
      * 
      * @param signedDeleteUrl
-     * a signed DELETE URL generated with {@link S3Service.createSignedDeleteUrl}.
+     * a signed DELETE URL generated with 
+     * {@link S3Service#createSignedDeleteUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
      * 
      * @throws S3ServiceException
      */
@@ -77,7 +78,7 @@ public interface SignedUrlHandler {
      * uploads the object by performing a standard HTTP GET using the signed URL.
      * 
      * @param signedGetUrl
-     * a signed GET URL generated with {@link S3Service.createSignedGetUrl()}.
+     * a signed GET URL generated with {@link S3Service#createSignedGetUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
      * 
      * @return
      * the S3Object in S3 including all metadata and the object's data input stream.
@@ -94,7 +95,7 @@ public interface SignedUrlHandler {
      * uploads the object by performing a standard HTTP HEAD using the signed URL.
      * 
      * @param signedHeadUrl
-     * a signed HEAD URL generated with {@link S3Service.createSignedHeadUrl()}.
+     * a signed HEAD URL generated with {@link S3Service#createSignedHeadUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
      * 
      * @return
      * the S3Object in S3 including all metadata, but without the object's data input stream.

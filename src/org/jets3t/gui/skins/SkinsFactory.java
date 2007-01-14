@@ -20,6 +20,8 @@ package org.jets3t.gui.skins;
 
 import java.lang.reflect.Constructor;
 import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.swing.JButton;
@@ -86,13 +88,14 @@ public class SkinsFactory {
         }
         
         // Find skin-specific properties.
-        String skinPropertyPrefix = "skin." + this.skinName.toLowerCase() + ".";
-        Iterator iter = properties.keySet().iterator();
+        String skinPropertyPrefix = "skin." + this.skinName.toLowerCase(Locale.getDefault()) + ".";
+        Iterator iter = properties.entrySet().iterator();
         while (iter.hasNext()) {
-            String propertyName = (String) iter.next();
-            String propertyValue = properties.getProperty(propertyName);
+            Map.Entry entry = (Map.Entry) iter.next();
+            String propertyName = (String) entry.getKey();
+            String propertyValue = (String) entry.getValue();            
             
-            if (propertyName.toLowerCase().startsWith(skinPropertyPrefix)) {
+            if (propertyName.toLowerCase(Locale.getDefault()).startsWith(skinPropertyPrefix)) {
                 String skinPropertyName = propertyName.substring(skinPropertyPrefix.length());
                 this.skinProperties.put(skinPropertyName, propertyValue);                
             }

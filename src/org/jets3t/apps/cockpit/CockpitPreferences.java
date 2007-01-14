@@ -18,8 +18,11 @@
  */
 package org.jets3t.apps.cockpit;
 
-public class CockpitPreferences {
+import java.io.Serializable;
 
+public class CockpitPreferences implements Serializable {
+    private static final long serialVersionUID = -7780871977411876849L;
+    
     public static final String UPLOAD_ACL_PERMISSION_PRIVATE = "PRIVATE";
     public static final String UPLOAD_ACL_PERMISSION_PUBLIC_READ = "PUBLIC_READ";
     public static final String UPLOAD_ACL_PERMISSION_PUBLIC_READ_WRITE = "PUBLIC_READ_WRITE";

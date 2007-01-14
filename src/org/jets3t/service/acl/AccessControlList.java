@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.acl;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,7 +35,9 @@ import org.jets3t.service.model.S3Owner;
  * @author James Murty
  *
  */
-public class AccessControlList {	
+public class AccessControlList implements Serializable {	
+    private static final long serialVersionUID = 8095040648034788376L;
+
     /**
      * A pre-canned REST ACL to set an object's permissions to Private (only owner can read/write)
      */

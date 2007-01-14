@@ -62,7 +62,8 @@ public class GatekeeperMessage {
     }
     
     public SignatureRequest[] getSignatureRequests() {
-        return (SignatureRequest[]) signatureRequestList.toArray(new SignatureRequest[] {});
+        return (SignatureRequest[]) signatureRequestList
+            .toArray(new SignatureRequest[signatureRequestList.size()]);
     }
     
     public void addApplicationProperty(String propertyName, String propertyValue) {
@@ -103,18 +104,20 @@ public class GatekeeperMessage {
         Iterator iter = null;
         
         String prefix = "application";
-        iter = applicationProperties.keySet().iterator();
+        iter = applicationProperties.entrySet().iterator();
         while (iter.hasNext()) {
-            String key = (String) iter.next();
-            String value = applicationProperties.getProperty(key);
+            Map.Entry entry = (Map.Entry) iter.next();
+            String key = (String) entry.getKey();
+            String value = (String) entry.getValue();
             encodeProperty(encodedProperties, prefix + DELIM + key, value);
         }
         
         prefix = "message";
-        iter = messageProperties.keySet().iterator();
+        iter = messageProperties.entrySet().iterator();
         while (iter.hasNext()) {
-            String key = (String) iter.next();
-            String value = messageProperties.getProperty(key);
+            Map.Entry entry = (Map.Entry) iter.next();
+            String key = (String) entry.getKey();
+            String value = (String) entry.getValue();
             encodeProperty(encodedProperties, prefix + DELIM + key, value);
         }
         
@@ -132,10 +135,11 @@ public class GatekeeperMessage {
             
             propertyPrefix += "metadata" + DELIM;                
             Map metadata = request.getObjectMetadata();
-            iter = metadata.keySet().iterator();
+            iter = metadata.entrySet().iterator();
             while (iter.hasNext()) {
-                String metadataName = iter.next().toString();
-                Object metadataValue = metadata.get(metadataName);
+                Map.Entry entry = (Map.Entry) iter.next();
+                String metadataName = (String) entry.getKey();
+                Object metadataValue = entry.getValue();
                 encodeProperty(encodedProperties, propertyPrefix + metadataName, metadataValue);                
             }
         }
@@ -150,10 +154,12 @@ public class GatekeeperMessage {
         
         Map signatureRequestMap = new HashMap();
                 
-        Iterator iter = postProperties.keySet().iterator();
-        while (iter.hasNext()) {
-            String key = (String) iter.next();
-            Object value = postProperties.get(key);
+        Iterator propsIter = postProperties.entrySet().iterator();
+        while (propsIter.hasNext()) {
+            Map.Entry entry = (Map.Entry) propsIter.next();
+            String key = (String) entry.getKey();
+            Object value = entry.getValue();
+            
             String propertyValue = null;
             if (value instanceof String[]) {
                 propertyValue = ((String[]) value)[0];

@@ -61,7 +61,9 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
     /**
      * Creates a repeatable input stream based on another input stream.
      * 
-     * @param file
+     * @param inputStream
+     * an input stream to wrap. The data read from the wrapped input stream is buffered as it is
+     * read, up to thebuffer limite.
      * @throws FileNotFoundException
      */
     public RepeatableInputStream(InputStream inputStream) {

@@ -9,6 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import org.jets3t.service.model.S3Bucket;
 
 public class BucketTableModel extends DefaultTableModel {
+    private static final long serialVersionUID = -2486904365563130393L;
     
     ArrayList bucketList = new ArrayList();
     
@@ -58,7 +59,7 @@ public class BucketTableModel extends DefaultTableModel {
     }
     
     public S3Bucket[] getBuckets() {
-        return (S3Bucket[]) bucketList.toArray(new S3Bucket[] {});
+        return (S3Bucket[]) bucketList.toArray(new S3Bucket[bucketList.size()]);
     }
     
     public boolean isCellEditable(int row, int column) {

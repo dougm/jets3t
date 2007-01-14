@@ -1,7 +1,7 @@
 /*
  * $HeadURL: https://svn.apache.org/repos/asf/jakarta/commons/proper/httpclient/branches/HTTPCLIENT_3_0_BRANCH/src/contrib/org/apache/commons/httpclient/contrib/proxy/PluginProxyUtil.java $
- * $Revision: 1.3 $
- * $Date: 2006/11/30 11:36:02 $
+ * $Revision: 1.4 $
+ * $Date: 2007/01/14 11:24:32 $
  *
  * ====================================================================
  *
@@ -31,6 +31,7 @@ package org.apache.commons.httpclient.contrib.proxy;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.Locale;
 import java.util.Properties;
 
 import org.apache.commons.httpclient.ProxyHost;
@@ -199,6 +200,8 @@ public class PluginProxyUtil {
                 throw new ProxyDetectionException(
                   "Sun Plugin 1.3.X failed to provide a default proxy handler");
             }
+        } catch (RuntimeException e) {            
+            throw e;
         } catch (Exception e) {
             LOG.debug("Sun Plugin 1.3.X proxy detection class not " +
                      "found, will try failover detection", e);
@@ -255,6 +258,8 @@ public class PluginProxyUtil {
                 }
                 result = new ProxyHost(proxyIP, proxyPort);
             }
+        } catch (RuntimeException e) {            
+            throw e;
         } catch (Exception e) { 
             LOG.debug("Sun Plugin 1.4+ proxy detection class not found, " +
                      "will try failover detection", e);
@@ -284,7 +289,7 @@ public class PluginProxyUtil {
             }
             boolean useProxy = (proxyList != null);
             if (useProxy) {
-                proxyList = proxyList.toUpperCase();
+                proxyList = proxyList.toUpperCase(Locale.getDefault());
                 //  Using HTTP proxy as proxy for HTTP proxy tunnelled SSL 
                 //  socket (should be listed FIRST)....
                 //  1/14/03 1.3.1_06 appears to omit HTTP portion of 

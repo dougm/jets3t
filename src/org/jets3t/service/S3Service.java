@@ -18,6 +18,7 @@
  */
 package org.jets3t.service;
 
+import java.io.Serializable;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
@@ -54,7 +55,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
  * <tr><td>s3service.end-point-host</td>
  *   <td>The DNS name or IP address of the S3 host end-point. This value can be over-ridden
- *   programmatically using the method {@link #setS3Endpoint(String)}</td> 
+ *   programmatically using the method {@link #setS3EndpointHost(String)}</td> 
  *   <td>s3.amazonaws.com</td></tr>
  * <tr><td>s3service.https-only</td>
  *   <td>If true, all communication with S3 will be via encrypted HTTPS connections, otherwise
@@ -72,15 +73,11 @@ import org.jets3t.service.utils.ServiceUtils;
  * 
  * @author James Murty
  */
-public abstract class S3Service {
+public abstract class S3Service implements Serializable {
     private static final Log log = LogFactory.getLog(S3Service.class);
     
     public static final String VERSION_NO__JETS3T_TOOLKIT = "0.5.0";
     
-    public static String S3_ENDPOINT_HOST = 
-        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
-
     private AWSCredentials awsCredentials = null;
     private String invokingApplicationDescription = null;
     private boolean isHttpsOnly = true;
@@ -109,11 +106,6 @@ public abstract class S3Service {
         // TODO Confirm this works as expected...
         // Set the InetAddress DNS caching time-to-live to 300 seconds.
         System.setProperty("networkaddress.cache.ttl", "300");
-        
-        // Update the end-point, in case the properties have changed.
-        S3_ENDPOINT_HOST = 
-            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
     }
 
     /**
@@ -127,7 +119,7 @@ public abstract class S3Service {
     protected S3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         this(awsCredentials, null);
     }
-    
+        
     /**
      * @return true if this service has <code>AWSCredentials</code> identifying an S3 user, false
      * if the service is acting as an anonymous user.
@@ -144,15 +136,21 @@ public abstract class S3Service {
         return internalErrorRetryMax;
     }
     
+    public static String getS3EndpointHost() {
+        return Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
+    }
+    
     /**
      * Set the S3 endpoint to non-default location, over-riding any value specified in
      * jets3t.properties. 
      * 
-     * @param enpointHost
+     * @param endpointHost
      * The S3 host's DNS name or IP address
      */
     public static void setS3EndpointHost(String endpointHost) {
-        S3_ENDPOINT_HOST = endpointHost;
+        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .setProperty("s3service.end-point-host", endpointHost);
     }
     
     /**
@@ -185,7 +183,7 @@ public abstract class S3Service {
         throws S3ServiceException, InterruptedException 
     {
         if (internalErrorCount <= internalErrorRetryMax) {
-            long delayMs = 50 * (int) Math.pow(internalErrorCount, 2); 
+            long delayMs = 50L * (int) Math.pow(internalErrorCount, 2); 
             log.warn("Encountered " + internalErrorCount 
                 + " S3 Internal Server error(s), will retry in " + delayMs + "ms");
             Thread.sleep(delayMs);
@@ -258,9 +256,9 @@ public abstract class S3Service {
             .getBoolProperty("s3service.https-only", true);
 
         if (isHttpsOnly) {
-            return "https://" + S3Service.S3_ENDPOINT_HOST + "/" + fullKey;
+            return "https://" + getS3EndpointHost() + "/" + fullKey;
         } else {            
-            return "http://" + S3Service.S3_ENDPOINT_HOST + "/" + fullKey;
+            return "http://" + getS3EndpointHost() + "/" + fullKey;
         }
     }
     
@@ -381,7 +379,7 @@ public abstract class S3Service {
      * @throws S3ServiceException
      */
     public static String createTorrentUrl(String bucketName, String objectKey) {
-        return "http://" + S3_ENDPOINT_HOST + "/" +
+        return "http://" + getS3EndpointHost() + "/" +
             bucketName + "/" + objectKey + "?torrent"; 
     }
     
@@ -1039,8 +1037,9 @@ public abstract class S3Service {
         throws S3ServiceException;
     
     /**
-     * 
      * @return
+     * the buckets in an S3 account.
+     * 
      * @throws S3ServiceException
      */
     protected abstract S3Bucket[] listAllBucketsImpl() throws S3ServiceException;
@@ -1060,6 +1059,8 @@ public abstract class S3Service {
      * @param delimiter
      * @param maxListingLength
      * @return
+     * the objects in a bucket.
+     * 
      * @throws S3ServiceException
      */
     protected abstract S3Object[] listObjectsImpl(String bucketName, String prefix, 
@@ -1067,19 +1068,19 @@ public abstract class S3Service {
 
     /**
      * Lists objects in a bucket up to the maximum listing length specified.
-     * 
-     * <b>Implementation notes</b><p>
+     *
+     * <p>
+     * <b>Implementation notes</b>
      * The implementation of this method returns only as many objects as requested in the chunk
      * size. It is the responsibility of the caller to build a complete object listing from 
      * multiple chunks, should this be necessary.
-     * <p>
+     * </p>
      * 
      * @param bucketName
      * @param prefix
      * @param delimiter
      * @param maxListingLength
      * @param priorLastKey
-     * @return
      * @throws S3ServiceException
      */
     protected abstract S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, 

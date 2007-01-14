@@ -59,10 +59,10 @@ import org.jets3t.service.model.S3Object;
 public class ServiceUtils {
     private static final Log log = LogFactory.getLog(ServiceUtils.class);
 
-    protected static SimpleDateFormat iso8601DateParser = new SimpleDateFormat(
+    protected static final SimpleDateFormat iso8601DateParser = new SimpleDateFormat(
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-    protected static SimpleDateFormat rfc822DateParser = new SimpleDateFormat(
+    protected static final SimpleDateFormat rfc822DateParser = new SimpleDateFormat(
         "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
 
     static {
@@ -148,7 +148,10 @@ public class ServiceUtils {
      * Reads text data from an input stream and returns it as a String.
      * 
      * @param is
+     * input stream from which text data is read.
      * @return
+     * text data read from the input stream.
+     * 
      * @throws IOException
      */
     public static String readInputStreamToString(InputStream is) throws IOException {
@@ -214,10 +217,11 @@ public class ServiceUtils {
         log.debug("Cleaning up REST metadata items");
         HashMap cleanMap = new HashMap();
         if (metadata != null) {
-            Iterator keysIter = metadata.keySet().iterator();
-            while (keysIter.hasNext()) {
-                Object key = keysIter.next();
-                Object value = metadata.get(key);
+            Iterator metadataIter = metadata.entrySet().iterator();
+            while (metadataIter.hasNext()) {
+                Map.Entry entry = (Map.Entry) metadataIter.next();
+                Object key = entry.getKey();
+                Object value = entry.getValue();
 
                 // Trim prefixes from keys.
                 String keyStr = (key != null ? key.toString() : "");
@@ -229,7 +233,7 @@ public class ServiceUtils {
                 } else if (keyStr.startsWith(Constants.REST_HEADER_PREFIX)) {
                     key = keyStr.substring(Constants.REST_HEADER_PREFIX.length(), keyStr.length());
                     log.debug("Removed Amazon header prefix from key: " + keyStr + "=>" + key);
-                } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase())) {
+                } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.getDefault()))) {
                     key = keyStr;
                     log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);                    
                 } else if ("ETag".equalsIgnoreCase(keyStr)
@@ -278,7 +282,9 @@ public class ServiceUtils {
      * Converts byte data to a Hex-encoded string.
      * 
      * @param data
+     * data to hex encode.
      * @return
+     * hex-encoded string.
      */
     public static String toHex(byte[] data) {
         StringBuffer sb = new StringBuffer(data.length * 2);
@@ -293,14 +299,16 @@ public class ServiceUtils {
             }
             sb.append(hex);
         }
-        return sb.toString().toLowerCase();
+        return sb.toString().toLowerCase(Locale.getDefault());
     }
     
     /**
      * Converts a Hex-encoded data string to the original byte data.
      * 
      * @param hexData
+     * hex-encoded data to decode.
      * @return
+     * decoded data from the hex string.
      */
     public static byte[] fromHex(String hexData) {
         byte[] result = new byte[(hexData.length() + 1) / 2];
@@ -319,7 +327,9 @@ public class ServiceUtils {
      * Converts byte data to a Base64-encoded string.
      * 
      * @param data
+     * data to Base64 encode.
      * @return
+     * encoded Base64 string.
      */
     public static String toBase64(byte[] data) {
         byte[] b64 = Base64.encodeBase64(data); 
@@ -330,7 +340,10 @@ public class ServiceUtils {
      * Converts a Base64-encoded string to the original byte data.
      * 
      * @param b64Data
+     * a Base64-encoded string to decode. 
+     * 
      * @return
+     * bytes decoded from a Base64 string.
      */
     public static byte[] fromBase64(String b64Data) {
         byte[] decoded = Base64.decodeBase64(b64Data.getBytes());
@@ -412,6 +425,11 @@ public class ServiceUtils {
      * a description of the application using the jets3t toolkit, included at the end of the
      * user agent string. This value may be null. 
      * @return
+     * a string built with the following components (some elements may not be available): 
+     * <tt>jets3t/</tt><i>{@link S3Service#VERSION_NO__JETS3T_TOOLKIT}</i> 
+     * (<i>os.name</i>/<i>os.version</i>; <i>os.arch</i>; <i>user.region</i>; 
+     * <i>user.region</i>; <i>user.language</i>) <i>applicationDescription</i></tt>
+     * 
      */
     public static String getUserAgentDescription(String applicationDescription) {
         return 

@@ -22,7 +22,7 @@ import org.jets3t.service.model.S3Object;
 
 /**
  * Contains an array of S3objects and a the last key name returned by a prior
- * call to the {@S3Service#listObjectsChunked} method. 
+ * call to the method {@link S3Service#listObjectsChunked(String, String, String, long, String)}. 
  * 
  * @author James Murty
  */

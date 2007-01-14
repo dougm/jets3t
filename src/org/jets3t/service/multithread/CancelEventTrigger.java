@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.multithread;
 
+import java.io.Serializable;
 import java.util.EventListener;
 
 /**
@@ -25,7 +26,7 @@ import java.util.EventListener;
  * 
  * @author James Murty
  */
-public interface CancelEventTrigger extends EventListener {
+public interface CancelEventTrigger extends EventListener, Serializable {
     
     /**
      * Triggers a cancellation of some operation.

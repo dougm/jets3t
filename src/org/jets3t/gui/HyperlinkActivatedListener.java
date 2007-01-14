@@ -18,6 +18,7 @@
  */
 package org.jets3t.gui;
 
+import java.io.Serializable;
 import java.net.URL;
 
 
@@ -26,7 +27,7 @@ import java.net.URL;
  * 
  * @author James Murty
  */
-public interface HyperlinkActivatedListener {
+public interface HyperlinkActivatedListener extends Serializable {
 
     /**
      * Triggered when an HTML link is activated, most likely by a {@link JHtmlLabel}.

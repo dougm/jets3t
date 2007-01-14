@@ -10,6 +10,8 @@ import javax.swing.table.DefaultTableModel;
 import org.jets3t.service.model.S3Object;
 
 public class ObjectTableModel extends DefaultTableModel {
+    private static final long serialVersionUID = 8570725021470237261L;
+    
     private ArrayList objectList = new ArrayList();
     
     public ObjectTableModel() {
@@ -66,7 +68,7 @@ public class ObjectTableModel extends DefaultTableModel {
     
     public S3Object[] getObjects() {
         synchronized (objectList) {
-            return (S3Object[]) objectList.toArray(new S3Object[] {});
+            return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
         }            
     }
     

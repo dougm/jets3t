@@ -45,6 +45,8 @@ import org.apache.commons.logging.LogFactory;
  * @author James Murty
  */
 public class SkinnedLookAndFeel extends MetalLookAndFeel {
+    private static final long serialVersionUID = 4391824305469950437L;
+    
     private static final Log log = LogFactory.getLog(SkinnedLookAndFeel.class);
             
     public SkinnedLookAndFeel(Properties skinProperties, String itemName) {
@@ -80,7 +82,7 @@ public class SkinnedLookAndFeel extends MetalLookAndFeel {
         }
         if (fontValue != null) {
             Font myFont = Font.decode(fontValue);
-            if (font == null) {
+            if (myFont == null) {
                 log.error("Unable to set font with value: " + fontValue);
             } else {
                 font = myFont;                    

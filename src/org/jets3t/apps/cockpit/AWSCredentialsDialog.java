@@ -34,7 +34,8 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.service.security.AWSCredentials;
 
 public class AWSCredentialsDialog extends JDialog implements ActionListener {
-
+    private static final long serialVersionUID = -7054406572498134994L;
+    
     private LoginCredentialsPanel loginCredentialsPanel = null;
     private JButton okButton = null;
     private boolean isConfirmed = false;

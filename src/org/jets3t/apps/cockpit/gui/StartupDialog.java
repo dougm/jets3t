@@ -69,7 +69,9 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * 
  * @author James Murty
  */
-public class StartupDialog extends JDialog implements ActionListener, ChangeListener /* , ListSelectionListener, DocumentListener */ {
+public class StartupDialog extends JDialog implements ActionListener, ChangeListener {
+    private static final long serialVersionUID = 7370703438310578947L;
+
     private static final Log log = LogFactory.getLog(StartupDialog.class);
 
     private static StartupDialog startupDialog = null;
@@ -90,13 +92,13 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
     
-    private final int ACTION_MODE_LOG_IN = 0;
-    private final int ACTION_MODE_STORE = 1;
+    private static final int ACTION_MODE_LOG_IN = 0;
+    private static final int ACTION_MODE_STORE = 1;
     private int actionMode = ACTION_MODE_LOG_IN;
     
-    private final int LOGIN_MODE_PASSPHRASE = 0;
-    private final int LOGIN_MODE_LOCAL_FOLDER = 1;
-    private final int LOGIN_MODE_DIRECT = 2;
+    private static final int LOGIN_MODE_PASSPHRASE = 0;
+    private static final int LOGIN_MODE_LOCAL_FOLDER = 1;
+    private static final int LOGIN_MODE_DIRECT = 2;
     private int loginMode = LOGIN_MODE_PASSPHRASE;
 
     /**
@@ -139,6 +141,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
         this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            private static final long serialVersionUID = -1742280851624947873L;
+
             public void actionPerformed(ActionEvent actionEvent) {
                 setVisible(false);
             }
@@ -389,6 +393,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             awsCredentials.save(password, baos); 
             bais[0] = new ByteArrayInputStream(baos.toByteArray());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             String message = "Unable to encrypt your AWS Credentials";
             log.error(message, e);
@@ -472,6 +478,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in the file:\n" +
                 credentialsFile.getAbsolutePath());
             actionModeComboBox.setSelectedIndex(ACTION_MODE_LOG_IN);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             String message = "Unable to encrypt your AWS Credentials to a folder";
             log.error(message, e);
@@ -488,9 +496,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
      * 
      * @param owner
      * the Frame within which this dialog will be displayed and centered
-     * @param preferencesDirectory
-     * the directory where saved/remembered logins are stored as *.enc files.
-     * @return the AWS credentials entered/selected by the user, or null if the dialog was cancelled
+     * @param hyperlinkListener
+     * a listener object that will handle any HTML link activation events that occur in the dialog.
+     * @return 
+     * the AWS credentials entered/selected by the user, or null if the dialog was cancelled
      */
     public static AWSCredentials showDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) throws Exception {
         if (startupDialog == null) {
@@ -513,6 +522,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         JFrame f = new JFrame();
 
         HyperlinkActivatedListener listener = new HyperlinkActivatedListener() {
+            private static final long serialVersionUID = -225585129296632961L;
+
             public void followHyperlink(URL url, String target) {
                 BareBonesBrowserLaunch.openURL(url.toString());
             }           

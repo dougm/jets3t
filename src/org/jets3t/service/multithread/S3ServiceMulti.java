@@ -21,6 +21,7 @@ package org.jets3t.service.multithread;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -70,7 +71,9 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * 
  * @author James Murty
  */
-public class S3ServiceMulti {
+public class S3ServiceMulti implements Serializable {
+    private static final long serialVersionUID = -1031831146656816336L;
+
     private final Log log = LogFactory.getLog(S3ServiceMulti.class);
     
     private S3Service s3Service = null;
@@ -209,11 +212,13 @@ public class S3ServiceMulti {
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 incompletedBucketList.removeAll(completedResults);
-                S3Bucket[] completedBuckets = (S3Bucket[]) completedResults.toArray(new S3Bucket[] {});
+                S3Bucket[] completedBuckets = (S3Bucket[]) completedResults
+                    .toArray(new S3Bucket[completedResults.size()]);
                 fireServiceEvent(CreateBucketsEvent.newInProgressEvent(threadWatcher, completedBuckets));
             }
             public void fireCancelEvent() {
-                S3Bucket[] incompletedBuckets = (S3Bucket[]) incompletedBucketList.toArray(new S3Object[] {});                
+                S3Bucket[] incompletedBuckets = (S3Bucket[]) incompletedBucketList
+                    .toArray(new S3Bucket[incompletedBucketList.size()]);                
                 fireServiceEvent(CreateBucketsEvent.newCancelledEvent(incompletedBuckets));
             }
             public void fireCompletedEvent() {
@@ -260,11 +265,13 @@ public class S3ServiceMulti {
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 incompletedObjectsList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 fireServiceEvent(CreateObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList.toArray(new S3Object[] {});
+                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
+                    .toArray(new S3Object[incompletedObjectsList.size()]);
                 fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects));
             }
             public void fireCompletedEvent() {
@@ -301,11 +308,13 @@ public class S3ServiceMulti {
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 objectsToDeleteList.removeAll(completedResults);
-                S3Object[] deletedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});                    
+                S3Object[] deletedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);                    
                 fireServiceEvent(DeleteObjectsEvent.newInProgressEvent(threadWatcher, deletedObjects));
             }
             public void fireCancelEvent() {
-                S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList.toArray(new S3Object[] {});                    
+                S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList
+                    .toArray(new S3Object[objectsToDeleteList.size()]);                    
                 fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects));
             }
             public void fireCompletedEvent() {
@@ -358,7 +367,8 @@ public class S3ServiceMulti {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 for (int i = 0; i < completedObjects.length; i++) {
                     pendingObjectKeysList.remove(completedObjects[i].getKey());
                 }
@@ -371,7 +381,8 @@ public class S3ServiceMulti {
                     String key = (String) iter.next();
                     cancelledObjectsList.add(new S3Object(key));
                 }
-                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
+                    .toArray(new S3Object[cancelledObjectsList.size()]);
                 fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
@@ -424,7 +435,8 @@ public class S3ServiceMulti {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 for (int i = 0; i < completedObjects.length; i++) {
                     pendingObjectKeysList.remove(completedObjects[i].getKey());
                 }
@@ -437,7 +449,8 @@ public class S3ServiceMulti {
                     String key = (String) iter.next();
                     cancelledObjectsList.add(new S3Object(key));
                 }
-                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
+                    .toArray(new S3Object[cancelledObjectsList.size()]);
                 fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
@@ -474,11 +487,13 @@ public class S3ServiceMulti {
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 pendingObjectsList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 fireServiceEvent(LookupACLEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList.toArray(new S3Object[] {});
+                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
+                    .toArray(new S3Object[pendingObjectsList.size()]);
                 fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
@@ -515,11 +530,13 @@ public class S3ServiceMulti {
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 pendingObjectsList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 fireServiceEvent(UpdateACLEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList.toArray(new S3Object[] {});
+                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
+                    .toArray(new S3Object[pendingObjectsList.size()]);
                 fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
@@ -574,12 +591,14 @@ public class S3ServiceMulti {
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 incompleteObjectDownloadList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(DownloadObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                S3Object[] incompleteObjects = (S3Object[]) incompleteObjectDownloadList.toArray(new S3Object[] {});
+                S3Object[] incompleteObjects = (S3Object[]) incompleteObjectDownloadList
+                    .toArray(new S3Object[incompleteObjectDownloadList.size()]);
                 fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects));
             }
             public void fireCompletedEvent() {
@@ -606,11 +625,6 @@ public class S3ServiceMulti {
      * 
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
-     * 
-     * @param bucket
-     * the bucket containing the objects to retrieve.
-     * @param objectKeys
-     * the key names of the objects to retrieve.
      */
     public void getObjects(final String[] signedGetURLs) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
@@ -635,7 +649,8 @@ public class S3ServiceMulti {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 for (int i = 0; i < completedObjects.length; i++) {
                     pendingObjectKeysList.remove(completedObjects[i].getKey());
                 }
@@ -648,7 +663,8 @@ public class S3ServiceMulti {
                     String key = (String) iter.next();
                     cancelledObjectsList.add(new S3Object(key));
                 }
-                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
+                    .toArray(new S3Object[cancelledObjectsList.size()]);
                 fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
@@ -699,7 +715,8 @@ public class S3ServiceMulti {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 for (int i = 0; i < completedObjects.length; i++) {
                     pendingObjectKeysList.remove(completedObjects[i].getKey());
                 }
@@ -712,7 +729,8 @@ public class S3ServiceMulti {
                     String key = (String) iter.next();
                     cancelledObjectsList.add(new S3Object(key));
                 }
-                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList.toArray(new S3Object[] {});
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
+                    .toArray(new S3Object[cancelledObjectsList.size()]);
                 fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects));
             }
             public void fireCompletedEvent() {
@@ -764,11 +782,13 @@ public class S3ServiceMulti {
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 objectsToDeleteList.removeAll(completedResults);
-                S3Object[] deletedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});                    
+                S3Object[] deletedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);                    
                 fireServiceEvent(DeleteObjectsEvent.newInProgressEvent(threadWatcher, deletedObjects));
             }
             public void fireCancelEvent() {
-                S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList.toArray(new S3Object[] {});                    
+                S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList
+                    .toArray(new S3Object[objectsToDeleteList.size()]);                    
                 fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects));
             }
             public void fireCompletedEvent() {
@@ -789,7 +809,7 @@ public class S3ServiceMulti {
      * <p>
      * This method sends {@link CreateObjectsEvent} notification events.
      * 
-     * @param packages
+     * @param signedPutUrlAndObjects
      * packages containing the S3Object to upload and the corresponding signed PUT URL.
      * 
      * @throws IllegalStateException
@@ -833,11 +853,13 @@ public class S3ServiceMulti {
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 incompletedObjectsList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults.toArray(new S3Object[] {});
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
                 fireServiceEvent(CreateObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
-                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList.toArray(new S3Object[] {});
+                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
+                    .toArray(new S3Object[incompletedObjectsList.size()]);
                 fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects));
             }
             public void fireCompletedEvent() {
@@ -977,6 +999,9 @@ public class S3ServiceMulti {
                     URL url = new URL(signedDeleteUrl);
                     result = ServiceUtils.buildObjectFromPath(url.getPath());
                 }
+            } catch (RuntimeException e) {
+                result = e;
+                throw e;
             } catch (Exception e) {
                 result = e;
             }            
@@ -1163,16 +1188,22 @@ public class S3ServiceMulti {
                 
                 bufferedOutputStream = new BufferedOutputStream(
                     downloadPackage.getOutputStream());
-                
-                byte[] buffer = new byte[1024];
-                int byteCount = -1;
 
-                while ((byteCount = bufferedInputStream.read(buffer)) != -1) {
-                    bufferedOutputStream.write(buffer, 0, byteCount);
-                }
-                
-                bufferedOutputStream.close();
-                bufferedInputStream.close();
+                try {
+                    byte[] buffer = new byte[1024];
+                    int byteCount = -1;
+    
+                    while ((byteCount = bufferedInputStream.read(buffer)) != -1) {
+                        bufferedOutputStream.write(buffer, 0, byteCount);
+                    }
+                } finally {
+                    if (bufferedOutputStream != null) {
+                        bufferedOutputStream.close();                        
+                    }
+                    if (bufferedInputStream != null) {
+                        bufferedInputStream.close();                    
+                    }
+                }                
 
                 object.setDataInputStream(null);
                 result = object;
@@ -1409,6 +1440,8 @@ public class S3ServiceMulti {
              * Create a cancel event trigger, so all the managed threads can be cancelled if required.
              */
             final CancelEventTrigger cancelEventTrigger = new CancelEventTrigger() {
+                private static final long serialVersionUID = 6328417466929608235L;
+
                 public void cancelTask(Object eventSource) {
                     log.debug("Cancel task invoked on ThreadManager");
                     
@@ -1446,10 +1479,6 @@ public class S3ServiceMulti {
                                 completedThreads, runnables.length, cancelEventTrigger);
                             List completedResults = getNewlyCompletedResults();                    
                             fireProgressEvent(threadWatcher, completedResults);
-                            
-                            if (completedResults.size() > 0) {
-                                // log.debug(completedResults.size() + " of " + runnables.length + " have completed");
-                            }
                             
                             // Start more threads.
                             startPendingThreads();                

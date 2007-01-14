@@ -298,7 +298,8 @@ public class FileComparer {
         if (s3ServiceExceptions[0] != null) {
             throw s3ServiceExceptions[0];
         }        
-        S3Object[] s3Objects = (S3Object[]) s3ObjectsCompleteList.toArray(new S3Object[] {});
+        S3Object[] s3Objects = (S3Object[]) s3ObjectsCompleteList
+            .toArray(new S3Object[s3ObjectsCompleteList.size()]);
         
         return populateS3ObjectMap(targetPath, s3Objects);
     }
@@ -310,6 +311,7 @@ public class FileComparer {
      * @param targetPath
      * @param s3Objects
      * @return
+     * a map of key/S3Object pairs.
      */
     public static Map populateS3ObjectMap(String targetPath, S3Object[] s3Objects) {
         HashMap map = new HashMap();
@@ -388,10 +390,11 @@ public class FileComparer {
         List onlyOnClientKeys = new ArrayList();
 
         // Check files on server against local client files.
-        Iterator s3ObjectsMapIter = s3ObjectsMap.keySet().iterator();
+        Iterator s3ObjectsMapIter = s3ObjectsMap.entrySet().iterator();
         while (s3ObjectsMapIter.hasNext()) {
-            String keyPath = (String) s3ObjectsMapIter.next();
-            S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
+            Map.Entry entry = (Map.Entry) s3ObjectsMapIter.next();
+            String keyPath = (String) entry.getKey();
+            S3Object s3Object = (S3Object) entry.getValue();
 
             // Check whether local file is already on server
             if (filesMap.containsKey(keyPath)) {

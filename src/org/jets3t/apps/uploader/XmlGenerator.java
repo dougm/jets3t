@@ -35,8 +35,6 @@ import javax.swing.JTextField;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.xml.serialize.OutputFormat;
 import org.apache.xml.serialize.XMLSerializer;
 import org.jets3t.service.utils.ServiceUtils;
@@ -64,8 +62,6 @@ import org.w3c.dom.Element;
  * @author James Murty
  */
 public class XmlGenerator {
-    private static final Log log = LogFactory.getLog(XmlGenerator.class);
-    
     public static final String xmlVersionNumber = "1.0";
     
     private List objectRequestList = new ArrayList();
@@ -106,17 +102,6 @@ public class XmlGenerator {
      * Generates an XML document containing metadata information as Property elements.
      * The root of the document is the element Uploader.
      * 
-     * @param xmlVersionNumber
-     * text describing the version of the XML document, for future-proofing. Becomes a
-     * <b>version</b> attribute of the root element. 
-     * @param userInputComponentsMap
-     * a map of property names to Swing components containing the user's responses. Swing
-     * components supported include: {@link ButtonGroup}'s containing {@link JRadioButton}s,
-     * {@link JComboBox}, {@link JTextField}, {@link JPasswordField}, {@link JTextArea}.  
-     * @param parametersMap
-     * a map of property names to applet parameter string values.
-     * @param uploaderInfoMap
-     * a map of property names to uploader-sourced string values.
      * @return
      * an XML document string containing Property elements.
      * 
@@ -134,21 +119,24 @@ public class XmlGenerator {
             ServiceUtils.formatIso8601Date(new Date()));
         
         // Add application properties (user inputs and application parameters) to XML document.
-        for (Iterator iter = applicationProperties.keySet().iterator(); iter.hasNext();) {
-            String propertyName = (String) iter.next();
-            String propertyValue = (String) applicationProperties.get(propertyName);            
+        for (Iterator iter = applicationProperties.entrySet().iterator(); iter.hasNext();) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            String propertyName = (String) entry.getKey();
+            String propertyValue = (String) entry.getValue();            
             rootElem.appendChild(createPropertyElement(document, propertyName, propertyValue, "ApplicationProperty"));
         }
 
         // Add message properties (user inputs and application parameters) to XML document.
-        for (Iterator iter = messageProperties.keySet().iterator(); iter.hasNext();) {
-            String propertyName = (String) iter.next();
-            String propertyValue = (String) messageProperties.get(propertyName);            
+        for (Iterator iter = messageProperties.entrySet().iterator(); iter.hasNext();) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            String propertyName = (String) entry.getKey();
+            String propertyValue = (String) entry.getValue();            
             rootElem.appendChild(createPropertyElement(document, propertyName, propertyValue, "MessageProperty"));
         }
         
         // Add Object request details to XML document.
-        ObjectRequestDetails[] details = (ObjectRequestDetails[]) objectRequestList.toArray(new ObjectRequestDetails[] {});
+        ObjectRequestDetails[] details = (ObjectRequestDetails[]) objectRequestList
+            .toArray(new ObjectRequestDetails[objectRequestList.size()]);
         for (int i = 0; i < details.length; i++) {
             ObjectRequestDetails objectDetails = details[i];
             rootElem.appendChild(createSignatureRequestElement(document, objectDetails));
@@ -221,10 +209,12 @@ public class XmlGenerator {
         Element objectElement = document.createElement(elementName);
         objectElement.setAttribute("key", key);
         objectElement.setAttribute("bucketName", bucketName);
-        Iterator iter = metadata.keySet().iterator();
+        Iterator iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
-            String metadataName = (String) iter.next();
-            String metadataValue = (String) metadata.get(metadataName);
+            Map.Entry entry = (Map.Entry) iter.next();
+            String metadataName = (String) entry.getKey();
+            String metadataValue = (String) entry.getValue();
+            
             objectElement.appendChild(
                 createPropertyElement(document, metadataName, metadataValue, "Metadata"));
         }

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<!--
+  jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
+  This is a java.net project, see https://jets3t.dev.java.net/
+ 
+  Copyright 2006 James Murty
+ 
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. 
+ -->
+</head>
+<body bgcolor="white">
+
+<p>
+Provides the Gatekeeper servlet, a server-side application for authorizing client applications 
+to interact with an S3 account without providing the client with the AWS login credentials. 
+The Gatekeeper uses the S3 
+<a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAuthentication.html" target="_blank">Query String Authorization</a>
+URL signing capabilities to generate time-limited URLs that client applications use to Upload, 
+Download, and Delete objects in S3. 
+</p>
+<p>
+Gatekeeper is primarily intended for situations where a service provider has an S3 account where 
+they store data on behalf of clients. The service provider manages the S3 storage on behalf of the 
+client, who need not know or care that S3 is the underlying technology being used.
+</p>
+<p>
+Gatekeeper was designed to work with the <a href="../../apps/Uploader.html">Uploader</a> 
+client-side application that is included in the JetS3t suite.
+</p>
+
+<h2>Related Documentation</h2>
+<p>
+For more information refer to the 
+<a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper.html">Gatekeeper Guide</a>.
+</p>
+
+<!-- Put @see and @since tags down here. -->
+
+</body>
+</html>

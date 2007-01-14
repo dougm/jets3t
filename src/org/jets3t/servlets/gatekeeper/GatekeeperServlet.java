@@ -38,6 +38,8 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultTransactionIdProvider;
 import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
 
 public class GatekeeperServlet extends HttpServlet {
+    private static final long serialVersionUID = 2054765427620529238L;
+
     private final Log log = LogFactory.getLog(GatekeeperServlet.class);
     
     private ServletConfig servletConfig = null;

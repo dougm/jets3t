@@ -66,9 +66,10 @@ public class EncryptionUtil {
     private static final Log log = LogFactory.getLog(EncryptionUtil.class);
     
     public static final String UNICODE_FORMAT = "UTF8";
-    public static final String VERSION = "2";
+    public static final String DEFAULT_VERSION = "2";
 
     private String algorithm = null;
+    private String version = null;
     private SecretKey key = null;
     private AlgorithmParameterSpec algParamSpec = null;
     
@@ -86,17 +87,26 @@ public class EncryptionUtil {
      *        the password to use for encryption/decryption.
      * @param algorithm
      *        the Java name of an encryption algorithm to use, eg PBEWithMD5AndDES
+     * @param version
+     *        the version of encyption to use, for historic and future compatibility.
+     *        Unless using an historic version, this should always be 
+     *        {@link #DEFAULT_VERSION}
      * 
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
      * @throws InvalidKeySpecException
      */
-    public EncryptionUtil(String encryptionKey, String algorithm) throws 
+    public EncryptionUtil(String encryptionKey, String algorithm, String version) throws 
         InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException 
     {
-        log.debug("Cryptographic algorithm: " + algorithm);
         this.algorithm = algorithm;
+        this.version = version;
+        log.debug("Cryptographic properties: algorithm=" + this.algorithm + ", version=" + this.version);
+        
+        if (!DEFAULT_VERSION.equals(version)) {
+            throw new RuntimeException("Unrecognised crypto version setting: " + version);
+        }
             
         PBEKeySpec keyspec = new PBEKeySpec(encryptionKey.toCharArray(), salt, ITERATION_COUNT, 32);
         SecretKeyFactory skf = SecretKeyFactory.getInstance(algorithm);
@@ -119,7 +129,7 @@ public class EncryptionUtil {
     public EncryptionUtil(String encryptionKey) throws InvalidKeyException,
         NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException 
     {
-        this(encryptionKey, "PBEWithMD5AndDES");
+        this(encryptionKey, "PBEWithMD5AndDES", DEFAULT_VERSION);
     }
         
     /**
@@ -197,16 +207,24 @@ public class EncryptionUtil {
     }
 
     /**
-     * 
+     * Creates an EncryptionUtil initialised using the original algorithm configuration as used
+     * in JetS3t releases prior to version 0.5.0. This method is deprecated as the crypto
+     * configuration used has changed, and this method is provided for backwards compatibility only.
+     * This method could be removed at any time.
+     *  
      * @param encryptionKey
+     * the key (password) to use when encrypting data.
      * @return
+     * an EncryptionUtil object configured in a way compatible with the crypto mechanisms used in
+     * the JetS3t release version 0.4.0.
+     * 
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
      * @throws InvalidKeySpecException
      * @throws UnsupportedEncodingException 
      * 
-     * @deprecated
+     * @deprecated as of JetS3t version 0.5.0
      */
     public static EncryptionUtil getObsoleteEncryptionUtil(String encryptionKey) throws 
         InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, 
@@ -235,7 +253,10 @@ public class EncryptionUtil {
      * Encrypts a UTF8 string to byte data.
      * 
      * @param data
+     * data to encrypt.
      * @return
+     * encrypted data.
+     * 
      * @throws IllegalStateException
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
@@ -259,7 +280,10 @@ public class EncryptionUtil {
      * Decrypts byte data to a UTF8 string.
      * 
      * @param data
+     * data to decrypt.
      * @return
+     * UTF8 string of decrypted data.
+     * 
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
      * @throws UnsupportedEncodingException
@@ -281,9 +305,14 @@ public class EncryptionUtil {
      * Decrypts a UTF8 string.
      * 
      * @param data
+     * data to decrypt.
      * @param startIndex
+     * start index of data to decrypt.
      * @param endIndex
+     * end index of data to decrypt.
      * @return
+     * UTF8 string of decrypted data.
+     * 
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
      * @throws UnsupportedEncodingException
@@ -306,7 +335,10 @@ public class EncryptionUtil {
      * Encrypts byte data to bytes.
      * 
      * @param data
+     * data to encrypt.
      * @return
+     * encrypted data.
+     * 
      * @throws IllegalStateException
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
@@ -327,8 +359,10 @@ public class EncryptionUtil {
      * Decrypts byte data to bytes.
      * 
      * @param data
+     * data to decrypt
      * @return
      * decrypted data.
+     * 
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
      * @throws IllegalStateException
@@ -452,12 +486,12 @@ public class EncryptionUtil {
 
     public static String[] listAvailableCiphers() {
         Set ciphers = Security.getAlgorithms("Cipher");
-        return (String[]) ciphers.toArray(new String[] {});           
+        return (String[]) ciphers.toArray(new String[ciphers.size()]);           
     }
     
     public static String[] listAvailableAlgorithms() {
-        Set ciphers = Security.getAlgorithms("SecretKeyAlgorithm");
-        return (String[]) ciphers.toArray(new String[] {});           
+        Set algorithms = Security.getAlgorithms("SecretKeyAlgorithm");
+        return (String[]) algorithms.toArray(new String[algorithms.size()]);           
     }
 
     // TODO Remove

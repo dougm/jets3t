@@ -23,6 +23,7 @@ import java.util.Properties;
 import javax.swing.JPanel;
 
 public class SkinnedJPanel extends JPanel {
+    private static final long serialVersionUID = 1349987043338696640L;
 
     public SkinnedJPanel(Properties skinProperties, String itemName) {
         super();

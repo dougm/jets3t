@@ -143,6 +143,8 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
         this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
+            private static final long serialVersionUID = 3717631976908670386L;
+
             public void actionPerformed(ActionEvent actionEvent) {
                 cancelButton.doClick();
             }

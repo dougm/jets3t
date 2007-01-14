@@ -82,58 +82,62 @@ public class ErrorDialog extends JDialog implements ActionListener {
             return null;
         }
         
-        String detailsText = "";
+        StringBuffer detailsText = new StringBuffer();
         if (throwable instanceof S3ServiceException) {
-            detailsText += "<html><table border=\"0\">";
+            detailsText.append("<html><table border=\"0\">");
             
             S3ServiceException s3se = (S3ServiceException) throwable;
             
             if (s3se.getS3ErrorCode() != null) {
-                detailsText += "<tr><td><b>S3 Error Code</b></td><td>" + s3se.getS3ErrorCode() + "</td></tr>";
+                detailsText.append("<tr><td><b>S3 Error Code</b></td><td>").append(s3se.getS3ErrorCode()).append("</td></tr>");
             } else {
-                detailsText += "<tr><td><b>Exception message</b></td></tr><tr><td>" + throwable.getMessage() + "</td></tr>";
+                detailsText.append("<tr><td><b>Exception message</b></td></tr><tr><td>")
+                    .append(throwable.getMessage()).append("</td></tr>");
             }
             
             if (s3se.getS3ErrorMessage() != null) {
-                detailsText += "<tr><td><b>S3 Message</b></td><td>" + s3se.getS3ErrorMessage() + "</td></tr>";
+                detailsText.append("<tr><td><b>S3 Message</b></td><td>")
+                    .append(s3se.getS3ErrorMessage()).append("</td></tr>");
             }
             
             if (s3se.getS3ErrorRequestId() != null) {
-                detailsText += "<tr><td><b>S3 Request Id</b></td><td>" + s3se.getS3ErrorRequestId() + "</td></tr>";
+                detailsText.append("<tr><td><b>S3 Request Id</b></td><td>")
+                    .append(s3se.getS3ErrorRequestId()).append("</td></tr>");
             }
 
             if (s3se.getS3ErrorHostId() != null) {
-                detailsText += "<tr><td><b>S3 Host Id</b></td><td>" + s3se.getS3ErrorHostId() + "</td></tr>";
+                detailsText.append("<tr><td><b>S3 Host Id</b></td><td>")
+                    .append(s3se.getS3ErrorHostId()).append("</td></tr>");
             }
 
             boolean firstCause = true;
             Throwable cause = s3se.getCause();
             while (cause != null && cause.getMessage() != null) {
                 if (firstCause) {
-                    detailsText += "<tr><td><b>Cause</b></td></tr>";
+                    detailsText.append("<tr><td><b>Cause</b></td></tr>");
                 }
-                detailsText += "<tr><td>" + cause.getMessage() + "</td></tr>";
+                detailsText.append("<tr><td>").append(cause.getMessage()).append("</td></tr>");
                 firstCause = false;
                 cause = cause.getCause();
             }
             
-            detailsText += "</table></html>";
+            detailsText.append("</table></html>");
         } else {
-            detailsText = "<html>";
+            detailsText.append("<html>");
             
             boolean firstCause = true;
             Throwable cause = throwable;
             while (cause != null && cause.getMessage() != null) {
                 if (firstCause) {
-                    detailsText += "<tr><td><b>Cause</b></td></tr>";
+                    detailsText.append("<tr><td><b>Cause</b></td></tr>");
                 }
-                detailsText += "<tr><td>" + cause.getMessage() + "</td></tr>";
+                detailsText.append("<tr><td>").append(cause.getMessage()).append("</td></tr>");
                 firstCause = false;
                 cause = cause.getCause();
             }
-            detailsText += "</html>";
+            detailsText.append("</html>");
         }
-        return detailsText;
+        return detailsText.toString();
     }
     
     public static void showDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener,
