@@ -195,6 +195,12 @@
 			</fileset>
 		</copy>
 
+		<!-- Create resources jar -->
+		<jar
+			basedir="resources"			
+			file="${dir.dist-applets}/resources.jar"
+			/>
+		
 		<!-- Sign jars -->		
 		<signjar 
 			alias="${keystore.alias}"
@@ -215,11 +221,6 @@
 			</fileset>
 		</copy>
 
-		<!-- Copy relevant resources files -->
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="resources"/>
-		</copy>
-		
 		<!-- Copy applet running HTML files -->
 		<copy todir="${dir.dist-applets}">
 			<fileset dir="applet" includes="*uploader*"/>
@@ -251,6 +252,12 @@
 			</fileset>
 		</copy>
 
+		<!-- Create resources jar -->
+		<jar
+			basedir="resources"			
+			file="${dir.dist-applets}/resources.jar"
+			/>
+
 		<!-- Sign jars -->		
 		<signjar 
 			alias="${keystore.alias}"
@@ -268,11 +275,6 @@
 				<include name="log4j.properties"/>
 				<include name="mime.types"/>
 			</fileset>
-		</copy>
-
-		<!-- Copy relevant resources files -->
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="resources"/>
 		</copy>
 
 		<!-- Copy applet running HTML files -->
