@@ -45,6 +45,10 @@ public class DownloadPackage {
     private boolean isUnzipping = false;
     private EncryptionUtil encryptionUtil = null;
     
+    public DownloadPackage(S3Object object, File outputFile) {
+        this(object, outputFile, false, null);
+    }
+    
     public DownloadPackage(S3Object object, File outputFile, boolean isUnzipping, 
         EncryptionUtil encryptionUtil) 
     {
