@@ -92,7 +92,7 @@ public class CodeSamples {
         // If you try using a common name, you will probably not be able to create the 
         // bucket as someone else will already have a bucket of that name.
 
-        // This will probably fail, as someone else has already created a 'Test' bucket.
+        // This will probably fail, as someone else has already created a 'Test' bucket in S3.
         try {
             S3Bucket existingBucket = s3Service.createBucket("Test");
             System.out.println("You have created a bucket called: " + existingBucket.getName());
@@ -125,42 +125,45 @@ public class CodeSamples {
         System.out.println("S3Object after upload: " + object);
 
         // The example above will create an empty object in S3, which isn't very useful. 
-        // To include data in the object you must provide an InputStream containing the information 
-        // you want to upload, and you should also tell the object how much data you are uploading. 
+        // To include data in the object you must provide some data for the object.
         // If you know the Content/Mime type of the data (e.g. text/plain) you should set this too.
+        
+        // S3Object's can contain any data available from an input stream, but JetS3t provides two
+        // convenient object types to hold File or String data. These convenient constructors
+        // automatically set the Content-Type and Content-Length of the object.
+        
+        // Create an S3Object based on a string, with Content-Length set automatically and 
+        // Content-Type set to "text/plain"  
+        String stringData = "Hello World!";
+        S3Object stringObject = new S3Object(testBucket, "HelloWorld.txt", stringData);
+        
+        // Create an S3Object based on a file, with Content-Length set automatically and 
+        // Content-Type set based on the file's extension (using the Mimetypes utility class)
+        File fileData = new File("src/org/jets3t/samples/CodeSamples.java");
+        S3Object fileObject = new S3Object(testBucket, fileData);
 
+        // If your data isn't a File or String you can use any input stream as a data source,
+        // but you must manually set the Content-Length.        
         // Note: It isn't strictly necessary to set the Content Length as the jets3t toolkit can 
         // work out the value itself, however it's a good habit to do this as it can prevent 
         // problems when uploading large objects.
 
-        // Create an object containing a greeting string as data.
+        // Create an object containing a greeting string as input stream data.
         String greeting = "Hello World!";
-        S3Object helloWorldObject = new S3Object("helloWorld.txt");
+        S3Object helloWorldObject = new S3Object("HelloWorld2.txt");
         ByteArrayInputStream greetingIS = new ByteArrayInputStream(greeting.getBytes());
         helloWorldObject.setDataInputStream(greetingIS);
-
-        // Set important content properties.
         helloWorldObject.setContentLength(greetingIS.available());
         helloWorldObject.setContentType("text/plain");
 
-        // Upload the data object.
-        helloWorldObject = s3Service.putObject(testBucket, helloWorldObject);
+        // Upload the data objects.
+        s3Service.putObject(testBucket, stringObject);
+        s3Service.putObject(testBucket, fileObject);
+        s3Service.putObject(testBucket, helloWorldObject);
 
         // Print details about the uploaded object.
         System.out.println("S3Object with data: " + helloWorldObject);
 
-        /*
-         * Creating common S3Objects 
-         */
-        
-        // As a convenience, S3Objects can be created with constructors that handle 
-        // commonly-used kinds of data such as files and text strings.
-
-        // Create an S3Object with data from a File
-        S3Object fileObject = new S3Object(testBucket, new File("CodeSamples.java"));
-
-        // Create an S3Object with data from a String
-        S3Object textObject = new S3Object(testBucket, "textObject.txt", "Hello World!");
 
         /*
          * Downloading data objects 
@@ -219,7 +222,16 @@ public class CodeSamples {
                 System.out.println(" " + objects[o].getKey() + " (" + objects[o].getContentLength() + " bytes)");
             }
         }
-
+        
+        // When listing the objects in a bucket you can filter which objects to return based on
+        // the names of those objects. This is useful when you are only interested in some 
+        // specific objects in a bucket and you don't need to list all the bucket's contents.
+        
+        // List only objects whose keys match a prefix. 
+        String prefix = "Reports";
+        String delimiter = null; // Refer to the S3 guide for more information on delimiters
+        S3Object[] filteredObjects = s3Service.listObjects(testBucket, prefix, delimiter);        
+        
         /*
          * Deleting objects and buckets 
          */
@@ -328,18 +340,18 @@ public class CodeSamples {
         // each object. This class is a simple container which merely associates an object with an 
         // output stream, to which the object's data will be written.
         
-        // Associate each object with a file for output.
+        // Create a DownloadPackage for each object, to associate the object with an output file.
         DownloadPackage[] downloadPackages = new DownloadPackage[5];
         downloadPackages[0] = new DownloadPackage(objects[0], 
-            new File(objects[0].getKey()), false, null);
+            new File(objects[0].getKey()));
         downloadPackages[1] = new DownloadPackage(objects[1], 
-            new File(objects[1].getKey()), false, null);
+            new File(objects[1].getKey()));
         downloadPackages[2] = new DownloadPackage(objects[2], 
-            new File(objects[2].getKey()), false, null);
+            new File(objects[2].getKey()));
         downloadPackages[3] = new DownloadPackage(objects[3], 
-            new File(objects[3].getKey()), false, null);
+            new File(objects[3].getKey()));
         downloadPackages[4] = new DownloadPackage(objects[4], 
-            new File(objects[4].getKey()), false, null);
+            new File(objects[4].getKey()));
         
         // Download the objects.
         simpleMulti.downloadObjects(bucket, downloadPackages);
@@ -485,6 +497,9 @@ public class CodeSamples {
         Date expiryDate = cal.getTime();
         
         // Create a signed HTTP GET URL valid for 5 minutes.
+        // If you use the generated URL in a web browser within 5 minutes, you will be able to view 
+        // the object's contents. After 5 minutes, the URL will no longer work and you will only 
+        // see an Access Denied message.
         String url = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
             awsCredentials, expiryDate);
         System.out.println("Signed URL: " + url);
