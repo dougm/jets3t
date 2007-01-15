@@ -1,0 +1,151 @@
+-------------
+Version 0.5.0
+-------------
+
+COCKPIT
+
+- Login credentials can now be stored in S3.
+- Added a dialog for configuring Bucket Logging.
+- Objects can be filtered by prefix and/or delimiter strings.
+- Third-party buckets can be added without first logging in.
+- User can cancel the listing of objects in large buckets.
+- Files being sent to s3 are only opened when necessary, removing the potential
+  for too many files to be open at once (exceeding an Operating System 
+  imposed limit).
+- When uploading files, specific file/directory paths can be ignored 
+  using .jets3t-ignore settings files.
+- Access Control List permissions of uploaded files can be set to PRIVATE, 
+  PUBLIC_READ or PUBLIC_READ_WRITE
+
+
+SYNCHONIZE
+
+- Files being sent to s3 are only opened when necessary, removing the potential
+  for too many files to be open at once (exceeding an Operating System 
+  imposed limit).
+- When uploading files, specific file/directory paths can be ignored 
+  using .jets3t-ignore settings files.
+- Access Control List permissions of uploaded files can be set to PRIVATE, 
+  PUBLIC_READ or PUBLIC_READ_WRITE
+
+
+UPLOADER
+
+A new applet/application to allow third parties without AWS accounts or 
+credentials to upload files to an S3 account. The Uploader provides a simple 
+wizard-based GUI allowing end-users to provide information, choose the 
+file(s) they will upload, and see upload progress.
+
+The Uploader is highly configurable via the uploader.properties file, with 
+settings to configure: user input fields, explanatory text messages, 
+names/images/tooltips for buttons at each stage in the wizard, basic skinning 
+of the Uploader (an example HTML-like skin is included), and branding.
+
+The Uploader is designed to work closely with a Gatekeeper server, which 
+provides the Uploader with signed URLs to allow it to perform uploads.
+
+
+GATEKEEPER
+
+A new servlet that acts as a Gatekeeper server for S3 operations. The servlet
+receives requests for S3 operations (GET, HEAD, PUT, DELETE) and responds to 
+these requests with either a signed URL allowing the operation, or a message 
+stating that the operation will not be allowed.
+
+Basic decision-making functionality is included with the Gatekeeper Servlet, 
+however it is straight-forward to obtain more advanced control over the 
+Gatekeeper's behaviour by implementing the relevant Java interfaces. There 
+are specific interfaces for: allowing/denying requests, signing URLs, and 
+assigning unique transaction IDs for a request.
+
+The Gatekeeper is designed to work closely with the Uploader application, 
+providing it with signed URLs so the Uploader can add items to an S3 account 
+without the end-user having any access to the AWS account credentials.
+
+
+TOOLKIT
+
+  * General
+
+- Properties for many aspects of jets3t behaviour can be set by the 
+  user in a properties file.
+- Support for getting/setting Server Access Logging for buckets.
+- Improved encryption mechanism, which now uses PBE-based encryption and 
+  allows users to set their preferred algorithm. 
+  NOTE: All changes *should* be backwards compatible, but due to these 
+  changes there may be an increased risk of data loss for encrypted items.
+- New methods to chunk bucket listings, allowing for better handling of 
+  buckets with many objects.
+- A limit to the maximum number of simultaneous communication threads 
+  (ie those interacting with S3) is now imposed. This limit can be set in 
+  the properties file, and defaults to 50.
+- Signed URLs can be generated for GET, HEAD, PUT and DELETE requests
+- Fixed bug where object keys/names with special characters were not 
+  correctly encoded.
+- DNS caching is limited to 300 seconds.
+- When an object's data comes from a file, the file can be opened only when 
+  necessary rather than being opened as soon as the object is created.
+- Added documentation for advanced options settings and logging
+  
+  * REST/HTTP implementation
+  
+- Requests that fail due to S3 Internal Server error are retried a 
+  configurable number of times, with an increasing delay between each 
+  retry attempt.
+- The REST/HTTP implementation is now less fussy about object key names, 
+  and will allow unusual names such as full URL strings etc.
+- Can detect (in some circumstances) a browser's proxy settings when run 
+  inside an applet context, and allows for callbacks to a credentials 
+  provider object when authentication is required (eg for proxies 
+  requiring username/password)
+- Signed URLs can be used to perform GET, HEAD, PUT and DELETE operations 
+  without the need for knowledge of AWS credentials.
+- Added a utility method putObjectWithSignedUrl to upload objects to S3 
+  using only a signed PUT URL (ie no AWS credentials are required).
+- Configurable user agent string.
+- Sends an upload object's MD5 data hash to S3 in the header Content-MD5, 
+  to confirm no data corruption has taken place on the wire.
+
+  * SOAP implementation
+
+- Tests for data corruption on the wire by matching ETag returned by S3 with 
+  expected MD5 hash value.
+
+  * Multi-threaded Service
+
+- Signed URLs can be used to perform GET, HEAD, PUT and DELETE operations of 
+  multiple items at a time, without the need for knowledge of AWS credentials.
+
+
+KNOWN ISSUES
+
+- Uploading or downloading multiple large files can result in connection 
+  errors if the network connection is flooded. The chances of such errors 
+  can be reduced by using low values (eg 2) for for the jets3t.properties 
+  settings s3service.max-thread-count and httpclient.max-connections.
+
+
+SPONSORS
+
+The JetS3t project has been generously supported with sponsorship from the 
+following organisations. 
+
+- Moving Image Research : http://www.movingimageresearch.com/
+
+  Moving Image Research (MIR) is a technology company with deep roots in 
+  media science offering software, network services, and consulting.
+
+
+CONTRIBUTORS
+
+Thankyou to the following contributors, who helped make this release possible:
+
+- Moving Image Research, Andrea Barbieri (http://www.movingimageresearch.com/)
+- Angel Vera (gunfus)
+
+
+
+-------------
+Version 0.4.0
+-------------
+Initial public release.

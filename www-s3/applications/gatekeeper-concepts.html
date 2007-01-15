@@ -184,8 +184,8 @@ tt {
 
         <h2>Interaction</h2>
 
-        <p><img src=
-        "gatekeeper-concepts_assets/gatekeeper-uml.jpg" /></p>
+        <p><img src="gatekeeper-concepts_assets/gatekeeper-uml.jpg"
+             alt="Client/Gatekeeper interaction diagram" /></p>
 
         <h3>Client request message</h3>
 
@@ -206,8 +206,10 @@ tt {
 
           <li><b>DELETE</b>: The client will delete an object in
           S3</li>
-        </ul>The client application includes a separate "request"
-        for each operation it wishes to perform.
+        </ul>
+
+        <p>The client application includes a separate "request" for
+        each operation it wishes to perform.</p>
 
         <h3>Gatekeeper response message</h3>
 
@@ -287,7 +289,8 @@ tt {
 
         <h3>Gatekeeper Message Format</h3>
 
-        <table bgcolor="#FAFAFA">
+        <table bgcolor="#FAFAFA"
+               summary="Gatekeeper Message Format">
           <tr>
             <th align="left"
                 colspan="2">Request properties</th>
@@ -393,10 +396,6 @@ tt {
         response should be a plain text document, where each
         property is on a separate line and is represented as
         <b>propertyName=propertyValue</b>.</p>
-
-        <h2>Performing Client Operations</h2>
-
-        <p>TODO</p>
 
         <h2>Gatekeeper Authorization and Control</h2>
 
@@ -517,9 +516,12 @@ tt {
         <pre>
 request|0|signatureType=put
 request|0|objectKey=MyMovie.avi
-</pre>Notice that there is no <tt>request.0.bucketName</tt>
-property, nor a <tt>request.0.metadata.content-type</tt> property.
-The client application only knows to provide the file's name.
+</pre>
+
+        <p>Notice that there is no <tt>request.0.bucketName</tt>
+        property, nor a <tt>request.0.metadata.content-type</tt>
+        property. The client application only knows to provide the
+        file's name.</p>
 
         <p>The Gatekeeper service now has the job of deciding where
         this object should be stored. Because the client has been
@@ -543,13 +545,17 @@ request|0|signedUrl=http://s3.amazonaws.com/MrMen/MrTickle/MyMovie.avi
                     ?AWSAccessKeyId=1FMFX9QNQHMZ32MPA7G2
                     &amp;Expires=1168240995
                     &amp;Signature=L%2BZLrgKNbjuOstt2SoTwxTGyaDE%3D
-</pre>The first three request properties, objectKey and bucketName,
-are returned as a courtesy and the client application can ignore
-them. The important item is the signedUrl, which is a signed PUT
-request for uploading a file to the bucket <b>MrMen</b> with the
-object key <b>MrTickle/MyMovie.avi</b>. When the client application
-uses this URL in a PUT operation with the file data, the file will
-be uploaded to the location the Gatekeeper service specified.
+</pre>
+
+        <p>The first three request properties, objectKey and
+        bucketName, are returned as a courtesy and the client
+        application can ignore them. The important item is the
+        signedUrl, which is a signed PUT request for uploading a
+        file to the bucket <b>MrMen</b> with the object key
+        <b>MrTickle/MyMovie.avi</b>. When the client application
+        uses this URL in a PUT operation with the file data, the
+        file will be uploaded to the location the Gatekeeper
+        service specified.</p>
 
         <p><b>Warning</b>: One important thing to note in this case
         is that because the Gatekeeper changed the Content-Type

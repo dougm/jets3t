@@ -105,18 +105,18 @@
 
         <h1>About JetS3t</h1>
 
-        <p>JetS3t is an open-source Java toolkit and application
-        suite for the <a href="http://www.amazon.com/s3"
+        <p>JetS3t is a free, open-source Java toolkit and
+        application suite for the <a href=
+        "http://www.amazon.com/s3"
            target="_blank">Amazon Simple Storage Service</a>
            (Amazon S3).</p>
 
-        <p>The <a href="toolkit/toolkit.html">JetS3t toolkit</a>
+        <p>The JetS3t <a href="toolkit/toolkit.html">toolkit</a>
         provides Java programmers with a powerful yet simple API
         for interacting with S3 and managing data stored there.</p>
 
-        <p>There are also four <a href=
-        "applications/applications.html">applications</a> included
-        in the JetS3t suite:</p>
+        <p>There are also four applications included in the JetS3t
+        suite:</p>
 
         <ul>
           <li><a href=
@@ -134,19 +134,20 @@
 
           <li><a href=
           "applications/applications.html#uploader">Uploader</a> A
-          graphical application that S3 account holders may provide
-          to clients or customers without S3 accounts. Uploader
-          allows users to upload files to S3 using a simple
-          wizard-based workflow, while all uploads are authorized
-          by a Gatekeeper service</li>
+          graphical application that Service Providers with S3
+          accounts may provide to clients or customers without S3
+          accounts. Uploader allows users to upload files to S3
+          using a simple wizard-based workflow, but all uploads
+          must first be authorized by a Gatekeeper service</li>
 
           <li><a href=
           "applications/applications.html#gatekeeper">Gatekeeper</a>
-          A servlet that runs on an S3 account holder's server and
-          processes requests from client applications such as
-          Uploader. The Gatekeeper authorizes the client
-          application to perform operations S3 accounts such as
-          uploads, downloads and deletes.</li>
+          A servlet that acts as an authorization service running
+          on a Service Provider's server. It processes requests
+          from client applications such as JetS3t Uploader, and
+          authorizes the client application to perform operations
+          S3 on accounts such as uploads, downloads and
+          deletes.</li>
         </ul>
 
         <p>These applications are built using the JetS3t toolkit
@@ -164,9 +165,9 @@
 
         <p>To create an account you will need to <a href=
         "http://aws-portal.amazon.com/gp/aws/developer/subscription/index.html/002-9963107-1812837?ie=UTF8&amp;serviceID=8&amp;servicePlanID=6"
-           target="_blank">sign up with Amazon</a>.</p>
+           target="_blank">sign up with Amazon S3</a>.</p>
 
-        <p>If you already have an S3 account, you can:</p>
+        <p>Once you have an S3 account you can:</p>
 
         <ul>
           <li>Download the whole JetS3t suite from the <a href=
@@ -178,6 +179,11 @@
           page</li>
         </ul>
 
+        <p>Please explore this website to find application manuals
+        and code guides, and refer to the <a href=
+        "support.html">Support</a> page to find out how to receive
+        more help from the development community.</p>
+
         <h2>Sponsors</h2>
 
         <p>The JetS3t project has been generously supported with
@@ -186,19 +192,21 @@
         would otherwise be possible, and lets us know we're wanted.
         Thanks very much!</p>
 
-        <table bgcolor="#FAFAFA">
+        <table bgcolor="#FAFAFA"
+               summary="Sponsors of the JetS3t project">
           <tr>
             <th align="left">Moving Image Research</th>
 
-            <td><a href=
+            <td align="right"><a href=
             "http://www.movingimageresearch.com/">http://www.movingimageresearch.com/</a></td>
           </tr>
 
           <tr>
-            <td colspan="2">Moving Image Research (MIR) is a
-            technology company with deep roots in media science
-            offering software, network services, and
-            consulting.</td>
+            <td colspan="2"
+                align="justify">Moving Image Research (MIR) is a
+                technology company with deep roots in media science
+                offering software, network services, and
+                consulting.</td>
           </tr>
         </table>
 
@@ -214,8 +222,9 @@
 
         <h2>Hosting</h2>
 
-        <p>The JetS3t project codebase and releases are hosted on
-        <a href="jets3t.dev.java.net"
+        <p>The JetS3t project codebase, releases and community
+        resources are hosted on <a href=
+        "http://jets3t.dev.java.net/index.html"
            target="_blank">java.net</a>.</p>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->

@@ -159,8 +159,7 @@ tt {
         <p><img src="cockpit_assets/Cockpit.jpg"
              alt="Picture of the Cockpit application" /></p>
 
-        <p>Cockpit offers the following capabilities:
-        <br /></p>
+        <p>Cockpit offers the following capabilities:</p>
 
         <ul>
           <li>Manage <a href="#buckets">buckets</a> and <a href=
@@ -205,8 +204,10 @@ tt {
 
           <li><a href="#config">Advanced configuration</a>
           options<font color="red">*</font></li>
-        </ul><sup>Items with a red star (<font color=
-        "red">*</font>) are new in JetS3t version 0.5.x</sup>
+        </ul>
+
+        <p><sup>Items with a red star (<font color="red">*</font>)
+        are new in JetS3t version 0.5.x</sup></p>
 
         <h2><a name="manual"
            id="manual">Cockpit Users Manual</a></h2>
@@ -574,195 +575,189 @@ tt {
           <b>Note:</b> Beware of using more than one password in a
           bucket, as Cockpit is only smart enough to handle one
           password at a time when downloading.</li>
-
-          <li style="list-style: none">
-            <p>Please be aware that Cockpit does not presume to
-            offer industrial-strength encryption - by default it
-            uses a standard low-strength algorithm available in all
-            versions of Java (PBEWithMD5AndDES). This algorithm can
-            be changed using the advanced configuration options
-            available in JetS3t, but doing so is not easy.</p>
-
-            <h3><a name="downloads"
-               id="downloads">Download files from S3</a></h3>
-
-            <p>Cockpit does not allow files to be downloaded using
-            drag-and-drop - unfortunately the Java Swing library
-            makes this infeasible. To download objects from S3 you
-            must select the objects you want, then choose the
-            Object Menu item <b>Download object(s)</b>.</p>
-
-            <p>Before downloading Cockpit compares any files
-            present in the target location against the objects in
-            S3 and detects any clashes (see <a href=
-            "#comparisons">Automatic File Comparisons</a>). If you
-            download objects contained in a folder structure, that
-            folder structure will be re-created exactly on your
-            computer (provided the files were initially uploaded
-            with a jets3t tool).</p>
-
-            <p>Cockpit will automatically unzip GZipped objects and
-            decrypt Encrypted objects, though you will have to set
-            your encryption password in the Cockpit Preferences
-            dialog before you can download encrypted objects.</p>
-
-            <h3><a name="acls"
-               id="acls">Access Control Lists</a></h3>
-
-            <p>Amazon S3 uses Access Control List (ACL) settings to
-            control who may access or modify items stored in S3. By
-            default, all buckets and objects created in S3 are
-            accessible only to the account owner - they are
-            completely private.</p>
-
-            <p>Cockpit allows you to change the ACL settings for a
-            bucket, or for one or more objects, by selecting the
-            Update Access Control List menu item in the bucket or
-            object menus. ACL settings are managed in the Update
-            Access Control List dialog.</p>
-
-            <p><img src="cockpit_assets/ACLDialog.jpg"
-                 alt=
-                 "Picture of the Access Control Listing Dialog window" /></p>
-
-            <p>The default ACL setting is for the object's creator,
-            represented by a Canonical ID, to have Full
-            control.</p>
-
-            <p>The most common ACL change is to allow public access
-            to a bucket or object. An object is made publicly
-            accessible in S3 by granting READ access to members of
-            the All Users group. To do this:</p>
-
-            <ol>
-              <li>Click the plus (+) button underneath the Group
-              Grantees table, to add a new Group permission</li>
-
-              <li>Make sure the Group URI is set to
-              <tt>http://acs.amazonaws.com/groups/global/AllUsers</tt>
-              by double-clicking the URI and selecting it</li>
-
-              <li>Set the Permission option to <tt>READ</tt> if
-              necessary by double-clicking it</li>
-
-              <li>Save the changes using the <b>Save Permission
-              Changes</b> button</li>
-            </ol>
-
-            <p>Note that you can also used <a href=
-            "#signedurls">signed GET URLs</a> to make an object
-            publicly available for a limited time.</p>
-
-            <p>Although all ACL combinations supported by Amazon S3
-            can be managed using this dialog box, this is a complex
-            topic and we won't deal with it here. Please refer to
-            Amazon's technical documentation for more information
-            about the use of Access Control Lists.</p>
-
-            <h3><a name="filecomparisions"
-               id="filecomparisions">Automatic File
-               Comparisons</a></h3>
-
-            <p>Cockpit automatically compares files that are being
-            uploaded or downloaded with files in the destination to
-            detect clashes. When a file with the same name exists
-            on the target, Cockpit determines whether the file has
-            changed, and if so which version of the file is the
-            most recent.</p>
-
-            <p>Each file is given one of the following status
-            types:</p>
-
-            <ul>
-              <li>New File: The file does not exist in the
-              destination</li>
-
-              <li>Unchanged: The file is identical to the copy in
-              the destination</li>
-
-              <li>Changed: The file has been changed</li>
-            </ul>
-
-            <p>If there are Unchanged or Changed files, the
-            <b>Replace file(s)</b> dialog is displayed.</p>
-
-            <p><img src="cockpit_assets/FileComparisonsDialog.jpg"
-                 alt=
-                 "Picture of the File Comparisons Dialog window" /></p>
-
-            <p>This dialog allows you to choose which clashing
-            files in the destination should be replaced, if any.
-            The options available may include the following:</p>
-
-            <ul>
-              <li><b>Only upload/download new file(s)</b>: Only
-              files that do not already exist in the destination
-              will be uploaded or downloaded. No existing file will
-              be over-written.</li>
-
-              <li><b>Upload/download new and changed file(s)</b>:
-              New files and changed files will be transferred, but
-              files that are unchanged will not be transferred.
-              Only out-dated files will be over-written.</li>
-
-              <li><b>Upload/Download all files</b>: All the files
-              will be uploaded or downloaded, regardless of what
-              files are in the destination. Any existing files will
-              be over-written.</li>
-            </ul>
-
-            <p>File comparisons are performed using MD5 hashes of
-            the file contents.</p>
-
-            <h3><a name="signedurls"
-               id="signedurls">Signed GET URLs</a></h3>
-
-            <p>A private object stored in S3 can be made publicy
-            available for a limited time using a signed GET URL.
-            The signed URL can be used by anyone to download the
-            object by using the URL in their web browser, up until
-            a chosen time after which the URL will no longer
-            work.</p>
-
-            <p>Time limited URLs are created using Object Menu item
-            <b>Generate Public GET URL...</b>. A dialog is
-            displayed prompting for the number of hours until the
-            URL will expire. This number can be a fraction, for
-            example the value 0.5 will create a URL which works for
-            half an hour.</p>
-
-            <p><img src="cockpit_assets/SignedGetURLDialog.jpg"
-                 alt=
-                 "Picture of the Signed GET URL Dialog window" /></p>
-
-            <p>After providing the number of hours the dialog box
-            will contain a lengthy URL. This URL will work in any
-            web browser, but only for the length of time you
-            specified. Send this URL to the person who needs the
-            object.</p>
-
-            <h3><a name="config"
-               id="config">Advanced Configuration</a></h3>
-
-            <p>Users can configure Cockpit using the advanced
-            configuration files described in the <a href=
-            "../toolkit/configuration.html">Configuration</a>
-            section.</p>
-
-            <p>When Cockpit starts it looks for configuration files
-            in the directory <b>&lt;UserHome&gt;/.jets3t</b>. If
-            this directory exists and contains files called
-            <tt>jets3t.properties</tt> and/or <tt>mime.types</tt>
-            it will load the properties from these files, adding to
-            or replacing any default configurations.</p>
-
-            <p>Files in the user's home directory will be read
-            whether Cockpit is run in stand-alone more, or as an
-            applet. This configuration option is most useful for
-            those users who run Cockpit as an online applet, but
-            wish to have more control over their own settings.</p>
-          </li>
         </ul>
+
+        <p>Please be aware that Cockpit does not presume to offer
+        industrial-strength encryption - by default it uses a
+        standard low-strength algorithm available in all versions
+        of Java (PBEWithMD5AndDES). This algorithm can be changed
+        using the advanced configuration options available in
+        JetS3t, but doing so is not easy.</p>
+
+        <h3><a name="downloads"
+           id="downloads">Download files from S3</a></h3>
+
+        <p>Cockpit does not allow files to be downloaded using
+        drag-and-drop - unfortunately the Java Swing library makes
+        this infeasible. To download objects from S3 you must
+        select the objects you want, then choose the Object Menu
+        item <b>Download object(s)</b>.</p>
+
+        <p>Before downloading Cockpit compares any files present in
+        the target location against the objects in S3 and detects
+        any clashes (see <a href="#comparisons">Automatic File
+        Comparisons</a>). If you download objects contained in a
+        folder structure, that folder structure will be re-created
+        exactly on your computer (provided the files were initially
+        uploaded with a jets3t tool).</p>
+
+        <p>Cockpit will automatically unzip GZipped objects and
+        decrypt Encrypted objects, though you will have to set your
+        encryption password in the Cockpit Preferences dialog
+        before you can download encrypted objects.</p>
+
+        <h3><a name="acls"
+           id="acls">Access Control Lists</a></h3>
+
+        <p>Amazon S3 uses Access Control List (ACL) settings to
+        control who may access or modify items stored in S3. By
+        default, all buckets and objects created in S3 are
+        accessible only to the account owner - they are completely
+        private.</p>
+
+        <p>Cockpit allows you to change the ACL settings for a
+        bucket, or for one or more objects, by selecting the Update
+        Access Control List menu item in the bucket or object
+        menus. ACL settings are managed in the Update Access
+        Control List dialog.</p>
+
+        <p><img src="cockpit_assets/ACLDialog.jpg"
+             alt=
+             "Picture of the Access Control Listing Dialog window" /></p>
+
+        <p>The default ACL setting is for the object's creator,
+        represented by a Canonical ID, to have Full control.</p>
+
+        <p>The most common ACL change is to allow public access to
+        a bucket or object. An object is made publicly accessible
+        in S3 by granting READ access to members of the All Users
+        group. To do this:</p>
+
+        <ol>
+          <li>Click the plus (+) button underneath the Group
+          Grantees table, to add a new Group permission</li>
+
+          <li>Make sure the Group URI is set to
+          <tt>http://acs.amazonaws.com/groups/global/AllUsers</tt>
+          by double-clicking the URI and selecting it</li>
+
+          <li>Set the Permission option to <tt>READ</tt> if
+          necessary by double-clicking it</li>
+
+          <li>Save the changes using the <b>Save Permission
+          Changes</b> button</li>
+        </ol>
+
+        <p>Note that you can also used <a href="#signedurls">signed
+        GET URLs</a> to make an object publicly available for a
+        limited time.</p>
+
+        <p>Although all ACL combinations supported by Amazon S3 can
+        be managed using this dialog box, this is a complex topic
+        and we won't deal with it here. Please refer to Amazon's
+        technical documentation for more information about the use
+        of Access Control Lists.</p>
+
+        <h3><a name="filecomparisions"
+           id="filecomparisions">Automatic File
+           Comparisons</a></h3>
+
+        <p>Cockpit automatically compares files that are being
+        uploaded or downloaded with files in the destination to
+        detect clashes. When a file with the same name exists on
+        the target, Cockpit determines whether the file has
+        changed, and if so which version of the file is the most
+        recent.</p>
+
+        <p>Each file is given one of the following status
+        types:</p>
+
+        <ul>
+          <li>New File: The file does not exist in the
+          destination</li>
+
+          <li>Unchanged: The file is identical to the copy in the
+          destination</li>
+
+          <li>Changed: The file has been changed</li>
+        </ul>
+
+        <p>If there are Unchanged or Changed files, the <b>Replace
+        file(s)</b> dialog is displayed.</p>
+
+        <p><img src="cockpit_assets/FileComparisonsDialog.jpg"
+             alt=
+             "Picture of the File Comparisons Dialog window" /></p>
+
+        <p>This dialog allows you to choose which clashing files in
+        the destination should be replaced, if any. The options
+        available may include the following:</p>
+
+        <ul>
+          <li><b>Only upload/download new file(s)</b>: Only files
+          that do not already exist in the destination will be
+          uploaded or downloaded. No existing file will be
+          over-written.</li>
+
+          <li><b>Upload/download new and changed file(s)</b>: New
+          files and changed files will be transferred, but files
+          that are unchanged will not be transferred. Only
+          out-dated files will be over-written.</li>
+
+          <li><b>Upload/Download all files</b>: All the files will
+          be uploaded or downloaded, regardless of what files are
+          in the destination. Any existing files will be
+          over-written.</li>
+        </ul>
+
+        <p>File comparisons are performed using MD5 hashes of the
+        file contents.</p>
+
+        <h3><a name="signedurls"
+           id="signedurls">Signed GET URLs</a></h3>
+
+        <p>A private object stored in S3 can be made publicy
+        available for a limited time using a signed GET URL. The
+        signed URL can be used by anyone to download the object by
+        using the URL in their web browser, up until a chosen time
+        after which the URL will no longer work.</p>
+
+        <p>Time limited URLs are created using Object Menu item
+        <b>Generate Public GET URL...</b>. A dialog is displayed
+        prompting for the number of hours until the URL will
+        expire. This number can be a fraction, for example the
+        value 0.5 will create a URL which works for half an
+        hour.</p>
+
+        <p><img src="cockpit_assets/SignedGetURLDialog.jpg"
+             alt=
+             "Picture of the Signed GET URL Dialog window" /></p>
+
+        <p>After providing the number of hours the dialog box will
+        contain a lengthy URL. This URL will work in any web
+        browser, but only for the length of time you specified.
+        Send this URL to the person who needs the object.</p>
+
+        <h3><a name="config"
+           id="config">Advanced Configuration</a></h3>
+
+        <p>Users can configure Cockpit using the advanced
+        configuration files described in the <a href=
+        "../toolkit/configuration.html">Configuration</a>
+        section.</p>
+
+        <p>When Cockpit starts it looks for configuration files in
+        the directory <b>&lt;UserHome&gt;/.jets3t</b>. If this
+        directory exists and contains files called
+        <tt>jets3t.properties</tt> and/or <tt>mime.types</tt> it
+        will load the properties from these files, adding to or
+        replacing any default configurations.</p>
+
+        <p>Files in the user's home directory will be read whether
+        Cockpit is run in stand-alone more, or as an applet. This
+        configuration option is most useful for those users who run
+        Cockpit as an online applet, but wish to have more control
+        over their own settings.</p>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->
 
