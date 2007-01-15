@@ -165,6 +165,12 @@
 		<zip 
 			destfile="${dir.dist}/jets3t-${version}.zip"
 			basedir="${dir.dist}/jets3t-${version}"/>
+		
+		<!-- Copy Release Notes document to website directory -->
+		<copy
+			todir="${dir.website}">
+		    <fileset dir="." includes="RELEASE_NOTES.txt"/>
+		</copy>
 	</target>
 	
 	<target name="package-applets" depends="package-applet-cockpit,package-applet-uploader">
