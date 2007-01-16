@@ -28,11 +28,11 @@
 		<!-- Required parameters for any UrlSigner implementation -->
 		<init-param>
 			<param-name>AwsAccessKey</param-name>
-			<param-value><YourAWSAccessKey></param-value>
+			<param-value></param-value>
 		</init-param>
 		<init-param>
 			<param-name>AwsSecretKey</param-name>
-			<param-value><YourAWSSecretKey></param-value>
+			<param-value></param-value>
 		</init-param>
 		
 		<!-- Required parameters for DefaultUrlSigner -->
