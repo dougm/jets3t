@@ -348,7 +348,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
     }
     
     public void testACLManagement() throws Exception {
-        String s3Url = "http://s3.amazonaws.com";
+        String s3Url = "https://s3.amazonaws.com";
         
         // Access public "third-party" bucket
         S3Service anonymousS3Service = getS3Service(null);
@@ -365,7 +365,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String privateKey = "Private Object #1";
         object = new S3Object(bucket, privateKey, "Private object sample text");
         s3Service.putObject(bucket, object);
-        URL url = new URL(s3Url + "/" + bucketName + "/" + privateKey);
+        URL url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
         
@@ -381,7 +381,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         acl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
         object.setAcl(acl);
         s3Service.putObject(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + publicKey);
+        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
         assertEquals("Expected access (200)", 
                 200, ((HttpURLConnection)url.openConnection()).getResponseCode());
 
@@ -391,7 +391,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setKey(privateKey);
         object.setAcl(privateToPublicACL);
         s3Service.putObjectAcl(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey) + "?"); // ? is hack to outsmart Web page caching at my ISP...
+        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
         assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
             .getResponseCode());
 
@@ -410,7 +410,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setKey(publicKey);
         object.setAcl(publicToPrivateACL);
         s3Service.putObjectAcl(bucket, object);
-        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey) + "?"); // ? is hack to outsmart Web page caching at my ISP...
+        url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
 
@@ -611,7 +611,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
             originalName, renamedObject.getKey());
 
         // Ensure we can't get the object with a normal URL.
-        String s3Url = "http://s3.amazonaws.com";
+        String s3Url = "https://s3.amazonaws.com";
         URL url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(object.getKey()));
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
