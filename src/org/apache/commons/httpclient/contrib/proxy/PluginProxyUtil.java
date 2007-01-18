@@ -1,7 +1,7 @@
 /*
  * $HeadURL: https://svn.apache.org/repos/asf/jakarta/commons/proper/httpclient/branches/HTTPCLIENT_3_0_BRANCH/src/contrib/org/apache/commons/httpclient/contrib/proxy/PluginProxyUtil.java $
- * $Revision: 1.4 $
- * $Date: 2007/01/14 11:24:32 $
+ * $Revision: 1.5 $
+ * $Date: 2007/01/18 11:11:27 $
  *
  * ====================================================================
  *
@@ -204,7 +204,7 @@ public class PluginProxyUtil {
             throw e;
         } catch (Exception e) {
             LOG.debug("Sun Plugin 1.3.X proxy detection class not " +
-                     "found, will try failover detection", e);
+                     "found, will try failover detection" /*, e*/);
         }        
         return result;
     }
@@ -262,7 +262,7 @@ public class PluginProxyUtil {
             throw e;
         } catch (Exception e) { 
             LOG.debug("Sun Plugin 1.4+ proxy detection class not found, " +
-                     "will try failover detection", e);
+                     "will try failover detection" /*, e*/);
         }        
         return result;
     }
