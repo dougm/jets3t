@@ -189,7 +189,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
         
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
-            public boolean retryMethod(HttpMethod method, IOException ioe, int executionCount) {
+            public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
                 if (executionCount > retryMaxCount) {
                     log.warn("Retried connection " + executionCount 
                         + " times, which exceeds the maximum retry count of " + retryMaxCount);
@@ -200,6 +200,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     return false;
                 }
                 log.warn("Retrying request - attempt " + executionCount + " of " + retryMaxCount);
+                
+                // Build the authorization string for the method.
+                try {
+                    buildAuthorizationString(httpMethod);
+                } catch (S3ServiceException e) {
+                    log.warn("Unable to generate updated authorization string for retried request", e);
+                }
+                
                 return true;
             }
         });
@@ -249,13 +257,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     protected void performRequest(HttpMethodBase httpMethod, int expectedResponseCode) 
         throws S3ServiceException 
     {
-		// httpMethod.setRequestHeader("Cache-Control", "no-cache"); // TODO        
-        
         try {
             log.debug("Performing " + httpMethod.getName() 
                     + " request, expecting response code " + expectedResponseCode);
 
-            // Variables to manage occasional S3 Internal Server 500 errors.
+            // Variables to manage S3 Internal Server 500 errors.
             boolean completedWithoutRecoverableError = true;
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
@@ -263,6 +269,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             // Perform the request, sleeping and retrying when S3 Internal Errors are encountered.
             int responseCode = -1;
             do {
+                // Build the authorization string for the method.        
+                buildAuthorizationString(httpMethod);
+                
                 responseCode = httpClient.executeMethod(hostConfig, httpMethod);
 
                 if (responseCode == 500) {
@@ -312,15 +321,19 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                                 + " failed.", sb.toString());
                         
                         if ("RequestTimeout".equals(exception.getS3ErrorCode())) {
-                            if (requestTimeoutErrorCount < 3) { // TODO
+                            int retryMaxCount = Jets3tProperties
+                                .getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                                .getIntProperty("httpclient.retry-max", 5);                            
+                            
+                            if (requestTimeoutErrorCount < retryMaxCount) {
                                 requestTimeoutErrorCount++;                                
                                 log.warn("Retrying connection that failed with RequestTimeout error"
                                     + ", attempt number " + requestTimeoutErrorCount + " of " 
-                                    + 3); // TODO
+                                    + retryMaxCount);
                                 completedWithoutRecoverableError = false;
                             } else {
                                 log.warn("Exceeded maximum number of retries for RequestTimeout errors: "
-                                    + 3); // TODO
+                                    + retryMaxCount);
                                 throw exception;
                             }
                         } else if (responseCode == 500) {
@@ -489,9 +502,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     {
         HttpMethodBase httpMethod = setupConnection("HEAD", bucketName, objectKey, requestParameters);
         
-        // Add authorization header.
-        buildAuthorizationString(httpMethod);
-        
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
         
@@ -520,9 +530,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         Map requestParameters, Map requestHeaders) throws S3ServiceException 
     {
         HttpMethodBase httpMethod = setupConnection("GET", bucketName, objectKey, requestParameters);
-        
-        // Add authorization header.
-        buildAuthorizationString(httpMethod);
         
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
@@ -566,9 +573,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         Map renamedMetadata = RestUtils.renameMetadataKeys(metadata);
         addMetadataToHeaders(httpMethod, renamedMetadata);
 
-		// Build the authorization string for the method.        
-        buildAuthorizationString(httpMethod);
-
         long contentLength = 0;
         
         if (requestEntity != null) {
@@ -602,7 +606,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      */
     protected HttpMethodBase performRestDelete(String bucketName, String objectKey) throws S3ServiceException {        
         HttpMethodBase httpMethod = setupConnection("DELETE", bucketName, objectKey, null);
-        buildAuthorizationString(httpMethod);
 
         performRequest(httpMethod, 204);
 
@@ -681,7 +684,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      *        the request object
      * @throws S3ServiceException
      */
-    protected void buildAuthorizationString(HttpMethodBase httpMethod) throws S3ServiceException {
+    protected void buildAuthorizationString(HttpMethod httpMethod) throws S3ServiceException {
         if (isAuthenticatedConnection()) {
             log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
         } else {
