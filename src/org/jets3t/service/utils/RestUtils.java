@@ -112,10 +112,9 @@ public class RestUtils {
     }
     
     /**
-     * Calculate the canonical string.  When expires is non-null, it will be
-     * used instead of the Date header.
+     * Calculate the canonical string for a REST/HTTP request to S3.  
      * 
-     * (c) 2006 Amazon Digital Services, Inc. or its affiliates.
+     * When expires is non-null, it will be used instead of the Date header.
      */
     public static String makeCanonicalString(String method, String resource, Map headersMap, String expires)
     {
@@ -144,12 +143,13 @@ public class RestUtils {
             }
         }
 
+        // Remove default date timestamp if "x-amz-date" is set. 
         if (interestingHeaders.containsKey(Constants.REST_METADATA_ALTERNATE_DATE)) {
             interestingHeaders.put("date", "");
         }
 
-        // if the expires is non-null, use that for the date field.  this
-        // trumps the x-amz-date behavior.
+        // Use the expires value as the timestamp if it is available. This trumps both the default
+        // "date" timestamp, and the "x-amz-date" header.
         if (expires != null) {
             interestingHeaders.put("date", expires);
         }
