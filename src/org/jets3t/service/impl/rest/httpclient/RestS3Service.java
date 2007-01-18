@@ -699,6 +699,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             fullUrl += "?" + queryString;
         }
         
+        // Set/update the date timestamp to the current time 
+        // Note that this will be over-ridden if an "x-amz-date" header is present.
+        httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(new Date()));
+        
         // Generate a canonical string representing the operation.
         String canonicalString = RestUtils.makeCanonicalString(
                 httpMethod.getName(), fullUrl,
@@ -894,7 +898,12 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     
     public S3Bucket createBucketImpl(String bucketName, AccessControlList acl) 
         throws S3ServiceException 
-    {        
+    {
+        if (isBucketAccessible(bucketName)) {
+            log.debug("Bucket with name '" + bucketName + "' already exists, it will not be created");
+            return new S3Bucket(bucketName);
+        } 
+        
         log.debug("Creating bucket with name: " + bucketName);
         Map map = createObjectImpl(bucketName, null, null, null, null, acl);
         
