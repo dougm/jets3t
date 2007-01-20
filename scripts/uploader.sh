@@ -39,8 +39,8 @@ else
   EXEC=$JAVA_HOME/bin/java
 fi
 
-echo "JetS3t path: $JETS3T_HOME"
-echo "Java path: $EXEC"
+# echo "JetS3t path: $JETS3T_HOME"
+# echo "Java path: $EXEC"
 
 # -------------------------------------------------------------------
 

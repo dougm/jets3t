@@ -44,8 +44,8 @@ set EXEC="%JAVA_HOME%\bin\java"
 
 :noJavaHome
 
-echo JetS3t path: %MY_JETS3T_HOME%
-echo Java path: %EXEC%
+rem echo JetS3t path: %MY_JETS3T_HOME%
+rem echo Java path: %EXEC%
 
 rem -------------------------------------------------------------------
 
