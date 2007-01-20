@@ -41,15 +41,23 @@ import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.multithread.CreateObjectsEvent;
+import org.jets3t.service.multithread.DeleteObjectsEvent;
+import org.jets3t.service.multithread.DownloadObjectsEvent;
 import org.jets3t.service.multithread.DownloadPackage;
+import org.jets3t.service.multithread.GetObjectHeadsEvent;
 import org.jets3t.service.multithread.S3ServiceEventAdaptor;
 import org.jets3t.service.multithread.S3ServiceMulti;
+import org.jets3t.service.multithread.ServiceEvent;
+import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
+import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.TimeFormatter;
 
 /**
  * Console application to synchronize the local file system with Amazon S3.
@@ -70,6 +78,11 @@ public class Synchronize {
     private boolean isGzipEnabled = false; // Files will be gzipped prior to upload if true.
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
     private String cryptoPassword = null;
+
+    private final ByteFormatter byteFormatter = new ByteFormatter();
+    private final TimeFormatter timeFormatter = new TimeFormatter();
+    private int maxTemporaryStringLength = 0;
+
     
     /**
      * Constructs the application with a pre-initialised S3Service and the user-specified options.
@@ -284,15 +297,55 @@ public class Synchronize {
             return new DownloadPackage(object, fileTarget, isZipped, encryptionUtil);                        
         }        
     }
+
+    private String formatTransferDetails(ThreadWatcher watcher) {
+        String detailsText = "";
+        if (watcher.isBytesPerSecondAvailable()) {
+            long bytesPerSecond = watcher.getBytesPerSecond();
+            detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
+        }
+        if (watcher.isTimeRemainingAvailable()) {
+            if (detailsText.trim().length() > 0) {
+                detailsText += " - ";
+            }
+            long secondsRemaining = watcher.getTimeRemaining();
+            detailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining);
+        }
+        return detailsText;
+    }
+    
+    private void printLine(String line) {
+        printLine(line, false);
+    }
     
     /**
      * Prints text to StdOut provided the isQuiet flag is not set.
      * 
      * @param line the text to print
+     * @param isTemporary
+     * if true, the line is printed followed by a carriage return such
+     * that the next line output to the console will overwrite it.
      */
-    private void printLine(String line) {
+    private void printLine(String line, boolean isTemporary) {
         if (!isQuiet) {
-            System.out.println(line);
+            if (isTemporary) {
+                String temporaryLine = "  " + line;                
+                if (temporaryLine.length() > maxTemporaryStringLength) {
+                    maxTemporaryStringLength = temporaryLine.length();
+                }
+                String blanks = "";
+                for (int i = temporaryLine.length(); i < maxTemporaryStringLength; i++) {
+                    blanks += " ";
+                }
+                System.out.print(temporaryLine + blanks + "\r");
+            } else {
+                String blanks = "";
+                for (int i = line.length(); i < maxTemporaryStringLength; i++) {
+                    blanks += " ";
+                }
+                System.out.println(line + blanks);
+                maxTemporaryStringLength = 0;
+            }
         }
     }
     
@@ -377,14 +430,13 @@ public class Synchronize {
                     + ". Sorry, this is a program error - aborting to keep your data safe");
             }
         }
-        
+                
         // Upload New/Updated/Forced/Replaced objects to S3.
         if (doAction && objectsToUpload.size() > 0) {
             S3Object[] objects = (S3Object[]) objectsToUpload.toArray(new S3Object[objectsToUpload.size()]);
-            S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
-            (new S3ServiceMulti(s3Service, adaptor)).putObjects(bucket, objects);
-            if (adaptor.wasErrorThrown()) {
-                Throwable thrown = adaptor.getErrorThrown();
+            (new S3ServiceMulti(s3Service, serviceEventAdaptor)).putObjects(bucket, objects);
+            if (serviceEventAdaptor.wasErrorThrown()) {
+                Throwable thrown = serviceEventAdaptor.getErrorThrown();
                 if (thrown instanceof Exception) {
                     throw (Exception) thrown;
                 } else {
@@ -394,6 +446,7 @@ public class Synchronize {
         }
         
         // Delete objects on S3 that don't correspond with local files.
+        List objectsToDelete = new ArrayList();
         Iterator serverOnlyIter = disrepancyResults.onlyOnServerKeys.iterator();
         while (serverOnlyIter.hasNext()) {
             String keyPath = (String) serverOnlyIter.next();
@@ -404,7 +457,19 @@ public class Synchronize {
             } else {
                 printLine("D " + keyPath);
                 if (doAction) {
-                    s3Service.deleteObject(bucket, s3Object.getKey());
+                    objectsToDelete.add(s3Object);
+                }
+            }
+        }
+        if (objectsToDelete.size() > 0) {
+            S3Object[] objects = (S3Object[]) objectsToDelete.toArray(new S3Object[objectsToDelete.size()]);
+            (new S3ServiceMulti(s3Service, serviceEventAdaptor)).deleteObjects(bucket, objects);
+            if (serviceEventAdaptor.wasErrorThrown()) {
+                Throwable thrown = serviceEventAdaptor.getErrorThrown();
+                if (thrown instanceof Exception) {
+                    throw (Exception) thrown;
+                } else {
+                    throw new Exception(thrown);
                 }
             }
         }
@@ -513,10 +578,9 @@ public class Synchronize {
         if (doAction && downloadPackagesList.size() > 0) {
             DownloadPackage[] downloadPackages = (DownloadPackage[]) 
                 downloadPackagesList.toArray(new DownloadPackage[downloadPackagesList.size()]);
-            S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
-            (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, downloadPackages);
-            if (adaptor.wasErrorThrown()) {
-                Throwable thrown = adaptor.getErrorThrown();
+            (new S3ServiceMulti(s3Service, serviceEventAdaptor)).downloadObjects(bucket, downloadPackages);
+            if (serviceEventAdaptor.wasErrorThrown()) {
+                Throwable thrown = serviceEventAdaptor.getErrorThrown();
                 if (thrown instanceof Exception) {
                     throw (Exception) thrown;
                 } else {
@@ -657,10 +721,10 @@ public class Synchronize {
             filesMap = FileComparer.buildFileMap((File) fileList.get(0), null);
         }
 
-        S3ServiceEventAdaptor errorCatchingAdaptor = new S3ServiceEventAdaptor();
-        Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath, errorCatchingAdaptor);
-        if (errorCatchingAdaptor.wasErrorThrown()) {
-            throw new Exception("Unable to build map of S3 Objects", errorCatchingAdaptor.getErrorThrown());
+        printLine("Listing objects in S3", true);
+        Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath, serviceEventAdaptor);
+        if (serviceEventAdaptor.wasErrorThrown()) {
+            throw new Exception("Unable to build map of S3 Objects", serviceEventAdaptor.getErrorThrown());
         }
         
         FileComparerResults discrepancyResults = FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap);
@@ -672,6 +736,54 @@ public class Synchronize {
             restoreFromS3ToLocalDirectory(discrepancyResults, filesMap, s3ObjectsMap, objectPath, (File) fileList.get(0), bucket);
         }
     }
+    
+    S3ServiceEventAdaptor serviceEventAdaptor = new S3ServiceEventAdaptor() {
+        private void displayProgressStatus(String prefix, ThreadWatcher watcher) {
+            String statusText = prefix + watcher.getCompletedThreads() + "/" + watcher.getThreadCount();                    
+            
+            // Show percentage of bytes transferred, if this info is available.
+            if (watcher.isBytesTransferredInfoAvailable()) {
+                String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
+                long percentage = (int) 
+                    (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
+                
+                String detailsText = formatTransferDetails(watcher);
+                
+                statusText += " - " + percentage + "% of " + bytesTotalStr 
+                    + (detailsText.length() > 0 ? " (" + detailsText + ")" : "");
+            } else {
+                long percentage = (int) 
+                    (((double)watcher.getCompletedThreads() / watcher.getThreadCount()) * 100);
+                
+                statusText += " - " + percentage + "%";                
+            }
+            printLine(statusText, true);                
+        }
+        
+        public void s3ServiceEventPerformed(CreateObjectsEvent event) {
+            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                displayProgressStatus("Uploading: ", event.getThreadWatcher());                    
+            }
+        }
+        
+        public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
+            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                displayProgressStatus("Downloading: ", event.getThreadWatcher());                    
+            }
+        }
+        
+        public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
+            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
+                displayProgressStatus("Retrieving object details from S3: ", event.getThreadWatcher());
+            }
+        }
+        
+        public void s3ServiceEventPerformed(DeleteObjectsEvent event) {
+            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
+                displayProgressStatus("Deleting objects in S3: ", event.getThreadWatcher());
+            }
+        }
+    };
 
     /**
      * Prints usage/help information and forces the application to exit with errorcode 1. 

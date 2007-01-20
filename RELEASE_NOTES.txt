@@ -20,6 +20,7 @@ COCKPIT
 
 SYNCHONIZE
 
+- Progress status messages are displayed for long-running processes.
 - Files being sent to s3 are only opened when necessary, removing the potential
   for too many files to be open at once (exceeding an Operating System 
   imposed limit).
