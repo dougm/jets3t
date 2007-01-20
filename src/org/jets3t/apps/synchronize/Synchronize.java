@@ -309,7 +309,7 @@ public class Synchronize {
                 detailsText += " - ";
             }
             long secondsRemaining = watcher.getTimeRemaining();
-            detailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining);
+            detailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining, false);
         }
         return detailsText;
     }

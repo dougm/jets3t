@@ -26,8 +26,8 @@ package org.jets3t.service.utils;
 public class TimeFormatter {
 
     /**
-     * Formats a seconds time value into a brief representation: <code>h:mm:ss</code>.
-     * If the time value is less than one hour, the hours component will not be displayed.
+     * Formats a seconds time value into a brief representation, such as <code>37 minutes</code>.
+     * Unicode characters are used to represent 1/4, 1/2 and 3/4 fractions.
      * 
      * @param seconds
      * the number of seconds time value.
@@ -36,6 +36,22 @@ public class TimeFormatter {
      * a representation of the time.
      */
     public String formatTime(long seconds) {
+        return formatTime(seconds, true);
+    }
+    
+    /**
+     * Formats a seconds time value into a brief representation, such as <code>37 minutes</code>.
+     * 
+     * @param seconds
+     * the number of seconds time value.
+     * @param useUnicodeChars
+     * if true, special unicode characters are used to represent 1/4, 1/2 and 3/4 fractions. 
+     * If false, the fractions are displayed in standard text.
+     * 
+     * @return
+     * a representation of the time.
+     */
+    public String formatTime(long seconds, boolean useUnicodeChars) {
         int hours = 0;
         if (seconds > 3600) {
             hours = (int) seconds / 3600;
@@ -49,11 +65,23 @@ public class TimeFormatter {
             if (mins > 45) {
                 return (hours + 1) + " hours";
             } else if (mins > 30) {
-                return hours + "\u00BE hours"; // Three quarters               
+                if (useUnicodeChars) {
+                    return hours + "\u00BE hours"; // Three quarters
+                } else {
+                    return hours + " 3/4 hours";
+                }
             } else if (mins > 15) {
-                return hours + "\u00BD hours"; // One half               
+                if (useUnicodeChars) {
+                    return hours + "\u00BD hours"; // One half               
+                } else {
+                    return hours + " 1/2 hours";
+                }
             } else if (mins > 0) {
-                return hours + "\u00BC hours"; // One quarter               
+                if (useUnicodeChars) {
+                    return hours + "\u00BC hours"; // One quarter               
+                } else {
+                    return hours + " 1/4 hours";
+                }
             } else {
                 return hours + " hour" + (hours > 1? "s" : "");                
             }
@@ -61,11 +89,23 @@ public class TimeFormatter {
             if (seconds > 45) {
                 return (mins + 1) + " minutes";
             } else if (seconds > 30) {
-                return mins + "\u00BE minutes"; // Three quarters
+                if (useUnicodeChars) {
+                    return mins + "\u00BE minutes"; // Three quarters
+                } else {
+                    return mins + " 3/4 minutes";
+                }
             } else if (seconds > 15) {
-                return mins + "\u00BD minutes"; // One half
+                if (useUnicodeChars) {
+                    return mins + "\u00BD minutes"; // One half
+                } else {
+                    return mins + " 1/2 minutes";                    
+                }
             } else if (seconds > 0) {
-                return mins + "\u00BC minutes"; // One quarter
+                if (useUnicodeChars) {
+                    return mins + "\u00BC minutes"; // One quarter
+                } else {
+                    return mins + " 1/4 minutes";
+                }
             } else {
                 return mins + " minute" + (mins > 1? "s" : "");
             }
