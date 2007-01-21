@@ -10,7 +10,8 @@ import org.safehaus.uuid.UUID;
 import org.safehaus.uuid.UUIDGenerator;
 
 /**
- * Generates UUIDs in a way specific to the MIR Uploader use case.
+ * Uses an externally provided UUID obtained from an application property <tt>externalUUID</tt>
+ * when this is available. If not, a random-based UUID is created.
  *  
  * @author James Murty
  */
