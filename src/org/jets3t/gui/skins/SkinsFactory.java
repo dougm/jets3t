@@ -43,8 +43,8 @@ import org.jets3t.gui.JHtmlLabel;
  * instantiate a generic GUI class instead</li>
  * </ol>
  * <p>
- * Skinned classes are specially-named extensions to standard Swing classes, which must have with a 
- * constructor of the form <code>public SkinnedJButton(Properties skinProperties, String itemName)</code>.
+ * Skinned classes are specially-named extensions to standard Swing classes, which must have a 
+ * constructor of the form <br><code>public SkinnedJButton(Properties skinProperties, String itemName)</code>.
  * This constructor allows skinned GUI elements to change their look or behaviour based on any 
  * skin-specific properties that are provided, or based on the name of a specific GUI element.
  * <p>
@@ -103,7 +103,7 @@ public class SkinsFactory {
     }
     
     /**
-     * Provides a skin factory and initialised with skin-specific properties from the provided 
+     * Provides a skin factory initialised with skin-specific properties from the provided 
      * properties set. Skin-specific properties are identified as those properties with the 
      * prefix <code>skin.<i>&lt;skinName&gt;</i>.</code>
      * 

@@ -19,7 +19,8 @@
 package org.jets3t.service.multithread;
 
 /**
- * Listener for events produced by {@link S3ServiceMulti}.
+ * Listener for events produced by {@link S3ServiceMulti}, where each event type is represented
+ * by an object passed to the <tt>s3ServiceEventPerformed</tt> method.
  * 
  * @author James Murty
  */

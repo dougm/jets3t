@@ -21,7 +21,7 @@ package org.jets3t.service.acl;
 /**
  * Represents an access permission, as granted to grantees in an {@link AccessControlList}.
  * Only a limited set of permissions are available, each one is available as a public static
- * variable of the form PERMISSION_XYZ.  
+ * variable in this class of the form PERMISSION_XYZ.  
  *  
  * @author James Murty
  */
@@ -40,7 +40,7 @@ public class Permission {
     
     /**
      * @param str
-     *        a string representation of a permission, eg <tt>FULL_CONTROL</tt>
+     * a string representation of a permission, eg <tt>FULL_CONTROL</tt>
      * @return
      * the Permission object represented by the given permission string 
      */

@@ -59,6 +59,12 @@ public class S3Bucket extends BaseS3Object {
 		return (Date) getMetadata(METADATA_HEADER_CREATION_DATE);
 	}
 	
+    /**
+     * Set's the bucket's creation date in S3 - this should only be used internally by JetS3t
+     * methods that retrieve information directly from S3.
+     * 
+     * @param creationDate
+     */
 	public void setCreationDate(Date creationDate) {
 		addMetadata(METADATA_HEADER_CREATION_DATE, creationDate);
 	}

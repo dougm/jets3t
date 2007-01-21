@@ -16,6 +16,11 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
 
+/**
+ * An Error dialog that displays information about an error that has occurred.
+ * 
+ * @author James Murty
+ */
 public class ErrorDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -1913801256028107392L;
 
@@ -140,6 +145,22 @@ public class ErrorDialog extends JDialog implements ActionListener {
         return detailsText.toString();
     }
     
+    /**
+     * Shows the error dialog and waits for the user to acknowledge the dialog.
+     * <p>
+     * If the JetS3t property <tt>gui.verboseErrorDialog</tt> is set to true, this dialog will 
+     * display detailed information about the root cause of the error (the throwable, if provided)
+     * </p>
+     *
+     * @param ownerFrame
+     * the frame that will own the dialog
+     * @param hyperlinkListener
+     * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     * @param message
+     * a general error message, which should ideally be somewhat user-friendly.
+     * @param throwable
+     * the underlying exception that caused the error. 
+     */
     public static void showDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener,
         String message, Throwable throwable) 
     {
@@ -149,6 +170,22 @@ public class ErrorDialog extends JDialog implements ActionListener {
         dialog.dispose();
     }
 
+    /**
+     * Shows the error dialog and waits for the user to acknowledge the dialog.
+     * <p>
+     * If the JetS3t property <tt>gui.verboseErrorDialog</tt> is set to true, this dialog will 
+     * display detailed information about the root cause of the error (the throwable, if provided)
+     * </p>
+     *
+     * @param ownerDialog
+     * the dialog that will own this dialog
+     * @param hyperlinkListener
+     * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     * @param message
+     * a general error message, which should ideally be somewhat user-friendly.
+     * @param throwable
+     * the underlying exception that caused the error. 
+     */
     public static void showDialog(JDialog ownerDialog, HyperlinkActivatedListener hyperlinkListener,
         String message, Throwable throwable) 
     {

@@ -38,40 +38,40 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
 
     /**
      * Construts the input stream around an underlying stream and sends notification messages
-     * to a listener at intervals.
+     * to a watcher at intervals.
      * 
      * @param inputStream
      *        the input stream to wrap, whose byte transfer count will be monitored.
-     * @param bytesTransferredListener
-     *        a notification listener
+     * @param bytesTransferredWatcher
+     *        a notification watcher
      * @param minimumBytesBeforeNotification
      *        the minimum number of bytes that must be transferred before a notification will be triggered
      */
     public ProgressMonitoredInputStream(InputStream inputStream, 
-        BytesTransferredWatcher bytesTransferredListener, long minimumBytesBeforeNotification) 
+        BytesTransferredWatcher bytesTransferredWatcher, long minimumBytesBeforeNotification) 
     {
         if (inputStream == null) {
             throw new IllegalArgumentException(
                 "ProgressMonitoredInputStream cannot run with a null InputStream");
         }
         this.inputStream = inputStream;
-        this.bytesTransferredWatcher = bytesTransferredListener;
+        this.bytesTransferredWatcher = bytesTransferredWatcher;
         this.minimumBytesBeforeNotification = minimumBytesBeforeNotification;
     }
 
     /**
      * Construts the input stream around an underlying stream and sends notification messages
-     * to a listener at minimum byte intervals of 1024.
+     * to a watcher at minimum byte intervals of 1024.
      * 
      * @param inputStream
      *        the input stream to wrap, whose byte transfer count will be monitored.
-     * @param bytesTransferredListener
-     *        a notification listener
+     * @param bytesTransferredWatcher
+     *        a notification watcher
      */
     public ProgressMonitoredInputStream(InputStream inputStream, 
-        BytesTransferredWatcher bytesTransferredListener) 
+        BytesTransferredWatcher bytesTransferredWatcher) 
     {
-        this(inputStream, bytesTransferredListener, 1024);
+        this(inputStream, bytesTransferredWatcher, 1024);
     }
 
     /**
@@ -84,7 +84,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         bytesTransferredTotal += bytesTransmitted;
         
         if (bytesTransferredWatcher != null) {
-            // Notify listener if more than the minimum number of bytes have been transferred since last
+            // Notify watcher if more than the minimum number of bytes have been transferred since last
             // time, or if a negative update value is received (ie if a transmission is being retried)
             long bytesSinceLastUpdate = bytesTransferredTotal - bytesTransferredLastUpdate;
             if (bytesSinceLastUpdate > minimumBytesBeforeNotification || bytesSinceLastUpdate < 0) {

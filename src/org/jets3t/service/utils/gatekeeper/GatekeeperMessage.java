@@ -19,7 +19,6 @@
 package org.jets3t.service.utils.gatekeeper;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -31,61 +30,130 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * 
+ * Represents a set of properties that will be sent to or received from a Gatekeeper service as
+ * a message document. This class includes utility methods to generate and parse plain text 
+ * encodings of messages.
+ * <p>
+ * For more information about the Gatekeeper message format, please see:
+ * <a href="http://jets3t-test.s3.amazonaws.com/applications/gatekeeper-concepts.html">
+ * Gatekeeper Concepts</a>
  * 
  * @author James Murty
  */
 public class GatekeeperMessage {
     private static final Log log = LogFactory.getLog(GatekeeperMessage.class);
     
-    private static final String DELIM = "|";
+    /**
+     * All message property names are delimited with a vertical bar (<tt>|</tt>).
+     */
+    public static final String DELIM = "|";
     
-    public static final String PROPERTY_TRANSACTION_ID = "transactionId";
+    /**
+     * The property name for message-specific transaction IDs: transactionId  
+     */
+    public static final String PROPERTY_TRANSACTION_ID = "transactionId";        
+    
+    /**
+     * A flag name used to indicate when an S3Object is a summary XML document, as generated
+     * by the Uploader application.
+     */
     public static final String SUMMARY_DOCUMENT_METADATA_FLAG = "jets3t-uploader-summary-doc";
     
     private Properties applicationProperties = new Properties();
     private Properties messageProperties = new Properties(); 
     private List signatureRequestList = new ArrayList();
     
-    
+    /**
+     * Constructs a message with no properties.
+     */
     public GatekeeperMessage() {        
     }
     
+    /**
+     * Adds a Signature Request to the message, indicating a request that a particular
+     * operation be allowed on a particular object. 
+     * 
+     * @param signatureRequest
+     */
     public void addSignatureRequest(SignatureRequest signatureRequest) {
         signatureRequestList.add(signatureRequest);
     }
     
+    /**
+     * Adds multiple signature requests to the message.
+     * 
+     * @param signatureRequests
+     */
     public void addSignatureRequests(SignatureRequest[] signatureRequests) {
         for (int i = 0; i < signatureRequests.length; i++) {
             addSignatureRequest(signatureRequests[i]);
         }
     }
     
+    /**
+     * Returns the signature requests in a message. When this method is called on a request message,
+     * this list will include only the requested operations. When this method is called on a 
+     * message that is a response from a Gatekeeper service, the resulting list will include the
+     * signed URLs or reasons why requests were declined. 
+     * 
+     * @return
+     * the set of signature requests in this message.
+     */
     public SignatureRequest[] getSignatureRequests() {
         return (SignatureRequest[]) signatureRequestList
             .toArray(new SignatureRequest[signatureRequestList.size()]);
     }
     
+    /**
+     * Adds an application-specific property to the message.
+     * 
+     * @param propertyName
+     * @param propertyValue
+     */
     public void addApplicationProperty(String propertyName, String propertyValue) {
         applicationProperties.put(propertyName, propertyValue);
     }
     
+    /**
+     * Adds a set of application-specific properties to the message.
+     * 
+     * @param propertiesMap
+     */
     public void addApplicationProperties(Map propertiesMap) {
         applicationProperties.putAll(propertiesMap);
     }
     
+    /**
+     * @return
+     * the application-specific properties in this message.
+     */
     public Properties getApplicationProperties() {
         return applicationProperties;
     }
     
+    /**
+     * Adds a message-specific property to the message.
+     * 
+     * @param propertyName
+     * @param propertyValue
+     */
     public void addMessageProperty(String propertyName, String propertyValue) {
         messageProperties.put(propertyName, propertyValue);
     }
     
+    /**
+     * Adds a set of message-specific properties to the message.
+     * 
+     * @param propertiesMap
+     */
     public void addMessageProperties(Map propertiesMap) {
         messageProperties.putAll(propertiesMap);
     }
         
+    /**
+     * @return
+     * the message-specific properties in this message.
+     */
     public Properties getMessageProperties() {
         return messageProperties;
     }
@@ -97,6 +165,13 @@ public class GatekeeperMessage {
         }        
     }
         
+    /**
+     * Encodes a Gatekeeper message as a properties object, with all signature requests identified
+     * with a unique zero-based index number.
+     *  
+     * @return
+     * all the properties of the message.
+     */
     public Properties encodeToProperties() {
         log.debug("Encoding GatekeeperMessage to properties");
         
@@ -147,6 +222,15 @@ public class GatekeeperMessage {
         return encodedProperties;
     }
     
+    /**
+     * Decodes (parses) a Gatekeeper message from the given properties. Any properties that are
+     * not part of the message format are ignored.  
+     * 
+     * @param postProperties
+     * 
+     * @return
+     * a Gatekeeper message object representing the contents of the properties.
+     */
     public static GatekeeperMessage decodeFromProperties(Map postProperties) {
         log.debug("Decoding GatekeeperMessage from properties");
         
@@ -226,29 +310,27 @@ public class GatekeeperMessage {
         return gatekeeperMessage;
     }
     
-
     
-    // TODO Remove after testing...
-    public static void main(String[] args) {        
-        SignatureRequest requests[] = new SignatureRequest[12];
-        for (int i = 0; i < requests.length; i++) {
-            requests[i] = new SignatureRequest(SignatureRequest.SIGNATURE_TYPE_PUT, "Request " + i);
-            requests[i].addObjectMetadata("object-index", String.valueOf(i));
-        }
-        
-        GatekeeperMessage request = new GatekeeperMessage();
-        request.addSignatureRequests(requests);
-        request.addMessageProperty("id", "123");
-        request.addMessageProperty("date", (new Date()).toString());
-        request.addApplicationProperty("username", "jmurty");
-        
-        System.err.println("=== Original WRITE");
-        Properties properties = request.encodeToProperties();
-        
-        GatekeeperMessage response = GatekeeperMessage.decodeFromProperties(properties);
-        
-        System.err.println("=== Second WRITE");
-        response.encodeToProperties();
-    }
+//    public static void main(String[] args) {        
+//        SignatureRequest requests[] = new SignatureRequest[12];
+//        for (int i = 0; i < requests.length; i++) {
+//            requests[i] = new SignatureRequest(SignatureRequest.SIGNATURE_TYPE_PUT, "Request " + i);
+//            requests[i].addObjectMetadata("object-index", String.valueOf(i));
+//        }
+//        
+//        GatekeeperMessage request = new GatekeeperMessage();
+//        request.addSignatureRequests(requests);
+//        request.addMessageProperty("id", "123");
+//        request.addMessageProperty("date", (new Date()).toString());
+//        request.addApplicationProperty("username", "jmurty");
+//        
+//        System.err.println("=== Original WRITE");
+//        Properties properties = request.encodeToProperties();
+//        
+//        GatekeeperMessage response = GatekeeperMessage.decodeFromProperties(properties);
+//        
+//        System.err.println("=== Second WRITE");
+//        response.encodeToProperties();
+//    }
     
 }

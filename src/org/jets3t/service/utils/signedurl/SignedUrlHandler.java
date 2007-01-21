@@ -24,9 +24,14 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.model.S3Object;
 
 /**
- * Interface for classes that can manage objects in S3 using only signed URLs. Such a class nees no
- * knowledge of S3 as such, but merely has to be able to perform the HTTP PUT, GET, HEAD or DELETE
- * operation corresponding to the signed URL.
+ * An interface implemented by JetS3t services or utilities that can perform operations on objects 
+ * in S3 using only signed URLs - that is, without any knowledge of the user's AWS credentials.
+ * <p>
+ * Implementation classes need no knowledge of S3 as such, but merely have to be able to perform 
+ * standard HTTP requests for PUT, GET, HEAD and DELETE operation using signed URLs.
+ * <p>
+ * The {@link org.jets3t.service.impl.rest.httpclient.RestS3Service} implements this interface
+ * using the HttpClient library.
  * 
  * @author James Murty
  */

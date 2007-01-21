@@ -26,12 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.ButtonGroup;
-import javax.swing.JComboBox;
-import javax.swing.JPasswordField;
-import javax.swing.JRadioButton;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -48,16 +42,6 @@ import org.w3c.dom.Element;
  * by the Uploader. The XML document includes metadata for user inputs, 
  * inputs sourced from applet parameter tags, and additional information 
  * available from the uploader such as filenames and generated UUID.
- * <p>
- * XML documents produced by this class have the following format:<br>
- * <tt>
- * &ltUploader uploadDate="2006-11-07T10:37:53.077Z" version="1.0">
- * &ltProperty name="AspectRatio" source="userinput">&lt![CDATA[4:3]]>&lt/Property>
- * &ltProperty name="title" source="parameter">&lt![CDATA[A great title]]>&lt/Property>
- * &ltProperty name="originalFilename" source="uploader">&lt![CDATA[jug-asl-2.0.0 copy.jar.avi]]>&lt/Property>
- * &ltProperty name="uploaderUUID" source="uploader">&lt![CDATA[c759568f-f238-3972-82fd-f07ed7baa400]]>&lt/Property>
- * &lt/Uploader>
- * </tt>
  *   
  * @author James Murty
  */
@@ -68,27 +52,50 @@ public class XmlGenerator {
     private Map applicationProperties = new HashMap();
     private Map messageProperties = new HashMap();
     
-    public void addObjectRequestDetails(String key, String bucketName, Map metadata, 
+    /**
+     * Add a signature request item to the XML document to store the request, and details about 
+     * the object the request was related to. 
+     * 
+     * @param key
+     * the key name of the object the signature request applies to.
+     * @param bucketName
+     * the bucket containing the object.
+     * @param metadata
+     * the object's metadata
+     * @param signatureRequest
+     * the signature request for the object.
+     */
+    public void addSignatureRequest(String key, String bucketName, Map metadata, 
         SignatureRequest signatureRequest) 
     {
-        objectRequestList.add(new ObjectRequestDetails(key, bucketName, metadata, signatureRequest));
+        objectRequestList.add(new ObjectAndSignatureRequestDetails(key, bucketName, metadata, signatureRequest));
     }
     
+    /**
+     * Add application-specific properties to the XML document.
+     * 
+     * @param properties
+     */
     public void addApplicationProperties(Map properties) {
         applicationProperties.putAll(properties);
     }
     
+    /**
+     * Add message-specific properties to the XML document.
+     * 
+     * @param properties
+     */
     public void addMessageProperties(Map properties) {
         messageProperties.putAll(properties);
     }
     
-    private class ObjectRequestDetails {
+    private class ObjectAndSignatureRequestDetails {
         public String key = null;
         public String bucketName = null;        
         public Map metadata = null;
         public SignatureRequest signatureRequest = null;
         
-        public ObjectRequestDetails(String key, String bucketName, Map metadata, 
+        public ObjectAndSignatureRequestDetails(String key, String bucketName, Map metadata, 
             SignatureRequest signatureRequest) 
         {
             this.key = key;
@@ -135,10 +142,10 @@ public class XmlGenerator {
         }
         
         // Add Object request details to XML document.
-        ObjectRequestDetails[] details = (ObjectRequestDetails[]) objectRequestList
-            .toArray(new ObjectRequestDetails[objectRequestList.size()]);
+        ObjectAndSignatureRequestDetails[] details = (ObjectAndSignatureRequestDetails[]) objectRequestList
+            .toArray(new ObjectAndSignatureRequestDetails[objectRequestList.size()]);
         for (int i = 0; i < details.length; i++) {
-            ObjectRequestDetails objectDetails = details[i];
+            ObjectAndSignatureRequestDetails objectDetails = details[i];
             rootElem.appendChild(createSignatureRequestElement(document, objectDetails));
         }
         
@@ -183,7 +190,14 @@ public class XmlGenerator {
         return propertyElem;        
     }
     
-    private Element createSignatureRequestElement(Document document, ObjectRequestDetails details) {
+    /**
+     * Creates a SignatureRequest document element.
+     * 
+     * @param document
+     * @param details
+     * @return
+     */
+    private Element createSignatureRequestElement(Document document, ObjectAndSignatureRequestDetails details) {
         SignatureRequest request = details.signatureRequest;
         
         Element requestElem = document.createElement("SignatureRequest");
@@ -205,6 +219,16 @@ public class XmlGenerator {
         return requestElem;        
     }
     
+    /**
+     * Creates and element to contain information about an object. 
+     * 
+     * @param document
+     * @param key
+     * @param bucketName
+     * @param metadata
+     * @param elementName
+     * @return
+     */
     private Element createObjectElement(Document document, String key, String bucketName, Map metadata, String elementName) {
         Element objectElement = document.createElement(elementName);
         objectElement.setAttribute("key", key);

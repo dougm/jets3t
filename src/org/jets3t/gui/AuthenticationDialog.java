@@ -38,8 +38,8 @@ import javax.swing.KeyStroke;
 
 
 /**
- * Dialog box for user to enter authentication information for NT or Basic 
- * authentication domains.
+ * Dialog box for a user to enter authentication information for HTTP communication, such as 
+ * NT or Basic authentication. 
  * 
  * @author James Murty
  */

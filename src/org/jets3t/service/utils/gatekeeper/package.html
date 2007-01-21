@@ -23,30 +23,12 @@
 <body bgcolor="white">
 
 <p>
-Provides the Gatekeeper servlet, a server-side application for authorizing client applications 
-to interact with an S3 account without providing the client with the AWS login credentials. 
-The Gatekeeper uses the S3 
-<a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAuthentication.html" target="_blank">Query String Authorization</a>
-URL signing capabilities to generate time-limited URLs that client applications use to Upload, 
-Download, and Delete objects in S3. 
-</p>
-<p>
-Gatekeeper is primarily intended for situations where a service provider has an S3 account where 
-they store data on behalf of clients. The service provider manages the S3 storage on behalf of the 
-client, who need not know or care that S3 is the underlying technology being used.
-</p>
-<p>
-Gatekeeper was designed to work with the <a href="../../apps/Uploader.html">Uploader</a> 
-client-side application that is included in the JetS3t suite.
-</p>
-
-<h2>Related Documentation</h2>
-<p>
-For more information refer to the 
-<a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper.html">Gatekeeper Guide</a>.
+Provides the Gatekeeper messaging components, used to represent messages compatible with the 
+<a href="http://jets3t-test.s3.amazonaws.com/applications/gatekeeper-concepts.html#messageFormat">Gatekeeper message format</a>.
 </p>
 
 <!-- Put @see and @since tags down here. -->
+@since 0.5.0
 
 </body>
 </html>

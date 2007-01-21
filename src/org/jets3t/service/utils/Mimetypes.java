@@ -30,17 +30,22 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Utility class to contain known Mimetypes, and determine the mimetype of files based on the file's
- * extension.
+ * Utility class that maintains a listing of known Mimetypes, and determines the mimetype of files 
+ * based on file extensions.
  * <p>
- * This class is statically loaded with mime types from the file <code>mime.types</code> if this
- * file is available at the root of the classpath. The mime.types file format, and most of the
- * content, is taken from the Apache HTTP server's mime.types file.
+ * This class is obtained with the {#link {@link #getInstance()} method that recognised loads mime 
+ * types  from the file <code>mime.types</code> if this file is available at the root of the 
+ * classpath. The mime.types file format, and most of the content, is taken from the Apache HTTP 
+ * server's mime.types file.
  * <p>
  * The format for mime type setting documents is: 
  * <code>mimetype <Space | Tab>+ extension (<Space|Tab>+ extension)*</code>.
  * Any blank lines in the file are ignored, as are lines starting with <code>#</code> which are
  * considered comments. Lines that have a mimetype but no associated extensions are also ignored.
+ * <p>
+ * For more information about Mimetype settings please see:
+ * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#mimetypes">
+ * http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#mimetypes</a>. 
  * 
  * @author James Murty
  */
@@ -48,12 +53,28 @@ public class Mimetypes {
     private static final Log log = LogFactory.getLog(Mimetypes.class);
     
     // Mimetypes used frequently in jets3t.
+    /**
+     * The default XML mimetype: application/xml
+     */
     public static final String MIMETYPE_XML = "application/xml";
+    /**
+     * The default HTML mimetype: text/html
+     */
     public static final String MIMETYPE_HTML = "text/html";
+    /**
+     * The default binary mimetype: application/octet-stream
+     */
     public static final String MIMETYPE_OCTET_STREAM = "application/octet-stream";
+    /**
+     * The default gzip mimetype: application/x-gzip
+     */
     public static final String MIMETYPE_GZIP = "application/x-gzip";
     
     // Mimetypes specific to jetS3T.
+    /**
+     * A JetS3t-specific mimetype used to indicate that an S3 object actually represents 
+     * a directory on the local file system.
+     */
     public static final String MIMETYPE_JETS3T_DIRECTORY = "application/x-directory";
     
     private static Mimetypes mimetypes = null;

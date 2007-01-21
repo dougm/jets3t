@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.cockpit;
+package org.jets3t.apps.cockpit.gui;
 
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
@@ -29,10 +29,15 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
-import org.jets3t.apps.cockpit.gui.LoginCredentialsPanel;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.service.security.AWSCredentials;
 
+/**
+ * Dialog box for obtaining a user's AWS Credentials, where the dialog is simply
+ * a wrapping for a {@link LoginCredentialsPanel}. 
+ * 
+ * @author James Murty
+ */
 public class AWSCredentialsDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -7054406572498134994L;
     
@@ -43,7 +48,17 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
 
-    
+    /**
+     * Displays a dialog box prompting for a user's AWS credentials
+     * 
+     * @param ownerFrame
+     * the frame that will own the dialog
+     * @param askForFriendlyName
+     * if true, the dialog will prompt the user for a "friendly" name they want to give to their
+     * AWS credentials - such as a nickname they can use to distinguish between multiple AWS accounts.
+     * @param hyperlinkListener
+     * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     */
     public AWSCredentialsDialog(Frame ownerFrame, boolean askForFriendlyName, HyperlinkActivatedListener hyperlinkListener) {
         super(ownerFrame, "AWS Credentials", true);
         
@@ -80,22 +95,50 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
         this.hide();
     }
     
+    /**
+     * @return
+     * true if the OK button was pressed, false otherwise (ie if the dialog was cancelled)
+     */
     public boolean isConfirmed() {
         return isConfirmed;
     }
     
+    /**
+     * @return
+     * the AWS Access Key provided by the user.
+     */
     public String getAWSAccessKey() {
         return loginCredentialsPanel.getAWSAccessKey();        
     }
     
+    /**
+     * @return
+     * the AWS Secret Key provided by the user.
+     */
     public String getAWSSecretKey() {
         return loginCredentialsPanel.getAWSSecretKey();
     }
     
+    /**
+     * @return
+     * the Friendly Name (nickname) provided by the user, or an empty string if the user was not
+     * prompted to provide one (the askForFriendlyName option was false).
+     */
     public String getFriendlyName() {
         return loginCredentialsPanel.getFriendlyName();
     }
     
+    /**
+     * Displays a dialog box prompting for a user's AWS credentials. 
+     * 
+     * @param ownerFrame
+     * the frame that will own the dialog
+     * @param askForFriendlyName
+     * if true, the dialog will prompt the user for a "friendly" name they want to give to their
+     * AWS credentials - such as a nickname they can use to distinguish between multiple AWS accounts.
+     * @param hyperlinkListener
+     * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     */
     public static AWSCredentials showDialog(Frame ownerFrame, boolean askForFriendlyName, HyperlinkActivatedListener hyperlinkListener) {
         AWSCredentialsDialog dialog = new AWSCredentialsDialog(
             ownerFrame, askForFriendlyName, hyperlinkListener);

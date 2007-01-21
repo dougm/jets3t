@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Defines which files can be selected within the Uploader's {@link javax.swing.JFileChooser} file chooser 
+ * Defines which files can be selected within the Uploader's file chooser 
  * for upload to S3. Files are filtered based on their filename extension.
  *  
  * @author James Murty

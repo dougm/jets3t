@@ -32,11 +32,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Enhanced label component that changes the mouse curser to indicate when it passes over a
+ * Enhanced version of {@link JLabel} that changes the mouse curser to indicate when it passes over a
  * clickable HTML HREF link, and triggers a listener to follow the link when it is clicked.
  * <p>
- * This class is a modified version of example code authored by Jeffrey Bush 
- * (http://forum.java.sun.com/thread.jspa?threadID=574895&messageID=2866170).
+ * This class is a modified version of example code authored by Jeffrey Bush:<br> 
+ * http://forum.java.sun.com/thread.jspa?threadID=574895&messageID=2866170.
  */
 public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionListener {
     private static final long serialVersionUID = -2146502207121434264L;

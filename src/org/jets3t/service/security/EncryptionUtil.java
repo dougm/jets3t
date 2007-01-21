@@ -48,17 +48,18 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Jets3tProperties;
 
 /**
- * Utility class to handle encryption and decryption in the jets3t toolkit. 
- * 
- * <p><b>Properties</b></p>
- * <p>The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
- * <table>
- * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
- * <tr><td>crypto.algorithm</td>
- *   <td>Name of the PBE cryptographic algorithm to use. The algorithms available will depend on 
- *       the crypto providers installed on a system, and the system's policy file settings.</td> 
- *   <td>PBEWithMD5AndDES</td></tr>
- * </table>
+ * Utility class to handle encryption and decryption in the JetS3t suite.
+ * <p>
+ * The encryption method used by JetS3t has changed after version 0.4.0, from standard triple DES 
+ * to the proper password-based encryption method PBEWithMD5AndDES. For backwards compatibility this 
+ * class retains the ability to decrypt items encrypted with the original 0.4.0 algorithm, however 
+ * these mechanisms are deprecated and could be removed from JetS3t at any time. 
+ * </p> 
+ * <p>
+ * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
+ * these properties please refer to 
+ * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t</a>
+ * </p>
  * 
  * @author James Murty
  */

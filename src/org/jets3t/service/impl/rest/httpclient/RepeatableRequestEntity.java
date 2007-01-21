@@ -31,11 +31,11 @@ import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.RepeatableInputStream;
 
 /**
- * A request entity whose underlying data can be repeated if necessary to retry when
- * transmission errors occur.
+ * An HttpClient request entity whose underlying data can be re-read (that is, repeated) 
+ * if necessary to retry failed transmissions.
  * <p>
- * This class works by using an underlying {@link IRepeatableInputStream} input stream,
- * which is repeated when necessary.
+ * This class works by using an underlying {@link IRepeatableInputStream} input stream to wrap
+ * the real data input stream.
  * <p>
  * When data is repeated, any attached {@link ProgressMonitoredInputStream} is notified
  * that a repeat transmission is occurring.
@@ -56,13 +56,10 @@ public class RepeatableRequestEntity implements RequestEntity {
     /**
      * Creates a repeatable request entity for the input stream provided.
      * <p>
-     * If the input stream, or any underlying wrapped input streams, implements the 
-     * {@link IRepeatableInputStream} interface then this underlying input stream is used to
-     * trigger repeats.
-     * <p>
-     * If no underlying {@link IRepeatableInputStream} input stream is available the
-     * constructor wraps the provided input stream in a {@link RepeatableInputStream}, 
-     * which is used internally.
+     * If the input stream provided, or any underlying wrapped input streams, implements the 
+     * {@link IRepeatableInputStream} interface then this repeatable input stream will be used to
+     * enable repeating.  If no underlying {@link IRepeatableInputStream} input stream is available 
+     * this constructor will wrap the provided input stream in a {@link RepeatableInputStream}.
      * <p>
      * This constructor also detects when an underlying {@link ProgressMonitoredInputStream} is
      * present, and will notify this monitor if a repeat occurs.

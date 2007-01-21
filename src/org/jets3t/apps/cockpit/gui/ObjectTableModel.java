@@ -9,6 +9,11 @@ import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.service.model.S3Object;
 
+/**
+ * A table model to store {@link S3Object}s.
+ * 
+ * @author James Murty
+ */
 public class ObjectTableModel extends DefaultTableModel {
     private static final long serialVersionUID = 8570725021470237261L;
     

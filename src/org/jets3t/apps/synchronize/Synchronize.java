@@ -62,7 +62,7 @@ import org.jets3t.service.utils.TimeFormatter;
 /**
  * Console application to synchronize the local file system with Amazon S3.
  * For more information and help please see the 
- * <a href="http://jets3t.dev.java.net/synchronize.html">Synchronize Guide</a>.
+ * <a href="http://jets3t.s3.amazonaws.com/applications/synchronize.html">Synchronize Guide</a>.
  * 
  * @author James Murty
  */
@@ -87,13 +87,20 @@ public class Synchronize {
     /**
      * Constructs the application with a pre-initialised S3Service and the user-specified options.
      * 
-     * @param s3Service     a pre-initialised S3Service (including AWS Authorization credentials)
-     * @param doAction      
+     * @param s3Service     
+     * a pre-initialised S3Service (including AWS Authorization credentials)
+     * @param doAction
+     * Files will only be transferred if true.
      * @param isQuiet       
+     * Report will only include summary of actions if true.
      * @param isForce       
+     * Files will be overwritten when unchanged if true.
      * @param isKeepFiles     
+     * Files will not be replaced/deleted if true.
      * @param isGzipEnabled 
+     * Files will be gzipped prior to upload if true.
      * @param isEncryptionEnabled   
+     * Files will be encrypted prior to upload if true.
      */
     public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, boolean isForce, 
         boolean isKeepFiles, boolean isGzipEnabled, boolean isEncryptionEnabled) 
@@ -761,24 +768,28 @@ public class Synchronize {
         }
         
         public void s3ServiceEventPerformed(CreateObjectsEvent event) {
+            super.s3ServiceEventPerformed(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                 displayProgressStatus("Uploading: ", event.getThreadWatcher());                    
             }
         }
         
         public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
+            super.s3ServiceEventPerformed(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                 displayProgressStatus("Downloading: ", event.getThreadWatcher());                    
             }
         }
         
         public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
+            super.s3ServiceEventPerformed(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
                 displayProgressStatus("Retrieving object details from S3: ", event.getThreadWatcher());
             }
         }
         
         public void s3ServiceEventPerformed(DeleteObjectsEvent event) {
+            super.s3ServiceEventPerformed(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
                 displayProgressStatus("Deleting objects in S3: ", event.getThreadWatcher());
             }

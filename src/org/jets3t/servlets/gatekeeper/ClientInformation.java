@@ -5,12 +5,15 @@ import java.security.Principal;
 import javax.servlet.http.HttpSession;
 
 /**
- * Stores information about an HTTP client that submitted a request to the Gatekeeper.
+ * Stores information about the HTTP client that submitted a request to the Gatekeeper.
  * <p>
  * The information available about a client will depend on the server and client configuration,
  * such as whether the client is identified with an existing HttpSession or Principal. It must
  * be assumed that much of the information stored in this class will have a null value in many
  * cases.
+ * <p>
+ * All information in this class is sourced from equivalent methods in 
+ * {@link javax.servlet.http.HttpServletRequest}.
  * 
  * @author James Murty
  */

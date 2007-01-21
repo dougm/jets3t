@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.cockpit;
+package org.jets3t.apps.cockpit.gui;
 
 import java.awt.Cursor;
 import java.awt.Frame;
@@ -40,7 +40,7 @@ import javax.swing.SwingUtilities;
 import org.jets3t.service.multithread.CancelEventTrigger;
 
 /**
- * Class that provides access to and controls a dialog that shows progress information
+ * Class that displays and controls a dialog that shows progress information
  * to the user for long-lived tasks.
  * <p>
  * This class wraps the dialog rather than making the dialog directly available in order 
@@ -136,6 +136,9 @@ public class ProgressDisplay implements Serializable {
         return progressDialog.getCancelClicked();
     }
     
+    /**
+     * Disposes the wrapped progress dialog.
+     */
     public void dispose() {
         if (progressDialog != null) {
             progressDialog.setVisible(false); 

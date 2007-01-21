@@ -36,16 +36,11 @@ import org.jets3t.service.Jets3tProperties;
  * sourcing data from a file, as the file-based repeatable input stream can be repeated without
  * any limitations. 
  * 
- * <p><b>Properties</b></p>
- * <p>This class uses the following properties:</p>
- * <table>
- * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
- * <tr><td>s3service.stream-retry-buffer-size</td>
- *   <td>How many bytes to buffer for use when retrying failed transmissions. This value must be
- *   small enough that applications using multiple upload threads will not exceed their available
- *   memory by buffering data.</td>
- *   <td>131072</td></tr>
- * </table>
+ * <p>
+ * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
+ * these properties please refer to 
+ * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t</a>
+ * </p>
  * 
  * @author James Murty
  */
@@ -63,7 +58,9 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
      * 
      * @param inputStream
      * an input stream to wrap. The data read from the wrapped input stream is buffered as it is
-     * read, up to thebuffer limite.
+     * read, up to the buffer limit as set by the JetS3t property 
+     * <tt>s3service.stream-retry-buffer-size</tt>.
+     * 
      * @throws FileNotFoundException
      */
     public RepeatableInputStream(InputStream inputStream) {

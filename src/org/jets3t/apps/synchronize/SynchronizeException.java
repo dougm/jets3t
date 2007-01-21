@@ -19,7 +19,8 @@
 package org.jets3t.apps.synchronize;
 
 /**
- * A pretty standard exception object, used for errors specific to the Synchronize application. 
+ * A standard exception, used for errors specific to the Synchronize application.
+ *  
  * @author James Murty
  */
 public class SynchronizeException extends Exception {

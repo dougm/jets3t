@@ -50,7 +50,14 @@ import org.jets3t.service.multithread.S3ServiceEventListener;
 import org.jets3t.service.multithread.S3ServiceMulti;
 
 /**
- * Utilities to compare files based on MD5 hashes of the files' contents. 
+ * File comparison utility to compare files on the local computer with objects present in an S3
+ * account and determine whether there are any differences. This utility contains methods to
+ * build maps of the contents of the local file system or S3 account for comparison, and 
+ * <tt>buildDiscrepancyLists</tt> methods to find differences in these maps.
+ * <p>
+ * File comparisons are based primarily on MD5 hashes of the files' contents. If a local file does
+ * not match an object in S3 with the same name, this utility determine which of the items is
+ * newer by comparing the last modified dates.
  * 
  * @author James Murty
  */

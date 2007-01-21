@@ -20,11 +20,30 @@ package org.jets3t.apps.cockpit;
 
 import java.io.Serializable;
 
+/**
+ * <p>
+ * Stores Cockpit's preferences as set by the user via the 
+ * {@link org.jets3t.apps.cockpit.gui.PreferencesDialog}.
+ * </p> 
+ * 
+ * @author James Murty
+ */
 public class CockpitPreferences implements Serializable {
     private static final long serialVersionUID = -7780871977411876849L;
     
+    /**
+     * Represents ACL permissions to make objects private.
+     */
     public static final String UPLOAD_ACL_PERMISSION_PRIVATE = "PRIVATE";
+    
+    /**
+     * Represents ACL permissions to make objects readable by anyone.
+     */
     public static final String UPLOAD_ACL_PERMISSION_PUBLIC_READ = "PUBLIC_READ";
+
+    /**
+     * Represents ACL permissions to make objects readable and writable by anyone.
+     */
     public static final String UPLOAD_ACL_PERMISSION_PUBLIC_READ_WRITE = "PUBLIC_READ_WRITE";
 
     private String uploadACLPermission = UPLOAD_ACL_PERMISSION_PRIVATE;
@@ -46,10 +65,22 @@ public class CockpitPreferences implements Serializable {
             && this.encryptionPassword.length() > 0;
     }
     
+    /**
+     * @return
+     * the ACL permission setting, which will match one of the <tt>UPLOAD_ACL_PERMISSION_xyz</tt>
+     * constants contained in this class.
+     */
     public String getUploadACLPermission() {
         return uploadACLPermission;
     }
     
+    /**
+     * Set the ACL permissions string setting.
+     * 
+     * @param uploadACLPermission
+     * the ACL permission setting, which must match one of the <tt>UPLOAD_ACL_PERMISSION_xyz</tt>
+     * constants contained in this class.
+     */
     public void setUploadACLPermission(String uploadACLPermission) {
         if (!UPLOAD_ACL_PERMISSION_PRIVATE.equals(uploadACLPermission)
             && !UPLOAD_ACL_PERMISSION_PUBLIC_READ.equals(uploadACLPermission)

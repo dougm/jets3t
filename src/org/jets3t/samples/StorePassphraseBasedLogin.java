@@ -14,10 +14,10 @@ import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Demonstrates how Cockpit stores Passphrase-based login credentials in S3.
- * 
- * <b><font color="red">WARNING</font></b>: Do not run this class without changing the
- * default values for passphrase and password or you risk making your real AWS Credentials
- * available online with a publicly known Passphrase and Password!
+ * <p>
+ * <b><font color="red">WARNING</font></b>: Do not run this class until you have changed the
+ * default values for passphrase and password in the code, or you risk making your real 
+ * AWS Credentials available online with a publicly known Passphrase and Password!
  *  
  * @author James Murty
  */

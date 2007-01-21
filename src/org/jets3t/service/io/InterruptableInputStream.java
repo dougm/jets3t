@@ -32,8 +32,7 @@ import org.apache.commons.logging.LogFactory;
  * <p>
  * <b>Note</b>: This hacky class does not really solve the problem of interrupting blocking 
  * Java input streams, as it cannot unblock a blocked read operation. It really just serves
- * as a convenient way to stop and check the interrupt flag before any potentially blocking
- * operations.
+ * as a convenient way to interrupt streams before any potentially blocking operations.
  * 
  * @author James Murty
  */

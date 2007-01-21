@@ -36,7 +36,6 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 
-import org.jets3t.apps.cockpit.ProgressDisplay;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
@@ -264,6 +263,20 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
         }   
     }
         
+    /**
+     * Dialog box for displaying and modifying the logging status of buckets.
+     * 
+     * @param ownerFrame
+     * the frame that will own the dialog.
+     * @param s3Service
+     * an S3 Service that will be used to query and update the logging status of buckets. This
+     * service must be initialised with the necessary AWS credentials to perform the logging status
+     * change operations. 
+     * @param buckets
+     * the buckets in the user's S3 account.
+     * @param hyperlinkListener
+     * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     */
     public static void showDialog(Frame ownerFrame, S3Service s3Service, S3Bucket[] buckets, HyperlinkActivatedListener hyperlinkListener) {
         String[] bucketNames = new String[buckets.length];
         for (int i = 0; i < buckets.length; i++) {
@@ -272,6 +285,20 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
         showDialog(ownerFrame, s3Service, bucketNames, hyperlinkListener);
     }
 
+    /**
+     * Dialog box for displaying and modifying the logging status of buckets.
+     * 
+     * @param ownerFrame
+     * the frame that will own the dialog.
+     * @param s3Service
+     * an S3 Service that will be used to query and update the logging status of buckets. This
+     * service must be initialised with the necessary AWS credentials to perform the logging status
+     * change operations. 
+     * @param bucketNames
+     * the names of buckets in the user's S3 account.
+     * @param hyperlinkListener
+     * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     */
     public static void showDialog(Frame ownerFrame, S3Service s3Service, String[] bucketNames, HyperlinkActivatedListener hyperlinkListener) {
         BucketLoggingDialog dialog = new BucketLoggingDialog(
             ownerFrame, s3Service, bucketNames, hyperlinkListener);

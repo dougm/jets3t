@@ -31,7 +31,7 @@ import org.jets3t.service.model.S3Object;
  * S3 service wrapper that performs multiple S3 requests at a time using multi-threading and an
  * underlying thread-safe {@link S3Service} implementation. 
  * <p>
- * This service provides a simplified interface to the {@link S3ServiceMulti} service. It will block while 
+ * This class provides a simplified interface to the {@link S3ServiceMulti} service. It will block while 
  * doing its work, return the results of an operation when it is finished, and throw an exception if
  * anything goes wrong. 
  * <p>
@@ -43,6 +43,13 @@ import org.jets3t.service.model.S3Object;
 public class S3ServiceSimpleMulti {    
     private S3Service s3Service = null;
 
+    /**
+     * Construct a multi-threaded service based on an S3Service. 
+     * 
+     * @param s3Service
+     *        an S3Service implementation that will be used to perform S3 requests. This implementation
+     *        <b>must</b> be thread-safe.
+     */
     public S3ServiceSimpleMulti(S3Service s3Service) {
         this.s3Service = s3Service;
     }

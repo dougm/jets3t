@@ -341,7 +341,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
     }
 	
     /**
-     * @return the ACL settings as set by the user in the dialog
+     * @return the ACL settings as set by the user in the dialog.
      */
 	public AccessControlList getUpdatedAccessControlList() {
 		return updatedAccessControlList;

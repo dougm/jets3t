@@ -16,8 +16,8 @@
 			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultTransactionIdProvider</param-value>
 		</init-param>		
 		<init-param>
-			<param-name>GatekeeperClass</param-name>
-			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultGatekeeper</param-value>
+			<param-name>AuthorizerClass</param-name>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultAuthorizer</param-value>
 		</init-param>		
 		<init-param>
 			<param-name>UrlSignerClass</param-name>

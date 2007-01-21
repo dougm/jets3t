@@ -30,6 +30,12 @@ import javax.swing.JTextField;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 
+/**
+ * A panel for obtaining a user's AWS Credentials. The panel prompts for an AWS Access Key and
+ * an AWS Secret Key, and optionally for a Friendly name for an AWS account.
+ * 
+ * @author James Murty
+ */
 public class LoginCredentialsPanel extends JPanel {
     private static final long serialVersionUID = 5819631423081597078L;
 
@@ -104,14 +110,27 @@ public class LoginCredentialsPanel extends JPanel {
             1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
     }
     
+    /**
+     * @return
+     * the AWS Access Key provided by the user.
+     */
     public String getAWSAccessKey() {
         return awsAccessKeyTextField.getText();
     }
     
+    /**
+     * @return
+     * the AWS Secret Key provided by the user.
+     */
     public String getAWSSecretKey() {
         return new String(awsSecretKeyPasswordField.getPassword());
     }    
     
+    /**
+     * @return
+     * the Friendly Name (nickname) provided by the user, or an empty string if the user was not
+     * prompted to provide one (the askForFriendlyName option was false).
+     */
     public String getFriendlyName() {
         return friendlyNameTextField.getText();
     }

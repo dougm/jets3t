@@ -134,37 +134,12 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * Dual application and applet for uploading files and XML metadata information to the Amazon S3 
  * service.
  * <p>
- * This application presents a wizard GUI interface of multiple screens:
- * <ul>
- * <li>1: Displays a series of questions to the user to collect information. The answers to these
- * questions are included in the XML metadata document uploaded to S3 along with files.</li>
- * <li>2: The user chooses a file to upload using a File browser, or by drag-and-dropping a file
- * onto the application window.</li>
- * <li>3: A confirmation page displaying information about the file the user has chosen to 
- * upload, such as its name and size</li>
- * <li>4: The actual upload process with Status text messages and a progress bar to indicate
- * the progress of the upload</li>
- * <li>5: A "thankyou" page confirming that the user's file has been uploaded</li>
- * </ul>
- * The user may navigate forward or backward through the wizard using Back/Next buttons.
+ * For more information and help please see the 
+ * <a href="http://jets3t-test.s3.amazonaws.com/applications/uploader.html">Uploader Guide</a>.
+ * </p>
  * <p>
  * The Uploader is highly configurable through properties specified in a file
- * <tt>uploader.properties</tt> that must be available at the root of the classpath. Details of
- * the available properties are included in comments in this file.
- * <p> 
- * Properties set in <tt>uploader.properties</tt> configure:
- * <ul>
- * <li>constraints on the files that may be uploaded in the application, such as their 
- * maximum size and the filname extensions that are permitted</li>
- * <li>the content/mime types of files based on their file extension</li>
- * <li>the questions and GUI elements used to collect user information</li>
- * <li>text prompts and information displayed through the wizard process</li>
- * <li>whether the Back and Next navigation buttons are displayed, and the label and/or image 
- * displayed in the buttons if they are visible</li>
- * <li>whether the GUI is skinned to look more like a standard web page, and the colours and
- * font to use if so</li>
- * <li>the S3 bucket files are uploaded to</li>
- * </ul> 
+ * <tt>uploader.properties</tt>. This file <b>must be available</b> at the root of the classpath. 
  * 
  * @author James Murty
  */
@@ -175,12 +150,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     
     public static final String APPLICATION_DESCRIPTION = "Uploader/0.5.0";
     
+    public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
+    
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
     public static final int WIZARD_SCREEN_3 = 3;
     public static final int WIZARD_SCREEN_4 = 4;
     public static final int WIZARD_SCREEN_5 = 5;
     
+    /*
+     * Error codes displayed when errors occur. Each possbile error condition has its own code
+     * to aid in resolving user's problems. 
+     */
     public static final String ERROR_CODE__MISSING_REQUIRED_PARAM = "100";
     public static final String ERROR_CODE__MISSING_FILE_EXTENSIONS = "101";
     public static final String ERROR_CODE__INVALID_PUT_URL = "102";
@@ -327,13 +308,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         }
         
-        // Read properties from classpath.
-        InputStream propertiesIS = this.getClass().getResourceAsStream("/uploader.properties");
-        try {
-            uploaderProperties = Jets3tProperties.getInstance(propertiesIS);
-        } catch (IOException e) {
-            log.error("Unable to load properties file as resource stream: /uploader.properties");
-        }
+        // Read properties from uploader.properties in classpath.
+        uploaderProperties = Jets3tProperties.getInstance(UPLOADER_PROPERTIES_FILENAME);
 
         if (isRunningAsApplet) {
             // Read parameters for Applet, based on names specified in the uploader properties.
@@ -364,7 +340,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 Enumeration e = standAlongArgumentProperties.keys();
                 while (e.hasMoreElements()) {
                     String propName = (String) e.nextElement();
-                    Object propValue = standAlongArgumentProperties.getProperty(propName);
+                    String propValue = standAlongArgumentProperties.getProperty(propName);
                     
                     // Fatal error if a parameter is missing.
                     if (null == propValue) {
@@ -1116,7 +1092,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             if (xmlGenerator != null) {
                 Map clonedMetadata = new HashMap();
                 clonedMetadata.putAll(object.getMetadataMap());
-                xmlGenerator.addObjectRequestDetails(object.getKey(), object.getBucketName(), 
+                xmlGenerator.addSignatureRequest(object.getKey(), object.getBucketName(), 
                     clonedMetadata, request);
             }
 
@@ -1512,8 +1488,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     }
 
     /**
-     * Opens hyperlinks if the Uploader application is running as an Applet. If the uploader is
-     * not running as an applet, the action is ignored with a warning message.
+     * Follows hyperlinks clicked on by a user. This is achieved differently depending on whether
+     * Cockpit is running as an applet or as a stand-alone application:
+     * <ul>
+     * <li>Application: Detects the default browser application for the user's system (using 
+     * <tt>BareBonesBrowserLaunch</tt>) and opens the link as a new window in that browser</li>
+     * <li>Applet: Opens the link in the current browser using the applet's context</li>
+     * </ul>
+     * 
      * @param url
      * the url to open
      * @param target
@@ -1533,9 +1515,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     /**
      * Implementation method for the CredentialsProvider interface.
+     * <p>
+     * Based on sample code:  
+     * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a> 
      * 
-     * Based on sample code InteractiveAuthenticationExample from: 
-     * http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup
      */
     public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
         if (authscheme == null) {

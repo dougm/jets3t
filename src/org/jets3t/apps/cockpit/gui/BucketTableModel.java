@@ -8,6 +8,11 @@ import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.service.model.S3Bucket;
 
+/**
+ * A table model to store {@link S3Bucket}s.
+ * 
+ * @author James Murty
+ */
 public class BucketTableModel extends DefaultTableModel {
     private static final long serialVersionUID = -2486904365563130393L;
     

@@ -30,18 +30,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Utility class to locate jets3t-specific properties files and make them available from a central place.
+ * Utility class to load and store JetS3t-specific properties.
  * <p>
- * Properties are loaded from sources in the following order. 
- * <ol>
- * <li><tt>jets3t.properties</tt> file in the classpath</li>
- * <li><tt>jets3t.properties</tt> file in the default jets3t home directory: 
- *     {@link Constants#DEFAULT_PREFERENCES_DIRECTORY}</li>
- * <li>System Properties</li>
- * </ol>
- * Properties sourced from later locations over-ride those sourced from prior locations. For example,
- * if a property exists in <tt>jets3t.properties</tt> in the classpath and is also set as a system
- * property, the system property version will be used.    
+ * Properties are initially loaded via <tt>getInstance</tt> methods from a named properties file, 
+ * which must be available at the root of the classpath, or from an input stream. 
+ * In either case the properties are cached according to a name, such that subsequent calls to
+ * get a properties instance with the same name will return the same properties object.
+ * </p>
+ * <p>
+ * For more information about JetS3t properties please see:
+ * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">
+ * http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t</a>. 
  * 
  * @author James Murty
  */
@@ -58,14 +57,47 @@ public class Jets3tProperties implements Serializable {
     private Properties properties = new Properties();
     private boolean loaded = false;
     
-    public static Jets3tProperties getInstance(InputStream inputStream) throws IOException {
-        Jets3tProperties jets3tProperties = new Jets3tProperties();
-        jets3tProperties.loadAndReplaceProperties(inputStream, "InputStream");
+    /**
+     * Return a properties instance based on properties read from an input stream, and stores
+     * the properties object in a cache referenced by the propertiesIdentifier.
+     * 
+     * @param inputStream
+     * an input stream containing property name/value pairs in a format that can be read by
+     * {@link Properties#load(InputStream)}. 
+     * @param propertiesIdentifer
+     * the name under which the properties are cached
+     * 
+     * @return
+     * a properties object initialised with property values from the input stream
+     * 
+     * @throws IOException
+     */
+    public static Jets3tProperties getInstance(InputStream inputStream, String propertiesIdentifer) 
+        throws IOException 
+    {
+        Jets3tProperties jets3tProperties = null;
+        
+        // Keep static references to properties classes by propertiesIdentifer.
+        if (propertiesHashtable.containsKey(propertiesIdentifer)) {
+            jets3tProperties = (Jets3tProperties) propertiesHashtable.get(propertiesIdentifer);
+        } else {
+            jets3tProperties = new Jets3tProperties();            
+            propertiesHashtable.put(propertiesIdentifer, jets3tProperties);
+        }
+        jets3tProperties.loadAndReplaceProperties(inputStream, propertiesIdentifer);
         return jets3tProperties;
     }
-    
-    /*
-     * Load properties from sources in order.
+
+    /**
+     * Return a properties instance based on properties read from a properties file, and stores
+     * the properties object in a cache referenced by the properties file name.
+     * 
+     * @param propertiesFileName
+     * the name of a properties file that exists in the root of the classpath, such that it can
+     * be loaded with the code <tt>getClass().getResourceAsStream("/" + propertiesFileName);</tt>.
+     * 
+     * @return
+     * a properties object initialised with property values from the properties file
      */
     public static Jets3tProperties getInstance(String propertiesFileName) {
         Jets3tProperties jets3tProperties = null;
@@ -95,30 +127,42 @@ public class Jets3tProperties implements Serializable {
         return jets3tProperties;
     }
     
-    public void setProperty(Object propertyName, Object propertyValue) {
-        this.properties.put(propertyName, propertyValue);
+    /**
+     * Sets or over-rides a property value.
+     * 
+     * @param propertyName
+     * @param propertyValue
+     */
+    public void setProperty(String propertyName, String propertyValue) {
+        this.properties.put(propertyName, trim(propertyValue));
     }
     
     /**
      * Reads properties from an InputStream and stores them in this class's properties object. 
      * If a new property already exists, the property value is replaced.
      *  
-     * @param is
+     * @param inputStream
+     * an input stream containing property name/value pairs in a format that can be read by
+     * {@link Properties#load(InputStream)}. 
      * @param propertiesSource
+     * a name for the source of the properties, such as a properties file name or identifer. This
+     * is only used to generate meaningful debug messages when properties are updated, so it is
+     * possible to tell where the updated property value came from.
+     * 
      * @throws IOException
      */
-    public void loadAndReplaceProperties(InputStream is, String propertiesSource) 
+    public void loadAndReplaceProperties(InputStream inputStream, String propertiesSource) 
         throws IOException 
     {
         Properties newProperties = new Properties();
-        newProperties.load(is);
+        newProperties.load(inputStream);
         
         Iterator propsIter = newProperties.entrySet().iterator();
         while (propsIter.hasNext()) {
             Map.Entry entry = (Map.Entry) propsIter.next();
             String propertyName = (String) entry.getKey();
-            String propertyValue = (String) entry.getValue();            
-            if (properties.containsKey(propertyName)) {
+            String propertyValue = (String) entry.getValue();
+            if (properties.containsKey(propertyName) && !properties.getProperty(propertyName).equals(propertyValue)) {
                 log.debug("Over-riding jets3t property [" + propertyName + "=" + propertyValue
                     + "] with value from properties source " + propertiesSource 
                     + ". New value: [" + propertyName + "=" + trim(propertyValue) + "]");
@@ -129,6 +173,11 @@ public class Jets3tProperties implements Serializable {
         loaded = true;
     }
     
+    /**
+     * @return
+     * a properties object containing all this object's properties, but cloned so changes to the
+     * returned properties object are not reflected in this object.
+     */
     public Properties getProperties() {
         return (Properties) properties.clone();
     }

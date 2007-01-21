@@ -29,7 +29,7 @@ public interface GranteeInterface {
 	
     /**
      * @return
-     * the grantee represented in and XML fragment compatible with the S3 REST interface.
+     * the grantee represented in an XML fragment compatible with the S3 REST interface.
      */
 	public String toXml();
 	

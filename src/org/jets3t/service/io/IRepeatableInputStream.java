@@ -21,11 +21,11 @@ package org.jets3t.service.io;
 import java.io.IOException;
 
 /**
- * A marker for an input stream that can be repeated, at least under some circumstances.
- * An input stream is repeatable if it can be reset to its starting point and re-read.
+ * An interface that marks input stream that can be repeated, at least under some circumstances -
+ * an input stream is repeatable if it can be reset to its starting point and re-read.
  * <p>
  * Such input streams are useful when transmitting data, as a transmission failure can be recovered
- * from by re-transmitting with repeated data from the input stream.
+ * from by re-transmitting data from the input stream.
  * 
  * @author James Murty
  */
@@ -37,7 +37,7 @@ public interface IRepeatableInputStream {
      * 
      * @throws IOException
      * when the input stream cannot be repeated, such as if the amount of buffered repeatable data
-     * is insufficient. Ideally this method should throw an UnrecoverableIOException to indicate
+     * is insufficient. Ideally this method should throw an {@link UnrecoverableIOException} to indicate
      * that no further IO operations as possible.
      */
     public void repeatInputStream() throws IOException;

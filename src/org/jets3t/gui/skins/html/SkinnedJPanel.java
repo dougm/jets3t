@@ -22,6 +22,12 @@ import java.util.Properties;
 
 import javax.swing.JPanel;
 
+/**
+ * A skinned JPanel, which is actually just a standard panel - useful only as a base for someone
+ * to specialise.
+ * 
+ * @author James Murty
+ */
 public class SkinnedJPanel extends JPanel {
     private static final long serialVersionUID = 1349987043338696640L;
 

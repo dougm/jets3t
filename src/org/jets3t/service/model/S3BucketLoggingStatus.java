@@ -22,7 +22,7 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 
 /**
- * Represents Logging Status settings used to control bucket-based Server Access Logging in S3.
+ * Represents Buccket Logging Status settings used to control bucket-based Server Access Logging in S3.
  * <p>
  * For logging to be enabled for a bucket both the targetBucketName and logfilePrefix must be
  * non-null, and the named bucket must exist. When both variables are non-null, this object

@@ -51,7 +51,7 @@ import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these 
- * documents into jets3t objects.
+ * documents into JetS3t objects.
  * 
  * @author James Murty
  */

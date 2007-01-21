@@ -24,8 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Base class to represent S3 objects (bucket or object) and handle metadata, as  
- * S3 buckets and objects both contain metadata.
+ * Base class to represent both S3 objects and buckets - both these object types contain metadata.
  * 
  * @author James Murty
  */

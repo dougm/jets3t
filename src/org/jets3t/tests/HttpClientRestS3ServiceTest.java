@@ -30,6 +30,11 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 
+/**
+ * Test cases specific to the HttpClient REST/HTTP S3Service implementation {@link RestS3Service}.
+ * 
+ * @author James Murty
+ */
 public class HttpClientRestS3ServiceTest extends BaseS3ServiceTest {
     
     public HttpClientRestS3ServiceTest() throws IOException {

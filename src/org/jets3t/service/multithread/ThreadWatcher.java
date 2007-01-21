@@ -28,13 +28,20 @@ import java.util.Vector;
  * (via {@link #getThreadCount}) and the count of threads that have already finished 
  * (via {@link #getCompletedThreads}).
  * <p>
- * For operations involving data transfer, such as S3 object creation or downloads, this object may
- * also include a count of the total bytes being transferred (via {@link #getBytesTotal}) and a count of
- * how many bytes have already been transferred (via {@link #getBytesTransferred}). 
+ * For operations involving data transfer, such as uploads or downloads, this object may
+ * also include a count of the total bytes being transferred (via {@link #getBytesTotal}) and a count 
+ * of how many bytes have already been transferred (via {@link #getBytesTransferred}). The 
+ * availability of this information is indicated by the result of {@link #isBytesTransferredInfoAvailable()}.
  * <p>
- * It may be possible some S3 operations. If an operation may be cancelled, this object will include
- * a {@link CancelEventTrigger} (via {@link #getCancelEventListener()}) which can be used to trigger a 
- * cancellation.
+ * Further data tranfer information may be also available, such as the current transfer rate (via 
+ * {@link #getBytesPerSecond()}) and an estimate of the time remaining until the transfer is
+ * completed (via {@link #getTimeRemaining()}). The availability of this information is indicated
+ * by the results of {@link #isBytesPerSecondAvailable()} and {@link #isTimeRemainingAvailable()}.  
+ * <p>
+ * It is possible to cancel some S3 operations. If an operation may be cancelled, this object will 
+ * include a {@link CancelEventTrigger} (available from {@link #getCancelEventListener()}) which can 
+ * be used to trigger a cancellation. Whether the operation can be cancelled is indicated by
+ * {@link #isCancelTaskSupported()}.
  * 
  * @author James Murty
  */
@@ -61,15 +68,34 @@ public class ThreadWatcher {
     private Vector historicBytesTransferredQueue = new Vector();
     private Vector historicTimeQueue = new Vector();
 
-    public ThreadWatcher() {
+    protected ThreadWatcher() {
         this.watcherStartTimeMS = System.currentTimeMillis();
     }
     
-    public void setThreadsCompletedRatio(long completedThreads, long threadCount) {
+    /**
+     * Sets information about the number of threads completed and the total number of threads. 
+     * 
+     * @param completedThreads
+     * the number of threads that have completed.
+     * @param threadCount
+     * the total number of threads.
+     */
+    protected void setThreadsCompletedRatio(long completedThreads, long threadCount) {
         setThreadsCompletedRatio(completedThreads, threadCount, null);
     }
     
-    public void setThreadsCompletedRatio(long completedThreads, long threadCount, 
+    /**
+     * Sets information about the number of threads completed and the total number of threads, 
+     * as well as setting the cancellation listener that will be notified if the event is cancelled.
+     * 
+     * @param completedThreads
+     * the number of threads that have completed.
+     * @param threadCount
+     * the total number of threads.
+     * @param cancelEventListener
+     * the listener to notify of cancellation events.
+     */
+    protected void setThreadsCompletedRatio(long completedThreads, long threadCount, 
         CancelEventTrigger cancelEventListener) 
     {
         this.completedThreads = completedThreads;
@@ -77,7 +103,18 @@ public class ThreadWatcher {
         this.cancelEventListener = cancelEventListener;        
     }    
     
-    public void setBytesTransferredInfo(long bytesTransferred, long bytesTotal) {
+    /**
+     * Sets the number of bytes already transferred, and the total number of bytes that will be
+     * transferred.
+     * <p>
+     * If this method has been called more than {@link #MIN_TRANSFER_UPDATES_FOR_RATE} times, such
+     * that there is enough historical information to work with, this method also calculates the 
+     * current transfer rate and an estimate of when the transfer will complete.
+     *  
+     * @param bytesTransferred
+     * @param bytesTotal
+     */
+    protected void setBytesTransferredInfo(long bytesTransferred, long bytesTotal) {
         long now = System.currentTimeMillis();
 
         this.bytesTotal = bytesTotal;
@@ -125,10 +162,18 @@ public class ThreadWatcher {
         }
     }
 
+    /**
+     * @return
+     * the number of threads that have completed. 
+     */
     public long getCompletedThreads() {
         return completedThreads;
     }
 
+    /**
+     * @return
+     * the total number of threads involved in an operation.
+     */
     public long getThreadCount() {
         return threadCount;
     }

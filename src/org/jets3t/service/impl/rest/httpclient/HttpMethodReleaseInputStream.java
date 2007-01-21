@@ -32,8 +32,14 @@ import org.jets3t.service.io.InterruptableInputStream;
  * Utility class to wrap InputStreams obtained from an HttpClient library's HttpMethod object, and
  * ensure the stream and HTTP connection is cleaned up properly. 
  * <p>
+ * This input stream wrapper is used to ensure that input streams obtained through HttpClient
+ * connections are cleaned up correctly once the caller has read all the contents of the 
+ * connection's input stream, or closed that input stream. 
+ * </p>
+ * <p>
  * <b>Important!</b> This input stream must be completely consumed or closed to ensure the necessary
  * cleanup operations can be performed.
+ * </p>
  * 
  * @author James Murty
  *
@@ -147,7 +153,8 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * <p>
      * This desperate cleanup act will only be necessary if the user of this class does not completely
      * consume or close this input stream prior to object destruction. This method will log Warning 
-     * messages if cleanup is required berating the caller. 
+     * messages if a forced cleanup is required, hopefully reminding the user to close their streams
+     * properly. 
      */
     protected void finalize() throws Throwable {
         if (!alreadyReleased) {

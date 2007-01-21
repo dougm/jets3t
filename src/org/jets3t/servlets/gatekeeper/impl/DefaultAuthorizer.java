@@ -16,22 +16,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.servlets.gatekeeper;
-
-import java.util.Properties;
+package org.jets3t.servlets.gatekeeper.impl;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 
+import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
+import org.jets3t.servlets.gatekeeper.Authorizer;
+import org.jets3t.servlets.gatekeeper.ClientInformation;
 
-public abstract class Gatekeeper {
+/**
+ * Default Authorizer implementation that allows all signature requests. 
+ *  
+ * @author James Murty
+ */
+public class DefaultAuthorizer extends Authorizer {
 
-    public Gatekeeper(ServletConfig servletConfig) throws ServletException {
+    /**
+     * Constructs the Authorizer - no configuration parameters are required. 
+     * 
+     * @param servletConfig
+     * @throws ServletException
+     */
+    public DefaultAuthorizer(ServletConfig servletConfig) throws ServletException {
+        super(servletConfig);
     }
-    
-    public abstract boolean allowSignatureRequest(Properties applicationProperties, 
-        Properties messageProperties, ClientInformation clientInformation, 
-        SignatureRequest signatureRequest);
+
+    /**
+     * Returns true in all cases.
+     */
+    public boolean allowSignatureRequest(GatekeeperMessage requestMessage,
+        ClientInformation clientInformation, SignatureRequest signatureRequest)
+    {
+        return true;
+    }
 
 }

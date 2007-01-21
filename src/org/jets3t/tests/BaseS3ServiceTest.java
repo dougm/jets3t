@@ -54,8 +54,10 @@ import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
- * Runs S3Service-related tests. S3Service implementations should implement more specific
- * versions of this class.
+ * Runs generic S3Service-related tests that any S3Service implementation should be able to perform.
+ * <p>
+ * Any test case for S3Service implementations should extend this class as a starting point, then
+ * add more test cases more specific to that particular implementation.
  * 
  * @author James Murty
  */
@@ -529,14 +531,14 @@ public abstract class BaseS3ServiceTest extends TestCase {
         try {
             S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(
                 awsCredentials.getAccessKey() + ".NonExistentBucketName", "access-log-");
-            s3Service.setBucketLoggingStatusImpl(bucket.getName(), newLoggingStatus);
+            s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
             fail("Using non-existent target bucket should have caused an exception");            
         } catch (Exception e) {            
         }
         
         // Enable logging (in same bucket)
         S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(bucketName, "access-log-");
-        s3Service.setBucketLoggingStatusImpl(bucket.getName(), newLoggingStatus);
+        s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
         loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
         assertTrue("Expected logging to be enabled for bucket " + bucketName, 
             loggingStatus.isLoggingEnabled());
@@ -545,7 +547,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         
         // Disable logging
         newLoggingStatus = new S3BucketLoggingStatus();
-        s3Service.setBucketLoggingStatusImpl(bucket.getName(), newLoggingStatus);
+        s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
         loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
         assertFalse("Expected logging to be disabled for bucket " + bucketName, 
             loggingStatus.isLoggingEnabled());

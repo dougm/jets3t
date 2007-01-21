@@ -49,10 +49,16 @@ public class EmailAddressGrantee implements GranteeInterface {
 		return "<Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"AmazonCustomerByEmail\"><EmailAddress>" + emailAddress + "</EmailAddress></Grantee>";
 	}
 
-	public void setIdentifier(String id) {
-		emailAddress = id;
+    /**
+     * Set the email address as the grantee's ID.
+     */
+	public void setIdentifier(String emailAddress) {
+		this.emailAddress = emailAddress;
 	}
 	
+    /**
+     * Returns the grantee's email address (ID).
+     */
 	public String getIdentifier() {
 		return emailAddress;
 	}

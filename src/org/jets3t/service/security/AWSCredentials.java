@@ -90,14 +90,26 @@ public class AWSCredentials implements Serializable {
         this.friendlyName = friendlyName;
     }
 
+    /**
+     * @return
+     * the AWS Access Key.
+     */
     public String getAccessKey() {
         return awsAccessKey;
     }
 
+    /**
+     * @return
+     * the AWS Secret Key.
+     */
     public String getSecretKey() {
         return awsSecretAccessKey;
     }
 
+    /**
+     * @return
+     * the friendly name associated with an AWS account, if available. 
+     */
     public String getFriendlyName() {
         return friendlyName;
     }
@@ -178,6 +190,19 @@ public class AWSCredentials implements Serializable {
         }
     }
 
+    /**
+     * Loads encrypted credentials from a file.
+     * 
+     * @param password
+     * the password used to decrypt the credentials. If null, the AWS Credentials are not decrypted
+     * and only the version and friendly-name information is loaded.
+     * @param file
+     * a file containing an encrypted data encoding of an AWSCredentials object.
+     * @return 
+     * the decrypted credentials in an object.
+     * 
+     * @throws S3ServiceException
+     */
     public static AWSCredentials load(String password, File file) throws S3ServiceException {
         log.debug("Loading credentials from file: " + file.getAbsolutePath());
         BufferedInputStream fileIS = null;
@@ -203,7 +228,7 @@ public class AWSCredentials implements Serializable {
      * the password used to decrypt the credentials. If null, the AWS Credentials are not decrypted
      * and only the version and friendly-name information is loaded.
      * @param inputStream
-     * an input stream containing a data encoding of an AWSCredentials object.
+     * an input stream containing an encrypted  data encoding of an AWSCredentials object.
      * @return 
      * the decrypted credentials in an object.
      * 
@@ -283,6 +308,13 @@ public class AWSCredentials implements Serializable {
     /**
      * Console utility to store AWS credential information in an encrypted file in the toolkit's
      * default preferences directory.
+     * <p>
+     * This class can be run from the command line as:
+     * <pre>
+     * java org.jets3t.service.security.AWSCredentials &lt;friendlyName> &lt;credentialsFilename>
+     * </pre>
+     * When run it will prompt for the user's AWS access key,secret key and encryption password. 
+     * It will then encode into the specified credentials file.  
      * 
      * @param args
      */

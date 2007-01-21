@@ -22,6 +22,12 @@ import java.util.Properties;
 
 import javax.swing.JButton;
 
+/**
+ * A skinned JButton, which is actually just a standard button - useful only as a base for someone
+ * to specialise.
+ * 
+ * @author James Murty
+ */
 public class SkinnedJButton extends JButton {
     private static final long serialVersionUID = 7544903896112071279L;
 

@@ -45,8 +45,6 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.apps.cockpit.AWSCredentialsDialog;
-import org.jets3t.apps.cockpit.ProgressDisplay;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
@@ -473,7 +471,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         
         try {
             awsCredentials.save(password, credentialsFile);
-            loginLocalFolderPanel.findAWSCredentialFiles();
+            loginLocalFolderPanel.refreshStoredCredentialsTable();
     
             JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in the file:\n" +
                 credentialsFile.getAbsolutePath());

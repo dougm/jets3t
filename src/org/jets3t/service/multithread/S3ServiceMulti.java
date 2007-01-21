@@ -52,22 +52,19 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * <p>
  * This service is designed to be run in non-blocking threads that therefore communicates
  * information about its progress by firing {@link ServiceEvent} events. It is the responsiblity
- * of applications using this service to correctly handle these events - see the jets3t application 
- * {@link org.jets3t.apps.cockpit.Cockpit} for examples of how an application can use these events.
+ * of applications using this service to correctly handle these events - see the JetS3t application 
+ * {@link org.jets3t.apps.synchronize.Synchronize} for examples of how an application can use these 
+ * events.
+ * </p>
  * <p>
  * For cases where the full power, and complexity, of the event notification mechanism is not required
  * the simplified multi-threaded service {@link S3ServiceSimpleMulti} can be used.
+ * </p>
  * <p>
- * <p><b>Properties</b></p>
- * <p>The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
- * <table>
- * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
- * <tr><td>s3service.max-thread-count</td>
- *   <td>The maximum number of concurrent communication threads that will be started by the 
- *   multi-threaded service. <b>Note</b>: This value should not exceed the maximum number of
- *   connections available, such as is set by the property <tt>httpclient.max-connections</tt>.</td> 
- *   <td>4</td></tr>
- * </table>
+ * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
+ * these properties please refer to 
+ * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t</a>
+ * </p>
  * 
  * @author James Murty
  */
@@ -125,6 +122,8 @@ public class S3ServiceMulti implements Serializable {
     }
     
     /**
+     * Adds a service event listener to the set of listeners that will be notified of events.
+     * 
      * @param listener
      * an event listener to add to the event notification chain.
      */
@@ -135,6 +134,8 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
+     * Remvoes a service event listener to from set of listeners that will be notified of events.
+     * 
      * @param listener
      * an event listener to remove from the event notification chain.
      */
@@ -180,10 +181,18 @@ public class S3ServiceMulti implements Serializable {
     }
 
     
+    /**
+     * @return
+     * true if the underlying S3Service implementation is authenticated.
+     */
     public boolean isAuthenticatedConnection() {
         return s3Service.isAuthenticatedConnection();
     }
 
+    /**
+     * @return
+     * the AWS credentials in the underlying S3Service.
+     */
     public AWSCredentials getAWSCredentials() {
         return s3Service.getAWSCredentials();
     }

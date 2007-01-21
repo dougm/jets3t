@@ -52,8 +52,7 @@ import org.jets3t.service.security.EncryptionUtil;
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
- * Dialog box for managing Cockpit Preferences, as reflected in the file <tt>cockpit.properties</tt>. 
- * <p>
+ * Dialog box for managing Cockpit Preferences. 
  * 
  * @author James Murty
  */
@@ -277,10 +276,18 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
     public void stateChanged(ChangeEvent e) {
         // Ignore these events.
     }    
-    
+
     /**
-     * Displays the dialog box and waits until the user selects to cancel the dialog or to save
-     * the properties.
+     * Displays the Preferences dialog box and waits until the user selects to cancel the dialog or 
+     * to save the properties.
+     * 
+     * @param cockpitPreferences
+     * an object with the current cockpit preferences, which will be updated to reflect any changes 
+     * the user makes to their preferences.
+     * @param owner
+     * the frame that will own this dialog.
+     * @param hyperlinkListener
+     * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
      */
     public static void showDialog(CockpitPreferences cockpitPreferences, Frame owner, 
         HyperlinkActivatedListener hyperlinkListener)  
@@ -289,35 +296,6 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             preferencesDialog = new PreferencesDialog(cockpitPreferences, owner, hyperlinkListener);
         }        
         preferencesDialog.show();
-    }
-
-
-    /**
-     * Creates stand-alone dialog box for testing only.
-     * 
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String args[]) throws Exception {
-        JFrame f = new JFrame();
-
-        HyperlinkActivatedListener listener = new HyperlinkActivatedListener() {
-            public void followHyperlink(URL url, String target) {
-                BareBonesBrowserLaunch.openURL(url.toString());
-            }           
-        };
-        
-        CockpitPreferences cockpitPreferences = new CockpitPreferences();
-        
-        PreferencesDialog.showDialog(cockpitPreferences, f, listener);
-        
-        System.out.println("Upload ACL: " + cockpitPreferences.getUploadACLPermission()
-            + ", Upload compressions? " + cockpitPreferences.isUploadCompressionActive()
-            + ", Upload encryption? " + cockpitPreferences.isUploadEncryptionActive()
-            + ", Encryption password: " + cockpitPreferences.getEncryptionPassword());
-        
-        preferencesDialog.dispose();
-        f.dispose();
     }
 
 }

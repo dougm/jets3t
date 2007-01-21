@@ -26,9 +26,6 @@ import java.util.zip.Deflater;
 /**
  * Input stream that wraps another stream and deflates (compresses) the underlying stream's
  * data on-the-fly. This class provides only a basic implementation of GZip functionality.
- * <p>
- * This code is based on an example from: 
- * http://www.koders.com/java/fidE56B506DEAAC9F7FC1C841010C62BA43454CED49.aspx.
  * 
  * @author James Murty
  */

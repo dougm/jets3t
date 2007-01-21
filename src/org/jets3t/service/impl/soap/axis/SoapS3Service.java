@@ -49,6 +49,7 @@ import org.jets3t.service.acl.EmailAddressGrantee;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AccessControlPolicy;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonCustomerByEmail;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonS3SoapBindingStub;
@@ -76,12 +77,22 @@ import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
- * SOAP implementation of an {@link S3Service} based on the 
+ * SOAP implementation of an S3Service based on the 
  * <a href="http://ws.apache.org/axis/">Apache Axis 1.4</a> library.  
  * <p>
- * <b>Note</b> This SOAP implementation does <b>not</b> support IO streaming uploads to S3. Any 
+ * <b>Note</b>: This SOAP implementation does <b>not</b> support IO streaming uploads to S3. Any 
  * documents uploaded by this implementation must fit inside memory allocated to the Java program
  * running this class if OutOfMemory errors are to be avoided. 
+ * </p>
+ * <p>
+ * <b>Note 2</b>: The SOAP implementation does not perform retries when communication with s3 fails.
+ * </p> 
+ * <p>
+ * The preferred S3Service implementation in JetS3t is {@link RestS3Service}. This SOAP 
+ * implementation class is provided with JetS3t as a proof-of-concept, showing that alternative
+ * service implementations are possible and what a SOAP service might look like. <b>We do not
+ * recommend that this service be used to perform any real work.</b>
+ * </p>
  * 
  * @author James Murty
  */
@@ -298,7 +309,7 @@ public class SoapS3Service extends S3Service {
     // Methods below this point implement S3Service abstract methods
     ////////////////////////////////////////////////////////////////    
     
-    public S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
+    protected S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
         log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
         
         S3Bucket[] buckets = null;
@@ -344,7 +355,7 @@ public class SoapS3Service extends S3Service {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Get Bucket: " + bucketName, e);   
+            return false;
         }
     }
     
@@ -424,7 +435,7 @@ public class SoapS3Service extends S3Service {
         }
     }
 
-    public S3Bucket createBucketImpl(String bucketName, AccessControlList acl) throws S3ServiceException {
+    protected S3Bucket createBucketImpl(String bucketName, AccessControlList acl) throws S3ServiceException {
         Grant[] grants = null;
         if (acl != null) {
             grants = convertACLtoGrants(acl);        
@@ -447,7 +458,7 @@ public class SoapS3Service extends S3Service {
         }
     }
     
-    public void deleteBucketImpl(String bucketName) throws S3ServiceException {
+    protected void deleteBucketImpl(String bucketName) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -462,7 +473,7 @@ public class SoapS3Service extends S3Service {
         }            
     }
 
-    public S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException {
+    protected S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException {
         log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);        
 
         Grant[] grants = null;
@@ -554,7 +565,7 @@ public class SoapS3Service extends S3Service {
         return object;
     }
 
-    public void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {
+    protected void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -569,7 +580,7 @@ public class SoapS3Service extends S3Service {
         } 
     }
 
-    public S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
+    protected S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
         throws S3ServiceException
     {
@@ -577,7 +588,7 @@ public class SoapS3Service extends S3Service {
             ifMatchTags, ifNoneMatchTags, null, null);
     }
     
-    public S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
+    protected S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, 
         Long byteRangeStart, Long byteRangeEnd)
         throws S3ServiceException 
@@ -676,7 +687,7 @@ public class SoapS3Service extends S3Service {
         } 
     }
 
-    public void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
+    protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
         throws S3ServiceException 
     {
         try {
@@ -695,7 +706,7 @@ public class SoapS3Service extends S3Service {
         }
     }
 
-    public void putBucketAclImpl(String bucketName, AccessControlList acl) 
+    protected void putBucketAclImpl(String bucketName, AccessControlList acl) 
         throws S3ServiceException 
     {
         try {
@@ -714,7 +725,7 @@ public class SoapS3Service extends S3Service {
         }        
     }
 
-    public AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
+    protected AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -731,7 +742,7 @@ public class SoapS3Service extends S3Service {
         }
     }
 
-    public AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
+    protected AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -747,7 +758,7 @@ public class SoapS3Service extends S3Service {
         }
     }
 
-    public S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) throws S3ServiceException {
+    protected S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -769,7 +780,7 @@ public class SoapS3Service extends S3Service {
         }        
     }
 
-    public void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) throws S3ServiceException {
+    protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );

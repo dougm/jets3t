@@ -22,6 +22,12 @@ import java.util.Properties;
 
 import org.jets3t.gui.JHtmlLabel;
 
+/**
+ * A skinned JHtmlLabel, which is actually just a standard label - useful only as a base for someone
+ * to specialise.
+ * 
+ * @author James Murty
+ */
 public class SkinnedJHtmlLabel extends JHtmlLabel {
     private static final long serialVersionUID = 6579194324630151579L;
 

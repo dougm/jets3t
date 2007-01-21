@@ -22,8 +22,8 @@ import java.io.IOException;
 
 /**
  * Indicates an IOException that cannot, or should not, be recovered from. For example, if a user
- * deliberately cancels an upload this exception should be thrown to indicate to jets3t that the
- * error was intended.
+ * deliberately cancels an upload this exception should be thrown to indicate to JetS3t that the
+ * error was intentional.
  *  
  * @author James Murty
  */

@@ -31,6 +31,9 @@ import org.jets3t.service.model.S3Owner;
 /**
  * Represents an Amazon S3 Access Control List (ACL), including the ACL's set of grantees and the
  * permissions assigned to each grantee.
+ * <p>
+ * 
+ * </p>
  * 
  * @author James Murty
  *
@@ -64,10 +67,13 @@ public class AccessControlList implements Serializable {
 	private HashSet grants = new HashSet();
 	private S3Owner owner = null;
     
+    /**
+     * Returns a string representation of the ACL contents, useful for debugging.
+     */
 	public String toString() {
 		return "AccessControlList [owner=" + owner + ", grants=" + getGrants() + "]";
 	}
-	
+	    
 	public S3Owner getOwner() {
 		return owner;
 	}
@@ -172,7 +178,9 @@ public class AccessControlList implements Serializable {
     
     /**
      * @return
-     * true if this ACL is a REST pre-canned one.
+     * true if this ACL is a REST pre-canned one, in which case REST/HTTP implementations can use
+     * the <tt>x-amz-acl</tt> header as a short-cut to set permissions on upload rather than using 
+     * a full ACL XML document.
      */
     public boolean isCannedRestACL() {
         return (this.equals(AccessControlList.REST_CANNED_AUTHENTICATED_READ)

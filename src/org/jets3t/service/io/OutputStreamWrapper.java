@@ -30,7 +30,7 @@ public interface OutputStreamWrapper {
 
     /**
      * @return
-     * the underlying input stream wrapped by a class. 
+     * the underlying input stream wrapped by this class. 
      */
     public OutputStream getWrappedOutputStream();
     

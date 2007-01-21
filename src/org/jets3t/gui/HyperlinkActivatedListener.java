@@ -30,7 +30,9 @@ import java.net.URL;
 public interface HyperlinkActivatedListener extends Serializable {
 
     /**
-     * Triggered when an HTML link is activated, most likely by a {@link JHtmlLabel}.
+     * This method is triggered when an HTML link is activated, such as by an HTML link in a 
+     * {@link JHtmlLabel} - any class that implements this listener should do something useful 
+     * with the triggered hyperlink, preferrably opening it in a web browser. 
      * 
      * @param url
      * the url contained in the href.

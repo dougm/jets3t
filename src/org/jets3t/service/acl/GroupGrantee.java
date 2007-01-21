@@ -30,9 +30,23 @@ package org.jets3t.service.acl;
  *
  */
 public class GroupGrantee implements GranteeInterface {
+    /**
+     * The group of all users, represented in S3 by the URI:  
+     * http://acs.amazonaws.com/groups/global/AllUsers
+     */
 	public static final GroupGrantee ALL_USERS = new GroupGrantee("http://acs.amazonaws.com/groups/global/AllUsers");
+
+    /**
+     * The group of authenticated users, represented in S3 by the URI:  
+     * http://acs.amazonaws.com/groups/global/AuthenticatedUsers
+     */
 	public static final GroupGrantee AUTHENTICATED_USERS = new GroupGrantee("http://acs.amazonaws.com/groups/global/AuthenticatedUsers");
-    public static final GroupGrantee LOG_DELIVERY = new GroupGrantee("http://acs.amazonaws.com/groups/s3/LogDelivery");
+
+    /**
+     * The group of Bucket Log delivery users, represented in S3 by the URI:  
+     * http://acs.amazonaws.com/groups/s3/LogDelivery
+     */
+	public static final GroupGrantee LOG_DELIVERY = new GroupGrantee("http://acs.amazonaws.com/groups/s3/LogDelivery");
 	
 	private String uri = null;
 	
@@ -55,10 +69,16 @@ public class GroupGrantee implements GranteeInterface {
 		return "<Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"Group\"><URI>" + uri + "</URI></Grantee>";
 	}
 
-	public void setIdentifier(String id) {
-		uri = id;		
+    /**
+     * Set the group grantee's URI.
+     */
+	public void setIdentifier(String uri) {
+		this.uri = uri;		
 	}
 	
+    /**
+     * Returns the group grantee's URI.
+     */
 	public String getIdentifier() {
 		return uri;
 	}

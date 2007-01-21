@@ -30,6 +30,12 @@ import javax.swing.JTextField;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 
+/**
+ * A panel for prompting a user to provide a passphrase and password used to store or access their
+ * AWS credentials in S3.
+ * 
+ * @author James Murty
+ */
 public class LoginPassphrasePanel extends JPanel {
     private static final long serialVersionUID = -5554177389537270280L;
 
@@ -89,10 +95,18 @@ public class LoginPassphrasePanel extends JPanel {
             1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
     }    
     
+    /**
+     * @return
+     * the passphrase provided by the user (may be an empty string)
+     */
     public String getPassphrase() {
         return passphraseTextField.getText();
     }
     
+    /**
+     * @return
+     * the password provided by the user (may be an empty string)
+     */
     public String getPassword() {
         return new String(passwordPasswordField.getPassword());
     }

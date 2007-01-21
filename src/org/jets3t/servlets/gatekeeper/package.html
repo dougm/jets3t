@@ -1,0 +1,56 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<!--
+  jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
+  This is a java.net project, see https://jets3t.dev.java.net/
+ 
+  Copyright 2006 James Murty
+ 
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+ 
+     http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. 
+ -->
+</head>
+<body bgcolor="white">
+
+<p>
+Provides the Gatekeeper servlet application, a server-side authorization 
+service that acts as a Gatekeeper server for S3 operations. The servlet
+receives requests for S3 operations (GET, HEAD, PUT, DELETE) and responds to 
+these requests with either a signed URL allowing the operation, or a message 
+stating that the operation will not be allowed.
+</p>
+<p>
+Basic decision-making functionality is included with the JetS3t suite, 
+however it is straight-forward to obtain more advanced control over the 
+Gatekeeper's behaviour by implementing the relevant Java interfaces. There 
+are specific interfaces for: allowing/denying requests, signing URLs, and 
+assigning unique transaction IDs for a request.
+</p>
+<p>
+The Gatekeeper is designed to work closely with the 
+<a href="../../apps/uploader/package-summary.html">Uploader</a>
+ application, providing it with signed URLs so the Uploader can add items to an S3 account 
+without the end-user having any access to the AWS account credentials.
+</p>
+
+<h2>Related Documentation</h2>
+<p>
+For more information refer to the 
+<a href="http://jets3t-test.s3.amazonaws.com/applications/gatekeeper.html">Gatekeeper Guide</a>.
+</p>
+
+<!-- Put @see and @since tags down here. -->
+@since 0.5.0
+
+</body>
+</html>

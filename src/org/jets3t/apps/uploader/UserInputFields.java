@@ -45,8 +45,9 @@ import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Jets3tProperties;
 
 /**
- * Manages the display of property-configured input fields in a panel, and collection of
- * the user-entered results as properties.
+ * Utility class to manage User Inputs by representing the possible user input fields as GUI 
+ * elements, providing the panel that contains these GUI elements, and providing the user's inputs
+ * into the GUI items as properties.
  * 
  * @author James Murty
  */

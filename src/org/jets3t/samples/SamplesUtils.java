@@ -6,6 +6,11 @@ import java.util.Properties;
 
 import org.jets3t.service.security.AWSCredentials;
 
+/**
+ * Utilities used by all Sample code, collected in one place for convenience.
+ * 
+ * @author James Murty
+ */
 public class SamplesUtils {
     
     public static final String SAMPLES_PROPERTIES_NAME = "samples.properties";
@@ -13,9 +18,10 @@ public class SamplesUtils {
     public static final String AWS_SECRET_KEY_PROPERTY_NAME = "awsSecretKey";
     
     /**
-     * Loads AWS Credentials from the file <tt>test.properties</tt> that must be available in the  
-     * classpath, and must contain settings {@link #AWS_ACCESS_KEY_PROPERTY_NAME} and 
-     * {@link #AWS_SECRET_KEY_PROPERTY_NAME}.
+     * Loads AWS Credentials from the file <tt>samples.properties</tt>
+     * ({@link #SAMPLES_PROPERTIES_NAME}) that must be available in the  
+     * classpath, and must contain settings <tt>awsAccessKey</tt> and 
+     * <tt>awsSecretKey</tt>.
      * 
      * @return
      * the AWS credentials loaded from the samples properties file.

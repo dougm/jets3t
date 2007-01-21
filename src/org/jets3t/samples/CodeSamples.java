@@ -40,14 +40,14 @@ import org.jets3t.service.multithread.S3ServiceSimpleMulti;
 import org.jets3t.service.security.AWSCredentials;
 
 /**
- * This class includes all the code samples as listed in the jets3t
- * <a href="http://jets3t.dev.java.net/start.html">Getting Started</a> documentation. 
+ * This class includes all the code samples as listed in the JetS3t
+ * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/guide.html">Programmer Guide</a>. 
  * <p>
  * This code is provided as a convenience for those who are reading through the guide and don't want
  * to type out the examples themselves.
+ * </p>
  * 
  * @author James Murty
- *
  */
 public class CodeSamples {
     

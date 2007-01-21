@@ -103,6 +103,7 @@ import org.jets3t.apps.cockpit.gui.BucketTableModel;
 import org.jets3t.apps.cockpit.gui.ItemPropertiesDialog;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.PreferencesDialog;
+import org.jets3t.apps.cockpit.gui.ProgressDisplay;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
@@ -148,7 +149,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 /**
  * Cockpit is a graphical Java application for viewing and managing the contents of an Amazon S3 account.
  * For more information and help please see the 
- * <a href="http://jets3t.dev.java.net/cockpit.html">Cockpit Guide</a>.
+ * <a href="http://jets3t-test.s3.amazonaws.com/applications/cockpit.html">Cockpit Guide</a>.
  * <p>
  * This is the Cockpit application class; it may be run as a stand-alone application or as an Applet.
  * 
@@ -160,6 +161,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private static final long serialVersionUID = 1541299315562775148L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
+    
+    public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t-test.s3.amazonaws.com/applications/cockpit.html";
+    public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
     
     public static final String APPLICATION_DESCRIPTION = "Cockpit/0.5.0";
     
@@ -285,8 +289,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     /**
-     * Prepares application to run as a GUI by finding/creating a root owner JFrame, and 
-     * (if necessary) creating a directory for storing remembered logins.
+     * Prepares application to run as a GUI by finding/creating a root owner JFrame, creating an
+     * un-authenticated {@link RestS3Service} and loading properties files. 
      */
     public void init() {
         super.init();
@@ -692,10 +696,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         cockpitHelpMenuItem.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
                try {
-                   followHyperlink(new URL(Constants.JETS3T_COCKPIT_HELP_PAGE), "_blank");
+                   followHyperlink(new URL(JETS3T_COCKPIT_HELP_PAGE), "_blank");
                } catch (MalformedURLException ex) {
                    throw new IllegalStateException("Invalid URL embedded in program: " 
-                       + Constants.JETS3T_COCKPIT_HELP_PAGE);
+                       + JETS3T_COCKPIT_HELP_PAGE);
                }
            } 
         });
@@ -704,10 +708,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         amazonS3HelpMenuItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 try {
-                    followHyperlink(new URL(Constants.AMAZON_S3_PAGE), "_blank");
+                    followHyperlink(new URL(AMAZON_S3_PAGE), "_blank");
                 } catch (MalformedURLException ex) {
                     throw new IllegalStateException("Invalid URL embedded in program: " 
-                        + Constants.AMAZON_S3_PAGE);
+                        + AMAZON_S3_PAGE);
                 }
             } 
          });
@@ -1154,7 +1158,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
      * application's <code>S3ServiceMulti</code> triggers a <code>GetObjectsEvent</code>.
      * <p>
-     * <b>This never happens in this application.</b>
+     * This never happens in this application as downloads are performed by
+     * {@link S3ServiceMulti#downloadObjects(S3Bucket, DownloadPackage[])} instead.
      * 
      * @param event
      */
@@ -1642,8 +1647,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
      * application's <code>S3ServiceMulti</code> triggers a <code>UpdateACLEvent</code>.
      * <p>
-     * The only actions performed as ACL settings are updated is the update of the progress
-     * dialog box.
+     * This method merely updates the progress dialog as ACLs are updated.
      * 
      * @param event
      */
@@ -2004,8 +2008,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
      * application's <code>S3ServiceMulti</code> triggers a <code>DownloadObjectsEvent</code>.
      * <p>
-     * The only actions performed here as part of object downloads is the updating of the progress
-     * dialog box.
+     * This method merely updates the progress dialog as objects  are downloaded.
      * 
      * @param event
      */
@@ -2268,6 +2271,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         } 
     }
     
+    /**
+     * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
+     * application's <code>S3ServiceMulti</code> triggers a <code>CreateObjectsEvent</code>.
+     * <p>
+     * This method merely updates the progress dialog as files are uploaded.
+     * 
+     * @param event
+     */
     public void s3ServiceEventPerformed(final CreateObjectsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {    
             ThreadWatcher watcher = event.getThreadWatcher();
@@ -2443,6 +2454,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }.start();        
     }
     
+    /**
+     * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
+     * application's <code>S3ServiceMulti</code> triggers a <code>DeleteObjectsEvent</code>.
+     * <p>
+     * This method merely updates the progress dialog as objects are deleted.
+     * 
+     * @param event
+     */
     public void s3ServiceEventPerformed(final DeleteObjectsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {    
             startProgressDisplay("Deleted 0 of " + event.getThreadWatcher().getThreadCount() + " object(s)", 
@@ -2520,6 +2539,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }).start();
     }
     
+    /**
+     * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
+     * application's <code>S3ServiceMulti</code> triggers a <code>GetObjectHeadsEvent</code>.
+     * <p>
+     * This method merely updates the progress dialog as object details (heads) are retrieved.
+     * 
+     * @param event
+     */
     public void s3ServiceEventPerformed(final GetObjectHeadsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             if (event.getThreadWatcher().getThreadCount() > 0) {
@@ -2612,8 +2639,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     /**
-     * Opens hyperlinks if the Uploader application is running as an Applet. If the uploader is
-     * not running as an applet, the action is ignored with a warning message.
+     * Follows hyperlinks clicked on by a user. This is achieved differently depending on whether
+     * Cockpit is running as an applet or as a stand-alone application:
+     * <ul>
+     * <li>Application: Detects the default browser application for the user's system (using 
+     * <tt>BareBonesBrowserLaunch</tt>) and opens the link as a new window in that browser</li>
+     * <li>Applet: Opens the link in the current browser using the applet's context</li>
+     * </ul>
+     * 
      * @param url
      * the url to open
      * @param target
@@ -2633,9 +2666,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     /**
      * Implementation method for the CredentialsProvider interface.
+     * <p>
+     * Based on sample code:  
+     * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a> 
      * 
-     * Based on sample code InteractiveAuthenticationExample from: 
-     * http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup
      */
     public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
         if (authscheme == null) {
@@ -2726,7 +2760,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
     }
     
-    
+    /**
+     * Runs Cockpit as a stand-alone application.
+     * @param args
+     * @throws Exception
+     */
     public static void main(String args[]) throws Exception {
         JFrame ownerFrame = new JFrame("JetS3t Cockpit");
         ownerFrame.addWindowListener(new WindowListener() {

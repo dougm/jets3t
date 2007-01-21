@@ -31,27 +31,32 @@ public class Constants {
     // Default file names and locations.
     ////////////////////////////////////
     
+    /**
+     * The name of the <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">JetS3t properties</a>
+     * file: jets3t.properties
+     */
     public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
     
     /**
-     * File name .jets3t-ignore file, that contains file paths to ignore. 
+     * The name of the <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#ignore">JetS3t ignore</a> 
+     * file: .jets3t-ignore 
      */
     public static final String JETS3T_IGNORE_FILENAME = ".jets3t-ignore";
     
     /**
-     * The default preferences directory is &lt;user.home&gt;/.jets3t
+     * The default preferences directory: &lt;user.home&gt;/.jets3t
      */
     public static final File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home")
         + "/.jets3t");
 
     /**
-     * The file delimiter used by jets3t is the '/' character, which is compatible with standard
+     * The file delimiter used by JetS3t is the '/' character, which is compatible with standard
      * browser access to S3 files.
      */
     public static final String FILE_PATH_DELIM = "/";
 
     /**
-     * The default encoding used for text data. 
+     * The default encoding used for text data: UTF8 
      */
     public static final String DEFAULT_ENCODING = "UTF8";
 
@@ -61,7 +66,7 @@ public class Constants {
     public static final String HMAC_SHA1_ALGORITHM = "HmacSHA1";
 
     ///////////////////////////////////////
-    // jets3t-specific metadata item names.
+    // JetS3t-specific metadata item names.
     ///////////////////////////////////////
     /**
      * Metadata header for storing the original date of a local file uploaded to S3, so it can
@@ -70,18 +75,19 @@ public class Constants {
     public static final String METADATA_JETS3T_LOCAL_FILE_DATE = "jets3t-original-file-date-iso860";
     
     /**
-     * Metadata header for storing information about data encryption applied by jets3t tools.
+     * Metadata header for storing information about data encryption applied by JetS3t tools.
      * @deprecated Obsolete after version 0.4.0
      */
     public static final String METADATA_JETS3T_ENCRYPTED_OBSOLETE = "jets3t-encryption";
 
     /**
-     * Metadata header for storing information about the data encryption algorithm applied by jets3t tools.
+     * Metadata header for storing information about the data encryption algorithm applied by JetS3t tools.
      */
     public static final String METADATA_JETS3T_CRYPTO_ALGORITHM = "jets3t-crypto-alg";
 
     /**
-     * Metadata header for storing information about the jets3t version of encryption applied (to keep encryption compatibility between versions).
+     * Metadata header for storing information about the JetS3t version of encryption applied 
+     * (to keep encryption compatibility between versions).
      */
     public static final String METADATA_JETS3T_CRYPTO_VERSION = "jets3t-crypto-ver";
 
@@ -103,22 +109,31 @@ public class Constants {
     // Headers used by REST S3 Services
     ///////////////////////////////////
 
+    /**
+     * Header prefix for general Amazon headers: x-amz-
+     */
     public static final String REST_HEADER_PREFIX = "x-amz-";
+    /**
+     * Header prefix for Amazon metadata headers: x-amz-meta-
+     */
     public static final String REST_METADATA_PREFIX = "x-amz-meta-";
+    /**
+     * Header prefix for Amazon's alternative date header: x-amz-date
+     */
     public static final String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
+    /**
+     * XML namespace URL used when generating S3-compatible XML documents:
+     * http://s3.amazonaws.com/doc/2006-03-01/
+     */
     public static final String XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
 
     ///////////////////////////////////
     // Headers used by SOAP S3 Services
     ///////////////////////////////////
 
+    /**
+     * SOAP service name: AmazonS3
+     */
     public static final String SOAP_SERVICE_NAME = "AmazonS3";
     
-    /////////////////////
-    // Website references
-    /////////////////////
-    
-    public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.dev.java.net/cockpit.html";
-    public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
-
 }

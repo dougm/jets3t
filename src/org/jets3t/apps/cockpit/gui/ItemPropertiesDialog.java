@@ -24,14 +24,12 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -41,14 +39,12 @@ import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.TableSorter;
-import org.jets3t.service.Constants;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.model.S3Owner;
 
 /**
- * Dialog to display detailed information about an S3Bucket or S3Object. The item's details cannot
- * be modified within this dialog.
+ * Dialog to display detailed information about an {@link S3Bucket} or a set of {@link S3Object}s. 
+ * The item's details cannot be modified within this dialog.
  * 
  * @author James Murty
  */
@@ -254,7 +250,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         this.setLocationRelativeTo(this.getOwner());
     }
     
-    public void displayBucketProperties(S3Bucket bucket) {
+    private void displayBucketProperties(S3Bucket bucket) {
         bucketNameTF.setText(bucket.getName());
         bucketCreationDateTF.setText(String.valueOf(bucket.getCreationDate()));
 
@@ -270,7 +266,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         this.setLocationRelativeTo(this.getOwner());
     }
     
-    public void displayObjectsProperties(S3Object[] objects) {
+    private void displayObjectsProperties(S3Object[] objects) {
         this.objects = objects;
         this.currentObjectIndex = 0;
         displayObjectProperties();
@@ -367,49 +363,6 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         } else if ("OK".equals(e.getActionCommand())) {
             this.hide();
         }
-    }
-
-
-    /**
-     * Creates stand-alone dialog box for testing only.
-     * 
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String args[]) throws Exception {
-        JFrame f = new JFrame();
-
-        S3Owner owner = new S3Owner("1234567890", "owner_name");
-
-        S3Bucket bucket = new S3Bucket();
-        bucket.setName("ExampleBucketName.ThisIs-QuiteALongName");
-        bucket.setCreationDate(new Date());
-        bucket.setOwner(owner);
-
-        S3Object object1 = new S3Object("src/org/jets3t/apps/cockpit/PropertiesDialog.java");
-        object1.setBucketName(bucket.getName());
-        object1.setOwner(owner);
-        object1.setContentLength(54367);
-        object1.setContentType("text/plain");
-        object1.setETag("fd43lhg984l4knhohnlg44");
-        object1.setLastModifiedDate(new Date());
-        object1.addMetadata("sample-metadata", "Valuable");
-        object1.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, "exampleAlgorithmName");
-
-        S3Object object2 = new S3Object("src/org/jets3t/apps/cockpit/ProgressDisplay.java");
-        object2.setBucketName(bucket.getName());
-        object2.setOwner(owner);
-        object2.setContentLength(42534);
-        object2.setContentType("text/plain");
-        object2.setETag("gs43lhg434l4knhohnlg44");
-        object2.setLastModifiedDate(new Date());
-        object2.addMetadata("sample-metadata", "Worthless");
-        object2.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, "secondAlgorithmName");
-        
-        ItemPropertiesDialog.showDialog(f, bucket);
-        ItemPropertiesDialog.showDialog(f, new S3Object[] {object1, object2});
-
-        f.dispose();
     }
 
 }

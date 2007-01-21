@@ -48,6 +48,12 @@ import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.service.Constants;
 import org.jets3t.service.security.AWSCredentials;
 
+/**
+ * A panel for displaying a user's login credentials where those credentials are stored 
+ * in files available on the user's computer.
+ * 
+ * @author James Murty
+ */
 public class LoginLocalFolderPanel extends JPanel implements ActionListener {
     private static final long serialVersionUID = 1500994545263522051L;
 
@@ -57,7 +63,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
     
     private Frame ownerFrame = null;
     private HyperlinkActivatedListener hyperlinkListener = null;
-    private File jets3tHomeFolder = null;
+    private File cockpitHomeFolder = null;
     
     private JTextField folderPathTextField = null;
     private JTable accountNicknameTable = null;
@@ -68,14 +74,14 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
     {
         super(new GridBagLayout());
         this.ownerFrame = ownerFrame;
-        this.jets3tHomeFolder = Constants.DEFAULT_PREFERENCES_DIRECTORY;
-        if (!jets3tHomeFolder.exists()) {
-            jets3tHomeFolder.mkdirs();
+        this.cockpitHomeFolder = Constants.DEFAULT_PREFERENCES_DIRECTORY;
+        if (!cockpitHomeFolder.exists()) {
+            cockpitHomeFolder.mkdirs();
         }
         this.hyperlinkListener = hyperlinkListener;
         
         initGui();
-        findAWSCredentialFiles();
+        refreshStoredCredentialsTable();
     }
     
     private void initGui() {
@@ -100,7 +106,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
         descriptionLabel.setHorizontalAlignment(JLabel.CENTER);        
-        folderPathTextField = new JTextField(this.jets3tHomeFolder.getAbsolutePath());
+        folderPathTextField = new JTextField(this.cockpitHomeFolder.getAbsolutePath());
         folderPathTextField.setEnabled(false);
         folderPathTextField.setToolTipText(folderTooltipText);
         JButton browseButton = new JButton(browseButtonText);
@@ -134,10 +140,15 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
             2, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
     }    
     
-    public void findAWSCredentialFiles() {
+    /**
+     * Refreshes the table of stored AWS credentials by finding <tt>*.enc</tt> files in the
+     * directory specified as the Cockpit home folder.
+     *
+     */
+    public void refreshStoredCredentialsTable() {
         nicknamesTableModel.removeAll();
         try {
-            File[] files = jets3tHomeFolder.listFiles();
+            File[] files = cockpitHomeFolder.listFiles();
             for (int i = 0; files != null && i < files.length; i++) {
                 File candidateFile = files[i];
                 if (candidateFile.getName().endsWith(".enc")) {
@@ -149,28 +160,28 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
             }
         } catch (Exception e) {
             String message = "Unable to find AWS Credential files in the folder " 
-                + jets3tHomeFolder.getAbsolutePath();
+                + cockpitHomeFolder.getAbsolutePath();
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, hyperlinkListener, message, e);
         }
     }
     
     private void chooseFolder() {
-        // Prompt user to choose their jets3t home directory.
+        // Prompt user to choose their Cockpit home directory.
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setAcceptAllFileFilterUsed(true);
-        fileChooser.setDialogTitle("Choose JetS3t Home Folder");
+        fileChooser.setDialogTitle("Choose Cockpit Home Folder");
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         fileChooser.setApproveButtonText("Choose Folder");
-        fileChooser.setCurrentDirectory(jets3tHomeFolder);
+        fileChooser.setCurrentDirectory(cockpitHomeFolder);
 
         int returnVal = fileChooser.showOpenDialog(ownerFrame);
         if (returnVal != JFileChooser.APPROVE_OPTION) {
                 return;
         } else {
-            this.jets3tHomeFolder = fileChooser.getSelectedFile();
-            this.folderPathTextField.setText(this.jets3tHomeFolder.getAbsolutePath());
-            findAWSCredentialFiles();
+            this.cockpitHomeFolder = fileChooser.getSelectedFile();
+            this.folderPathTextField.setText(this.cockpitHomeFolder.getAbsolutePath());
+            refreshStoredCredentialsTable();
         }
     }
     
@@ -178,10 +189,18 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         chooseFolder();
     }
 
+    /**
+     * @return
+     * the folder chosen by the user as their Cockpit home.
+     */
     public File getHomeFolder() {
-        return this.jets3tHomeFolder;
+        return this.cockpitHomeFolder;
     }
     
+    /**
+     * @return
+     * the AWS Credentials encrypted file chosen by the user.
+     */
     public File getAWSCredentialsFile() {
         int selectedNicknameIndex = accountNicknameTable.getSelectedRow();
         if (selectedNicknameIndex < 0) {
@@ -190,6 +209,10 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         return nicknamesTableModel.getAWSCredentialsFile(selectedNicknameIndex);
     }
     
+    /**
+     * @return
+     * the password the user provided to unlock their encrypted AWS Credentials file.
+     */
     public String getPassword() {
         return new String(passwordPasswordField.getPassword()); 
     }
@@ -244,8 +267,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         
         public boolean isCellEditable(int row, int column) {
             return false;
-        }
-        
+        }        
     }
         
 }

@@ -39,43 +39,32 @@ import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
- * A service that handles communication with S3, performing all available actions.
+ * A service that handles communication with S3, offering all the operations that can be performed
+ * on S3 accounts.
  * <p>
  * This class must be extended by implementation classes that perform the communication with S3 via
- * a particular interface, such as REST or SOAP. Implementations provided with jets3t include 
- * {@link org.jets3t.service.impl.rest.httpclient.RestS3Service} and 
+ * a particular interface, such as REST or SOAP. Implementations provided with the JetS3t suite 
+ * include {@link org.jets3t.service.impl.rest.httpclient.RestS3Service} and 
  * {@link org.jets3t.service.impl.soap.axis.SoapS3Service}.
+ * </p>
  * <p>
  * Implementations of <code>S3Service</code> must be thread-safe as they will probably be used by
  * the multi-threaded service class {@link S3ServiceMulti}. 
+ * </p>
  * <p>
- * <p><b>Properties</b></p>
- * <p>The following properties, obtained through {@link Jets3tProperties}, are used by this class:</p>
- * <table>
- * <tr><th>Property</th><th>Description</th><th>Default</th></tr>
- * <tr><td>s3service.end-point-host</td>
- *   <td>The DNS name or IP address of the S3 host end-point. This value can be over-ridden
- *   programmatically using the method {@link #setS3EndpointHost(String)}</td> 
- *   <td>s3.amazonaws.com</td></tr>
- * <tr><td>s3service.https-only</td>
- *   <td>If true, all communication with S3 will be via encrypted HTTPS connections, otherwise
- *   communications will be sent unencrypted via HTTP</td> 
- *   <td>true</td></tr>
- * <tr><td>s3service.internal-error-retry-max</td>
- *   <td>The maximum number of times each connection that fails with S3 InternalServer errors will be 
- *   retried. To disable retries of InternalError failures set this to 0.
- *   <br><b>Note</b>: After each failure the service waits before retrying. The time to wait is 
- *   calculated with the formula: <tt>50 * (<i>internalErrorCount</i> ^ 2)</tt>.
- *   </td> 
- *   <td>5</td></tr>
- * </table>
- * 
+ * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
+ * these properties please refer to 
+ * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t</a>
+ * </p>
  * 
  * @author James Murty
  */
 public abstract class S3Service implements Serializable {
     private static final Log log = LogFactory.getLog(S3Service.class);
     
+    /**
+     * The JetS3t suite version number implemented by this service: 0.5.0 
+     */
     public static final String VERSION_NO__JETS3T_TOOLKIT = "0.5.0";
     
     private AWSCredentials awsCredentials = null;
@@ -121,21 +110,38 @@ public abstract class S3Service implements Serializable {
     }
         
     /**
-     * @return true if this service has <code>AWSCredentials</code> identifying an S3 user, false
+     * @return 
+     * true if this service has <code>AWSCredentials</code> identifying an S3 user, false
      * if the service is acting as an anonymous user.
      */
     public boolean isAuthenticatedConnection() {
         return awsCredentials != null;
     }
     
+    /**
+     * Whether to use secure HTTPS or insecure HTTP for communicating with S3, as set by the
+     * JetS3t property: s3service.https-only 
+     * 
+     * @return
+     * true if this service should use only secure HTTPS communication channels to S3. 
+     * If false, the non-secure HTTP protocol will be used.   
+     */
     public boolean isHttpsOnly() {
         return isHttpsOnly;
     }
     
+    /**
+     * The maximum number of times to retry when S3 Internal Error (500) errors are encountered,   
+     * as set by the JetS3t property: s3service.internal-error-retry-max 
+     */
     public int getInternalErrorRetryMax() {
         return internalErrorRetryMax;
     }
     
+    /**
+     * The end-point host name or IP address to use to reach S3,  
+     * as set by the JetS3t property: s3service.end-point-host 
+     */
     public static String getS3EndpointHost() {
         return Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getStringProperty("s3service.end-point-host", "s3.amazonaws.com");
@@ -143,7 +149,7 @@ public abstract class S3Service implements Serializable {
     
     /**
      * Set the S3 endpoint to non-default location, over-riding any value specified in
-     * jets3t.properties. 
+     * the JetS3t properties. 
      * 
      * @param endpointHost
      * The S3 host's DNS name or IP address
@@ -475,12 +481,13 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Creates a bucket.
+     * Creates a bucket, after first checking to ensure the bucket doesn't already exist (using
+     * {@link #isBucketAccessible(String)}).
      * <p>
      * This method cannot be performed by anonymous services.
      * 
      * @param bucketName
-     * the name of the bucket to create
+     * the name of the bucket to create, if it does not already exist.
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
@@ -488,6 +495,12 @@ public abstract class S3Service implements Serializable {
      */
     public S3Bucket createBucket(String bucketName) throws S3ServiceException {
         assertAuthenticatedConnection("createBucket");
+
+        if (isBucketAccessible(bucketName)) {
+            log.debug("Bucket with name '" + bucketName + "' already exists, it will not be created");
+            return new S3Bucket(bucketName);
+        } 
+        
         S3Bucket bucket = new S3Bucket();
         bucket.setName(bucketName);
         return createBucket(bucket);
@@ -836,6 +849,39 @@ public abstract class S3Service implements Serializable {
             ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
     }
 
+    /**
+     * Returns an object representing the details of an item in S3 that meets any given preconditions.
+     * The object is returned with the object's data.
+     * <p>
+     * An exception is thrown if any of the preconditions fail. 
+     * Preconditions are only applied if they are non-null.
+     * <p>
+     * This method can be performed by anonymous services.
+     * <p>
+     * <b>Implementation notes</b><p>
+     * Implementations should use {@link #assertValidBucket} assertion.
+     * 
+     * @param bucketName
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored if null.
+     * @param byteRangeStart
+     * include only a portion of the object's data - starting at this point, ignored if null. 
+     * @param byteRangeEnd
+     * include only a portion of the object's data - ending at this point, ignored if null. 
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */
     public S3Object getObject(String bucketName, String objectKey, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException 
@@ -860,6 +906,16 @@ public abstract class S3Service implements Serializable {
         putObjectAcl(bucket.getName(), object.getKey(), object.getAcl());
     }
 
+    /**
+     * Applies access control settings to an object. The ACL settings must be included
+     * with the object.
+     * 
+     * @param bucketName
+     * the name of the bucket containing the object to modify.
+     * @param objectKey
+     * the key name of the object with ACL settings that will be applied.
+     * @throws S3ServiceException
+     */
     public void putObjectAcl(String bucketName, String objectKey, AccessControlList acl) 
         throws S3ServiceException 
     {
@@ -883,6 +939,14 @@ public abstract class S3Service implements Serializable {
         putBucketAcl(bucket.getName(), bucket.getAcl());
     }
 
+    /**
+     * Applies access control settings to a bucket. The ACL settings must be included
+     * inside the bucket.
+     * 
+     * @param bucketName
+     * a name of the bucket with ACL settings to apply.
+     * @throws S3ServiceException
+     */
     public void putBucketAcl(String bucketName, AccessControlList acl) throws S3ServiceException {
         if (acl == null) {
             throw new S3ServiceException("The bucket '" + bucketName +
@@ -908,6 +972,18 @@ public abstract class S3Service implements Serializable {
         return getObjectAclImpl(bucket.getName(), objectKey);
     }
 
+    /**
+     * Retrieves the access control settings of an object.
+     * 
+     * @param bucketName
+     * the name of the bucket whose ACL settings will be retrieved (if objectKey is null) or the 
+     * name of the bucket containing the object whose ACL settings will be retrieved (if objectKey is non-null).
+     * @param objectKey
+     * if non-null, the key of the object whose ACL settings will be retrieved. Ignored if null.
+     * @return
+     * the ACL settings of the bucket or object.
+     * @throws S3ServiceException
+     */
     public AccessControlList getObjectAcl(String bucketName, String objectKey) throws S3ServiceException {
         return getObjectAclImpl(bucketName, objectKey);
     }
@@ -927,6 +1003,15 @@ public abstract class S3Service implements Serializable {
         return getBucketAclImpl(bucket.getName());
     }
 
+    /**
+     * Retrieves the access control settings of a bucket.
+     * 
+     * @param bucketName
+     * the name of the bucket whose access control settings will be returned.
+     * @return
+     * the ACL settings of the bucket.
+     * @throws S3ServiceException
+     */
     public AccessControlList getBucketAcl(String bucketName) throws S3ServiceException {
         return getBucketAclImpl(bucketName);
     }
@@ -945,7 +1030,8 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
-     * Applies logging settings to a bucket. 
+     * Applies logging settings to a bucket, optionally modifying the ACL permissions for the 
+     * logging target bucket to ensure log files can be written to it.
      * 
      * @param bucketName
      * the name of the bucket the logging settings will apply to.
@@ -1030,10 +1116,10 @@ public abstract class S3Service implements Serializable {
      */
     public abstract boolean isBucketAccessible(String bucketName) throws S3ServiceException;
     
-    public abstract S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) 
+    protected abstract S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) 
         throws S3ServiceException;
     
-    public abstract void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
+    protected abstract void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
         throws S3ServiceException;
     
     /**

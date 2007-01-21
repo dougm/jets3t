@@ -21,14 +21,14 @@ package org.jets3t.service.multithread;
 /**
  * Base class of all events produced by {@link S3ServiceMulti}.
  * <p>
- * Every event has an event code, which indicates the state of a process when the event was
+ * Every event has an event code that indicates the state of a process when the event was
  * generated. The event code will also give a guide as to what information the event will contain.
  * <p>
  * The event codes, and their meanings, are:
  * <ul>
  * <li>EVENT_STARTED: An S3 operation has commenced, but no work has yet been done.</li>
  * <li>EVENT_IN_PROGRESS: An S3 operation is in progress. Progress events are fired at regular time
- *     intervals, and will include information about any sub-operations that have been completed 
+ *     intervals, and will include information about any work that have been completed 
  *     as part of the overall operation.</li>
  * <li>EVENT_COMPLETED: An S3 operation has completed, and all the work has been done.</li>
  * <li>EVENT_CANCELLED: An S3 operation was started but has been cancelled before it could complete. 
@@ -38,7 +38,9 @@ package org.jets3t.service.multithread;
  * </ul>
  * <p>
  * EVENT_STARTED and EVENT_IN_PROGRESS events may include a {@link ThreadWatcher} object containing
- * information about the progress of an S3 operation.
+ * detailed information about the progress of an S3 operation, such as how many threads have 
+ * completed and, of uploads and downloads, how many bytes have been transferred at what speed and
+ * how long until the transfer is complete.
  * <p>
  * See the event object specific to the operation you are performing for more details about the
  * information available in service events. 

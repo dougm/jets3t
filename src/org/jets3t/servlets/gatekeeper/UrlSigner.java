@@ -18,18 +18,40 @@
  */
 package org.jets3t.servlets.gatekeeper;
 
-import java.util.Properties;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 
+/**
+ * Provides signed URLs that will allow a client to perform the operation requested on a specific
+ * object in S3.
+ * <p>
+ * This <tt>sign</tt> methods in this class are not called for a signature request unless that
+ * request has already been allowed by the {@link Authorizer}.
+ * <p>
+ * Implementations of this class need only generate the appropriate signed URL. However, more 
+ * advanced implementations may do other work such as renaming objects to comply with naming 
+ * rules for an S3 account.
+ *  
+ * @author James Murty
+ */
 public abstract class UrlSigner {
     protected AWSCredentials awsCredentials = null;
     
+    /**
+     * Constructs a UrlSigner with the following required properties from the servlet configuration:
+     * <ul>
+     * <li><tt>AwsAccessKey</tt>: The AWS Access Key for an S3 account</li>
+     * <li><tt>AwsSecretKey</tt>: The AWS Secret Key for an S3 account</li>
+     * </ul>
+     * 
+     * @param servletConfig
+     * @throws ServletException
+     */
     public UrlSigner(ServletConfig servletConfig) throws ServletException {
         String awsAccessKey = servletConfig.getInitParameter("AwsAccessKey");
         String awsSecretKey = servletConfig.getInitParameter("AwsSecretKey");
@@ -52,19 +74,83 @@ public abstract class UrlSigner {
         this.awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
     }
 
-    public abstract String signGet(Properties applicationProperties, Properties messageProperties,
+    /**
+     * Generate a signed GET URL for the signature request.
+     *  
+     * @param requestMessage
+     * the request message received from the client. 
+     * @param clientInformation
+     * information about the client's end-point, and any Session or Principal associated with the client. 
+     * @param signatureRequest
+     * a pre-approved signature request.
+     * 
+     * @return
+     * a signed URL string that will allow the operation specified in the signature request
+     * on the object specified in the signature request. 
+     * 
+     * @throws S3ServiceException
+     */
+    public abstract String signGet(GatekeeperMessage requestMessage,
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
-    public abstract String signHead(Properties applicationProperties, Properties messageProperties, 
+    /**
+     * Generate a signed HEAD URL for the signature request.
+     *  
+     * @param requestMessage
+     * the request message received from the client. 
+     * @param clientInformation
+     * information about the client's end-point, and any Session or Principal associated with the client. 
+     * @param signatureRequest
+     * a pre-approved signature request.
+     * 
+     * @return
+     * a signed URL string that will allow the operation specified in the signature request
+     * on the object specified in the signature request. 
+     * 
+     * @throws S3ServiceException
+     */
+    public abstract String signHead(GatekeeperMessage requestMessage, 
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
-    public abstract String signPut(Properties applicationProperties, Properties messageProperties, 
+    /**
+     * Generate a signed PUT URL for the signature request.
+     *  
+     * @param requestMessage
+     * the request message received from the client. 
+     * @param clientInformation
+     * information about the client's end-point, and any Session or Principal associated with the client. 
+     * @param signatureRequest
+     * a pre-approved signature request.
+     * 
+     * @return
+     * a signed URL string that will allow the operation specified in the signature request
+     * on the object specified in the signature request. 
+     * 
+     * @throws S3ServiceException
+     */
+    public abstract String signPut(GatekeeperMessage requestMessage, 
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
-    public abstract String signDelete(Properties applicationProperties,  Properties messageProperties,
+    /**
+     * Generate a signed DELETE URL for the signature request.
+     *  
+     * @param requestMessage
+     * the request message received from the client. 
+     * @param clientInformation
+     * information about the client's end-point, and any Session or Principal associated with the client. 
+     * @param signatureRequest
+     * a pre-approved signature request.
+     * 
+     * @return
+     * a signed URL string that will allow the operation specified in the signature request
+     * on the object specified in the signature request. 
+     * 
+     * @throws S3ServiceException
+     */
+    public abstract String signDelete(GatekeeperMessage requestMessage,
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
