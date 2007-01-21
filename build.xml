@@ -48,7 +48,6 @@
 		<jar
 			basedir="${dir.build}"			
 			file="${dir.dist}/jets3t-${version}/jars/${dist.file.cockpit}"
-			manifest="${dir.src}/cockpit.mf"
 			>
 			<include name="org/jets3t/apps/cockpit/**"/>
 			<include name="org/jets3t/gui/**"/>
@@ -60,7 +59,6 @@
 		<jar
 			basedir="${dir.build}"			
 			file="${dir.dist}/jets3t-${version}/jars/${dist.file.synchronize}"
-			manifest="${dir.src}/synchronize.mf"
 			>
 			<include name="org/jets3t/apps/synchronize/**"/>
 		</jar>
@@ -76,7 +74,6 @@
 		<jar
 			basedir="${dir.build}"			
 			file="${dir.dist}/jets3t-${version}/jars/${dist.file.uploader}"
-			manifest="${dir.src}/uploader.mf"
 			>
 			<include name="org/jets3t/apps/uploader/**"/>
 			<include name="org/jets3t/gui/**"/>
