@@ -9,7 +9,7 @@
 		<key>page1</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-08T02:57:24Z</date>
+			<date>2007-01-21T06:48:10Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -20,10 +20,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					UpFU4Qn0GFwfH0NsxQYiQA==
+					AcuIAOLvv28qrN9nOTlIZw==
 					</data>
 					<key>Size</key>
-					<integer>7763</integer>
+					<integer>8265</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -34,21 +34,21 @@
 		<key>page10</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-08T02:57:24Z</date>
+			<date>2007-01-21T02:02:18Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
 			<string>99C26C57-A186-485A-830C-81E26E3A1288</string>
 			<key>PageDigests</key>
 			<dict>
-				<key>guide-basics.html</key>
+				<key>code-samples.html</key>
 				<dict>
 					<key>Digest</key>
 					<data>
-					yshk0LulXzYtVP9f/pNYMA==
+					cNKe1k4pTiPqIOEEFrA5ZA==
 					</data>
 					<key>Size</key>
-					<integer>4513</integer>
+					<integer>27242</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -84,7 +84,7 @@
 		<key>page12</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-12T03:21:30Z</date>
+			<date>2007-01-21T02:02:18Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -95,10 +95,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					Dnis+uPVgLQIoxaVo37oxw==
+					gwoPAwqnED4m9mBE2uuh3g==
 					</data>
 					<key>Size</key>
-					<integer>13491</integer>
+					<integer>15845</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -109,7 +109,7 @@
 		<key>page2</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-08T02:57:24Z</date>
+			<date>2007-01-21T02:02:17Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -120,10 +120,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					yMzkl5/Tze8umS+Va0+wvw==
+					kwYDwm9ZTvnnwYQYKWvboQ==
 					</data>
 					<key>Size</key>
-					<integer>29635</integer>
+					<integer>8989</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>

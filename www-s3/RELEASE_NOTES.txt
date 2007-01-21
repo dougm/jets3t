@@ -20,6 +20,7 @@ COCKPIT
 
 SYNCHONIZE
 
+- Progress status messages are displayed for long-running processes.
 - Files being sent to s3 are only opened when necessary, removing the potential
   for too many files to be open at once (exceeding an Operating System 
   imposed limit).
@@ -119,10 +120,21 @@ TOOLKIT
 
 KNOWN ISSUES
 
+  * General
+  
 - Uploading or downloading multiple large files can result in connection 
   errors if the network connection is flooded. The chances of such errors 
   can be reduced by using low values (eg 2) for for the jets3t.properties 
   settings s3service.max-thread-count and httpclient.max-connections.
+  
+  * Cockpit
+  
+- If Cockpit is run as an applet and the user navigates away from the applet's
+  page and later returns, Cockpit fails to restart. It is not able to start 
+  again until the user restarts their web browser.
+  
+- Copy & paste and Drag & drop doesn't work on some versions of Linux, 
+  making it difficult to enter AWS credentials.
 
 
 SPONSORS
@@ -130,7 +142,7 @@ SPONSORS
 The JetS3t project has been generously supported with sponsorship from the 
 following organisations. 
 
-- Moving Image Research : http://www.movingimageresearch.com/
+* Moving Image Research : http://www.movingimageresearch.com/
 
   Moving Image Research (MIR) is a technology company with deep roots in 
   media science offering software, network services, and consulting.

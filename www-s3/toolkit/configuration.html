@@ -151,6 +151,9 @@ tt {
 
           <li><a href="#mimetypes">Mime Types</a>: Mime type
           recognition based on file extensions</li>
+
+          <li><a href="#ignore">Ignore files</a>: When uploading
+          files, specific file/directory paths can be ignored</li>
         </ul>
 
         <h2><a name="jets3t"
@@ -409,6 +412,60 @@ text/html               html htm
 text/plain              asc txt
 application/pdf         pdf
 audio/mpeg              mpga mp2 mp3
+</pre>
+
+        <h2><a name="ignore"
+           id="ignore">Ignore Files on Upload</a></h2>
+
+        <p>JetS3t applications, and any toolkit-based application
+        that uses the <a href=
+        "../api/org/jets3t/service/utils/FileComparer.html">FileComparer</a>
+        utility class, will look for special ignore files named
+        <tt>.jets3t-ignore</tt> when generating listings of local
+        files to upload. These ignore files are plain text
+        documents that contain file or directory names in the
+        directory that should not be uploaded. Any file or
+        directory that matches a name or a pattern in this file is
+        completely ignored, as if it doesn't exist.
+        <br />
+        <sup>Users familiar with CVS will be familiar with this
+        concept, as it copies the idea of .cvsignore
+        files.</sup></p>
+
+        <p>Ignore files are mainly useful when managing the backup
+        of large file sets. For example, say you want to backup a
+        folder called Documents but you don't want to backup a
+        sub-folder in Documents called Private, nor do you want to
+        backup all the .tmp files your word processor creates when
+        you open a document. You could achieve this by creating a
+        <tt>.jets3t-ignore</tt> file in the Documents folder with
+        the content:</p>
+        <pre>
+Private
+*.tmp
+</pre>
+
+        <p>The <tt>.jetset-ignore</tt> file format allows basic
+        wild-card substitution:</p>
+
+        <ul>
+          <li>Asterix (<tt>*</tt>): matches zero or more
+          characters</li>
+
+          <li>Question mark (<tt>?</tt>): matches exactly one
+          character</li>
+        </ul>
+
+        <p>Note that the contents of the ignore file only apply to
+        the immediate directory containing the
+        <tt>.jets3t-ignore</tt> file. For example, the wildcard
+        string <tt>*.tmp</tt> will only ignore .tmp files in the
+        current directory, any temporary files in subdirectories
+        will still be included. Similarly, folder paths cannot be
+        used - the following statements <b>will not work</b>:</p>
+        <pre>
+Private/*.tmp
+Subfolder/PrivateFolder
 </pre>
       </div><!-- End content -->
     </div><!-- End main content wrapper -->
