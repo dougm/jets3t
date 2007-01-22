@@ -35,7 +35,7 @@ import org.apache.commons.logging.LogFactory;
  * encodings of messages.
  * <p>
  * For more information about the Gatekeeper message format, please see:
- * <a href="http://jets3t-test.s3.amazonaws.com/applications/gatekeeper-concepts.html">
+ * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper-concepts.html">
  * Gatekeeper Concepts</a>
  * 
  * @author James Murty

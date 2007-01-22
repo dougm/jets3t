@@ -39,7 +39,7 @@ import org.jets3t.service.Jets3tProperties;
  * <p>
  * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
  * these properties please refer to 
- * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t</a>
+ * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  * 
  * @author James Murty

@@ -39,8 +39,7 @@ import org.apache.commons.logging.LogFactory;
  * </p>
  * <p>
  * For more information about JetS3t properties please see:
- * <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">
- * http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t</a>. 
+ * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * 
  * @author James Murty
  */

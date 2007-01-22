@@ -32,13 +32,13 @@ public class Constants {
     ////////////////////////////////////
     
     /**
-     * The name of the <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#jets3t">JetS3t properties</a>
+     * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#jets3t">JetS3t properties</a>
      * file: jets3t.properties
      */
     public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
     
     /**
-     * The name of the <a href="http://jets3t-test.s3.amazonaws.com/toolkit/configuration.html#ignore">JetS3t ignore</a> 
+     * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#ignore">JetS3t ignore</a> 
      * file: .jets3t-ignore 
      */
     public static final String JETS3T_IGNORE_FILENAME = ".jets3t-ignore";

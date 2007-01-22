@@ -149,7 +149,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 /**
  * Cockpit is a graphical Java application for viewing and managing the contents of an Amazon S3 account.
  * For more information and help please see the 
- * <a href="http://jets3t-test.s3.amazonaws.com/applications/cockpit.html">Cockpit Guide</a>.
+ * <a href="http://jets3t.s3.amazonaws.com/applications/cockpit.html">Cockpit Guide</a>.
  * <p>
  * This is the Cockpit application class; it may be run as a stand-alone application or as an Applet.
  * 
@@ -162,7 +162,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
     
-    public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t-test.s3.amazonaws.com/applications/cockpit.html";
+    public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.s3.amazonaws.com/applications/cockpit.html";
     public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
     
     public static final String APPLICATION_DESCRIPTION = "Cockpit/0.5.0";
@@ -692,7 +692,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         // Help menu.
         JMenu helpMenu = new JMenu("Help");
-        cockpitHelpMenuItem = new JMenuItem("Cockpit Guide");
+        cockpitHelpMenuItem = new JMenuItem("Cockpit Guide - Web Page");
         cockpitHelpMenuItem.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
                try {
@@ -704,7 +704,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
            } 
         });
         helpMenu.add(cockpitHelpMenuItem);
-        amazonS3HelpMenuItem = new JMenuItem("Amazon S3");
+        amazonS3HelpMenuItem = new JMenuItem("Amazon S3 - Web Page");
         amazonS3HelpMenuItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 try {

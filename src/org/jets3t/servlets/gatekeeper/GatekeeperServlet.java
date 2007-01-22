@@ -39,7 +39,7 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
 
 /**
  * A servlet implementation of an S3 Gatekeeper, as described in the document 
- * <a href="http://jets3t-test.s3.amazonaws.com/applications/gatekeeper-concepts.html">
+ * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper-concepts.html">
  * Gatekeeper Concepts</a>. 
  * <p>
  * This servlet offers an easily configurable and extensible approach, where key
@@ -57,7 +57,7 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
  * unconfigured the default JetS3t implementations are used.
  * <p>
  * For more information about this servlet please refer to:
- * <a href="http://jets3t-test.s3.amazonaws.com/applications/gatekeeper.html">
+ * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper.html">
  * JetS3t Gatekeeper</a>
  * 
  * @author James Murty

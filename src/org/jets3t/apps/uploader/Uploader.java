@@ -135,7 +135,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * service.
  * <p>
  * For more information and help please see the 
- * <a href="http://jets3t-test.s3.amazonaws.com/applications/uploader.html">Uploader Guide</a>.
+ * <a href="http://jets3t.s3.amazonaws.com/applications/uploader.html">Uploader Guide</a>.
  * </p>
  * <p>
  * The Uploader is highly configurable through properties specified in a file
