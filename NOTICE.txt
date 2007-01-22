@@ -10,3 +10,7 @@
    The ExoLab Project (http://www.exolab.org/)
 
    Sun Microsystems (http://www.sun.com/)
+   
+   Codehaus (http://castor.codehaus.org)
+   
+   Safehaus (http://jug.safehaus.org/Home)

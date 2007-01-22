@@ -1,4 +1,6 @@
-Welcome to the jets3t toolkit and application suite.
+Welcome to the JetS3t toolkit and application suite.
+
+Website: http://jets3t.s3.amazonaws.com/index.html
 
 
 * Running Applications
@@ -18,7 +20,7 @@ bash cockpit.sh
 
 * Servlets
 
-The jets3t application suite now includes a Gatekeeper servlet implementation.
+The JetS3t application suite now includes a Gatekeeper servlet implementation.
 The deployable WAR file for this servlet is located in the "servlets/gatekeeper"
 directory.
 
@@ -52,6 +54,6 @@ Jar files are available in the "jars" directory.
 The class files in these jars are compiled with Sun's JDK version 1.4.2
 and have debugging turned on to provide more information if errors occur. 
 
-To use jets3t in high-performance scenarios, the classes should be 
+To use JetS3t in high-performance scenarios, the classes should be 
 recompiled using the latest practicable version of Java, and with 
 debugging turned off.
