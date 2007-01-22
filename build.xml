@@ -147,8 +147,8 @@
 		<!-- Copy documentation to dist directory so it's included in archive files -->
 		<mkdir dir="${dir.dist}/jets3t-${version}/docs/api"/>
 		<copy 			
-			todir="${dir.dist}/jets3t-${version}/docs">
-			<fileset dir="www" includes="**/*.htm*"/>
+			todir="${dir.dist}/jets3t-${version}/docs/api">
+			<fileset dir="${dir.apidocs}" includes="**/*.htm*"/>
 		</copy>
 		
 		<!-- Copy source code to dist directory so it's included in src archive files -->
