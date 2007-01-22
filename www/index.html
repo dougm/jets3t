@@ -1,62 +1,59 @@
 <html>
 <head>
-<title>jets3t - Home</title>
+<title>JetS3t - Development Home</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 </head>
 
 <body bgcolor="#FFFFFF" text="#000000">
 
-<center>
-	<a href="index.html"><b>Home</b></a> | 
-	<a href="cockpit.html">Cockpit</a> | 
-	<a href="synchronize.html">Synchronize</a> | 
-	<a href="start.html">Toolkit Guide</a>
-	| <a href="downloads.html">Downloads</a>
-</center>
-
-<h2>What is jets3t?</h2>
-<p>jets3t is a Java (1.4+) toolkit for the 
-<a href="http://www.amazon.com/s3">
-Amazon Simple Storage Service</a> (also known as Amazon S3). Building on the Java library provided by Amazon, the toolkit aims to simplify interaction with S3 while providing powerful <a href="#features">additional features</a>.</p>
-<p>If you have an S3 account, you can use this toolkit to build applications that transfer files to and from your online storage area.</p>
-
-<h3>Toolkit Features:</h3>
+<h1>JetS3t - Development Home</h1>
 <p>
-<ul>
-<li>Works with JDK version 1.4</li>
-<li>Free, Open Source library (see <a href="#license">licensing</a>)</li>
-<li>Easy to use (see <a href="start.html">Toolkit Guide</a>)</li>
-<li>Built-in multi-threaded service engine that allows multiple uploads/downloads to run simultaneously</li>
-<li>Includes utility classes to help encrypt and/or compress data</li>
-<li>Includes a powerful REST/HTTP implementation based on <a href="http://jakarta.apache.org/commons/httpclient/">HttpClient</a> 3, and a basic SOAP implementation based on <a href="">Axis</a> 1.4.</li>
-<li>Extensible Service interface, allowing developers to add their own REST or SOAP implementations based on their preferred libraries</li>
-<li>Two example applications built using the toolkit</li>
-</ul>
+Welcome to the development home of the JetS3t suite. This site is intended for developers 
+and other people actively involved in the JetS3t project who use the 
+<a href="https://jets3t.dev.java.net/servlets/ProjectMailingListList">mailing lists</a>, 
+<a href="https://jets3t.dev.java.net/servlets/ProjectForumView">discussion forums</a>, 
+<a href="https://jets3t.dev.java.net/servlets/ProjectIssues">bug/issue tracking</a> and
+<a href="https://jets3t.dev.java.net/source/browse/jets3t/">CVS codebase repository</a>
+features of this site.
 </p>
 
-<h3>Included Applications</h3>
-<p>The jets3t project includes two Java applications built using the toolkit:
-<ul>
-<li><a href="cockpit.html">Cockpit</a>: A graphical (Swing) application for viewing and managing the contents of an Amazon S3 account.</li>
-<li><a href="synchronize.html">Synchronize</a>: A console application to synchronize directories on your computer with an Amazon S3 account.</li>
-</ul>
+<p>
+The main public JetS3t website has been improved and relocated to Amazon S3:<br>
+<center><font size="+1"><a href="http://jets3t.s3.amazonaws.com/index.html">JetS3t Home</a></font></center><br>
+Here you will find detailed documentation such as 
+<a href="http://jets3t.s3.amazonaws.com/applications/applications.html">application manuals</a>
+and <a href="http://jets3t.s3.amazonaws.com/toolkit/toolkit.html">programmer guides</a>, 
+online versions of Cockpit and Uploader and links to 
+<a href="http://jets3t.s3.amazonaws.com/downloads.html">JetS3t releases</a> for download.
+</p>
+
+<h2>What is JetS3t?</h2>
+<p>
+JetS3t is a free, open-source Java toolkit and application suite for the 
+<a href="http://www.amazon.com/s3" target="_blank">Amazon Simple Storage Service</a> (Amazon S3).
+The toolkit provides Java programmers with a powerful yet simple API for interacting with 
+S3 and managing data stored there, while the applications allow anyone to easily manage and 
+interact with their S3 accounts.
 </p>
 
 <h3><a name="license">How is jets3t licensed?</a></h3>
-<p>This project is licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
+<p>
+This project is licensed under the 
+<a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
 In short, this license means jets3t is free for commercial or non-commercial use, 
 and you may modify and/or redistribute it if you wish.
-
-<h3>Alternate resources</h3>
-<p>There are a number of other programs and toolkits available for the Amazon S3 service. If jets3t doesn't meet your needs, perhaps something more appropriate will be available in Amazon's <a href="http://solutions.amazonwebservices.com/connect/kbcategory.jspa?categoryID=66">S3 Solutions Catalog</a>.</p>
-
-<h2>Who should use jets3t?</h2>
-<p>The jets3t toolkit is intended to be used by Java developers, however the applications included with the project may also be of use to non-developers.</p>
+</p>
 
 <h2>Project Goals</h2>
-<p>jets3t was started as a hobbyist project so we could build simple applications to backup important files to S3 (<a href="synchronize.html">Synchronize</a>), and easily manage the contents of our S3 account (<a href="cockpit.html">Cockpit</a>). We are releasing these applications, and the underlying toolkit, in the hope it may be useful for others.</p>
-<p>We have no particular goals for the jets3t project at present except for fixing bugs and making minor improvements. If the project proves to be useful to others and there is sufficient demand, we will look into making larger scale changes/additions based on your suggestions.</p>
-<p>So if you use jets3t and would like it to be improved to better meet your needs, please let us know.</p>
+<p>
+JetS3t was started as a hobbyist project to simply backup files to S3 but with feedback, support 
+and sponsorship from our users it has since grown into a very powerful suite including an 
+underlying toolkit API and some widely-used applications built on top of this toolkit.
+</p>
+<p>
+The JetS3t suite will continue to evolve as new feature are added to Amazon's S3 and as we receive 
+your feedback, so get involved and help us improve the suite to better meet your needs.
+</p>
 
 <h2>What is Amazon S3?</h2>
 The Amazon Simple Storage Service is a paid-for online file storage service 
@@ -72,13 +69,19 @@ Amazon S3</a> home page.</p>
 <p>If you're ready to give it a try, you can
 <a href="http://aws-portal.amazon.com/gp/aws/developer/subscription/index.html/103-5296594-0109452?ie=UTF8&serviceID=8&servicePlanID=6">
 sign up right now</a>.
+</p>
+
 <h3>Are you affiliated with Amazon?</h3>
-<p>This project has no relationship with Amazon, we just think the S3 service is cool.</p>
+<p>
+This project has no relationship with Amazon, we just think the S3 service is cool.
+</p>
 
-<h2>Why is this toolkit called jets3t?</h2>
-<p>jets3t stands for <b>J</b>ava <b>S3</b> <b>T</b>oolkit. jets3t is the closest thing to real word containing these "letters" we could think of.</p>
-<p>What about the 'et' in j<b>et</b>s3t you ask? Well, to be honest, we don't know; we're open for suggestions as to what the E and T could stand for...</p>
-
+<h2>Why is this toolkit called JetS3t?</h2>
+<p>
+JetS3t, pronounced "jet-set", stands for the <b>J</b>ava <b>S3</b> toolkit, with some extra letters 
+added to make it into a word connoting high-flying, free-wheeling luxury. Come and join the jet-set,
+you won't regret it.
+</p>
 
 </body>
 </html>

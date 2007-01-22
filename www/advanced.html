@@ -6,132 +6,14 @@
 
 <body bgcolor="#FFFFFF" text="#000000">
 
-<center>
-	<a href="index.html"><b>Home</b></a> | 
-	<a href="cockpit.html">Cockpit</a> | 
-	<a href="synchronize.html">Synchronize</a> | 
-	<a href="start.html">Toolkit Guide</a> |
-	<a href="advanced.html">Advanced options</a> | 
-	| <a href="downloads.html">Downloads</a>
-</center>
-
-<center><h1>Advanced Guide</h1></center>
-
 <p>
-Synchronize and cookpit both have advanced options that can be set, depending on your needs you may need
-some of this options on or off.</p>
-
-<h3>Options</h3>
-<p>We use a properties file to configure advanced options. Properties are loaded from sources in the following order. </p>
-
-<ul>
- <li>jets3t.properties file in the classpath</li>
- <li>jets3t.properties file in the default jets3t home directory</li>
- <li>System Properties</li>
-</ul>
-
-<p>Properties sourced from later locations over-ride those sourced from prior locations. For example, if a property exists 
-in jets3t.properties in the classpath and is also set as a system property, the system property version will be used. </p>
-
-
-<p>The table below, lists the properties you can modify and with its default values</p>
-<table border=1>
-  <tbody>
-    <tr>
-      <td>Property</td>
-      <td>Default value<br>
-      </td>
-    </tr>
-    <tr>
-      <td>s3service.https-only</td>
-      <td>false</td>
-    </tr>
-    <tr>
-      <td>httpclient.connection-timeout-ms</td>
-      <td>60000</td>
-
-    </tr>
-    <tr>
-      <td>httpclient.socket-timeout-ms</td>
-      <td>60000</td>
-    </tr>
-    <tr>
-      <td>httpclient.max-connections</td>
-
-      <td>10</td>
-    </tr>
-    <tr>
-      <td>httpclient.max-connections</td>
-      <td>10</td>
-    </tr>
-    <tr>
-
-      <td>httpclient.stale-checking-enabled</td>
-      <td>true</td>
-    </tr>
-
-    <tr>
-      <td>http.protocol.expect-continue</td>
-      <td>true</td>
-    </tr>
-    <tr>
-      <td>httpclient.retry-on-errors</td>
-      <td>true</td>
-
-    </tr>
-  </tbody>
-</table>
-
-<h2>Logging</h2>
-The logging configuration can be confusing as it's being performed by the "pluggable" Apache Commons library, which 
-provides an API but relies on the Log4J library (or alternative implementations) to  provide the actual implementation.
-
-To enable the log you need to:
-
-<ol>
-  <li>Create a commons-logging.properties text file and put it in your classpath.</li>
-  <li>In the commons-logging.properties file, you set the actual logging implementation library you want to use. For example, 
-<pre>
-org.apache.commons.logging.Log=org.apache.commons.logging.impl.Log4JLogger
-#org.apache.commons.logging.Log=org.apache.commons.logging.impl.Jdk14Logger
-</pre>
-
-    <p>Note that there is only one property, with two ways to set it. The first line sets Log4J as the logging implementation. We prefer this  
-as I am used to it, and it provides good control. The second line (which is commented out) would use the logging implementation that is  
-built in to Java 1.4+, which means you don't need an extra library but I find the Jdk14 version less powerful than Log4J.</p>
-
-    <p>At this, if you setup the jdk implmentation you don't need to do anything else.</p>
-  </li>
-  <li>Assuming you want to use Log4J instead of the Jdk14 implementation, download the Log4J library and put it in your classpath.</li>
-  <li>Configure Log4J by putting a log4j.properties file in the classpath, and adding settings to print the kinds of messages you need.
- If you are interested in the DEBUG messages, I would recommend something like the following:
-<pre>
-log4j.rootLogger=INFO, stdout
-
-log4j.appender.stdout=org.apache.log4j.ConsoleAppender
-log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
-log4j.appender.stdout.layout.ConversionPattern=%5p [%c] %m%n
-
-log4j.logger.org.apache.commons.httpclient=INFO
-log4j.logger.httpclient.wire.content=INFO
-log4j.logger.httpclient.wire.headers=DEBUG
-
-log4j.logger.org.jets3t=DEBUG
-log4j.logger.org.jets3t.service.impl.rest.XmlResponsesSaxParser=INFO
-log4j.logger.org.jets3t.service.Jets3tProperties=INFO
-log4j.logger.org.jets3t.service.utils.ServiceUtils=INFO
-</pre>
-  </li>
-</ol>
-
-Look up Log4J on the net for more details about this properties file,  
-but the settings I have included should do what you need without any  
-further changes.
-<h2>Notes</h2>
-<p><b>Compressing/encrypting uploads</b>: Synchronize will create temporary files when used with any 
-upload options that change the contents of uploaded files, such as compressing or encrypting them. 
-This means that you will need up to twice as much free space in your default temp directory as taken
-by the files you intend to upload.</p>
+Sorry, this page is no longer available.
+</p>
+<p>
+Please visit the new 
+<a href="http://jets3t.s3.amazonaws.com/index.html">JetS3t Home</a> public website, or 
+return to the <a href="index.html">JetS3t Development</a> homepage.
+</p>
 
 </body>
 </html>
