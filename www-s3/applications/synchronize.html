@@ -182,6 +182,16 @@ tt {
         </ul><sup>Items with a red star (<font color=
         "red">*</font>) are new in JetS3t version 0.5.x</sup>
 
+        <h3>Warning: Changed Usage</h3>
+
+        <p>Please not that the parameters required by Synchronize,
+        and their ordering, have changed since the original version
+        of Synchronize released with JetS3t version 0.4.0.
+        <br />
+        When updating, users of the original Synchronize version
+        <b>must</b> update their scripts and re-test them to ensure
+        they work as expected.</p>
+
         <h2>Getting Started</h2>
 
         <p>Synchronize can be run from the command line using the
@@ -245,11 +255,6 @@ acl=PRIVATE
         the command-line parameters required by Synchronize and the
         options available. To see some example commands see the
         <a href="#examples">Examples</a> section below.</p>
-
-        <p><b>Changes</b>: Note that the parameters required by
-        Synchronize, and their ordering, has changed in the 0.5.0
-        release. Please update any scripts you have that use the
-        outdated synchronize commands from release 0.4.0.</p>
         <pre>
 Usage: Synchronize [options] UP &lt;S3Path&gt; &lt;File/Directory&gt; (&lt;File/Directory&gt;...)
    or: Synchronize [options] DOWN &lt;S3Path&gt; &lt;DownloadDirectory&gt;

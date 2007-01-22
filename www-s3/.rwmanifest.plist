@@ -9,7 +9,7 @@
 		<key>page0</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-21T02:02:17Z</date>
+			<date>2007-01-22T00:14:38Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -28,6 +28,31 @@
 			</dict>
 			<key>PageID</key>
 			<string>page0</string>
+			<key>Version</key>
+			<integer>3</integer>
+		</dict>
+		<key>page11</key>
+		<dict>
+			<key>CreationDate</key>
+			<date>2007-01-22T01:05:16Z</date>
+			<key>DigestAlgorithm</key>
+			<string>MD5</string>
+			<key>DocumentGUID</key>
+			<string>99C26C57-A186-485A-830C-81E26E3A1288</string>
+			<key>PageDigests</key>
+			<dict>
+				<key>jets3t-cockpit.html</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					95WjSFLGTB7uA5jedlhlEA==
+					</data>
+					<key>Size</key>
+					<integer>4330</integer>
+				</dict>
+			</dict>
+			<key>PageID</key>
+			<string>page11</string>
 			<key>Version</key>
 			<integer>3</integer>
 		</dict>
@@ -59,7 +84,7 @@
 		<key>page3</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-21T02:02:19Z</date>
+			<date>2007-01-22T01:39:38Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -70,10 +95,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					H5bDudDwrz/OHHbiamTuzQ==
+					Sbkb9Aoz7XZQ+XqnN7a/Rw==
 					</data>
 					<key>Size</key>
-					<integer>4660</integer>
+					<integer>5426</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -84,7 +109,7 @@
 		<key>page9</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-01-21T02:02:19Z</date>
+			<date>2007-01-22T03:44:02Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -95,10 +120,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					vvH6Fr/sJ5ze3hTX8x1Eyw==
+					ZlEycUJBXov2p4aHd8PmSw==
 					</data>
 					<key>Size</key>
-					<integer>6862</integer>
+					<integer>6928</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>

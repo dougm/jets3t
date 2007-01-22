@@ -129,10 +129,6 @@ KNOWN ISSUES
   
   * Cockpit
   
-- If Cockpit is run as an applet and the user navigates away from the applet's
-  page and later returns, Cockpit fails to restart. It is not able to start 
-  again until the user restarts their web browser.
-  
 - Copy & paste and Drag & drop doesn't work on some versions of Linux, 
   making it difficult to enter AWS credentials.
 
