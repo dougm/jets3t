@@ -72,8 +72,6 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
 
     private static final Log log = LogFactory.getLog(StartupDialog.class);
 
-    private static StartupDialog startupDialog = null;
-    
     private Frame ownerFrame = null;
     private HyperlinkActivatedListener hyperlinkListener = null;
     
@@ -500,15 +498,12 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
      * the AWS credentials entered/selected by the user, or null if the dialog was cancelled
      */
     public static AWSCredentials showDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) throws Exception {
-        if (startupDialog == null) {
-            startupDialog = new StartupDialog(owner, hyperlinkListener);
-        }        
+        StartupDialog startupDialog = new StartupDialog(owner, hyperlinkListener);
         startupDialog.awsCredentials = null;
-        startupDialog.show();
+        startupDialog.setVisible(true);
         
         return startupDialog.awsCredentials;
     }
-
 
     /**
      * Creates stand-alone dialog box for testing only.
@@ -536,7 +531,6 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             System.out.println("AWS Credentials: null");            
         }
         
-        startupDialog.dispose();
         f.dispose();
     }
 
