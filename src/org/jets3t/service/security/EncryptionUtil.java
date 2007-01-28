@@ -45,6 +45,7 @@ import javax.crypto.spec.PBEParameterSpec;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 
 /**
@@ -66,7 +67,6 @@ import org.jets3t.service.Jets3tProperties;
 public class EncryptionUtil {
     private static final Log log = LogFactory.getLog(EncryptionUtil.class);
     
-    public static final String UNICODE_FORMAT = "UTF8";
     public static final String DEFAULT_VERSION = "2";
 
     private String algorithm = null;
@@ -193,7 +193,7 @@ public class EncryptionUtil {
         };
 
         algorithm = "DESede/CBC/PKCS5Padding";        
-        encryptionKey = encryptionKey + new String(KEY_BASE_BYTES, "UTF8");
+        encryptionKey = encryptionKey + new String(KEY_BASE_BYTES, Constants.DEFAULT_ENCODING);
     
         int keyOffset = 0;
         byte spec[] = new byte[8];
@@ -251,7 +251,7 @@ public class EncryptionUtil {
     }
 
     /**
-     * Encrypts a UTF8 string to byte data.
+     * Encrypts a UTF-8 string to byte data.
      * 
      * @param data
      * data to encrypt.
@@ -274,16 +274,16 @@ public class EncryptionUtil {
         NoSuchAlgorithmException, NoSuchPaddingException
     {
         Cipher cipher = initEncryptModeCipher();
-        return cipher.doFinal(data.getBytes(UNICODE_FORMAT));
+        return cipher.doFinal(data.getBytes(Constants.DEFAULT_ENCODING));
     }
 
     /**
-     * Decrypts byte data to a UTF8 string.
+     * Decrypts byte data to a UTF-8 string.
      * 
      * @param data
      * data to decrypt.
      * @return
-     * UTF8 string of decrypted data.
+     * UTF-8 string of decrypted data.
      * 
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
@@ -299,11 +299,11 @@ public class EncryptionUtil {
         IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
     {
         Cipher cipher = initEncryptModeCipher();
-        return new String(cipher.doFinal(data), UNICODE_FORMAT);
+        return new String(cipher.doFinal(data), Constants.DEFAULT_ENCODING);
     }
 
     /**
-     * Decrypts a UTF8 string.
+     * Decrypts a UTF-8 string.
      * 
      * @param data
      * data to decrypt.
@@ -312,7 +312,7 @@ public class EncryptionUtil {
      * @param endIndex
      * end index of data to decrypt.
      * @return
-     * UTF8 string of decrypted data.
+     * UTF-8 string of decrypted data.
      * 
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
@@ -329,7 +329,7 @@ public class EncryptionUtil {
         BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException
     {
         Cipher cipher = initDecryptModeCipher();
-        return new String(cipher.doFinal(data, startIndex, endIndex), UNICODE_FORMAT);
+        return new String(cipher.doFinal(data, startIndex, endIndex), Constants.DEFAULT_ENCODING);
     }
 
     /**

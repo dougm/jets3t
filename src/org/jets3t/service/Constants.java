@@ -56,9 +56,9 @@ public class Constants {
     public static final String FILE_PATH_DELIM = "/";
 
     /**
-     * The default encoding used for text data: UTF8 
+     * The default encoding used for text data: UTF-8 
      */
-    public static final String DEFAULT_ENCODING = "UTF8";
+    public static final String DEFAULT_ENCODING = "UTF-8";
 
     /**
      * HMAC/SHA1 Algorithm per RFC 2104, used when generating S3 signatures.
