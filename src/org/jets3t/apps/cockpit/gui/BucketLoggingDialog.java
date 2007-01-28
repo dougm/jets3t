@@ -35,6 +35,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
@@ -193,10 +194,15 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
                 } else {
                     (new Thread() {
                         public void run() {
-                            ProgressDisplay progressDisplay = new ProgressDisplay(
-                                ownerFrame, "Bucket Logging", "Retrieving bucket logging status", 
-                                null, 0, 0, null, null);                               
-                            progressDisplay.startDialog();
+                            final ProgressDialog progressDialog = 
+                                new ProgressDialog(ownerFrame, "Bucket Logging");
+                            
+                            SwingUtilities.invokeLater(new Runnable() {
+                                public void run() {
+                                    progressDialog.startDialog("Retrieving bucket logging status", 
+                                        null, 0, 0, null, null);                               
+                                }
+                             });
 
                             try {
                                 S3BucketLoggingStatus loggingStatus = 
@@ -204,11 +210,20 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
                                 loggingStatusMap.put(bucketName, loggingStatus);
                                 displayBucketLoggingStatus(loggingStatus);
                             } catch (Exception e) {
-                                progressDisplay.dispose();
+                                SwingUtilities.invokeLater(new Runnable() {
+                                    public void run() {
+                                        progressDialog.stopDialog();                    
+                                    }
+                                 });
+
                                 ErrorDialog.showDialog(ownerFrame, null, 
                                     "Unable to retrieve bucket logging status for " + bucketName, e);
                             }
-                            progressDisplay.dispose();
+                            SwingUtilities.invokeLater(new Runnable() {
+                                public void run() {
+                                    progressDialog.stopDialog();                    
+                                }
+                             });
                         }
                     }).start();
                 }                                                            
@@ -239,11 +254,14 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
             
             (new Thread(new Runnable() {
                 public void run() {
-                    ProgressDisplay progressDisplay = new ProgressDisplay(
-                        ownerFrame, "Bucket Logging", "Setting bucket logging status", 
-                        null, 0, 0, null, null);
-                    
-                    progressDisplay.startDialog();
+                    final ProgressDialog progressDialog = 
+                        new ProgressDialog(ownerFrame, "Bucket Logging");
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressDialog.startDialog("Setting bucket logging status", 
+                                null, 0, 0, null, null);
+                        }
+                     });
                     
                     try {
                         S3BucketLoggingStatus loggingStatus =
@@ -252,12 +270,19 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
                         
                         loggingStatusMap.put(loggedBucketName, loggingStatus);
                     } catch (Exception e) {
-                        progressDisplay.dispose();
+                        SwingUtilities.invokeLater(new Runnable() {
+                            public void run() {
+                                progressDialog.stopDialog();
+                            }
+                         });
                         ErrorDialog.showDialog(ownerFrame, null, 
                             "Unable to set bucket logging status for " + loggedBucketName, e);
                     }                    
-                    progressDisplay.dispose();
-                    
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressDialog.stopDialog();
+                        }
+                     });                    
                 };
             })).start();            
         }   

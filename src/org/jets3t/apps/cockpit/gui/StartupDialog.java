@@ -40,6 +40,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -315,13 +316,16 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             return;
         }
         
-        final ProgressDisplay progressDisplay = new ProgressDisplay(ownerFrame, "Retrieving AWS Credentials", 
-            "Downloading your AWS Credentials", null, 0, 0, null, null);
+        final ProgressDialog progressDialog = new ProgressDialog(ownerFrame, "Retrieving AWS Credentials");
         final StartupDialog myself = this;
             
         (new Thread(new Runnable() {
             public void run() {
-                progressDisplay.startDialog();
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        progressDialog.startDialog("Downloading your AWS Credentials", "", 0, 0, null, null);
+                    }
+                 });
                 
                 S3Object encryptedCredentialsObject = null;
 
@@ -330,7 +334,11 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                     encryptedCredentialsObject = s3Service.getObject(
                         new S3Bucket(bucketName[0]), credentialObjectKey[0]);
                 } catch (S3ServiceException e) {
-                    progressDisplay.dispose();
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressDialog.stopDialog();
+                        }
+                     });
 
                     String errorMessage = "Unable to find your AWS Credentials in S3, please check your passphrase and password";
                     log.error(errorMessage, e);
@@ -338,16 +346,28 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                     return;
                 }
                 
-                progressDisplay.updateStatusMessages("Decrypting your AWS Credentials", null);
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        progressDialog.updateDialog("Decrypting your AWS Credentials", null, 0);
+                    }
+                 });
                 
                 try {
                     myself.awsCredentials = AWSCredentials.load(password, 
                         new BufferedInputStream(encryptedCredentialsObject.getDataInputStream()));
                     
-                    progressDisplay.dispose();
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressDialog.stopDialog();
+                        }
+                     });
                     myself.hide();
                 } catch (S3ServiceException e) {
-                    progressDisplay.dispose();
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressDialog.stopDialog();
+                        }
+                     });
 
                     String errorMessage = "Unable to load your AWS Credentials from S3, please check your password";
                     log.error(errorMessage, e);
@@ -398,13 +418,17 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             return;
         }
         
-        final ProgressDisplay progressDisplay = new ProgressDisplay(ownerFrame, "Storing AWS Credentials", 
-            "Uploading your AWS Credentials", null, 0, 0, null, null);
+        final ProgressDialog progressDialog = new ProgressDialog(ownerFrame, "Storing AWS Credentials");            
         final StartupDialog myself = this;
 
         (new Thread(new Runnable() {
             public void run() {
-                progressDisplay.startDialog();
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        progressDialog.startDialog("Uploading your AWS Credentials", null, 0, 0, null, null);
+                    }
+                 });
+
                 try {
                     S3Bucket bucket = new S3Bucket(bucketName[0]);
                     S3Object encryptedCredentialsObject = new S3Object(credentialObjectKey[0]);        
@@ -416,14 +440,22 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                     s3Service.createBucket(bucketName[0]);            
                     s3Service.putObject(bucket, encryptedCredentialsObject);
         
-                    progressDisplay.dispose();
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressDialog.stopDialog();                    
+                        }
+                     });
 
                     JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in your " +
                         "S3 account\n\nBucket name: " + bucketName[0] + "\nObject key: " + credentialObjectKey[0]);
                     actionModeComboBox.setSelectedIndex(ACTION_MODE_LOG_IN);
                     
                 } catch (S3ServiceException e) {
-                    progressDisplay.dispose();
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            progressDialog.stopDialog();                    
+                        }
+                     });
 
                     String message = "Unable to store your AWS Credentials in S3";
                     log.error(message, e);

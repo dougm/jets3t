@@ -103,7 +103,7 @@ import org.jets3t.apps.cockpit.gui.BucketTableModel;
 import org.jets3t.apps.cockpit.gui.ItemPropertiesDialog;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.PreferencesDialog;
-import org.jets3t.apps.cockpit.gui.ProgressDisplay;
+import org.jets3t.apps.cockpit.gui.ProgressDialog;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
@@ -234,7 +234,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JLabel objectsSummaryLabel = null;
         
     private HashMap cachedBuckets = new HashMap();
-    private ProgressDisplay progressDisplay = null;
+    private ProgressDialog progressDialog = null;
         
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
@@ -365,7 +365,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private void initGui() {        
         initMenus();
-        
+                
         JPanel appContent = new JPanel(new GridBagLayout());
         this.getContentPane().add(appContent);
                 
@@ -501,7 +501,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Initialize drop target.
         initDropTarget(new JComponent[] {objectsTableSP, objectsTable} );
         objectsTable.getDropTarget().setActive(false);
-        objectsTableSP.getDropTarget().setActive(false);        
+        objectsTableSP.getDropTarget().setActive(false);                
     }
     
     private void applyIcon(JMenuItem menuItem, String iconResourcePath) {
@@ -822,21 +822,20 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @param statusText
      *        describes the status of a task in text meaningful to the user
      */
-    private void startProgressDisplay(String statusText) {
-        this.setEnabled(false);
-        startProgressDisplay(statusText, null, 0, 0, null, null);
+    private void startProgressDialog(String statusText) {
+        startProgressDialog(statusText, null, 0, 0, null, null);
     }
 
     /**
      * Starts a progress display dialog. While the dialog is running the user cannot interact
      * with the application, except to cancel the task.
      * 
-     * @param statusText
+     * @param statusMessage
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      * @param detailsText
      *        describes the status of a task in more detail, such as the current transfer rate and Time remaining.
-     * @param minValue  the minimum progress value for a task, generally 0
-     * @param maxValue  
+     * @param minTaskValue  the minimum progress value for a task, generally 0
+     * @param maxTaskValue  
      *        the maximum progress value for a task, such as the total number of threads or 100 if
      *        using percentage-complete as a metric.
      * @param cancelEventListener
@@ -846,59 +845,52 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      *        text displayed in the cancel button if a task can be cancelled. This is only used if
      *        a cancel event listener is provided.
      */
-    private void startProgressDisplay(final String statusText, final String detailsText, 
-        final long minValue, final long maxValue, final String cancelButtonText, 
+    private void startProgressDialog(final String statusMessage, final String detailsText, 
+        final int minTaskValue, final int maxTaskValue, final String cancelButtonText, 
         final CancelEventTrigger cancelEventListener) 
     {
-       if (progressDisplay == null) {
-           progressDisplay = new ProgressDisplay(ownerFrame, "Please wait...", statusText, 
-               null, (int) minValue, (int) maxValue, cancelButtonText, cancelEventListener);                   
-           progressDisplay.startDialog();
-           
-           this.getContentPane().setCursor(new Cursor(Cursor.WAIT_CURSOR));
+        if (this.progressDialog == null) {
+            this.progressDialog = new ProgressDialog(this.ownerFrame, "Please wait...");
         }
-    }
-    
-    private void startProgressDisplay(final String statusText, final long minValue, 
-        final long maxValue, final String cancelButtonText, 
-        final CancelEventTrigger cancelEventListener) 
-    {
-        startProgressDisplay(statusText, null, minValue, maxValue, cancelButtonText, cancelEventListener);
+        
+        this.getContentPane().setCursor(new Cursor(Cursor.WAIT_CURSOR));
+        
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                progressDialog.startDialog(statusMessage, detailsText, minTaskValue, maxTaskValue, 
+                    cancelEventListener, cancelButtonText);        
+            }
+         });
     }
     
     /**
      * Updates the status text and value of the progress display dialog.
-     * @param statusText
+     * @param statusMessage
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      * @param detailsText
      *        describes the status of a task in more detail, such as the current transfer rate and time remaining.
-     * @param currentValue
+     * @param progressValue
      *        value representing how far through the task we are (relative to min and max values)
      */
-    private void updateProgressDisplay(final String statusText, final String detailsText, final long currentValue) {
-        if (progressDisplay != null) {
-            if (currentValue > 0) {
-                progressDisplay.updateProgress((int) currentValue);                
+    private void updateProgressDialog(final String statusMessage, final String detailsText, final int progressValue) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                progressDialog.updateDialog(statusMessage, detailsText, progressValue);
             }
-            progressDisplay.updateStatusMessages(statusText, detailsText);
-        }
-    }
-    
-    private void updateProgressDisplay(final String statusText, final long currentValue) {
-        this.updateProgressDisplay(statusText, null, currentValue);
+         });
     }
     
     /**
      * Stops/halts the progress display dialog and allows the user to interact with the application.
      */
-    private void stopProgressDisplay() {
-        if (progressDisplay != null) {
-            progressDisplay.dispose();
-            progressDisplay = null;
-        }
-        
-        this.setEnabled(true);
-        this.getContentPane().setCursor(null);        
+    private void stopProgressDialog() {
+        this.getContentPane().setCursor(null);
+
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                progressDialog.stopDialog();
+            }
+         });
     }
         
     /**
@@ -1117,12 +1109,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private void listAllBuckets() throws S3ServiceException {
         // This is all very convoluted, it was done this way to ensure we can display the dialog box.
         
-        new Thread() {
-            public void run() {
+        new Thread(new Runnable() {
+            public void run() {                
+                startProgressDialog("Listing buckets for " + s3ServiceMulti.getAWSCredentials().getAccessKey());
                 try {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            startProgressDisplay("Listing buckets for " + s3ServiceMulti.getAWSCredentials().getAccessKey());
                             cachedBuckets.clear();
                             bucketsTable.clearSelection();       
                             bucketTableModel.removeAllBuckets();
@@ -1139,7 +1131,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         }
                     });
                 } catch (final Exception e) {
-                    stopProgressDisplay();
+                    stopProgressDialog();
                     logoutEvent();
 
                     String message = "Unable to list your buckets in S3, please log in again";
@@ -1148,10 +1140,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
                     loginEvent();
                 } finally {
-                    stopProgressDisplay();
+                    stopProgressDialog();
                 }
             };
-        }.start();        
+        }).start();        
     }
     
     /**
@@ -1248,10 +1240,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         }                        
                     };
                     
+                    startProgressDialog(
+                        "Listing objects in " + getCurrentSelectedBucket().getName(),
+                        "", 0, 0, "Cancel bucket listing", cancelListener);
+                    
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            startProgressDisplay("Listing objects in " + getCurrentSelectedBucket().getName(),
-                                0, 0, "Cancel bucket listing", cancelListener);
                             objectTableModel.removeAllObjects();                                                
                         }
                     });
@@ -1274,12 +1268,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         priorLastKey = chunk.getPriorLastKey();
                         allObjects.addAll(Arrays.asList(objects));
 
+                        updateProgressDialog(
+                            "Listed " + allObjects.size() + " objects in " 
+                            + getCurrentSelectedBucket().getName(), "", 0);
+                        
                         SwingUtilities.invokeLater(new Runnable() {
                             public void run() {
                                 objectTableModel.addObjects(objects);
                                 updateObjectsSummary(true);
-                                updateProgressDisplay("Listed " + allObjects.size() + " objects in " 
-                                    + getCurrentSelectedBucket().getName(), 0);
                             }
                         });                        
                     } while (!listingCancelled[0] && priorLastKey != null);
@@ -1293,13 +1289,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     });                        
 
                 } catch (final Exception e) {
-                    stopProgressDisplay();
+                    stopProgressDialog();
                     
                     String message = "Unable to list objects";
                     log.error(message, e);
                     ErrorDialog.showDialog(ownerFrame, null, message, e);
                 } finally {
-                    stopProgressDisplay();
+                    stopProgressDialog();
                 }
             };
         }.start();                
@@ -1417,8 +1413,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     public void s3ServiceEventPerformed(final CreateBucketsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {    
-            startProgressDisplay("Creating " + event.getThreadWatcher().getThreadCount() + " buckets",                     
-                0, event.getThreadWatcher().getThreadCount(), 
+            startProgressDialog(
+                "Creating " + event.getThreadWatcher().getThreadCount() + " buckets",                     
+                "", 0, (int) event.getThreadWatcher().getThreadCount(), 
                 "Cancel bucket creation", event.getThreadWatcher().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -1434,16 +1431,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             ThreadWatcher progressStatus = event.getThreadWatcher();
             String statusText = "Created " + progressStatus.getCompletedThreads() + " buckets of " + progressStatus.getThreadCount();
-            updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                
+            updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) { 
-            stopProgressDisplay();
+            stopProgressDialog();
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDisplay();
+            stopProgressDialog();
             
             String message = "Unable to create a bucket";
             log.error(message, event.getErrorCause());
@@ -1574,17 +1571,18 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     public void s3ServiceEventPerformed(LookupACLEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
-            startProgressDisplay("Retrieved 0 of " + event.getThreadWatcher().getThreadCount() + " ACL(s)", 
-                    0, event.getThreadWatcher().getThreadCount(), "Cancel Lookup",  
-                    event.getThreadWatcher().getCancelEventListener());
+            startProgressDialog(
+                "Retrieved 0 of " + event.getThreadWatcher().getThreadCount() + " ACL(s)", 
+                "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Lookup",  
+                event.getThreadWatcher().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             ThreadWatcher progressStatus = event.getThreadWatcher();
             String statusText = "Retrieved " + progressStatus.getCompletedThreads() + " of " + progressStatus.getThreadCount() + " ACL(s)";
-            updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                    
+            updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                    
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
-            stopProgressDisplay();                
+            stopProgressDialog();                
             
             final S3Object[] objectsWithACL = getSelectedObjects();            
             final HyperlinkActivatedListener hyperlinkListener = this;
@@ -1619,10 +1617,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             });
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDisplay();
+            stopProgressDialog();
             
             String message = "Unable to lookup Access Control list for object(s)";
             log.error(message, event.getErrorCause());
@@ -1653,23 +1651,24 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     public void s3ServiceEventPerformed(UpdateACLEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
-            startProgressDisplay("Updated 0 of " + event.getThreadWatcher().getThreadCount() + " ACL(s)", 
-                    0, event.getThreadWatcher().getThreadCount(), "Cancel Update", 
-                    event.getThreadWatcher().getCancelEventListener());
+            startProgressDialog(
+                "Updated 0 of " + event.getThreadWatcher().getThreadCount() + " ACL(s)", 
+                "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Update", 
+                event.getThreadWatcher().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             ThreadWatcher progressStatus = event.getThreadWatcher();
             String statusText = "Updated " + progressStatus.getCompletedThreads() + " of " + progressStatus.getThreadCount() + " ACL(s)";
-            updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                    
+            updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                    
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
-            stopProgressDisplay();                            
+            stopProgressDialog();                            
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDisplay();
+            stopProgressDialog();
             
             String message = "Unable to update Access Control List(s)";
             log.error(message, event.getErrorCause());
@@ -1802,8 +1801,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     final String statusText =
                         "Comparing " + s3ObjectsMap.size() + " object" + (s3ObjectsMap.size() > 1 ? "s" : "") +
                         " in S3 with " + localFilesMap.size() + " local file" + (localFilesMap.size() > 1 ? "s" : "");
-                    startProgressDisplay(statusText,
-                        0, 100, null, null); 
+                    startProgressDialog(statusText, "", 0, 100, null, null); 
                     
                     // Calculate total files size.
                     File[] files = (File[]) localFilesMap.values().toArray(new File[localFilesMap.size()]);
@@ -1820,18 +1818,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                             hashedBytesTotal[0] += transferredBytes;
                             final int percentage = 
                                 (int) (100 * hashedBytesTotal[0] / filesSizeTotal[0]);
-                            SwingUtilities.invokeLater(new Runnable() {
-                                public void run() {
-                                    updateProgressDisplay(statusText, percentage);
-                                }
-                            });
+
+                            updateProgressDialog(statusText, "", percentage);
                         }
                     };
                     
                     FileComparerResults comparisonResults = 
                         FileComparer.buildDiscrepancyLists(localFilesMap, s3ObjectsMap, hashWatcher);
                     
-                    stopProgressDisplay(); 
+                    stopProgressDialog(); 
                     
                     if (upload) {
                         performFilesUpload(comparisonResults, localFilesMap);
@@ -1841,7 +1836,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
-                    stopProgressDisplay();                
+                    stopProgressDialog();                
                     String message = "Unable to download objects";
                     log.error(message, e);
                     ErrorDialog.showDialog(ownerFrame, hyperlinkListener, message, e);
@@ -2018,15 +2013,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             // Show percentage of bytes transferred, if this info is available.
             if (watcher.isBytesTransferredInfoAvailable()) {
-                startProgressDisplay("Downloaded " + 
+                startProgressDialog("Downloaded " + 
                     byteFormatter.formatByteSize(watcher.getBytesTransferred()) 
-                    + " of " + byteFormatter.formatByteSize(watcher.getBytesTotal()), 0, 100, "Cancel Download", 
+                    + " of " + byteFormatter.formatByteSize(watcher.getBytesTotal()), 
+                    "", 0, 100, "Cancel Download", 
                     event.getThreadWatcher().getCancelEventListener());
             // ... otherwise just show the number of completed threads.
             } else {
-                startProgressDisplay("Downloaded " + event.getThreadWatcher().getCompletedThreads()
-                    + " of " + event.getThreadWatcher().getThreadCount() + " objects", " ",
-                    0, event.getThreadWatcher().getThreadCount(),  "Cancel Download",
+                startProgressDialog("Downloaded " + event.getThreadWatcher().getCompletedThreads()
+                    + " of " + event.getThreadWatcher().getThreadCount() + " objects", 
+                    "", 0, (int) event.getThreadWatcher().getThreadCount(),  "Cancel Download",
                     event.getThreadWatcher().getCancelEventListener());
             }
         } 
@@ -2041,25 +2037,25 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 
                 String detailsText = formatTransferDetails(watcher);
                 
-                long percentage = (int) 
+                int percentage = (int) 
                     (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
-                updateProgressDisplay(statusText, detailsText, percentage);
+                updateProgressDialog(statusText, detailsText, percentage);
             }
             // ... otherwise just show the number of completed threads.
             else {
                 ThreadWatcher progressStatus = event.getThreadWatcher();
                 String statusText = "Downloaded " + progressStatus.getCompletedThreads() 
                     + " of " + progressStatus.getThreadCount() + " objects";                    
-                updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                    
+                updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                    
             }            
         } else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
-            stopProgressDisplay();                
+            stopProgressDialog();                
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDisplay();
+            stopProgressDialog();
             
             String message = "Unable to download object(s)";
             log.error(message, event.getErrorCause());
@@ -2121,7 +2117,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 newObject.addMetadata("Content-Encoding", contentEncoding);
             }
     
-            // updateProgressDisplay(actionText + " '" + originalFile.getName() + "' for upload", 0);
+            // updateProgressDialog(actionText + " '" + originalFile.getName() + "' for upload", 0);
             log.debug("Re-writing file data for '" + originalFile + "' to temporary file '" 
                 + tempUploadFile.getAbsolutePath() + "': " + actionText);
             
@@ -2193,7 +2189,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     fileKeysForUpload.addAll(comparisonResults.updatedOnServerKeys);                    
                 } else {
                     // Upload cancelled.
-                    stopProgressDisplay();
+                    stopProgressDialog();
                     return;
                 }
             }
@@ -2202,8 +2198,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 return;
             }
             
-            startProgressDisplay("Prepared 0 of " + fileKeysForUpload.size() 
-                + " file(s) for upload", 0, fileKeysForUpload.size(), null, null);
+            startProgressDialog("Prepared 0 of " + fileKeysForUpload.size() 
+                + " file(s) for upload", "", 0, fileKeysForUpload.size(), null, null);
             
             // Populate S3Objects representing upload files with metadata etc.
             final S3Object[] objects = new S3Object[fileKeysForUpload.size()];
@@ -2250,14 +2246,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                             ServiceUtils.toBase64(ServiceUtils.computeMD5Hash(new FileInputStream(file))));
                     }
 
-                    updateProgressDisplay("Prepared " + (objectIndex + 1) 
+                    updateProgressDialog("Prepared " + (objectIndex + 1) 
                         + " of " + fileKeysForUpload.size() + " file(s) for upload", 
-                        (objectIndex + 1));
+                        "", (objectIndex + 1));
                 }
                 objects[objectIndex++] = newObject;
             }
             
-            stopProgressDisplay();
+            stopProgressDialog();
             
             // Upload the files.
             s3ServiceMulti.putObjects(getCurrentSelectedBucket(), objects);
@@ -2287,14 +2283,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             if (watcher.isBytesTransferredInfoAvailable()) {
                 String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                 String statusText = "Uploaded 0 of " + bytesTotalStr;                
-                startProgressDisplay(statusText, " ", 0, 100, "Cancel Upload", 
+                startProgressDialog(statusText, " ", 0, 100, "Cancel Upload", 
                     event.getThreadWatcher().getCancelEventListener());
             } 
             // ... otherwise show the number of completed threads.
             else {
-                startProgressDisplay("Uploading file 0 of " + getCurrentSelectedBucket().getName(), 
-                    watcher.getCompletedThreads(), watcher.getThreadCount(), "Cancel upload",  
-                    event.getThreadWatcher().getCancelEventListener());                
+                startProgressDialog("Uploading file 0 of " + getCurrentSelectedBucket().getName(), 
+                    "", (int) watcher.getCompletedThreads(), (int) watcher.getThreadCount(), 
+                    "Cancel upload", event.getThreadWatcher().getCancelEventListener());                
             }
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -2313,24 +2309,24 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 if (watcher.getBytesTransferred() >= watcher.getBytesTotal()) {
                     // Upload is completed, just waiting on resonse from S3.
                     String statusText = "Upload completed, awaiting confirmation";
-                    updateProgressDisplay(statusText, 100);
+                    updateProgressDialog(statusText, "", 100);
                 } else {                    
                     String bytesCompletedStr = byteFormatter.formatByteSize(watcher.getBytesTransferred());
                     String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                     String statusText = "Uploaded " + bytesCompletedStr + " of " + bytesTotalStr;
-                    long percentage = (int) 
+                    int percentage = (int) 
                         (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
                     
                     String detailsText = formatTransferDetails(watcher);
 
-                    updateProgressDisplay(statusText, detailsText, percentage);
+                    updateProgressDialog(statusText, detailsText, percentage);
                 }
             }
             // ... otherwise show the number of completed threads.
             else {
                 ThreadWatcher progressStatus = event.getThreadWatcher();
                 String statusText = "Uploaded file " + progressStatus.getCompletedThreads() + " of " + progressStatus.getThreadCount();                    
-                updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                    
+                updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                    
             }
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
@@ -2342,7 +2338,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
             });
                         
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
@@ -2351,10 +2347,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
             });
 
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDisplay();
+            stopProgressDialog();
             
             String message = "Unable to upload object(s)";
             log.error(message, event.getErrorCause());
@@ -2464,8 +2460,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     public void s3ServiceEventPerformed(final DeleteObjectsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {    
-            startProgressDisplay("Deleted 0 of " + event.getThreadWatcher().getThreadCount() + " object(s)", 
-                0, event.getThreadWatcher().getThreadCount(), "Cancel Delete Objects",  
+            startProgressDialog(
+                "Deleted 0 of " + event.getThreadWatcher().getThreadCount() + " object(s)", 
+                "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Delete Objects",  
                 event.getThreadWatcher().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -2481,7 +2478,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             ThreadWatcher progressStatus = event.getThreadWatcher();
             String statusText = "Deleted " + progressStatus.getCompletedThreads() 
                 + " of " + progressStatus.getThreadCount() + " object(s)";
-            updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                
+            updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
@@ -2492,15 +2489,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
             });
             
-            stopProgressDisplay();                
+            stopProgressDialog();                
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             listObjects(); // Refresh object listing.
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             listObjects(); // Refresh object listing.
-            stopProgressDisplay();
+            stopProgressDialog();
             
             String message = "Unable to delete object(s)";
             log.error(message, event.getErrorCause());
@@ -2550,9 +2547,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public void s3ServiceEventPerformed(final GetObjectHeadsEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             if (event.getThreadWatcher().getThreadCount() > 0) {
-                startProgressDisplay("Retrieved details for 0 of " 
+                startProgressDialog("Retrieved details for 0 of " 
                     + event.getThreadWatcher().getThreadCount() + " object(s)", 
-                    0, event.getThreadWatcher().getThreadCount(), "Cancel Retrieval", 
+                    "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Retrieval", 
                     event.getThreadWatcher().getCancelEventListener());
             }
         } 
@@ -2590,11 +2587,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Update progress of GetObject requests.
             String statusText = "Retrieved details for " + progressStatus.getCompletedThreads() 
                 + " of " + progressStatus.getThreadCount() + " object(s)";
-            updateProgressDisplay(statusText, progressStatus.getCompletedThreads());                    
+            updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                    
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             // Stop GetObjectHead progress display.
-            stopProgressDisplay();        
+            stopProgressDialog();        
             
             if (isDownloadingObjects) {
                 compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
@@ -2608,10 +2605,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }            
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            stopProgressDisplay();        
+            stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDisplay();
+            stopProgressDialog();
             
             String message = "Unable to retrieve object(s) details";
             log.error(message, event.getErrorCause());
@@ -2784,7 +2781,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             public void windowDeactivated(WindowEvent e) {
             }           
         });
-        
+
         new Cockpit(ownerFrame);
     }
 
