@@ -316,7 +316,7 @@ public class Synchronize {
                 detailsText += " - ";
             }
             long secondsRemaining = watcher.getTimeRemaining();
-            detailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining, false);
+            detailsText += "ETA: " + timeFormatter.formatTime(secondsRemaining, false);
         }
         return detailsText;
     }
@@ -770,14 +770,14 @@ public class Synchronize {
         public void s3ServiceEventPerformed(CreateObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                displayProgressStatus("Uploading: ", event.getThreadWatcher());                    
+                displayProgressStatus("Upload: ", event.getThreadWatcher());                    
             }
         }
         
         public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                displayProgressStatus("Downloading: ", event.getThreadWatcher());                    
+                displayProgressStatus("Download: ", event.getThreadWatcher());                    
             }
         }
         
