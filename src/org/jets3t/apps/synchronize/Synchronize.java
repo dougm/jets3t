@@ -938,12 +938,15 @@ public class Synchronize {
                             printHelpAndExit(false);
                         }
                         if (!file.canRead() || !file.isDirectory()) {
-                            file.mkdirs();
+                            if (!file.mkdirs()) {
+                                System.err.println("ERROR: Cannot create target download directory : " 
+                                    + file);                                
+                            }
                         }         
                     } else {
                         if (!file.canRead()) {
-                            System.err.println("ERROR: Cannot read from file/directory: " + file);
-                            printHelpAndExit(false);                            
+                            System.err.println("WARN: Ignoring unreadable path: " + file);
+                            continue;
                         }
                     }
                     fileList.add(file);
@@ -954,7 +957,7 @@ public class Synchronize {
         
         if (fileList.size() < 1) {
             // Missing one or more required parameters.
-            System.err.println("ERROR: Missing required parameter(s)");
+            System.err.println("ERROR: Missing required file path(s)");
             printHelpAndExit(false);
         }
         
