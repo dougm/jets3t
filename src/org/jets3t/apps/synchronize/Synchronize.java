@@ -674,9 +674,32 @@ public class Synchronize {
         
         // Describe the action that will be performed.
         if ("UP".equals(actionCommand)) {
+            String uploadPathSummary = null;
+            
+            if (fileList.size() > 3) {            
+                int dirsCount = 0;
+                int filesCount = 0;
+                
+                Iterator pathIter = fileList.iterator();
+                while (pathIter.hasNext()) {
+                    File path = (File) pathIter.next();
+                    if (path.isDirectory()) {
+                        dirsCount++;
+                    } else {
+                        filesCount++;
+                    }
+                }
+                uploadPathSummary =  
+                    "[" 
+                    + dirsCount + (dirsCount == 1 ? " directory" : " directories")
+                    + ", " + filesCount + (filesCount == 1 ? " file" : " files") + "]";
+            } else {
+                uploadPathSummary = fileList.toString();
+            }
+            
             System.out.println("UP "
                 + (doAction ? "" : "[No Action] ")
-                + "Local" + fileList + " => S3[" + s3Path + "]");              
+                + "Local " + uploadPathSummary + " => S3[" + s3Path + "]");              
         } else if ("DOWN".equals(actionCommand)) {
             if (fileList.size() != 1) {
                 throw new SynchronizeException("Only one target directory is allowed for downloads");
@@ -880,6 +903,14 @@ public class Synchronize {
      * @throws Exception
      */
     public static void main(String args[]) throws Exception {
+        // Read the Synchronize properties file.
+        String propertiesFileName = "synchronize.properties";
+        Jets3tProperties properties = Jets3tProperties.getInstance(propertiesFileName);
+        if (!properties.isLoaded()) {
+            System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found in the classpath");
+            System.exit(2);                        
+        }
+        
         // Required arguments
         String actionCommand = null;
         String s3Path = null;
@@ -893,6 +924,9 @@ public class Synchronize {
         boolean isKeepFiles = false;
         boolean isGzipEnabled = false;
         boolean isEncryptionEnabled = false;
+        
+        // Upload options
+        boolean uploadIgnoreMissingPaths = properties.getBoolProperty("upload.ignoreMissingPaths", false);        
         
         // Parse arguments.
         for (int i = 0; i < args.length; i++) {
@@ -945,8 +979,15 @@ public class Synchronize {
                         }         
                     } else {
                         if (!file.canRead()) {
-                            System.err.println("WARN: Ignoring unreadable path: " + file);
-                            continue;
+                            if (uploadIgnoreMissingPaths) {
+                                System.err.println("WARN: Ignoring missing upload path: " + file);
+                                continue;
+                            } else {
+                                System.err.println("ERROR: Cannot read upload file/directory: " 
+                                    + file
+                                    + "\n       To ignore missing paths set the property upload.ignoreMissingPaths");
+                                printHelpAndExit(false);                            
+                            }
                         }
                     }
                     fileList.add(file);
@@ -961,14 +1002,7 @@ public class Synchronize {
             printHelpAndExit(false);
         }
         
-        // Read the Properties file, and make sure it contains everything we need.
-        String propertiesFileName = "synchronize.properties";
-        Jets3tProperties properties = Jets3tProperties.getInstance(propertiesFileName);
-        if (!properties.isLoaded()) {
-            System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found in the classpath");
-            System.exit(2);                        
-        }
-        
+        // Ensure the Synchronize properties file contains everything we need.
         if (!properties.containsKey("accesskey")) {
             System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: accesskey");
             System.exit(2);            
