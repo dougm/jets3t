@@ -67,6 +67,7 @@ import org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry;
 import org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings;
 import org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Permission;
+import org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry;
 import org.jets3t.service.impl.soap.axis._2006_03_01.PutObjectResult;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
@@ -375,6 +376,8 @@ public class SoapS3Service extends S3Service {
         throws S3ServiceException
     {
         ArrayList objects = new ArrayList();        
+        ArrayList commonPrefixes = new ArrayList();
+
         boolean incompleteListing = true;            
 
         try {
@@ -402,16 +405,30 @@ public class SoapS3Service extends S3Service {
                     object.setOwner(convertOwner(entry.getOwner()));
                     partialObjects[i] = object;
                     
-                    // This shouldn't be necessary, but result.getMarker() doesn't work as expected.
+                    // This shouldn't be necessary, but result.getNextMarker() doesn't work as expected.
                     priorLastKey = object.getKey();
                 }
                 
                 objects.addAll(Arrays.asList(partialObjects));
                 
+                PrefixEntry[] prefixEntries = result.getCommonPrefixes();
+                if (prefixEntries != null) {
+                    log.debug("Found " + prefixEntries.length + " common prefixes in one batch");                    
+                }
+                for (int i = 0; prefixEntries != null && i < prefixEntries.length; i++ ) {
+                    PrefixEntry entry = prefixEntries[i];
+                    commonPrefixes.add(entry.getPrefix());
+                }
+                
                 incompleteListing = result.isIsTruncated();
                 if (incompleteListing) {
-                    // TODO: Why doesn't result.getMarker() actually return the marker value?
-                    // priorLastKey = result.getMarker();
+                	if (result.getNextMarker() != null) {
+                		// Use NextMarker as the marker for where subsequent listing should start
+	                    priorLastKey = result.getNextMarker();
+                	} else {
+                		// TODO: Why doesn't result.getNextMarker() actually return the marker value?
+                		// Use the prior last key instead of NextMarker if it isn't available.
+                	}
                     log.debug("Yet to receive complete listing of bucket contents, "
                         + "last key for prior chunk: " + priorLastKey);
                 } else {
@@ -428,10 +445,14 @@ public class SoapS3Service extends S3Service {
         if (automaticallyMergeChunks) {
             log.debug("Found " + objects.size() + " objects in total");
             return new S3ObjectsChunk(
-                (S3Object[]) objects.toArray(new S3Object[objects.size()]), null);
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
+                (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
+                null);
         } else {
             return new S3ObjectsChunk(
-                (S3Object[]) objects.toArray(new S3Object[objects.size()]), priorLastKey);            
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
+                (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
+                priorLastKey);            
         }
     }
 

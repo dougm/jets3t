@@ -190,8 +190,10 @@ public class XmlResponsesSaxParser {
         private S3Object currentObject = null;
         private S3Owner currentOwner = null;
         private StringBuffer currText = null;
+        private boolean insideCommonPrefixes = false;
 
         private List objects = new ArrayList();
+        private List commonPrefixes = new ArrayList();
 
         // Listing properties.
         private String bucketName = null;
@@ -199,7 +201,8 @@ public class XmlResponsesSaxParser {
         private String requestMarker = null;
         private long requestMaxKeys = 0;
         private boolean listingTruncated = false;
-        private String lastKey = null;
+        private String lastKey = null;        
+        private String nextMarker = null;
 
         public ListBucketHandler() {
             super();
@@ -207,11 +210,26 @@ public class XmlResponsesSaxParser {
         }
 
         /**
+         * If the listing is truncated this method will return the marker that should be used
+         * in subsequent bucket list calls to complete the listing. 
+         * 
          * @return
-         * the last object key in the listing.
+         * null if the listing is not truncated, otherwise the next marker if it's available or
+         * the last object key seen if the next marker isn't available.
          */
-        public String getLastKey() {
-            return lastKey;
+        public String getMarkerForNextListing() {
+            if (listingTruncated) {
+                if (nextMarker != null) {
+                    return nextMarker;
+                } else if (lastKey != null) {
+                    return lastKey;                    
+                } else {
+                    log.warn("Unable to find Next Marker or Last Key for truncated listing");
+                    return null;
+                }                
+            } else {
+                return null;
+            }
         }
 
         /**
@@ -231,6 +249,10 @@ public class XmlResponsesSaxParser {
             return (S3Object[]) objects.toArray(new S3Object[objects.size()]);
         }
 
+        public String[] getCommonPrefixes() {
+            return (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]);
+        }
+
         public String getRequestPrefix() {
             return requestPrefix;
         }
@@ -238,11 +260,15 @@ public class XmlResponsesSaxParser {
         public String getRequestMarker() {
             return requestMarker;
         }
+        
+        public String getNextMarker() {
+            return nextMarker;
+        }
 
         public long getRequestMaxKeys() {
             return requestMaxKeys;
         }
-
+        
         public void startDocument() {
         }
 
@@ -255,6 +281,8 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Owner")) {
                 currentOwner = new S3Owner();
                 currentObject.setOwner(currentOwner);
+            } else if (name.equals("CommonPrefixes")) {
+                insideCommonPrefixes = true;
             }
         }
 
@@ -264,10 +292,12 @@ public class XmlResponsesSaxParser {
             if (name.equals("Name")) {
                 bucketName = elementText;
                 log.debug("Examining listing for bucket: " + bucketName);
-            } else if (name.equals("Prefix")) {
+            } else if (!insideCommonPrefixes && name.equals("Prefix")) {
                 requestPrefix = elementText;
             } else if (name.equals("Marker")) {
                 requestMarker = elementText;
+            } else if (name.equals("NextMarker")) {
+                nextMarker = elementText;
             } else if (name.equals("MaxKeys")) {
                 requestMaxKeys = Long.parseLong(elementText);
             } else if (name.equals("IsTruncated")) {
@@ -287,7 +317,7 @@ public class XmlResponsesSaxParser {
                 log.debug("=== Created new S3Object from listing: " + currentObject);
             } else if (name.equals("Key")) {
                 currentObject.setKey(elementText);
-                lastKey = elementText;
+                lastKey = elementText;                
             } else if (name.equals("LastModified")) {
                 try {
                     currentObject.setLastModifiedDate(ServiceUtils.parseIso8601Date(elementText));
@@ -307,6 +337,13 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("DisplayName")) {
                 currentOwner.setDisplayName(elementText);
             }
+            // Common prefixes.
+            else if (insideCommonPrefixes && name.equals("Prefix")) {
+                commonPrefixes.add(elementText);
+            } else if (name.equals("CommonPrefixes")) {
+                insideCommonPrefixes = false;
+            }
+
             this.currText = new StringBuffer();
         }
 

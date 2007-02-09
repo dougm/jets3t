@@ -1,4 +1,27 @@
 -------------
+Version 0.5.1
+-------------
+
+COCKPIT
+
+- Progress dialogs modified to fix display problems with JDK version 1.6.
+
+
+SYNCHONIZE
+
+- Added property setting to ignore missing source directories when uploading.
+- Progress status messages shortened to fit into 80 character width consoles.
+
+
+TOOLKIT
+
+  * General
+
+- The method S3Service.listObjectsChunked now includes Common Prefixes in the
+  result object returned.
+
+
+-------------
 Version 0.5.0
 -------------
 

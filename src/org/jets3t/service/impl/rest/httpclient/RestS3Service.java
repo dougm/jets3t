@@ -776,7 +776,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             parameters.put("max-keys", String.valueOf(maxListingLength));
         }
 
-        ArrayList objects = new ArrayList();        
+        ArrayList objects = new ArrayList();  
+        ArrayList commonPrefixes = new ArrayList();
+        
         boolean incompleteListing = true;            
             
         while (incompleteListing) {
@@ -795,9 +797,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             log.debug("Found " + partialObjects.length + " objects in one batch");
             objects.addAll(Arrays.asList(partialObjects));
             
+            String[] partialCommonPrefixes = listBucketHandler.getCommonPrefixes();
+            log.debug("Found " + partialCommonPrefixes.length + " common prefixes in one batch");
+            commonPrefixes.addAll(Arrays.asList(partialCommonPrefixes));
+            
             incompleteListing = listBucketHandler.isListingTruncated();            
             if (incompleteListing) {
-                priorLastKey = listBucketHandler.getLastKey();                
+                priorLastKey = listBucketHandler.getMarkerForNextListing();                
                 log.debug("Yet to receive complete listing of bucket contents, "
                         + "last key for prior chunk: " + priorLastKey);
             } else {
@@ -810,10 +816,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         if (automaticallyMergeChunks) {
             log.debug("Found " + objects.size() + " objects in total");
             return new S3ObjectsChunk(
-                (S3Object[]) objects.toArray(new S3Object[objects.size()]), null);
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]),
+                (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
+                null);
         } else {
             return new S3ObjectsChunk(
-                (S3Object[]) objects.toArray(new S3Object[objects.size()]), priorLastKey);            
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
+                (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
+                priorLastKey);            
         }
     }
     

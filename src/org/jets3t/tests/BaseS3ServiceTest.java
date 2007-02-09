@@ -470,6 +470,14 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Chunked bucket listing ran for an unexpected number of iterations", 
             (objectsList.size() + 1) / 2, chunkedIterationsCount);
         
+        // List objects with a prefix and delimiter to check common prefixes.
+        S3ObjectsChunk chunk = s3Service.listObjectsChunked(
+            bucket.getName(), "dir1/", "/", 100, null);
+        assertEquals("Chunked bucket listing with prefix and delimiter retreived incorrect number of objects", 
+            3, chunk.getObjects().length);
+        assertEquals("Chunked bucket listing with prefix and delimiter retreived incorrect number of common prefixes", 
+            1, chunk.getCommonPrefixes().length);
+        
         // List the same items with a prefix.
         objects = s3Service.listObjects(bucket, "dir1", null);        
         assertEquals("Incorrect number of objects matching prefix", 7, objects.length);

@@ -31,10 +31,12 @@ import org.jets3t.service.model.S3Object;
  */
 public class S3ObjectsChunk {
     private S3Object[] objects = null;
+    private String[] commonPrefixes = null;
     private String priorLastKey = null;
     
-    public S3ObjectsChunk(S3Object[] objects, String priorLastKey) {
+    public S3ObjectsChunk(S3Object[] objects, String[] commonPrefixes, String priorLastKey) {
         this.objects = objects;
+        this.commonPrefixes = commonPrefixes;
         this.priorLastKey = priorLastKey;
     }
 
@@ -45,6 +47,15 @@ public class S3ObjectsChunk {
     public S3Object[] getObjects() {
         return objects;
     }
+    
+    /**
+     * @return
+     * the common prefixes in this chunk.
+     */
+    public String[] getCommonPrefixes() {
+        return commonPrefixes;
+    }
+
 
     /**
      * @return 
@@ -53,5 +64,5 @@ public class S3ObjectsChunk {
     public String getPriorLastKey() {
         return priorLastKey;
     }
-    
+        
 }
