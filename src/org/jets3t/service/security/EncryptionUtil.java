@@ -24,10 +24,13 @@ import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import javax.crypto.BadPaddingException;
@@ -79,6 +82,21 @@ public class EncryptionUtil {
         (byte)0xA4, (byte)0x0B, (byte)0xC8, (byte)0x34,
         (byte)0xD6, (byte)0x95, (byte)0xF3, (byte)0x13
     };
+    
+    static {
+        try {
+            Class bouncyCastleProviderClass = 
+                Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
+            if (bouncyCastleProviderClass != null) {
+                Provider bouncyCastleProvider = (Provider) bouncyCastleProviderClass
+                    .getConstructor(new Class[] {}).newInstance(new Object[] {});                        
+                Security.addProvider(bouncyCastleProvider);
+            }
+            log.debug("Loaded security provider BouncyCastleProvider");
+        } catch (Exception e) {
+            log.debug("Unable to load security provider BouncyCastleProvider");            
+        }
+    }
 
     /**
      * Constructs class configured with the provided password, and set up to use the encryption
@@ -484,39 +502,74 @@ public class EncryptionUtil {
         return algorithm;
     }
 
+    /**
+     * Returns true if the given cipher is available and can be used by this encryption
+     * utility. To determine whether the cipher can actually be used a test string is 
+     * encrypted using the cipher.
+     * 
+     * @param cipher
+     * @return
+     * true if the cipher is available and can be used, false otherwise.
+     */
+    public static boolean isCipherAvailableForUse(String cipher) {
+        try {
+            EncryptionUtil encryptionUtil = 
+                new EncryptionUtil("Sample Key", cipher, EncryptionUtil.DEFAULT_VERSION);
+            encryptionUtil.encrypt("Testing encryption...");
+        } catch (Exception e) {
+            log.error("Availability test failed for encryption cipher " + cipher, e);
+            return false;
+        }
+        return true;
+    }
 
-    public static String[] listAvailableCiphers() {
+    /**
+     * Lists the PBE ciphers available on the system, optionally eliminating those
+     * ciphers that are apparently available but cannot actually be used (perhaps due to
+     * the lack of export-grade JCE settings).
+     * 
+     * @param testAvailability
+     * if true each apparently available cipher is tested and only those that pass
+     * {@link #isCipherAvailableForUse(String)} are returned. 
+     * @return
+     */
+    public static String[] listAvailablePbeCiphers(boolean testAvailability) {
         Set ciphers = Security.getAlgorithms("Cipher");
-        return (String[]) ciphers.toArray(new String[ciphers.size()]);           
+        Set pbeCiphers = new HashSet();
+        for (Iterator iter = ciphers.iterator(); iter.hasNext(); ) {
+            String cipher = (String) iter.next();
+            if (cipher.toLowerCase().startsWith("pbe")) {
+                if (!testAvailability || isCipherAvailableForUse(cipher)) {
+                    pbeCiphers.add(cipher);                    
+                }
+            }
+        }
+        return (String[]) pbeCiphers.toArray(new String[pbeCiphers.size()]);           
     }
     
-    public static String[] listAvailableAlgorithms() {
-        Set algorithms = Security.getAlgorithms("SecretKeyAlgorithm");
-        return (String[]) algorithms.toArray(new String[algorithms.size()]);           
+    public static Provider[] listAvailableProviders() {
+        return Security.getProviders();
     }
 
-    // TODO Remove
-    public static void main(String[] args) throws Exception {
-        String[] ciphers = EncryptionUtil.listAvailableCiphers();
-        System.out.println("Ciphers:");
-        for (int i = 0; i < ciphers.length; i++) {
-            System.out.println(ciphers[i]);
-        }
 
-        String[] algorithms = EncryptionUtil.listAvailableCiphers();
-        System.out.println("Algorithms:");
-        for (int i = 0; i < algorithms.length; i++) {
-            System.out.println(algorithms[i]);
+    public static void main(String[] args) throws Exception {        
+        Provider[] providers = EncryptionUtil.listAvailableProviders();
+        System.out.println("Providers:");
+        for (int i = 0; i < providers.length; i++) {
+            System.out.println(" - " + providers[i]);
         }
         
-//        AWSCredentials creds = AWSCredentials.load("please", 
-//            new java.io.File("/Users/jmurty/.jets3t/James.enc"));
-//        System.out.println(creds.getFriendlyName() + ": " + creds.getAccessKey());
+        String[] ciphers = EncryptionUtil.listAvailablePbeCiphers(false);
+        System.out.println("PBE Ciphers available (untested):");
+        for (int i = 0; i < ciphers.length; i++) {
+            System.out.println(" - " + ciphers[i]);
+        }
         
-//        AWSCredentials creds = new AWSCredentials("AccessKey", "SecretKey", "JamŽs Mžrty");
-//        creds.save("please", new java.io.File("/Users/jmurty/Desktop/Test.enc"));
-//        creds = AWSCredentials.load("please", new java.io.File("/Users/jmurty/Desktop/Test.enc"));
-//        System.out.println(creds.getFriendlyName() + ": " + creds.getAccessKey() + "/" + creds.getSecretKey());
+        ciphers = EncryptionUtil.listAvailablePbeCiphers(true);
+        System.out.println("PBE Ciphers available (tested):");
+        for (int i = 0; i < ciphers.length; i++) {
+            System.out.println(" - " + ciphers[i]);
+        }        
     }
 
 }
