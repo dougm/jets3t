@@ -20,6 +20,9 @@ package org.jets3t.apps.cockpit;
 
 import java.io.Serializable;
 
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
+
 /**
  * <p>
  * Stores Cockpit's preferences as set by the user via the 
@@ -50,6 +53,9 @@ public class CockpitPreferences implements Serializable {
     private boolean uploadCompressionActive = false;
     private boolean uploadEncryptionActive = false;
     private String encryptionPassword = null;
+    private String encryptionAlgorithm = 
+        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
     
     public String getEncryptionPassword() {
         return encryptionPassword;
@@ -59,6 +65,14 @@ public class CockpitPreferences implements Serializable {
         this.encryptionPassword = encryptionPasswrod;
     }
     
+    public String getEncryptionAlgorithm() {
+        return encryptionAlgorithm;
+    }
+
+    public void setEncryptionAlgorithm(String encryptionAlgorithm) {
+        this.encryptionAlgorithm = encryptionAlgorithm;
+    }
+
     public boolean isEncryptionPasswordSet() {
         return 
             this.encryptionPassword != null

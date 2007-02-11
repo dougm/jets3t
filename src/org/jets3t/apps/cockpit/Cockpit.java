@@ -263,7 +263,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     /**
      * Flag used to indicate the "viewing objects" application state.
      */
-    private boolean viewingObjectProperties = false;
+    private boolean isViewingObjectProperties = false;
     
     
     /**
@@ -1095,12 +1095,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * As detailed information about the object may not yet be available, this method works
      * indirectly via the {@link #retrieveObjectsDetails} method. The <code>retrieveObjectsDetails</code> 
      * method retrieves all the details for the currently selected objects, and once they are available
-     * knows to display the <code>PropertiesDialog</code> as the {@link #viewingObjectProperties} flag
+     * knows to display the <code>PropertiesDialog</code> as the {@link #isViewingObjectProperties} flag
      * is set.
      */
     private void listObjectProperties() {
+        isViewingObjectProperties = true;
         retrieveObjectsDetails(getSelectedObjects());
-        viewingObjectProperties = true;
     }
     
     /**
@@ -2100,10 +2100,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 actionText += "Compressing";                
             } 
             if (cockpitPreferences.isUploadEncryptionActive()) {
-                String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                    .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");                
+                if (!EncryptionUtil.isCipherAvailableForUse(cockpitPreferences.getEncryptionAlgorithm())) {
+                    throw new Exception("The currently selected encryption algorithm "
+                        + cockpitPreferences.getEncryptionAlgorithm() + " is not available");
+                }
+                
                 EncryptionUtil encryptionUtil = new EncryptionUtil(
-                    cockpitPreferences.getEncryptionPassword(), algorithm, EncryptionUtil.DEFAULT_VERSION);
+                    cockpitPreferences.getEncryptionPassword(), 
+                    cockpitPreferences.getEncryptionAlgorithm(), 
+                    EncryptionUtil.DEFAULT_VERSION);
+                
                 inputStream = encryptionUtil.encrypt(inputStream);
                 contentEncoding = null;
                 newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
@@ -2554,33 +2560,35 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-            ThreadWatcher progressStatus = event.getThreadWatcher();
+            final ThreadWatcher progressStatus = event.getThreadWatcher();
 
             // Store detail-complete objects in table.
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    // Retain selected status of objects for downloads or properties
-                    for (int i = 0; i < event.getCompletedObjects().length; i++) {
-                        S3Object object = event.getCompletedObjects()[i];
-                        object.setOwner(getCurrentSelectedBucket().getOwner());
-                        int modelIndex = objectTableModel.addObject(object);
-                        log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());
-
-                        if (isDownloadingObjects) {
-                            s3DownloadObjectsMap.put(object.getKey(), object);
-                            log.debug("Updated object download list with " + object.getKey() 
-                                + ", content-type=" + object.getContentType());
-                        } else if (isUploadingFiles) {
-                            s3ExistingObjectsMap.put(object.getKey(), object);
-                            log.debug("Updated object upload list with " + object.getKey() 
-                                + ", content-type=" + object.getContentType());                            
+                    synchronized (s3ServiceMulti) {
+                        // Retain selected status of objects for downloads or properties
+                        for (int i = 0; i < event.getCompletedObjects().length; i++) {
+                            S3Object object = event.getCompletedObjects()[i];
+                            object.setOwner(getCurrentSelectedBucket().getOwner());
+                            int modelIndex = objectTableModel.addObject(object);
+                            log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());
+    
+                            if (isDownloadingObjects) {
+                                s3DownloadObjectsMap.put(object.getKey(), object);
+                                log.debug("Updated object download list with " + object.getKey() 
+                                    + ", content-type=" + object.getContentType());
+                            } else if (isUploadingFiles) {
+                                s3ExistingObjectsMap.put(object.getKey(), object);
+                                log.debug("Updated object upload list with " + object.getKey() 
+                                    + ", content-type=" + object.getContentType());                            
+                            }
+                            
+                            int viewIndex = objectTableModelSorter.viewIndex(modelIndex);
+                            if (isDownloadingObjects || isViewingObjectProperties) {
+                                objectsTable.addRowSelectionInterval(viewIndex, viewIndex);
+                            }
                         }
-                        
-                        int viewIndex = objectTableModelSorter.viewIndex(modelIndex);
-                        if (isDownloadingObjects || viewingObjectProperties) {
-                            objectsTable.addRowSelectionInterval(viewIndex, viewIndex);
-                        }
-                    }
+                    }                    
                 }
             });
             
@@ -2599,9 +2607,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             } else if (isUploadingFiles) {
                 compareRemoteAndLocalFiles(filesForUploadMap, s3ExistingObjectsMap, true);
                 isUploadingFiles = false;
-            } else if (viewingObjectProperties) {
-                ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects());
-                viewingObjectProperties = false;                    
+            } else if (isViewingObjectProperties) {
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects());
+                        isViewingObjectProperties = false;                    
+                    }
+                });
             }            
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {

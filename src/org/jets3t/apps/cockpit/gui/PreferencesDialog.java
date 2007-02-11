@@ -24,14 +24,13 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.net.URL;
 
 import javax.swing.AbstractAction;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -47,9 +46,9 @@ import org.jets3t.apps.cockpit.CockpitPreferences;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.security.EncryptionUtil;
-
-import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
  * Dialog box for managing Cockpit Preferences. 
@@ -72,6 +71,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
     private ButtonGroup compressButtonGroup = null;
     private ButtonGroup encryptButtonGroup = null;
     private JPasswordField encryptPasswordField = null;
+    private JComboBox encryptAlgorithmComboBox = null;
     private JButton okButton = null;
     private JButton cancelButton = null;
     private JTabbedPane tabbedPane = null;
@@ -200,14 +200,12 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         uploadPrefsPanel.add(encryptPrefsRadioPanel, new GridBagConstraints(0, row++, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));        
-        
-        String encryptAlgorithm = "Unknown";
-        try {
-            encryptAlgorithm = new EncryptionUtil("").getAlgorithm();
-        } catch (Exception e) {
-            String message = "Unable to determine default encryption algorithm";
-            log.warn(message, e);            
-        }
+
+        // Determine the default crypto algorithm from jets3t.properties.
+        String encryptAlgorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
+        // Determine the available PBE algorithms.
+        String[] algorithms = EncryptionUtil.listAvailablePbeCiphers(true);
         
         JPanel encryptionPrefsPanel = new JPanel(new GridBagLayout());
         encryptionPrefsPanel.add(new JHtmlLabel("Password", hyperlinkListener), new GridBagConstraints(0, 0, 
@@ -216,12 +214,17 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         encryptionPrefsPanel.add(new JHtmlLabel("Algorithm", hyperlinkListener), new GridBagConstraints(0, 2, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
-        JHtmlLabel encryptAlgorithmLabel = new JHtmlLabel(encryptAlgorithm, hyperlinkListener);
-        encryptAlgorithmLabel.setToolTipText("Set by property crypto.algorithm in jets3t.properties");
-        encryptionPrefsPanel.add(encryptAlgorithmLabel, new GridBagConstraints(0, 3, 
+        encryptAlgorithmComboBox = new JComboBox(algorithms);
+        encryptAlgorithmComboBox.addActionListener(this);
+        encryptAlgorithmComboBox.setSelectedItem(encryptAlgorithm.toUpperCase());
+        encryptionPrefsPanel.add(encryptAlgorithmComboBox, new GridBagConstraints(0, 3, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        String algorithmExplanation = "<html>This list includes only the Password-Based (PBE) algorithms<br>available "
+            + "on your system.</html>";
+        encryptionPrefsPanel.add(new JHtmlLabel(algorithmExplanation, hyperlinkListener), new GridBagConstraints(0, 4, 
+            1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         // Padding
-        encryptionPrefsPanel.add(new JLabel(), new GridBagConstraints(0, 4,  
+        encryptionPrefsPanel.add(new JLabel(), new GridBagConstraints(0, 5,  
             1, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         
         
@@ -266,11 +269,13 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
                 "ACTIVE".equals(encryptButtonGroup.getSelection().getActionCommand()));                        
             cockpitPreferences.setEncryptionPassword(
                 new String(encryptPasswordField.getPassword()));
+            cockpitPreferences.setEncryptionAlgorithm(
+                (String) encryptAlgorithmComboBox.getSelectedItem());
             
             this.hide();
         } else if (e.getSource().equals(cancelButton)) {
             this.hide();
-        }
+        } 
     }
     
     public void stateChanged(ChangeEvent e) {
