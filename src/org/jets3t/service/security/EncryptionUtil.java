@@ -517,7 +517,7 @@ public class EncryptionUtil {
                 new EncryptionUtil("Sample Key", cipher, EncryptionUtil.DEFAULT_VERSION);
             encryptionUtil.encrypt("Testing encryption...");
         } catch (Exception e) {
-            log.error("Availability test failed for encryption cipher " + cipher, e);
+            log.debug("Availability test failed for encryption cipher " + cipher);
             return false;
         }
         return true;
