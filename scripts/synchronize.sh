@@ -57,5 +57,6 @@ CP=$CP:$JETS3T_HOME/libs/commons-logging/commons-logging-1.1.jar
 CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.3.jar
 CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.0.1.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.13.jar
+CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-135.jar
 
 $EXEC -classpath $CP org.jets3t.apps.synchronize.Synchronize "$@"

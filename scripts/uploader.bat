@@ -66,6 +66,7 @@ set CP=%CP%;"%MY_JETS3T_HOME%"/libs/xerces/xercesImpl.jar
 set CP=%CP%;"%MY_JETS3T_HOME%"/libs/xerces/xmlParserAPIs.jar
 set CP=%CP%;"%MY_JETS3T_HOME%"/libs/misc/BareBonesBrowserLaunch.jar
 set CP=%CP%;"%MY_JETS3T_HOME%"/libs/logging-log4j/log4j-1.2.13.jar
+set CP=%CP%;"%MY_JETS3T_HOME%"/libs/bouncycastle/bcprov-jdk14-135.jar
 
 %EXEC% -classpath %CP% org.jets3t.apps.uploader.Uploader
 

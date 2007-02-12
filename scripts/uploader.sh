@@ -60,5 +60,6 @@ CP=$CP:$JETS3T_HOME/libs/xerces/xercesImpl.jar
 CP=$CP:$JETS3T_HOME/libs/xerces/xmlParserAPIs.jar
 CP=$CP:$JETS3T_HOME/libs/misc/BareBonesBrowserLaunch.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.13.jar
+CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-135.jar
 
 $EXEC -classpath $CP org.jets3t.apps.uploader.Uploader
