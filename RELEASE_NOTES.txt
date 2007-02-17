@@ -23,6 +23,13 @@ TOOLKIT
 - The method S3Service.listObjectsChunked now includes Common Prefixes in the
   result object returned.
 
+  * Multi-threaded Service
+  
+- Administration actions can have more threads assigned than upload/download 
+  actions with the new configuration setting s3service.admin-max-thread-count.
+  These connections run much faster with more threads and as they are light 
+  weight they less likely to fail with higher thread counts.
+
 
 -------------
 Version 0.5.0

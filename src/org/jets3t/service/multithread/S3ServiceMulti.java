@@ -199,6 +199,9 @@ public class S3ServiceMulti implements Serializable {
     
     /**
      * Creates multiple buckets, and sends {@link CreateBucketsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
      * 
      * @param buckets
      * the buckets to create.
@@ -213,9 +216,12 @@ public class S3ServiceMulti implements Serializable {
             
             runnables[i] = new CreateBucketRunnable(buckets[i]);
         }
+                
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(CreateBucketsEvent.newStartedEvent(threadWatcher));        
             }
@@ -241,6 +247,9 @@ public class S3ServiceMulti implements Serializable {
     
     /**
      * Creates multiple objects in a bucket, and sends {@link CreateObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-thread-count</tt>.
      * 
      * @param bucket
      * the bucket to create the objects in 
@@ -265,8 +274,11 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new CreateObjectRunnable(bucket, objects[i], bytesTransferredListener);
         }        
         
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, maxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher));        
@@ -294,6 +306,9 @@ public class S3ServiceMulti implements Serializable {
     
     /**
      * Deletes multiple objects from a bucket, and sends {@link DeleteObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
      * 
      * @param bucket
      * the bucket containing the objects to be deleted
@@ -310,8 +325,11 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new DeleteObjectRunnable(bucket, objects[i]);
         }
         
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -355,6 +373,9 @@ public class S3ServiceMulti implements Serializable {
     /**
      * Retrieves multiple objects (details and data) from a bucket, and sends 
      * {@link GetObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-thread-count</tt>.
      * 
      * @param bucket
      * the bucket containing the objects to retrieve.
@@ -370,8 +391,12 @@ public class S3ServiceMulti implements Serializable {
             pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], false);
         }
+        
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, maxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -423,6 +448,9 @@ public class S3ServiceMulti implements Serializable {
     /**
      * Retrieves details (but no data) about multiple objects from a bucket, and sends 
      * {@link GetObjectHeadsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
      * 
      * @param bucket
      * the bucket containing the objects whose details will be retrieved.
@@ -438,8 +466,12 @@ public class S3ServiceMulti implements Serializable {
             pendingObjectKeysList.add(objectKeys[i]);
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], true);
         }
+
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
@@ -474,6 +506,9 @@ public class S3ServiceMulti implements Serializable {
     /**
      * Retrieves Acess Control List (ACL) information for multiple objects from a bucket, and sends 
      * {@link LookupACLEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
      * 
      * @param bucket
      * the bucket containing the objects
@@ -489,8 +524,12 @@ public class S3ServiceMulti implements Serializable {
             pendingObjectsList.add(objects[i]);
             runnables[i] = new GetACLRunnable(bucket, objects[i]);
         }
+        
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(LookupACLEvent.newStartedEvent(threadWatcher));        
             }
@@ -517,6 +556,9 @@ public class S3ServiceMulti implements Serializable {
     /**
      * Updates/sets Acess Control List (ACL) information for multiple objects in a bucket, and sends 
      * {@link UpdateACLEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
      * 
      * @param bucket
      * the bucket containing the objects
@@ -532,8 +574,12 @@ public class S3ServiceMulti implements Serializable {
             pendingObjectsList.add(objects[i]);
             runnables[i] = new PutACLRunnable(bucket, objects[i]);
         }
+        
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(UpdateACLEvent.newStartedEvent(threadWatcher));        
             }
@@ -561,6 +607,9 @@ public class S3ServiceMulti implements Serializable {
      * A convenience method to download multiple objects from S3 to pre-existing output streams, which
      * is particularly useful for downloading objects to files. This method sends 
      * {@link DownloadObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-thread-count</tt>.
      * 
      * @param bucket
      * the bucket containing the objects
@@ -592,8 +641,11 @@ public class S3ServiceMulti implements Serializable {
         // Set total bytes to 0 to flag the fact we cannot monitor the bytes transferred. 
         final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
         
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, maxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher));
@@ -628,6 +680,9 @@ public class S3ServiceMulti implements Serializable {
      * the {@link SignedUrlHandler} interface. 
      * <p>
      * This method sends {@link GetObjectHeadsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-thread-count</tt>.
      * 
      * @param signedGetURLs
      * signed GET URL strings corresponding to the objects to be deleted.
@@ -652,8 +707,12 @@ public class S3ServiceMulti implements Serializable {
             
             runnables[i] = new GetObjectRunnable(signedGetURLs[i], false);
         }
+        
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, maxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -694,6 +753,9 @@ public class S3ServiceMulti implements Serializable {
      * the {@link SignedUrlHandler} interface. 
      * <p>
      * This method sends {@link GetObjectHeadsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
      * 
      * @param signedHeadURLs
      * signed HEAD URL strings corresponding to the objects to be deleted.
@@ -718,8 +780,12 @@ public class S3ServiceMulti implements Serializable {
 
             runnables[i] = new GetObjectRunnable(signedHeadURLs[i], true);
         }
+        
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
@@ -759,6 +825,9 @@ public class S3ServiceMulti implements Serializable {
      * the {@link SignedUrlHandler} interface. 
      * <p>
      * This method sends {@link DeleteObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
      * 
      * @param signedDeleteUrls
      * signed DELETE URL strings corresponding to the objects to be deleted.
@@ -784,8 +853,11 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new DeleteObjectRunnable(signedDeleteUrls[i]);
         }
         
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -817,6 +889,9 @@ public class S3ServiceMulti implements Serializable {
      * the {@link SignedUrlHandler} interface. 
      * <p>
      * This method sends {@link CreateObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-thread-count</tt>.
      * 
      * @param signedPutUrlAndObjects
      * packages containing the S3Object to upload and the corresponding signed PUT URL.
@@ -853,8 +928,11 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new SignedPutRunnable(signedPutUrlAndObjects[i], bytesTransferredListener);
         }        
         
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+        
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables) {
+        (new ThreadGroupManager(runnables, maxThreadCount) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher));        
@@ -1310,8 +1388,7 @@ public class S3ServiceMulti implements Serializable {
      */
     private abstract class ThreadGroupManager {
         private final Log log = LogFactory.getLog(ThreadGroupManager.class);
-        private final int MaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getIntProperty("s3service.max-thread-count", 4);
+        private int maxThreadCount = 1;
         
         /**
          * the set of runnable objects to execute.
@@ -1337,8 +1414,9 @@ public class S3ServiceMulti implements Serializable {
         private boolean alreadyFired[] = null;
         
         
-        public ThreadGroupManager(AbstractRunnable[] runnables) {
+        public ThreadGroupManager(AbstractRunnable[] runnables, int maxThreadCount) {            
             this.runnables = runnables;
+            this.maxThreadCount = maxThreadCount;
             this.threads = new Thread[runnables.length];
             started = new boolean[runnables.length]; // All values initialized to false.
             alreadyFired = new boolean[runnables.length]; // All values initialized to false.
@@ -1397,7 +1475,7 @@ public class S3ServiceMulti implements Serializable {
             }
 
             // Start threads until we are running the maximum number allowed.
-            for (int i = 0; runningThreadCount < MaxThreadCount && i < started.length; i++) {
+            for (int i = 0; runningThreadCount < maxThreadCount && i < started.length; i++) {
                 if (!started[i]) {
                     threads[i] = new Thread(runnables[i]);                    
                     threads[i].start();
