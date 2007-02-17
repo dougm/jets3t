@@ -481,7 +481,7 @@ public class Synchronize {
             }
         }
         
-        System.out.println(
+        printLine( 
             "New files: " + disrepancyResults.onlyOnClientKeys.size() +
             ", Updated: " + disrepancyResults.updatedOnClientKeys.size() +
             (isKeepFiles?
@@ -494,7 +494,7 @@ public class Synchronize {
             (isForce ?
                 ", Forced updates: " + disrepancyResults.alreadySynchronisedKeys.size() :
                 ", Unchanged: " + disrepancyResults.alreadySynchronisedKeys.size()
-                )        
+                )
             );
     }
         
@@ -624,7 +624,7 @@ public class Synchronize {
             dir.delete();
         }
         
-        System.out.println(
+        printLine( 
             "New files: " + disrepancyResults.onlyOnServerKeys.size() +
             ", Updated: " + disrepancyResults.updatedOnServerKeys.size() +
             (isKeepFiles? 
@@ -637,7 +637,7 @@ public class Synchronize {
             (isForce ?
                 ", Forced updates: " + disrepancyResults.alreadySynchronisedKeys.size() :
                 ", Unchanged: " + disrepancyResults.alreadySynchronisedKeys.size()
-                )        
+                )
             );
     }
     
@@ -697,14 +697,14 @@ public class Synchronize {
                 uploadPathSummary = fileList.toString();
             }
             
-            System.out.println("UP "
+            printLine("UP "
                 + (doAction ? "" : "[No Action] ")
                 + "Local " + uploadPathSummary + " => S3[" + s3Path + "]");              
         } else if ("DOWN".equals(actionCommand)) {
             if (fileList.size() != 1) {
                 throw new SynchronizeException("Only one target directory is allowed for downloads");
             }
-            System.out.println("DOWN "
+            printLine("DOWN "
                 + (doAction ? "" : "[No Action] ")
                 + "S3[" + s3Path + "] => Local" + fileList);              
         } else {
