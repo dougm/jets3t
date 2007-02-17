@@ -8,7 +8,7 @@ COCKPIT
 - Progress dialogs modified to fix display problems with JDK version 1.6.
 
 
-SYNCHONIZE
+SYNCHRONIZE
 
 - Added property setting to ignore missing source directories when uploading.
 - Progress status messages shortened to fit into 80 character width consoles.
