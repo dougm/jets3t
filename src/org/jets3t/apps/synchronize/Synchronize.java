@@ -73,6 +73,7 @@ public class Synchronize {
     
     private boolean doAction = false; // Files will only be transferred if true. 
     private boolean isQuiet = false; // Report will only include summary of actions if true.
+    private boolean isNoProgress = false; // Progress messages are not displayed if true.
     private boolean isForce = false; // Files will be overwritten when unchanged if true.
     private boolean isKeepFiles = false; // Files will not be replaced/deleted if true.
     private boolean isNoDelete = false; // Files will not be deleted if true, but may be replaced.
@@ -105,12 +106,13 @@ public class Synchronize {
      * @param isEncryptionEnabled   
      * Files will be encrypted prior to upload if true.
      */
-    public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, boolean isForce, 
+    public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, boolean isNoProgress, boolean isForce, 
         boolean isKeepFiles, boolean isNoDelete, boolean isGzipEnabled, boolean isEncryptionEnabled) 
     {
         this.s3Service = s3Service;
         this.doAction = doAction;
         this.isQuiet = isQuiet;
+        this.isNoProgress = isNoProgress;
         this.isForce = isForce;
         this.isKeepFiles = isKeepFiles;
         this.isNoDelete = isNoDelete;
@@ -333,13 +335,13 @@ public class Synchronize {
      * Prints text to StdOut provided the isQuiet flag is not set.
      * 
      * @param line the text to print
-     * @param isTemporary
+     * @param isProgressMessage
      * if true, the line is printed followed by a carriage return such
      * that the next line output to the console will overwrite it.
      */
-    private void printLine(String line, boolean isTemporary) {
-        if (!isQuiet) {
-            if (isTemporary) {
+    private void printLine(String line, boolean isProgressMessage) {
+        if (!isQuiet && !(isProgressMessage && isNoProgress)) {
+            if (isProgressMessage) {
                 String temporaryLine = "  " + line;                
                 if (temporaryLine.length() > maxTemporaryStringLength) {
                     maxTemporaryStringLength = temporaryLine.length();
@@ -873,8 +875,12 @@ public class Synchronize {
         System.out.println("   is run without the -n option.");
         System.out.println("");
         System.out.println("-q | --quiet");
-        System.out.println("   Runs quietly and does not report on each action performed. The action");
-        System.out.println("   summary is still displayed.");
+        System.out.println("   Runs quietly, without reporting on each action performed or displaying");
+        System.out.println("   progress messages. The summary is still displayed.");
+        System.out.println("");
+        System.out.println("-p | --noprogress");
+        System.out.println("   Runs somewhat quietly, without displaying progress messages.");
+        System.out.println("   The action report and overall summary are still displayed.");
         System.out.println("");
         System.out.println("-f | --force");
         System.out.println("   Force tool to perform synchronization even when files are up-to-date.");
@@ -940,6 +946,7 @@ public class Synchronize {
         // Options
         boolean doAction = true;
         boolean isQuiet = false;
+        boolean isNoProgress = false;
         boolean isForce = false;
         boolean isKeepFiles = false;
         boolean isNoDelete = false;
@@ -960,6 +967,8 @@ public class Synchronize {
                     doAction = false; 
                 } else if (arg.equalsIgnoreCase("-q") || arg.equalsIgnoreCase("--quiet")) {
                     isQuiet = true; 
+                } else if (arg.equalsIgnoreCase("-p") || arg.equalsIgnoreCase("--noprogress")) {
+                    isNoProgress = true; 
                 } else if (arg.equalsIgnoreCase("-f") || arg.equalsIgnoreCase("--force")) {
                     isForce = true; 
                 } else if (arg.equalsIgnoreCase("-k") || arg.equalsIgnoreCase("--keepfiles")) {
@@ -1061,7 +1070,7 @@ public class Synchronize {
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
-            doAction, isQuiet, isForce, isKeepFiles, isNoDelete, isGzipEnabled, isEncryptionEnabled);
+            doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, isGzipEnabled, isEncryptionEnabled);
         client.run(s3Path, fileList, actionCommand, 
             properties.getStringProperty("password", null), aclString);
     }
