@@ -75,6 +75,7 @@ public class Synchronize {
     private boolean isQuiet = false; // Report will only include summary of actions if true.
     private boolean isForce = false; // Files will be overwritten when unchanged if true.
     private boolean isKeepFiles = false; // Files will not be replaced/deleted if true.
+    private boolean isNoDelete = false; // Files will not be deleted if true, but may be replaced.
     private boolean isGzipEnabled = false; // Files will be gzipped prior to upload if true.
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
     private String cryptoPassword = null;
@@ -97,19 +98,22 @@ public class Synchronize {
      * Files will be overwritten when unchanged if true.
      * @param isKeepFiles     
      * Files will not be replaced/deleted if true.
+     * @param isNoDelete     
+     * Files will not be deleted if true, but may be replaced.
      * @param isGzipEnabled 
      * Files will be gzipped prior to upload if true.
      * @param isEncryptionEnabled   
      * Files will be encrypted prior to upload if true.
      */
     public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, boolean isForce, 
-        boolean isKeepFiles, boolean isGzipEnabled, boolean isEncryptionEnabled) 
+        boolean isKeepFiles, boolean isNoDelete, boolean isGzipEnabled, boolean isEncryptionEnabled) 
     {
         this.s3Service = s3Service;
         this.doAction = doAction;
         this.isQuiet = isQuiet;
         this.isForce = isForce;
         this.isKeepFiles = isKeepFiles;
+        this.isNoDelete = isNoDelete;
         this.isGzipEnabled = isGzipEnabled;
         this.isEncryptionEnabled = isEncryptionEnabled;
     }
@@ -459,7 +463,7 @@ public class Synchronize {
             String keyPath = (String) serverOnlyIter.next();
             S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
 
-            if (isKeepFiles) {
+            if (isKeepFiles || isNoDelete) {
                 printLine("d " + keyPath);                
             } else {
                 printLine("D " + keyPath);
@@ -488,7 +492,11 @@ public class Synchronize {
                 ", Kept: " + 
                 (disrepancyResults.updatedOnServerKeys.size() + disrepancyResults.onlyOnServerKeys.size())                    
                 :                 
-                ", Reverted: " + disrepancyResults.updatedOnServerKeys.size() +
+                ", Reverted: " + disrepancyResults.updatedOnServerKeys.size()
+                ) +
+            (isNoDelete?
+                ", Not Deleted: " + disrepancyResults.onlyOnServerKeys.size()
+                :
                 ", Deleted: " + disrepancyResults.onlyOnServerKeys.size()
                 ) +
             (isForce ?
@@ -603,7 +611,7 @@ public class Synchronize {
             String keyPath = (String) clientOnlyIter.next();
             File file = (File) filesMap.get(keyPath);
             
-            if (isKeepFiles) {
+            if (isKeepFiles || isNoDelete) {
                 printLine("d " + keyPath);                
             } else {
                 printLine("D " + keyPath);
@@ -631,7 +639,11 @@ public class Synchronize {
                 ", Kept: " + 
                 (disrepancyResults.updatedOnClientKeys.size() + disrepancyResults.onlyOnClientKeys.size())                    
                 : 
-                ", Reverted: " + disrepancyResults.updatedOnClientKeys.size() +
+                ", Reverted: " + disrepancyResults.updatedOnClientKeys.size()
+                ) +
+            (isNoDelete?
+                ", Not Deleted: " + disrepancyResults.onlyOnClientKeys.size()
+                :
                 ", Deleted: " + disrepancyResults.onlyOnClientKeys.size()
                 ) +
             (isForce ?
@@ -744,6 +756,7 @@ public class Synchronize {
         }
                 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
+        printLine("Listing files in local file system", true);
         Map filesMap = null;
         if ("UP".equals(actionCommand)) {
             filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[fileList.size()]));
@@ -757,6 +770,7 @@ public class Synchronize {
             throw new Exception("Unable to build map of S3 Objects", serviceEventAdaptor.getErrorThrown());
         }
         
+        printLine("Comparing S3 contents with local system", true);
         FileComparerResults discrepancyResults = FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap);
 
         // Perform the requested action on the set of disrepancies.
@@ -867,7 +881,13 @@ public class Synchronize {
         System.out.println("   This may be useful if you need to update metadata or timestamps in S3.");
         System.out.println("");
         System.out.println("-k | --keepfiles");
-        System.out.println("   Keep files on destination instead of reverting/removing them.");
+        System.out.println("   Keep outdated files on destination instead of reverting/removing them.");
+        System.out.println("   This option cannot be used with --nodelete.");
+        System.out.println("");
+        System.out.println("-d | --nodelete");
+        System.out.println("   Keep files on destination that have been removed from the source. This");
+        System.out.println("   option is similar to --keepfiles except that files may be reverted.");
+        System.out.println("   This option cannot be used with --keepfiles.");
         System.out.println("");
         System.out.println("-g | --gzip");
         System.out.println("   Compress (GZip) files when backing up and Decompress gzipped files");
@@ -886,7 +906,7 @@ public class Synchronize {
         System.out.println("D: A file/object existing on the target does not exist on the source and");
         System.out.println("   will be deleted.");
         System.out.println("d: A file/object existing on the target does not exist on the source but");
-        System.out.println("   because the --keepfiles option was set it was not deleted.");
+        System.out.println("   because the --keepfiles or --nodelete option was set it was not deleted.");
         System.out.println("R: An existing file/object has changed more recently on the target than on the");
         System.out.println("   source. The target version will be reverted to the older source version");
         System.out.println("r: An existing file/object has changed more recently on the target than on the");
@@ -922,6 +942,7 @@ public class Synchronize {
         boolean isQuiet = false;
         boolean isForce = false;
         boolean isKeepFiles = false;
+        boolean isNoDelete = false;
         boolean isGzipEnabled = false;
         boolean isEncryptionEnabled = false;
         
@@ -943,6 +964,8 @@ public class Synchronize {
                     isForce = true; 
                 } else if (arg.equalsIgnoreCase("-k") || arg.equalsIgnoreCase("--keepfiles")) {
                     isKeepFiles = true; 
+                } else if (arg.equalsIgnoreCase("-d") || arg.equalsIgnoreCase("--nodelete")) {
+                    isNoDelete = true; 
                 } else if (arg.equalsIgnoreCase("-g") || arg.equalsIgnoreCase("--gzip")) {
                     isGzipEnabled = true; 
                 } else if (arg.equalsIgnoreCase("-c") || arg.equalsIgnoreCase("--crypto")) {
@@ -1002,6 +1025,12 @@ public class Synchronize {
             printHelpAndExit(false);
         }
         
+        if (isKeepFiles && isNoDelete) {
+            // Incompatible options.
+            System.err.println("ERROR: Options --keepfiles and --nodelete cannot be used at the same time");
+            printHelpAndExit(false);            
+        }
+        
         // Ensure the Synchronize properties file contains everything we need.
         if (!properties.containsKey("accesskey")) {
             System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: accesskey");
@@ -1032,7 +1061,7 @@ public class Synchronize {
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
-            doAction, isQuiet, isForce, isKeepFiles, isGzipEnabled, isEncryptionEnabled);
+            doAction, isQuiet, isForce, isKeepFiles, isNoDelete, isGzipEnabled, isEncryptionEnabled);
         client.run(s3Path, fileList, actionCommand, 
             properties.getStringProperty("password", null), aclString);
     }

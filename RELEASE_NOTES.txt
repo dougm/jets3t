@@ -10,6 +10,9 @@ COCKPIT
 
 SYNCHRONIZE
 
+- Added --nodelete option that keeps items on the destination that have been
+  removed from the source. This is similar to --keepfiles except that files
+  may still be reverted with the --nodelete option.
 - Added property setting to ignore missing source directories when uploading.
 - Progress status messages shortened to fit into 80 character width consoles.
 
