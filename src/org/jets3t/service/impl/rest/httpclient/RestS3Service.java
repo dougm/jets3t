@@ -121,7 +121,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.5.0</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.5.1</code> or <code>My App Name/1.0</code>
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
@@ -209,14 +209,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 hostConfig.setProxyHost(proxyHost);
             }                
         } catch (Throwable t) {
-            log.error("Unable to set proxy configuration", t);
-        }
-        
+            log.debug("Unable to set proxy configuration", t);
+        }        
+                
         if (credentialsProvider != null) {
             log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
             httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
             httpClient.getParams().setAuthenticationPreemptive(true);
-        }          
+        }                          
     }
     
     /**

@@ -10,11 +10,11 @@ To run an application, such as Cockpit, run the appropriate script from
 the bin directory.
 
 Windows:
-cd jets3t-0.5.0\bin
+cd jets3t-0.5.1\bin
 cockpit.bat
 
 Unixy:
-cd jets3t-0.5.0/bin
+cd jets3t-0.5.1/bin
 bash cockpit.sh
 
 
