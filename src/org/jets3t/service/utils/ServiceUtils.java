@@ -260,15 +260,17 @@ public class ServiceUtils {
                     }
                 }
 
-                // Parse dates.
+                // Parse date strings into Date objects, if necessary.
                 if ("Date".equals(key) || "Last-Modified".equals(key)) {
-                    try {
-                        log.debug("Parsing date string '" + value
-                            + "' into Date object for key: " + key);
-                        value = parseRfc822Date(value.toString());
-                    } catch (ParseException pe) {
-                        log.warn("Unable to parse S3 date for metadata field " + key, pe);
-                        value = null;
+                    if (!(value instanceof Date)) {
+                        try {
+                            log.debug("Parsing date string '" + value
+                                + "' into Date object for key: " + key);
+                            value = ServiceUtils.parseRfc822Date(value.toString());
+                        } catch (ParseException pe) {
+                            log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
+                            continue;
+                        }
                     }
                 }
 
@@ -447,5 +449,5 @@ public class ServiceUtils {
                 ? " " + applicationDescription 
                 : "");
     }
-    
+        
 }
