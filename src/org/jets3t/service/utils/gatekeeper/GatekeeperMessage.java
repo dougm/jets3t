@@ -51,7 +51,19 @@ public class GatekeeperMessage {
     /**
      * The property name for message-specific transaction IDs: transactionId  
      */
-    public static final String PROPERTY_TRANSACTION_ID = "transactionId";        
+    public static final String PROPERTY_TRANSACTION_ID = "transactionId";
+    
+    /**
+     * The property name for storing information about prior failures in the gatekeeper client application. 
+     */
+    public static final String PROPERTY_PRIOR_FAILURE_MESSAGE = "priorFailureMessage";
+
+    /**
+     * The property name for stroring information about a client application such as its version
+     * number. This information can be useful to server-side components to confirm compatibility 
+     * with the client.
+     */
+    public static final String PROPERTY_CLIENT_VERSION_ID = "clientVersionId";
     
     /**
      * A flag name used to indicate when an S3Object is a summary XML document, as generated

@@ -148,9 +148,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
     
-    public static final String APPLICATION_DESCRIPTION = "Uploader/0.5.0";
+    public static final String APPLICATION_DESCRIPTION = "Uploader/0.5.1";
     
     public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
+    
+    private static final String UPLOADER_VERSION_ID = "JetS3t " + APPLICATION_DESCRIPTION;
     
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
@@ -262,6 +264,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * message is displayed in the final 'thankyou' screen.
      */
     private boolean fatalErrorOccurred = false;
+    
+    /**
+     * Variable to store application exceptions, so that client failure information can be 
+     * included in the information provided to the Gatekeeper when uploads are retried.
+     */
+    private Exception priorFailureException = null;
 
     /**
      * Constructor to run this application as an Applet.
@@ -842,6 +850,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
         gatekeeperMessage.addApplicationProperties(userInputProperties); // Add User inputs as application properties.
         gatekeeperMessage.addApplicationProperties(parametersMap); // Add any Applet/Application parameters as application properties.
+
+        // Make the Uploader's identifier available to Gatekeeper for version compatibility checking (if necessary)
+        gatekeeperMessage.addApplicationProperty(
+            GatekeeperMessage.PROPERTY_CLIENT_VERSION_ID, UPLOADER_VERSION_ID);        
+        
+        // If a prior failure has occurred, add information about this failure.
+        if (priorFailureException != null) {
+            gatekeeperMessage.addApplicationProperty(GatekeeperMessage.PROPERTY_PRIOR_FAILURE_MESSAGE, 
+                priorFailureException.getMessage());
+            // Now reset the prior failure variable.
+            priorFailureException = null;
+        }
         
         // Add all S3 objects as candiates for PUT signing.
         for (int i = 0; i < objects.length; i++) {
@@ -867,28 +887,28 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             String fieldValue = (String) entry.getValue();
             postMethod.setParameter(fieldName, fieldValue);
         }
-        
-        // Try to detect any necessary proxy configurations.
+
+        // Create Http Client if necessary, and include User Agent information.
         if (httpClientGatekeeper == null) {
             httpClientGatekeeper = new HttpClient();
-            httpClientGatekeeper.getParams().setParameter(
-                CredentialsProvider.PROVIDER, this);     
             httpClientGatekeeper.getParams().setParameter(HttpMethodParams.USER_AGENT, 
                 ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
-    
-            ProxyHost proxyHost = null;
-            try {
-                proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
-                if (proxyHost != null) {
-                    HostConfiguration hostConfig = new HostConfiguration();
-                    hostConfig.setProxyHost(proxyHost);
-                    httpClientGatekeeper.setHostConfiguration(hostConfig);
-                    httpClientGatekeeper.getParams().setAuthenticationPreemptive(true);
-                }
-            } catch (Throwable t) {
-                log.error("Unable to set proxy", t);
-            }
         }
+        
+        // Try to detect any necessary proxy configurations.
+        try {
+            ProxyHost proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
+            if (proxyHost != null) {
+                HostConfiguration hostConfig = new HostConfiguration();
+                hostConfig.setProxyHost(proxyHost);
+                httpClientGatekeeper.setHostConfiguration(hostConfig);
+                
+                httpClientGatekeeper.getParams().setAuthenticationPreemptive(true);
+                httpClientGatekeeper.getParams().setParameter(CredentialsProvider.PROVIDER, this);                     
+            }
+        } catch (Throwable t) {
+            log.debug("No proxy detected");
+        }            
 
         // Perform Gateway request.
         log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
@@ -931,7 +951,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     + ") or response content type (" + contentType + ") from Gatekeeper request");
             }
         } catch (Exception e) {
-            throw new Exception("Unable to receive signed URLs from Gatekeeper at: " + gatekeeperUrl, e);
+            throw new Exception("Gatekeeper did not respond", e);
         } finally {
             postMethod.releaseConnection();            
         }
@@ -1033,7 +1053,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
                       
             /*
-             * Prepare XML Summary document for upload, it the summary option is set.
+             * Prepare XML Summary document for upload, if the summary option is set.
              */
             boolean includeXmlSummaryDoc = uploaderProperties.getBoolProperty("xmlSummary", false);
             SignedUrlAndObject[] xmlSummaryItem = null;
@@ -1069,6 +1089,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 s3ServiceMulti.putObjects(uploadItems);          
             }            
         } catch (final Exception e) {
+            priorFailureException = e;
+            
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     wizardStepBackward();
