@@ -28,9 +28,12 @@ import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
-import org.apache.xml.serialize.OutputFormat;
-import org.apache.xml.serialize.XMLSerializer;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.w3c.dom.CDATASection;
@@ -150,11 +153,15 @@ public class XmlGenerator {
         }
         
         // Serialize XML document to String.
-        OutputFormat outputFormat = new OutputFormat(document);
-        outputFormat.setIndenting(true);
         StringWriter writer = new StringWriter();
-        XMLSerializer serializer = new XMLSerializer(writer, outputFormat);
-        serializer.serialize(document);
+        StreamResult streamResult = new StreamResult(writer);
+        
+        DOMSource domSource = new DOMSource(document);
+        TransformerFactory tf = TransformerFactory.newInstance();
+        Transformer serializer = tf.newTransformer();
+        serializer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+        serializer.setOutputProperty(OutputKeys.INDENT, "yes");
+        serializer.transform(domSource, streamResult); 
         
         return writer.toString();
     }

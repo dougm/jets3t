@@ -56,10 +56,7 @@ CP=$CP:$JETS3T_HOME/jars/uploader-0.5.1.jar
 CP=$CP:$JETS3T_HOME/libs/commons-logging/commons-logging-1.1.jar
 CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.3.jar
 CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.0.1.jar
-CP=$CP:$JETS3T_HOME/libs/xerces/xercesImpl.jar
-CP=$CP:$JETS3T_HOME/libs/xerces/xmlParserAPIs.jar
 CP=$CP:$JETS3T_HOME/libs/misc/BareBonesBrowserLaunch.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.13.jar
-CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-135.jar
 
 $EXEC -classpath $CP org.jets3t.apps.uploader.Uploader
