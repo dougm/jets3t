@@ -125,6 +125,7 @@ import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
+import org.jets3t.service.utils.gatekeeper.IncompatibleClientException;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 
@@ -171,6 +172,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public static final String ERROR_CODE__MISSING_EXTERNAL_UUID = "104";
     public static final String ERROR_CODE__UUID_NOT_UNIQUE = "105";
     public static final String ERROR_CODE__S3_UPLOAD_FAILED = "106";
+    public static final String ERROR_CODE__INVALID_CLIENT_VERSION = "107";
     
     
     private Frame ownerFrame = null;
@@ -1089,6 +1091,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 s3ServiceMulti.putObjects(uploadItems);          
             }            
         } catch (final Exception e) {
+            if (e instanceof IncompatibleClientException) {
+                failWithFatalError(ERROR_CODE__INVALID_CLIENT_VERSION);
+                ErrorDialog.showDialog(ownerFrame, this, 
+                    "This uploader application is not compatible with the Gatekeeper", null);
+                return;
+            }
+            
             priorFailureException = e;
             
             SwingUtilities.invokeLater(new Runnable() {
@@ -1137,7 +1146,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 String declineReason = (request.getDeclineReason() == null
                     ? "Unknown"
                     : request.getDeclineReason());
-                log.warn("Object '" + objects[i].getKey() + "' was declined for reason: "
+                log.warn("Upload of '" + objects[i].getKey() + "' was declined for reason: "
                     + declineReason);
                 if (firstDeclineReason == null) {
                     firstDeclineReason = declineReason;
@@ -1145,6 +1154,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         }
         if (firstDeclineReason != null) {
+            if (IncompatibleClientException.INCOMPATIBLE_CLIENT_EXCEPTION_CODE.equals(firstDeclineReason)) {
+                throw new IncompatibleClientException();
+            }
             throw new Exception("Your upload" + (objects.length > 1 ? "s were" : " was") 
                 + " declined by the Gatekeeper. Reason: " + firstDeclineReason);
         }
