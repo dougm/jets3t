@@ -149,11 +149,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
     
-    public static final String APPLICATION_DESCRIPTION = "Uploader/0.5.1";
+    public static final String APPLICATION_DESCRIPTION = "Uploader/0.5.1"
+        + (System.getProperty("java.version") != null
+            ? " (Java/" + System.getProperty("java.version") + ")" 
+            : "");
     
     public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
     
-    private static final String UPLOADER_VERSION_ID = "JetS3t " + APPLICATION_DESCRIPTION;
+    private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.5.1";
     
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
