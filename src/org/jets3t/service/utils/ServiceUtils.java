@@ -435,7 +435,7 @@ public class ServiceUtils {
      */
     public static String getUserAgentDescription(String applicationDescription) {
         return 
-            "jets3t/" + S3Service.VERSION_NO__JETS3T_TOOLKIT + " ("
+            "JetS3t/" + S3Service.VERSION_NO__JETS3T_TOOLKIT + " ("
             + System.getProperty("os.name") + "/" + System.getProperty("os.version") + ";"
             + " " + System.getProperty("os.arch") + ";"
             + (System.getProperty("user.region") != null 
