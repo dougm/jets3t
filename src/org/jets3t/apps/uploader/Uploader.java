@@ -149,11 +149,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
     
-    public static final String APPLICATION_DESCRIPTION = "Uploader/0.5.1"
-        + (System.getProperty("java.version") != null
-            ? " (Java/" + System.getProperty("java.version") + ")" 
-            : "");
-    
+    public static final String APPLICATION_DESCRIPTION = 
+        ServiceUtils.getUserAgentDescription("Uploader/0.5.1"); 
+            
     public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
     
     private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.5.1";
@@ -1605,6 +1603,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public void s3ServiceEventPerformed(UpdateACLEvent event) {}
     public void s3ServiceEventPerformed(DownloadObjectsEvent event) {}
     public void valueChanged(ListSelectionEvent arg0) {}
+    
     
     /**
      * Run the Uploader as a stand-alone application.
