@@ -340,9 +340,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                         }
                      });
 
-                    String errorMessage = "Unable to find your AWS Credentials in S3, please check your passphrase and password";
+                    String errorMessage = "<html><center>Unable to find your AWS Credentials in S3"
+                        + "<br><br>Please check your passphrase and password</center></html>";
                     log.error(errorMessage, e);
-                    ErrorDialog.showDialog(myself, hyperlinkListener, errorMessage, e);
+                    ErrorDialog.showDialog(myself, hyperlinkListener, errorMessage, null);
                     return;
                 }
                 
@@ -368,10 +369,12 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                             progressDialog.stopDialog();
                         }
                      });
-
-                    String errorMessage = "Unable to load your AWS Credentials from S3, please check your password";
+                    
+                    String errorMessage = 
+                        "<html><center>Unable to load your AWS Credentials from S3: " 
+                        + "<br><br>Please check your password</center></html>";
                     log.error(errorMessage, e);
-                    ErrorDialog.showDialog(myself, hyperlinkListener, errorMessage, e);
+                    ErrorDialog.showDialog(myself, hyperlinkListener, errorMessage, null);
                 }
 
             }
@@ -474,9 +477,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             this.awsCredentials = AWSCredentials.load(password, credentialsFile);
             this.hide();
         } catch (Exception e) {
-            String message = "Unable to load your AWS Credentials from the file: " + credentialsFile;
+            String message = "<html><center>Unable to load your AWS Credentials from the file: " 
+                + credentialsFile + "<br><br>Please check your password</center></html>";
             log.error(message, e);
-            ErrorDialog.showDialog(this, hyperlinkListener, message, e);
+            ErrorDialog.showDialog(this, hyperlinkListener, message, null);
         }
     }
     
