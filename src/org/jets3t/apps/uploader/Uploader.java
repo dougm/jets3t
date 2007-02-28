@@ -335,17 +335,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 // Fatal error if a parameter is missing.
                 if (null == paramValue) {
                     log.error("Missing required applet parameter: " + paramName);
-                    initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);               
+                    initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);
+                    break;
                 } else {
                     log.debug("Found applet parameter: " + paramName + "='" + paramValue + "'");
-                }
-                
-                // Set params as properties in the central properties source for this application.
-                // Note that parameter values will over-write properties with the same name.
-                uploaderProperties.setProperty(paramName, paramValue);
-                
-                // Store params in a separate map, which is used to build XML document.
-                parametersMap.put(paramName, paramValue);
+                    
+                    // Set params as properties in the central properties source for this application.
+                    // Note that parameter values will over-write properties with the same name.
+                    uploaderProperties.setProperty(paramName, paramValue);
+                    
+                    // Store params in a separate map, which is used to build XML document.
+                    parametersMap.put(paramName, paramValue);
+                }                
             }
         } else {
             // Add application parameters properties.
@@ -358,17 +359,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     // Fatal error if a parameter is missing.
                     if (null == propValue) {
                         log.error("Missing required command-line property: " + propName);
-                        throw new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);               
+                        initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);
+                        break;
                     } else {
-                        log.debug("Using command-line property: " + propName + "='" + propValue + "'");                    
+                        log.debug("Using command-line property: " + propName + "='" + propValue + "'");
+                        
+                        // Set arguments as properties in the central properties source for this application.
+                        // Note that argument values will over-write properties with the same name.
+                        uploaderProperties.setProperty(propName, propValue);
+
+                        // Store arguments in a separate map, which is used to build XML document.
+                        parametersMap.put(propName, propValue);
                     }
-
-                    // Set arguments as properties in the central properties source for this application.
-                    // Note that argument values will over-write properties with the same name.
-                    uploaderProperties.setProperty(propName, propValue);
-
-                    // Store arguments in a separate map, which is used to build XML document.
-                    parametersMap.put(propName, propValue);
                 }                
             }
         }
