@@ -202,7 +202,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     /**
      * Properties set in stand-alone application from the command line arguments.
      */
-    private Properties standAlongArgumentProperties = null;
+    private Properties standAloneArgumentProperties = null;
     
     private final ByteFormatter byteFormatter = new ByteFormatter();
     private final TimeFormatter timeFormatter = new TimeFormatter();
@@ -287,9 +287,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @param ownerFrame the frame the application will be displayed in
      * @throws S3ServiceException
      */
-    public Uploader(JFrame ownerFrame, Properties standAlongArgumentProperties) throws S3ServiceException {
+    public Uploader(JFrame ownerFrame, Properties standAloneArgumentProperties) throws S3ServiceException {
         this.ownerFrame = ownerFrame;
-        this.standAlongArgumentProperties = standAlongArgumentProperties;
+        this.standAloneArgumentProperties = standAloneArgumentProperties;
         isRunningAsApplet = false;
                 
         init();
@@ -305,6 +305,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     public void init() {
         super.init();
+        
+        Exception initException = null;
         
         // Find or create a Frame to own modal dialog boxes.
         if (this.ownerFrame == null) {
@@ -333,7 +335,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 // Fatal error if a parameter is missing.
                 if (null == paramValue) {
                     log.error("Missing required applet parameter: " + paramName);
-                    throw new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);               
+                    initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);               
                 } else {
                     log.debug("Found applet parameter: " + paramName + "='" + paramValue + "'");
                 }
@@ -347,11 +349,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         } else {
             // Add application parameters properties.
-            if (standAlongArgumentProperties != null) {
-                Enumeration e = standAlongArgumentProperties.keys();
+            if (standAloneArgumentProperties != null) {
+                Enumeration e = standAloneArgumentProperties.keys();
                 while (e.hasMoreElements()) {
                     String propName = (String) e.nextElement();
-                    String propValue = standAlongArgumentProperties.getProperty(propName);
+                    String propValue = standAloneArgumentProperties.getProperty(propName);
                     
                     // Fatal error if a parameter is missing.
                     if (null == propValue) {
@@ -377,7 +379,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         fileMinSizeMB = uploaderProperties.getLongProperty("file.minSizeMB", 0);
         
         // Initialise the GUI.
-        initGui();              
+        initGui();             
+        
+        // Jump to error page if there was an exception raised during initialisation.
+        if (initException != null) {
+            failWithFatalError(initException.getMessage());
+            return;
+        }
 
         // Determine valid file extensions.
         String validFileExtensionsStr = uploaderProperties.getStringProperty("file.extensions", "");
@@ -406,7 +414,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         
         // Apply branding
-        String applicationTitle = uploaderProperties.getStringProperty("gui.applicationTitle", null);
+        String applicationTitle = replaceMessageVariables(
+            uploaderProperties.getStringProperty("gui.applicationTitle", null));
         if (applicationTitle != null) {
             ownerFrame.setTitle(applicationTitle);
         }
@@ -433,7 +442,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         footerLabel.setHyperlinkeActivatedListener(this);
         footerLabel.setHorizontalAlignment(JLabel.CENTER);
         if (footerHtml != null) {
-            footerLabel.setText(footerHtml);
+            footerLabel.setText(replaceMessageVariables(footerHtml));
             includeFooter = true;
         }
         if (footerIconPath != null) {
@@ -1262,10 +1271,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
         String buttonImagePath = uploaderProperties
             .getStringProperty(propertiesPrefix + ".image", null);
-        String buttonText = uploaderProperties
-            .getStringProperty(propertiesPrefix + ".text", null);
-        String buttonTooltip = uploaderProperties
-            .getStringProperty(propertiesPrefix + ".tooltip", null);
+        String buttonText = replaceMessageVariables(uploaderProperties
+            .getStringProperty(propertiesPrefix + ".text", null));
+        String buttonTooltip = replaceMessageVariables(uploaderProperties
+            .getStringProperty(propertiesPrefix + ".tooltip", null));
         
         boolean hasImage = false;
         boolean hasText = false;
@@ -1448,13 +1457,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             String variableName = variable.substring(2, variable.length() - 1);
 
             String replacement = null;
-            if (userInputProperties.containsKey(variableName)) {
+            if (userInputProperties != null && userInputProperties.containsKey(variableName)) {
                 log.debug("Replacing variable '" + variableName + "' with value from a user input field");
                 replacement = userInputProperties.getProperty(variableName, null);
-            } else if (parametersMap.containsKey(variableName)) {
+            } else if (parametersMap != null && parametersMap.containsKey(variableName)) {
                 log.debug("Replacing variable '" + variableName + "' with value from Uploader's parameters");
                 replacement = (String) parametersMap.get(variableName);
-            } else if (uploaderProperties.containsKey(variableName)) {
+            } else if (uploaderProperties != null && uploaderProperties.containsKey(variableName)) {
                 log.debug("Replacing variable '" + variableName + "' with value from uploader.properties file");
                 replacement = uploaderProperties.getStringProperty(variableName, null);
             }
