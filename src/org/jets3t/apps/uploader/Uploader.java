@@ -128,6 +128,7 @@ import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
+import org.jets3t.service.utils.gatekeeper.FatalServerErrorException;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.IncompatibleClientException;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
@@ -179,6 +180,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public static final String ERROR_CODE__S3_UPLOAD_FAILED = "106";
     public static final String ERROR_CODE__INVALID_CLIENT_VERSION = "107";
     public static final String ERROR_CODE__UPLOAD_REQUEST_DECLINED = "108";
+    public static final String ERROR_CODE__FATAL_GATEWAY_SERVICE_ERROR = "109";
     
     /*
      * HTTP connection settings for communication *with Gatekeeper only*, the
@@ -1128,6 +1130,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 failWithFatalError(ERROR_CODE__INVALID_CLIENT_VERSION);
                 return;
             }
+            if (e instanceof FatalServerErrorException) {
+                failWithFatalError(ERROR_CODE__FATAL_GATEWAY_SERVICE_ERROR);
+                return;                
+            }
             
             priorFailureException = e;
             
@@ -1188,6 +1194,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             if (IncompatibleClientException.INCOMPATIBLE_CLIENT_EXCEPTION_CODE.equals(firstDeclineReason)) {
                 throw new IncompatibleClientException();
             }
+            if (firstDeclineReason != null 
+                && firstDeclineReason.startsWith(FatalServerErrorException.FATAL_SERVER_ERROR_CODE)) 
+            {
+                throw new FatalServerErrorException(firstDeclineReason);
+            }
+            
             throw new Exception("Your upload" + (objects.length > 1 ? "s were" : " was") 
                 + " declined by the Gatekeeper. Reason: " + firstDeclineReason);
         }
