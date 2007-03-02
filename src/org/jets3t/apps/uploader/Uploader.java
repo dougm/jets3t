@@ -81,6 +81,8 @@ import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.HttpMethodRetryHandler;
 import org.apache.commons.httpclient.NTCredentials;
 import org.apache.commons.httpclient.ProxyHost;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -91,6 +93,8 @@ import org.apache.commons.httpclient.auth.NTLMScheme;
 import org.apache.commons.httpclient.auth.RFC2617Scheme;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.params.HttpClientParams;
+import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -174,6 +178,15 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public static final String ERROR_CODE__UUID_NOT_UNIQUE = "105";
     public static final String ERROR_CODE__S3_UPLOAD_FAILED = "106";
     public static final String ERROR_CODE__INVALID_CLIENT_VERSION = "107";
+    public static final String ERROR_CODE__UPLOAD_REQUEST_DECLINED = "108";
+    
+    /*
+     * HTTP connection settings for communication *with Gatekeeper only*, the
+     * S3 connection parameters are set in the jets3t.properties file.
+     */
+    public static final int HTTP_CONNECTION_TIMEOUT = 60000;
+    public static final int SOCKET_CONNECTION_TIMEOUT = 60000;
+    public static final int MAX_CONNECTION_RETRIES = 5;
     
     
     private Frame ownerFrame = null;
@@ -336,7 +349,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 if (null == paramValue) {
                     log.error("Missing required applet parameter: " + paramName);
                     initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);
-                    break;
                 } else {
                     log.debug("Found applet parameter: " + paramName + "='" + paramValue + "'");
                     
@@ -360,7 +372,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     if (null == propValue) {
                         log.error("Missing required command-line property: " + propName);
                         initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);
-                        break;
                     } else {
                         log.debug("Using command-line property: " + propName + "='" + propValue + "'");
                         
@@ -904,9 +915,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
         // Create Http Client if necessary, and include User Agent information.
         if (httpClientGatekeeper == null) {
-            httpClientGatekeeper = new HttpClient();
-            httpClientGatekeeper.getParams().setParameter(HttpMethodParams.USER_AGENT, 
-                ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
+            httpClientGatekeeper = initHttpConnection(); 
         }
         
         // Try to detect any necessary proxy configurations.
@@ -961,8 +970,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 
                 return gatekeeperResponseMessage;
             } else {                
-                throw new Exception("Unexpected response code (" + responseCode
-                    + ") or response content type (" + contentType + ") from Gatekeeper request");
+                log.debug("The Gatekeeper did not permit a request. Response code: " 
+                    + responseCode + ", Response content type: " + contentType);
+                throw new Exception("The Gatekeeper did not permit your request");
             }
         } catch (Exception e) {
             throw new Exception("Gatekeeper did not respond", e);
@@ -1049,8 +1059,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                         "Missing property 'screen.4.connectingMessage'")));
                     progressBar.setValue(0);
                 };
-            });                    
-            GatekeeperMessage gatekeeperMessage = retrieveGatekeeperResponse(objectsForUpload);
+            });                 
+            
+            GatekeeperMessage gatekeeperMessage = null;
+            
+            try {
+                gatekeeperMessage = retrieveGatekeeperResponse(objectsForUpload);                
+            } catch (Exception e) {
+                log.info("Upload request was denied", e);
+                
+                failWithFatalError(ERROR_CODE__UPLOAD_REQUEST_DECLINED);
+                return;
+            }            
             
             log.debug("Gatekeeper response properties: " + gatekeeperMessage.encodeToProperties());
             
@@ -1076,6 +1096,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     GatekeeperMessage.PROPERTY_TRANSACTION_ID);
                 if (priorTransactionId == null) {
                     failWithFatalError("Cannot create a summary XML document without a unique Transaction ID");
+                    return;
                 }
                 
                 S3Object summaryXmlObject = new S3Object(
@@ -1105,8 +1126,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         } catch (final Exception e) {
             if (e instanceof IncompatibleClientException) {
                 failWithFatalError(ERROR_CODE__INVALID_CLIENT_VERSION);
-                ErrorDialog.showDialog(ownerFrame, this, 
-                    "This uploader application is not compatible with the Gatekeeper", null);
                 return;
             }
             
@@ -1256,8 +1275,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
             failWithFatalError(ERROR_CODE__S3_UPLOAD_FAILED);
-
-            ErrorDialog.showDialog(ownerFrame, this, "File upload failed", event.getErrorCause());
         }
     }
     
@@ -1426,7 +1443,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     private String replaceMessageVariables(String message) {
         if (message == null) {
-            log.warn("Passing of null message should not happen...");
             return "";
         }
         
@@ -1532,6 +1548,38 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             log.warn("Unrecognised action command, ignoring: " + actionEvent.getActionCommand());
         }
     }
+    
+    private HttpClient initHttpConnection() {
+        // Set client parameters.
+        HttpClientParams clientParams = new HttpClientParams();
+        
+        clientParams.setParameter(HttpMethodParams.USER_AGENT, 
+            ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
+
+        // Replace default error retry handler.        
+        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
+            public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
+                if (executionCount > MAX_CONNECTION_RETRIES) {
+                    log.error("Retried connection " + executionCount 
+                        + " times, which exceeds the maximum retry count of " + MAX_CONNECTION_RETRIES);
+                    return false;                    
+                }
+                log.warn("Retrying request - attempt " + executionCount + " of " + MAX_CONNECTION_RETRIES);                
+                return true;
+            }
+        });
+        
+        
+        // Set connection parameters.
+        HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
+        connectionParams.setConnectionTimeout(HTTP_CONNECTION_TIMEOUT);
+        connectionParams.setSoTimeout(SOCKET_CONNECTION_TIMEOUT);        
+        connectionParams.setStaleCheckingEnabled(false);
+        
+        HttpClient httpClient = new HttpClient(clientParams);
+        httpClient.getHttpConnectionManager().setParams(connectionParams);
+        return httpClient;
+    }
 
     /**
      * Follows hyperlinks clicked on by a user. This is achieved differently depending on whether
@@ -1558,7 +1606,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             BareBonesBrowserLaunch.openURL(url.toString());
         }
     }
-
+    
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
