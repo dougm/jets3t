@@ -223,7 +223,8 @@ public class S3Object extends BaseS3Object {
 	}
 	
     /**
-     * Set the ETag value of the object.
+     * Set the ETag value of the object based on information returned from S3.
+     * This method should only by used by code that reads S3 responses.
      * 
      * @param etag
      * the ETag value as provided by S3.
@@ -292,7 +293,8 @@ public class S3Object extends BaseS3Object {
 	}
 	
     /**
-     * Set this object's last modified date.
+     * Set this object's last modified date based on information returned from S3.
+     * This method should only by used by code that reads S3 responses.
      * 
      * @param lastModifiedDate
      */
@@ -308,6 +310,12 @@ public class S3Object extends BaseS3Object {
 		return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
 	}
 
+    /**
+     * Set this object's owner object based on information returned from S3.
+     * This method should only by used by code that reads S3 responses.
+     * 
+     * @param owner
+     */
 	public void setOwner(S3Owner owner) {
         addMetadata(METADATA_HEADER_OWNER, owner);
 	}	
@@ -333,6 +341,12 @@ public class S3Object extends BaseS3Object {
 		return (String) getMetadata(METADATA_HEADER_STORAGE_CLASS);
 	}
 
+    /**
+     * Set the storage class based on information returned from S3.
+     * This method should only by used by code that reads S3 responses.
+     * 
+     * @param storageClass
+     */
 	public void setStorageClass(String storageClass) {
         addMetadata(METADATA_HEADER_STORAGE_CLASS, storageClass);
 	}
