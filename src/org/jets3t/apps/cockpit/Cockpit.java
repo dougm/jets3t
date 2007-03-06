@@ -39,14 +39,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -118,7 +113,6 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.BytesTransferredWatcher;
-import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CancelEventTrigger;
@@ -141,7 +135,7 @@ import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.Mimetypes;
-import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.TimeFormatter;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
@@ -165,7 +159,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.s3.amazonaws.com/applications/cockpit.html";
     public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
     
-    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.5.0";
+    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.5.1";
     
     public static final String APPLICATION_TITLE = "JetS3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
@@ -265,6 +259,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private boolean isViewingObjectProperties = false;
     
+    private EncryptionUtil encryptionUtil = null;
+
     
     /**
      * Constructor to run this application as an Applet.
@@ -992,6 +988,21 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Preference Events        
         else if ("PreferencesDialog".equals(event.getActionCommand())) {
             PreferencesDialog.showDialog(cockpitPreferences, ownerFrame, this);
+            
+            if (cockpitPreferences.isEncryptionPasswordSet()) {
+                try {
+                    encryptionUtil = new EncryptionUtil(
+                        cockpitPreferences.getEncryptionPassword(), 
+                        cockpitPreferences.getEncryptionAlgorithm(), 
+                        EncryptionUtil.DEFAULT_VERSION);
+                } catch (Exception e) {
+                    String message = "Unable to start encryption utility";
+                    log.error(message, e);
+                    ErrorDialog.showDialog(ownerFrame, this, message, e);
+                }
+            } else {
+                encryptionUtil = null;
+            }
         }                        
         
         // Ooops...
@@ -1702,7 +1713,17 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     private void prepareForObjectsDownload() {
         // Build map of existing local files.
-        Map filesInDownloadDirectoryMap = FileComparer.buildFileMap(downloadDirectory, null);
+        Map filesInDownloadDirectoryMap = null;
+        try {
+            filesInDownloadDirectoryMap = FileComparer.buildFileMap(downloadDirectory, null);
+        } catch (Exception e) {
+            String message = "Unable to review files in targetted download directory";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
+
+            return;
+        }
+        
         filesAlreadyInDownloadDirectoryMap = new HashMap();
         
         // Build map of S3 Objects being downloaded. 
@@ -1925,62 +1946,21 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Setup files to write to, creating parent directories when necessary.
             for (int i = 0; i < objects.length; i++) {
                 File file = new File(downloadDirectory, objects[i].getKey());
-                
-                // Create directory corresponding to object, or parent directories of object.
-                if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(objects[i].getContentType())) {
-                    file.mkdirs();
-                    // No further data to download for directories...
-                    continue;
-                } else {
-                    if (file.getParentFile() != null) {
-                        file.getParentFile().mkdirs();
-                    }
+                                
+                // Encryption password must be null if no password is set.
+                String encryptionPassword = null;
+                if (cockpitPreferences.isEncryptionPasswordSet()) {
+                    encryptionPassword = cockpitPreferences.getEncryptionPassword();
                 }
                 
-                downloadObjectsToFileMap.put(objects[i].getKey(), file);
-
-                boolean isZipped = false;
-                EncryptionUtil encryptionUtil = null;
-                
-                if ("gzip".equalsIgnoreCase(objects[i].getContentEncoding())
-                    || objects[i].containsMetadata(Constants.METADATA_JETS3T_COMPRESSED))
-                {
-                    // Automatically inflate gzipped data.
-                    isZipped = true;
-                }
-                if (objects[i].containsMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM) 
-                    || objects[i].containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE))
-                {
-                    log.debug("Decrypting encrypted data for object: " + objects[i].getKey());
+                DownloadPackage downloadPackage = ObjectUtils
+                    .createPackageForDownload(objects[i], file, true, true, encryptionPassword);
                     
-                    // Prompt user for the password, if necessary.
-                    if (!cockpitPreferences.isEncryptionPasswordSet()) {
-                        throw new S3ServiceException(
-                            "One or more objects are encrypted. Cockpit cannot download encrypted "
-                            + "objects unless the encyption password is set in Preferences");
-                    }
-
-                    if (objects[i].containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)) {
-                        // Item is encrypted with obsolete crypto.
-                        log.warn("Object is encrypted with out-dated crypto version, please update it when possible: " 
-                            + objects[i].getKey());
-                        encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(
-                            cockpitPreferences.getEncryptionPassword());                                            
-                    } else {
-                        String algorithm = (String) objects[i].getMetadata(
-                            Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
-                        String version = (String) objects[i].getMetadata(
-                            Constants.METADATA_JETS3T_CRYPTO_VERSION);
-                        if (version == null) {
-                            version = EncryptionUtil.DEFAULT_VERSION;
-                        }
-                        encryptionUtil = new EncryptionUtil(
-                            cockpitPreferences.getEncryptionPassword(), algorithm, version);                                            
-                    }                    
+                if (downloadPackage != null) {
+                    downloadObjectsToFileMap.put(objects[i].getKey(), file);
+                    downloadPackageList.add(downloadPackage);
                 }
                 
-                downloadPackageList.add(new DownloadPackage(
-                    objects[i], file, isZipped, encryptionUtil));            
             }
             
             final DownloadPackage[] downloadPackagesArray = (DownloadPackage[])
@@ -2063,89 +2043,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
     }
     
-    /**
-     * Prepares to upload files to S3 
-     * @param originalFile
-     * @param newObject
-     * @return
-     * @throws Exception
-     */
-    private File prepareUploadFile(final File originalFile, final S3Object newObject) throws Exception {        
-        if (!cockpitPreferences.isUploadCompressionActive() 
-            && !cockpitPreferences.isUploadEncryptionActive()) 
-        {
-            // No file pre-processing required.
-            return originalFile;
-        }
-        
-        String actionText = "";
-        
-        // File must be pre-processed. Process data from original file 
-        // and write it to a temporary one ready for upload.
-        final File tempUploadFile = File.createTempFile("JetS3tCockpit",".tmp");
-        tempUploadFile.deleteOnExit();
-        
-        OutputStream outputStream = null;
-        InputStream inputStream = null;
-        
-        try {
-            outputStream = new BufferedOutputStream(new FileOutputStream(tempUploadFile));
-            inputStream = new BufferedInputStream(new FileInputStream(originalFile));
-
-            String contentEncoding = null;
-            if (cockpitPreferences.isUploadCompressionActive()) {
-                inputStream = new GZipDeflatingInputStream(inputStream);
-                contentEncoding = "gzip";
-                newObject.addMetadata(Constants.METADATA_JETS3T_COMPRESSED, "gzip"); 
-                actionText += "Compressing";                
-            } 
-            if (cockpitPreferences.isUploadEncryptionActive()) {
-                if (!EncryptionUtil.isCipherAvailableForUse(cockpitPreferences.getEncryptionAlgorithm())) {
-                    throw new Exception("The currently selected encryption algorithm "
-                        + cockpitPreferences.getEncryptionAlgorithm() + " is not available");
-                }
-                
-                EncryptionUtil encryptionUtil = new EncryptionUtil(
-                    cockpitPreferences.getEncryptionPassword(), 
-                    cockpitPreferences.getEncryptionAlgorithm(), 
-                    EncryptionUtil.DEFAULT_VERSION);
-                
-                inputStream = encryptionUtil.encrypt(inputStream);
-                contentEncoding = null;
-                newObject.setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
-                newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM, 
-                    encryptionUtil.getAlgorithm()); 
-                newObject.addMetadata(Constants.METADATA_JETS3T_CRYPTO_VERSION, 
-                    EncryptionUtil.DEFAULT_VERSION); 
-                actionText += (actionText.length() == 0? "Encrypting" : " and encrypting");                
-            }
-            if (contentEncoding != null) {
-                newObject.addMetadata("Content-Encoding", contentEncoding);
-            }
-    
-            // updateProgressDialog(actionText + " '" + originalFile.getName() + "' for upload", 0);
-            log.debug("Re-writing file data for '" + originalFile + "' to temporary file '" 
-                + tempUploadFile.getAbsolutePath() + "': " + actionText);
-            
-            byte[] buffer = new byte[4096];
-            int c = -1;
-            while ((c = inputStream.read(buffer)) >= 0) {
-                outputStream.write(buffer, 0, c);
-            }
-        } finally {
-            if (inputStream != null) {
-                inputStream.close();
-            }
-            if (outputStream != null) {
-                outputStream.close();
-            }
-        }
-        
-        return tempUploadFile;
-    }
     
     private void performFilesUpload(FileComparerResults comparisonResults, Map uploadingFilesMap) {
-        try {
+        try {           
             // Determine which files to upload, prompting user whether to over-write existing files
             List fileKeysForUpload = new ArrayList();
             fileKeysForUpload.addAll(comparisonResults.onlyOnClientKeys);
@@ -2206,7 +2106,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             startProgressDialog("Prepared 0 of " + fileKeysForUpload.size() 
                 + " file(s) for upload", "", 0, fileKeysForUpload.size(), null, null);
-            
+                                    
             // Populate S3Objects representing upload files with metadata etc.
             final S3Object[] objects = new S3Object[fileKeysForUpload.size()];
             int objectIndex = 0;
@@ -2214,7 +2114,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 String fileKey = iter.next().toString();
                 File file = (File) uploadingFilesMap.get(fileKey);
                 
-                S3Object newObject = new S3Object(fileKey);
+                S3Object newObject = ObjectUtils
+                    .createObjectForUpload(fileKey, file, 
+                        (cockpitPreferences.isUploadEncryptionActive() ? encryptionUtil : null),
+                        cockpitPreferences.isUploadCompressionActive());
                 
                 String aclPreferenceString = cockpitPreferences.getUploadACLPermission();
                 if (CockpitPreferences.UPLOAD_ACL_PERMISSION_PRIVATE.equals(aclPreferenceString)) {
@@ -2227,35 +2130,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     log.warn("Ignoring unrecognised upload ACL permission setting: " + aclPreferenceString);                    
                 }
                 
-                if (file.isDirectory()) {
-                    newObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-                } else {     
-                    newObject.setContentType(Mimetypes.getInstance().getMimetype(file));
-                    
-                    // Do any necessary file pre-processing.
-                    File fileToUpload = prepareUploadFile(file, newObject);
-                    
-                    newObject.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE, 
-                        ServiceUtils.formatIso8601Date(new Date(file.lastModified())));
-                    newObject.setContentLength(fileToUpload.length());
-                    newObject.setDataInputFile(fileToUpload);
-                    
-                    // Compute the upload file's MD5 hash.
-                    newObject.setMd5Hash(ServiceUtils.computeMD5Hash(
-                        new FileInputStream(fileToUpload)));
-                    
-                    if (!fileToUpload.equals(file)) {
-                        // Compute the MD5 hash of the *original* file, if upload file has been altered
-                        // through encryption or gzipping.
-                        newObject.addMetadata(
-                            S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5,
-                            ServiceUtils.toBase64(ServiceUtils.computeMD5Hash(new FileInputStream(file))));
-                    }
-
-                    updateProgressDialog("Prepared " + (objectIndex + 1) 
-                        + " of " + fileKeysForUpload.size() + " file(s) for upload", 
-                        "", (objectIndex + 1));
-                }
+                
+                updateProgressDialog("Prepared " + (objectIndex + 1) 
+                    + " of " + fileKeysForUpload.size() + " file(s) for upload", 
+                    "", (objectIndex + 1));
+                
                 objects[objectIndex++] = newObject;
             }
             
@@ -2601,20 +2480,22 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Stop GetObjectHead progress display.
             stopProgressDialog();        
             
-            if (isDownloadingObjects) {
-                compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
-                isDownloadingObjects = false;
-            } else if (isUploadingFiles) {
-                compareRemoteAndLocalFiles(filesForUploadMap, s3ExistingObjectsMap, true);
-                isUploadingFiles = false;
-            } else if (isViewingObjectProperties) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects());
-                        isViewingObjectProperties = false;                    
-                    }
-                });
-            }            
+            synchronized (s3ServiceMulti) {
+                if (isDownloadingObjects) {
+                    compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
+                    isDownloadingObjects = false;
+                } else if (isUploadingFiles) {
+                    compareRemoteAndLocalFiles(filesForUploadMap, s3ExistingObjectsMap, true);
+                    isUploadingFiles = false;
+                } else if (isViewingObjectProperties) {
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects());
+                            isViewingObjectProperties = false;                    
+                        }
+                    });
+                }
+            }
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             stopProgressDialog();        
