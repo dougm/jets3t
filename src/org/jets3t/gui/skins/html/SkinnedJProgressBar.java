@@ -20,22 +20,19 @@ package org.jets3t.gui.skins.html;
 
 import java.util.Properties;
 
-import javax.swing.JButton;
+import javax.swing.JProgressBar;
 
 /**
- * A skinned JButton, which is actually just a standard button - useful only as a base for someone
- * to specialise.
+ * A skinned JProgressBar, which is actually just a standard progress bar - useful only as a base 
+ * for someone to specialise.
  * 
  * @author James Murty
  */
-public class SkinnedJButton extends JButton {
-    private static final long serialVersionUID = 7544903896112071279L;
+public class SkinnedJProgressBar extends JProgressBar {
+    private static final long serialVersionUID = 1610187478874024196L;
 
-    public SkinnedJButton(Properties skinProperties, String itemName) {
+    public SkinnedJProgressBar(Properties skinProperties, String itemName) {
         super();
-        // Reduce the margin to the border and turn off the focus rectangle.
-        this.setMargin(new java.awt.Insets(0, 2, 0, 2));
-        this.setFocusPainted(false);
     }
     
 }

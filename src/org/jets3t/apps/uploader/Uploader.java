@@ -19,7 +19,6 @@
 package org.jets3t.apps.uploader;
 
 import java.awt.CardLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -518,7 +517,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         fileInformationLabel = skinsFactory.createSkinnedJHtmlLabel("FileInformationLabel");
         fileInformationLabel.setHyperlinkeActivatedListener(this);        
         fileInformationLabel.setHorizontalAlignment(JLabel.CENTER);        
-        progressBar = new JProgressBar(0, 100);
+        progressBar = skinsFactory.createSkinnedJProgressBar("ProgressBar", 0, 100);
         progressBar.setStringPainted(true);
         progressStatusTextLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressStatusTextLabel");
         progressStatusTextLabel.setHyperlinkeActivatedListener(this);
@@ -528,22 +527,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         progressTransferDetailsLabel.setHyperlinkeActivatedListener(this);
         progressTransferDetailsLabel.setText(" ");
         progressTransferDetailsLabel.setHorizontalAlignment(JLabel.CENTER);
-
-        // Skinning for ProgressBar foreground.
-        Color pbForegroundColor = progressBar.getForeground();
-        String pbForegroundColorValue = uploaderProperties.getStringProperty(
-            "gui.progressbar.foregroundColor", null);
-        if (pbForegroundColorValue != null) {
-            Color color = Color.decode(pbForegroundColorValue);
-            if (color == null) {
-                log.error("Unable to set progressBar foreground color with value: "
-                    + pbForegroundColorValue);
-            } else {
-                pbForegroundColor = color;
-            }
-        }
-        progressBar.setForeground(pbForegroundColor);
-
         cancelUploadButton = skinsFactory.createSkinnedJButton("CancelUploadButton");
         cancelUploadButton.setActionCommand("CancelUpload");
         cancelUploadButton.addActionListener(this);
@@ -636,6 +619,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         
         // Initialize drop target.
         initDropTarget(new Component[] {this} );
+        
+        // Revert to default Look and Feel for all future GUI elements (eg Dialog boxes).
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            log.error("Unable to set default system LookAndFeel", e);
+        }
         
         wizardStepForward();
     }
