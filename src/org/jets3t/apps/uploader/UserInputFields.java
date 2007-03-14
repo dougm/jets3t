@@ -198,7 +198,7 @@ public class UserInputFields {
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
                         new GridBagConstraints(0, fieldRow++, 2, 1, 0, 0, GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));                    
-                    JTextArea textArea = new JTextArea();
+                    JTextArea textArea = skinsFactory.createSkinnedJTextArea(fieldType);
                     fieldsPanel.add(new JScrollPane(textArea),
                         new GridBagConstraints(0, fieldRow++, 2, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
                     

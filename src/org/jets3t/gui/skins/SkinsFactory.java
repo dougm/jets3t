@@ -27,6 +27,7 @@ import java.util.Properties;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JTextArea;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 
@@ -204,6 +205,24 @@ public class SkinsFactory {
      * item should look or behave.
      * 
      * @return
+     * a <code>SkinnedJTextArea</code> class implementation for the current skin, or a default
+     * JTextArea if no skin-specific implementation is available.
+     */
+    public JTextArea createSkinnedJTextArea(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJTextArea"), itemName);
+        if (instance != null) {
+            return (JTextArea) instance;
+        } else {
+            return new JTextArea();
+        }
+    }
+
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
      * a <code>SkinnedJProgressBar</code> class implementation for the current skin, or a default
      * JProgressBar if no skin-specific implementation is available.
      */
@@ -215,9 +234,7 @@ public class SkinsFactory {
             jProgressBar.setMaximum(max);
             return (JProgressBar) jProgressBar;
         } else {
-            jProgressBar = new JProgressBar(null);
-            jProgressBar.setMinimum(min);
-            jProgressBar.setMaximum(max);
+            jProgressBar = new JProgressBar(min, max);
             return jProgressBar;
         }                
     }
