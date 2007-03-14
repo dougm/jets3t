@@ -75,7 +75,7 @@ public class SkinnedLookAndFeel extends MetalLookAndFeel {
         if (textColorValue != null) {
             Color color = Color.decode(textColorValue);
             if (color == null) {
-                log.error("Unable to set text color with value: " + backgroundColorValue);
+                log.error("Unable to set text color with value: " + textColorValue);
             } else {
                 textColor = color;                    
             }
