@@ -25,9 +25,14 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 
@@ -169,6 +174,42 @@ public class SkinsFactory {
      * item should look or behave.
      * 
      * @return
+     * a <code>SkinnedJRadioButton</code> class implementation for the current skin, or a default
+     * JRadioButton if no skin-specific implementation is available.
+     */
+    public JRadioButton createSkinnedJRadioButton(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJRadioButton"), itemName);        
+        if (instance != null) {
+            return (JRadioButton) instance;
+        } else {
+            return new JRadioButton();
+        }        
+    }
+    
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJComboBox</code> class implementation for the current skin, or a default
+     * JComboBox if no skin-specific implementation is available.
+     */
+    public JComboBox createSkinnedJComboBox(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJComboBox"), itemName);        
+        if (instance != null) {
+            return (JComboBox) instance;
+        } else {
+            return new JComboBox();
+        }        
+    }
+    
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
      * a <code>SkinnedJPanel</code> class implementation for the current skin, or a default
      * JPanel if no skin-specific implementation is available.
      */
@@ -178,6 +219,24 @@ public class SkinsFactory {
             return (JPanel) instance;
         } else {
             return new JPanel();
+        }                
+    }
+    
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJScrollPane</code> class implementation for the current skin, or a default
+     * JScrollPane if no skin-specific implementation is available.
+     */
+    public JScrollPane createSkinnedJScrollPane(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJScrollPane"), itemName);        
+        if (instance != null) {
+            return (JScrollPane) instance;
+        } else {
+            return new JScrollPane();
         }                
     }
     
@@ -199,6 +258,42 @@ public class SkinsFactory {
         }                
     }
 
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJPasswordField</code> class implementation for the current skin, or a default
+     * JPasswordField if no skin-specific implementation is available.
+     */
+    public JPasswordField createSkinnedJPasswordField(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJPasswordField"), itemName);        
+        if (instance != null) {
+            return (JPasswordField) instance;
+        } else {
+            return new JPasswordField();
+        }                
+    }
+    
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJTextField</code> class implementation for the current skin, or a default
+     * JTextField if no skin-specific implementation is available.
+     */
+    public JTextField createSkinnedJTextField(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJTextField"), itemName);        
+        if (instance != null) {
+            return (JTextField) instance;
+        } else {
+            return new JTextField();
+        }                
+    }
+    
     /**
      * @param itemName
      * the name of this specific item in the GUI, which may be used to determine how the skinned

@@ -134,7 +134,8 @@ public class UserInputFields {
                     StringTokenizer st = new StringTokenizer(fieldOptions, ",");
                     while (st.hasMoreTokens()) {
                         String option = st.nextToken();
-                        JRadioButton radioButton = new JRadioButton(option);
+                        JRadioButton radioButton = skinsFactory.createSkinnedJRadioButton(fieldName);
+                        radioButton.setText(option);
                         buttonGroup.add(radioButton);
                         if (buttonGroup.getButtonCount() == 1) {
                             // Make first button the default.
@@ -160,7 +161,7 @@ public class UserInputFields {
                     fieldsPanel.add(label,
                         new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
-                    JComboBox comboBox = new JComboBox();
+                    JComboBox comboBox = skinsFactory.createSkinnedJComboBox(fieldName);
                     StringTokenizer st = new StringTokenizer(fieldOptions, ",");
                     while (st.hasMoreTokens()) {
                         String option = st.nextToken();
@@ -176,7 +177,7 @@ public class UserInputFields {
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
                         new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-                    JTextField textField = new JTextField();
+                    JTextField textField = skinsFactory.createSkinnedJTextField(fieldName);
                     fieldsPanel.add(textField,
                         new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
                     
@@ -187,7 +188,7 @@ public class UserInputFields {
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
                         new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-                    JPasswordField passwordField = new JPasswordField();
+                    JPasswordField passwordField = skinsFactory.createSkinnedJPasswordField(fieldName);
                     fieldsPanel.add(passwordField,
                         new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
                     
@@ -198,8 +199,11 @@ public class UserInputFields {
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
                         new GridBagConstraints(0, fieldRow++, 2, 1, 0, 0, GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));                    
-                    JTextArea textArea = skinsFactory.createSkinnedJTextArea(fieldType);
-                    fieldsPanel.add(new JScrollPane(textArea),
+                    JTextArea textArea = skinsFactory.createSkinnedJTextArea(fieldName);
+                    textArea.setLineWrap(true);
+                    JScrollPane scrollPane = skinsFactory.createSkinnedJScrollPane(fieldName);
+                    scrollPane.setViewportView(textArea);
+                    fieldsPanel.add(scrollPane,
                         new GridBagConstraints(0, fieldRow++, 2, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
                     
                     userInputComponentsMap.put(fieldName, textArea);
