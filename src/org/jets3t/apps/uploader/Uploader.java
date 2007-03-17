@@ -127,9 +127,7 @@ import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
-import org.jets3t.service.utils.gatekeeper.FatalServerErrorException;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
-import org.jets3t.service.utils.gatekeeper.IncompatibleClientException;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 
@@ -171,15 +169,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * to aid in resolving user's problems. 
      */
     public static final String ERROR_CODE__MISSING_REQUIRED_PARAM = "100";
-    public static final String ERROR_CODE__MISSING_FILE_EXTENSIONS = "101";
-    public static final String ERROR_CODE__INVALID_PUT_URL = "102";
-    public static final String ERROR_CODE__INIT_S3_SERVICE = "103";
-    public static final String ERROR_CODE__MISSING_EXTERNAL_UUID = "104";
-    public static final String ERROR_CODE__UUID_NOT_UNIQUE = "105";
-    public static final String ERROR_CODE__S3_UPLOAD_FAILED = "106";
-    public static final String ERROR_CODE__INVALID_CLIENT_VERSION = "107";
-    public static final String ERROR_CODE__UPLOAD_REQUEST_DECLINED = "108";
-    public static final String ERROR_CODE__FATAL_GATEWAY_SERVICE_ERROR = "109";
+    public static final String ERROR_CODE__S3_UPLOAD_FAILED = "101";
+    public static final String ERROR_CODE__UPLOAD_REQUEST_DECLINED = "102";
     
     /*
      * HTTP connection settings for communication *with Gatekeeper only*, the
@@ -955,6 +946,15 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 GatekeeperMessage gatekeeperResponseMessage = 
                     GatekeeperMessage.decodeFromProperties(responseProperties);
                 
+                // Check for Gatekeeper Error Code in response.
+                String gatekeeperErrorCode = gatekeeperResponseMessage.getApplicationProperties()
+                    .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
+                if (gatekeeperErrorCode != null) {
+                    log.warn("Received Gatekeeper error code: " + gatekeeperErrorCode);
+                    failWithFatalError(gatekeeperErrorCode);
+                    return null;
+                }
+                
                 if (gatekeeperResponseMessage.getSignatureRequests().length != objects.length) {
                     throw new Exception("The Gatekeeper service did not provide the necessary " 
                         + objects.length + " response items");
@@ -1062,7 +1062,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 
                 failWithFatalError(ERROR_CODE__UPLOAD_REQUEST_DECLINED);
                 return;
-            }            
+            }
+            // If we get a null response, presume the error has already been handled.
+            if (gatekeeperMessage == null) {
+                return;
+            }
             
             log.debug("Gatekeeper response properties: " + gatekeeperMessage.encodeToProperties());
             
@@ -1097,7 +1101,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 summaryXmlObject.addMetadata(GatekeeperMessage.PROPERTY_TRANSACTION_ID, priorTransactionId);
                 summaryXmlObject.addMetadata(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG, "true"); 
                 
-                gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});
+                gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});                
                 xmlSummaryItem = prepareSignedObjects(new S3Object[] {summaryXmlObject}, 
                     gatekeeperMessage.getSignatureRequests(), null);
             }
@@ -1116,15 +1120,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 s3ServiceMulti.putObjects(uploadItems);          
             }            
         } catch (final Exception e) {
-            if (e instanceof IncompatibleClientException) {
-                failWithFatalError(ERROR_CODE__INVALID_CLIENT_VERSION);
-                return;
-            }
-            if (e instanceof FatalServerErrorException) {
-                failWithFatalError(ERROR_CODE__FATAL_GATEWAY_SERVICE_ERROR);
-                return;                
-            }
-            
             priorFailureException = e;
             
             SwingUtilities.invokeLater(new Runnable() {
@@ -1181,15 +1176,6 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         }
         if (firstDeclineReason != null) {
-            if (IncompatibleClientException.INCOMPATIBLE_CLIENT_EXCEPTION_CODE.equals(firstDeclineReason)) {
-                throw new IncompatibleClientException();
-            }
-            if (firstDeclineReason != null 
-                && firstDeclineReason.startsWith(FatalServerErrorException.FATAL_SERVER_ERROR_CODE)) 
-            {
-                throw new FatalServerErrorException(firstDeclineReason);
-            }
-            
             throw new Exception("Your upload" + (objects.length > 1 ? "s were" : " was") 
                 + " declined by the Gatekeeper. Reason: " + firstDeclineReason);
         }
@@ -1411,14 +1397,25 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     
     /**
      * When a fatal error occurs, go straight to last screen to display the error message
-     * and make the error code available as a variable (<code>${errorMessage}</code>) to be used
+     * and make the error code available as a variable (<code>${errorCode}</code>) to be used
      * in the error message displayed to the user.
+     * <p>
+     * If there is an Uploader property <code>errorCodeMessage.&lt;code&gt;</code> corresponding
+     * to this error code, the value of this property is made available as a variable
+     * (<code>${errorMessage}</code>). If there is no such property available the 
+     * <code>${errorMessage}</code> variable will be an empty string. 
      * 
-     * @param errorMessage
-     * the error code/message
+     * 
+     * @param errorCode
+     * the error code, which may correspond with an error message in uploader.properties.
      */
-    private void failWithFatalError(String errorMessage) {
-        uploaderProperties.setProperty("errorMessage", errorMessage);
+    private void failWithFatalError(String errorCode) {
+        uploaderProperties.setProperty("errorCode", errorCode);
+        
+        String errorCodeMessagePropertyName = "errorCodeMessage." + errorCode;
+        String errorCodeMessage = uploaderProperties.getStringProperty(errorCodeMessagePropertyName, "");
+        uploaderProperties.setProperty("errorMessage", errorCodeMessage);
+        
         fatalErrorOccurred = true;
         drawWizardScreen(WIZARD_SCREEN_5);
     }

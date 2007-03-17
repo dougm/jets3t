@@ -43,6 +43,17 @@ import org.apache.commons.logging.LogFactory;
 public class GatekeeperMessage {
     private static final Log log = LogFactory.getLog(GatekeeperMessage.class);
     
+    public static final String GATEKEEPER_ERROR_CODE__INVALID_CLIENT_VERSION = "1";
+    public static final String GATEKEEPER_ERROR_CODE__UNKNOWN_HOST = "2";
+    public static final String GATEKEEPER_ERROR_CODE__CONNECTION_TIMEOUT = "3";
+    public static final String GATEKEEPER_ERROR_CODE__CONNECTION_FAILURE = "4";
+    public static final String GATEKEEPER_ERROR_CODE__MALFORMED_URL = "5";
+    public static final String GATEKEEPER_ERROR_CODE__NO_ROUTE_TO_HOST = "6";
+    public static final String GATEKEEPER_ERROR_CODE__PROTOCOL_EXCEPTION = "7";
+    public static final String GATEKEEPER_ERROR_CODE__SOCKET_EXCEPTION = "8";
+    public static final String GATEKEEPER_ERROR_CODE__UNKNOWN_EXCEPTION = "99";
+    
+    
     /**
      * All message property names are delimited with a vertical bar (<tt>|</tt>).
      */
@@ -59,12 +70,19 @@ public class GatekeeperMessage {
     public static final String PROPERTY_PRIOR_FAILURE_MESSAGE = "priorFailureMessage";
 
     /**
-     * The property name for stroring information about a client application such as its version
+     * The property name for storing information about a client application such as its version
      * number. This information can be useful to server-side components to confirm compatibility 
      * with the client.
      */
     public static final String PROPERTY_CLIENT_VERSION_ID = "clientVersionId";
-    
+
+    /**
+     * The property name for storing error codes a Gatekeeper can return to a client.
+     * The error codes a Gatekeeper may generate are listed in this class in the 
+     * GATEKEEPER_ERROR_CODE__xyz variables. 
+     */
+    public static final String APP_PROPERTY_GATEKEEPER_ERROR_CODE = "gatekeeperErrorCode";
+
     /**
      * A flag name used to indicate when an S3Object is a summary XML document, as generated
      * by the Uploader application.
