@@ -48,8 +48,9 @@ import org.jets3t.servlets.gatekeeper.UrlSigner;
  */
 public class DefaultUrlSigner extends UrlSigner {
     private final static Log log = LogFactory.getLog(DefaultUrlSigner.class);
-    private String s3BucketName = null;
-    int secondsUntilExpiry = 0;
+    
+    protected String s3BucketName = null;
+    protected int secondsUntilExpiry = 0;
     
     public static final String TRANSACTION_ID_METADATA_NAME = 
         Constants.REST_HEADER_PREFIX + "gatekeeper-transaction-id";
