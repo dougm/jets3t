@@ -602,11 +602,13 @@ public class Synchronize {
                 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         printProgressLine("Listing files in local file system");
-        Map filesMap = null;
+        Map filesMap = null;        
         if ("UP".equals(actionCommand)) {
-            filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[fileList.size()]));
+            boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getBoolProperty("uploads.storeEmptyDirectories", true);
+            filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[fileList.size()]), storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
-            filesMap = FileComparer.buildFileMap((File) fileList.get(0), null);
+            filesMap = FileComparer.buildFileMap((File) fileList.get(0), null, true);
         }
 
         printProgressLine("Listing objects in S3");

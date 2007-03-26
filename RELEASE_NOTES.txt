@@ -24,6 +24,10 @@ TOOLKIT
 
   * General
 
+- File listings as built using the FileComparer.buildFileMap() methods can be
+  set not to include place-holder objects to represent empty directories 
+  (mimetype "application/x-directory") with the new configuration setting
+  uploads.storeEmptyDirectories.
 - Added the Bouncy Castle security provider to the suite, increasing the number
   of cipher algorithms available for encrypting files.
 - The method S3Service.listObjectsChunked now includes Common Prefixes in the

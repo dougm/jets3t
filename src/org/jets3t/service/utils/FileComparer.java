@@ -149,20 +149,28 @@ public class FileComparer {
      * 
      * @param files
      * the set of files/directories to include in the file map.
+     * @param includeDirectories
+     * If true all directories, including empty ones, will be included in the Map. These directories
+     * will be mere place-holder objects with the content type {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY}.
+     * If this variable is false directory objects will not be included in the Map, and it will not
+     * be possible to store empty directories in S3.
      * 
      * @return
      * a Map of file path keys to File objects.
      */
-    public static Map buildFileMap(File[] files) {
+    public static Map buildFileMap(File[] files, boolean includeDirectories) {
         // Build map of files proposed for upload.
         HashMap fileMap = new HashMap();
         for (int i = 0; i < files.length; i++) {
             List ignorePatternList = buildIgnoreRegexpList(files[i].getParentFile());
             
-            if (!isIgnored(ignorePatternList, files[i])) {                
-                fileMap.put(files[i].getName(), files[i]);
+            if (!isIgnored(ignorePatternList, files[i])) {
+                if (!files[i].isDirectory() || includeDirectories) {
+                    fileMap.put(files[i].getName(), files[i]);
+                }
                 if (files[i].isDirectory()) {
-                    buildFileMapImpl(files[i], files[i].getName() + Constants.FILE_PATH_DELIM, fileMap);
+                    buildFileMapImpl(files[i], files[i].getName() + Constants.FILE_PATH_DELIM, 
+                        fileMap, includeDirectories);
                 }
             }
         }
@@ -187,10 +195,15 @@ public class FileComparer {
      * A prefix added to each file path key in the map, e.g. the name of the root directory the
      * files belong to. If provided, a '/' suffix is always added to the end of the prefix. If null
      * or empty, no prefix is used.
+     * @param includeDirectories
+     * If true all directories, including empty ones, will be included in the Map. These directories
+     * will be mere place-holder objects with the content type {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY}.
+     * If this variable is false directory objects will not be included in the Map, and it will not
+     * be possible to store empty directories in S3.
      * 
      * @return A Map of file path keys to File objects.
      */
-    public static Map buildFileMap(File rootDirectory, String fileKeyPrefix) {
+    public static Map buildFileMap(File rootDirectory, String fileKeyPrefix, boolean includeDirectories) {
         HashMap fileMap = new HashMap();
         List ignorePatternList = buildIgnoreRegexpList(rootDirectory);
         
@@ -202,7 +215,7 @@ public class FileComparer {
                     fileKeyPrefix += Constants.FILE_PATH_DELIM;
                 }
             }
-            buildFileMapImpl(rootDirectory, fileKeyPrefix, fileMap);
+            buildFileMapImpl(rootDirectory, fileKeyPrefix, fileMap, includeDirectories);
         }
         return fileMap;
     }
@@ -223,16 +236,24 @@ public class FileComparer {
      * files belong to. This prefix <b>must</b> end with a '/' character.
      * @param fileMap
      * a map of path keys to File objects, that this method adds items to.
+     * @param includeDirectories
+     * If true all directories, including empty ones, will be included in the Map. These directories
+     * will be mere place-holder objects with the content type {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY}.
+     * If this variable is false directory objects will not be included in the Map, and it will not
+     * be possible to store empty directories in S3.
      */
-    protected static void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap) {
+    protected static void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap, boolean includeDirectories) {
         List ignorePatternList = buildIgnoreRegexpList(directory);
 
         File children[] = directory.listFiles();
         for (int i = 0; children != null && i < children.length; i++) {                        
             if (!isIgnored(ignorePatternList, children[i])) {
-                fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
+                if (!children[i].isDirectory() || includeDirectories) {
+                    fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
+                }
                 if (children[i].isDirectory()) {
-                    buildFileMapImpl(children[i], fileKeyPrefix + children[i].getName() + "/", fileMap);
+                    buildFileMapImpl(children[i], fileKeyPrefix + children[i].getName() + "/", 
+                        fileMap, includeDirectories);
                 } 
             }
         }

@@ -1715,7 +1715,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Build map of existing local files.
         Map filesInDownloadDirectoryMap = null;
         try {
-            filesInDownloadDirectoryMap = FileComparer.buildFileMap(downloadDirectory, null);
+            filesInDownloadDirectoryMap = FileComparer.buildFileMap(downloadDirectory, null, true);
         } catch (Exception e) {
             String message = "Unable to review files in targetted download directory";
             log.error(message, e);
@@ -1777,7 +1777,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         try {
             // Build map of files proposed for upload.
-            filesForUploadMap = FileComparer.buildFileMap(uploadFiles);
+            boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getBoolProperty("uploads.storeEmptyDirectories", true);
+            filesForUploadMap = FileComparer.buildFileMap(uploadFiles, storeEmptyDirectories);
                         
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.
