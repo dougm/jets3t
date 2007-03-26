@@ -193,7 +193,7 @@ public class UserInputFields {
                         new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
                     
                     userInputComponentsMap.put(fieldName, passwordField);
-                } else if (fieldType.startsWith("textarea")) {
+                } else if (fieldType.equals("textarea")) {
                     JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
