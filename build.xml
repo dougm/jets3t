@@ -65,7 +65,7 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/resources"/>
 		<copy 			
 			todir="${dir.dist}/jets3t-${version}/resources">
-			<fileset dir="resources"/>
+			<fileset dir="${dir.resources}"/>
 		</copy>
 	</target>
 	
@@ -81,7 +81,7 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/resources"/>
 		<copy 			
 			todir="${dir.dist}/jets3t-${version}/resources">
-			<fileset dir="resources"/>
+			<fileset dir="${dir.resources}"/>
 		</copy>
 	</target>
 	
@@ -92,16 +92,17 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/servlets/gatekeeper"/>
 		<war 
 			destfile="${dir.dist}/jets3t-${version}/servlets/gatekeeper/${dist.file.gatekeeper}"
-			webxml="configs/gatekeeper-web.xml"
+			webxml="${dir.configs}/gatekeeper-web.xml"
 			>
 			
 			<lib dir="${dir.dist}/jets3t-${version}/jars" includes="${dist.file.service}"/>
+			<lib dir="${dir.libs}/commons-httpclient" includes="*.jar"/>
 			<lib dir="${dir.libs}/commons-logging" includes="*.jar"/>
 			<lib dir="${dir.libs}/commons-codec" includes="*.jar"/>
 			<lib dir="${dir.libs}/logging-log4j" includes="*.jar"/>
 			<lib dir="${dir.libs}/safehaus_jug" includes="*.jar"/>
 			
-			<classes dir="configs">
+			<classes dir="${dir.configs}">
 				<include name="commons-logging.properties"/>
 				<include name="log4j.properties"/>
 			</classes>			
@@ -119,14 +120,14 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/configs"/>
 		<copy 			
 			todir="${dir.dist}/jets3t-${version}/configs">
-			<fileset dir="configs"/>
+			<fileset dir="${dir.configs}"/>
 		</copy>
 		
 		<!-- Copy scripts to dist directory so they are included in archive files -->
 		<mkdir dir="${dir.dist}/jets3t-${version}/bin"/>
 		<copy 			
 			todir="${dir.dist}/jets3t-${version}/bin">
-			<fileset dir="scripts"/>
+			<fileset dir="${dir.scripts}"/>
 		</copy>
 
 		<!-- Copy libraries to dist directory so they are included in archive files -->
@@ -200,8 +201,8 @@
 
 		<!-- Create resources jar -->
 		<jar
-			basedir="resources"			
-			file="${dir.dist-applets}/resources.jar"
+			basedir="${dir.resources}"			
+			file="${dir.dist-applets}/${dist.file.resources}"
 			/>
 		
 		<!-- Sign jars -->		
@@ -209,13 +210,14 @@
 			alias="${keystore.alias}"
 			keystore="${keystore.file}"
 			storepass="${keystore.storepass}"
+            keypass="${keystore.keypass}"
 			lazy="true">
 			<fileset dir="${dir.dist-applets}" includes="*.jar"/>
 		</signjar>
 		
 		<!-- Copy relevant configuration files -->
 		<copy todir="${dir.dist-applets}">
-			<fileset dir="configs">
+			<fileset dir="${dir.configs}">
 				<include name="jets3t.properties"/>
 				<include name="commons-logging.properties"/>
 				<include name="log4j.properties"/>
@@ -226,7 +228,7 @@
 
 		<!-- Copy applet running HTML files -->
 		<copy todir="${dir.dist-applets}">
-			<fileset dir="applet" includes="*uploader*"/>
+			<fileset dir="${dir.applet}" includes="*uploader*"/>
 		</copy>
 	</target>
 		
@@ -257,8 +259,8 @@
 
 		<!-- Create resources jar -->
 		<jar
-			basedir="resources"			
-			file="${dir.dist-applets}/resources.jar"
+			basedir="${dir.resources}"			
+			file="${dir.dist-applets}/${dist.file.resources}"
 			/>
 
 		<!-- Sign jars -->		
@@ -266,13 +268,14 @@
 			alias="${keystore.alias}"
 			keystore="${keystore.file}"
 			storepass="${keystore.storepass}"
+            keypass="${keystore.keypass}"
 			lazy="true">
 			<fileset dir="${dir.dist-applets}" includes="*.jar"/>
 		</signjar>
 		
 		<!-- Copy relevant configuration files -->
 		<copy todir="${dir.dist-applets}">
-			<fileset dir="configs">
+			<fileset dir="${dir.configs}">
 				<include name="jets3t.properties"/>
 				<include name="commons-logging.properties"/>
 				<include name="log4j.properties"/>
@@ -282,7 +285,7 @@
 
 		<!-- Copy applet running HTML files -->
 		<copy todir="${dir.dist-applets}">
-			<fileset dir="applet" includes="*cockpit*"/>
+			<fileset dir="${dir.applet}" includes="*cockpit*"/>
 		</copy>
 	</target>
 
@@ -303,7 +306,7 @@
 			
 			<classpath refid="classpath"/>
 			<fileset 
-				dir="src" 
+				dir="${dir.src}" 
 				includes="**/*.java"/>
 		</javadoc>
 	</target>
