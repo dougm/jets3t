@@ -170,6 +170,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public static final String ERROR_CODE__MISSING_REQUIRED_PARAM = "100";
     public static final String ERROR_CODE__S3_UPLOAD_FAILED = "101";
     public static final String ERROR_CODE__UPLOAD_REQUEST_DECLINED = "102";
+    public static final String ERROR_CODE__TRANSACTION_ID_REQUIRED_TO_CREATE_XML_SUMMARY = "103";
     
     /*
      * HTTP connection settings for communication *with Gatekeeper only*, the
@@ -310,7 +311,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public void init() {
         super.init();
         
-        Exception initException = null;
+        boolean isMissingRequiredInitProperty = false;
         
         // Find or create a Frame to own modal dialog boxes.
         if (this.ownerFrame == null) {
@@ -339,7 +340,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 // Fatal error if a parameter is missing.
                 if (null == paramValue) {
                     log.error("Missing required applet parameter: " + paramName);
-                    initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);
+                    isMissingRequiredInitProperty = true;
                 } else {
                     log.debug("Found applet parameter: " + paramName + "='" + paramValue + "'");
                     
@@ -362,7 +363,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     // Fatal error if a parameter is missing.
                     if (null == propValue) {
                         log.error("Missing required command-line property: " + propName);
-                        initException = new IllegalArgumentException(ERROR_CODE__MISSING_REQUIRED_PARAM);
+                        isMissingRequiredInitProperty = true;
                     } else {
                         log.debug("Using command-line property: " + propName + "='" + propValue + "'");
                         
@@ -386,8 +387,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         initGui();             
         
         // Jump to error page if there was an exception raised during initialisation.
-        if (initException != null) {
-            failWithFatalError(initException.getMessage());
+        if (isMissingRequiredInitProperty) {
+            failWithFatalError(ERROR_CODE__MISSING_REQUIRED_PARAM);
             return;
         }
 
@@ -1057,8 +1058,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             try {
                 gatekeeperMessage = retrieveGatekeeperResponse(objectsForUpload);                
             } catch (Exception e) {
-                log.info("Upload request was denied", e);
-                
+                log.info("Upload request was denied", e);                
                 failWithFatalError(ERROR_CODE__UPLOAD_REQUEST_DECLINED);
                 return;
             }
@@ -1085,39 +1085,39 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
              * Prepare XML Summary document for upload, if the summary option is set.
              */
             boolean includeXmlSummaryDoc = uploaderProperties.getBoolProperty("xmlSummary", false);
-            SignedUrlAndObject[] xmlSummaryItem = null;
+            S3Object summaryXmlObject = null;
             if (includeXmlSummaryDoc) {
                 String priorTransactionId = gatekeeperMessage.getMessageProperties().getProperty(
                     GatekeeperMessage.PROPERTY_TRANSACTION_ID);
                 if (priorTransactionId == null) {
-                    failWithFatalError("Cannot create a summary XML document without a unique Transaction ID");
+                    failWithFatalError(ERROR_CODE__TRANSACTION_ID_REQUIRED_TO_CREATE_XML_SUMMARY);
                     return;
                 }
                 
-                S3Object summaryXmlObject = new S3Object(
+                summaryXmlObject = new S3Object(
                     null, priorTransactionId + ".xml", xmlGenerator.generateXml());
                 summaryXmlObject.setContentType(Mimetypes.MIMETYPE_XML);
                 summaryXmlObject.addMetadata(GatekeeperMessage.PROPERTY_TRANSACTION_ID, priorTransactionId);
-                summaryXmlObject.addMetadata(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG, "true"); 
-                
-                gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});                
-                xmlSummaryItem = prepareSignedObjects(new S3Object[] {summaryXmlObject}, 
-                    gatekeeperMessage.getSignatureRequests(), null);
+                summaryXmlObject.addMetadata(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG, "true");                 
             }
             
-            if (includeXmlSummaryDoc) {
-                uploadCancelled = false;
-                uploadingFinalObject = false;
-                s3ServiceMulti.putObjects(uploadItems);
+            // PUT the user's selected files in S3.
+            uploadCancelled = false;
+            uploadingFinalObject = (!includeXmlSummaryDoc);
+            s3ServiceMulti.putObjects(uploadItems);
+            
+            // If an XML summary document is required, PUT this in S3 as well.
+            if (includeXmlSummaryDoc && !uploadCancelled) {
+                // Retrieve signed URL to PUT the XML summary document.
+                gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});                
+                SignedUrlAndObject[] xmlSummaryItem = 
+                    prepareSignedObjects(new S3Object[] {summaryXmlObject}, 
+                        gatekeeperMessage.getSignatureRequests(), null);
                 
-                if (!uploadCancelled) {
-                    uploadingFinalObject = true;
-                    s3ServiceMulti.putObjects(xmlSummaryItem);
-                }
-            } else {
+                // PUT the XML summary document.
                 uploadingFinalObject = true;
-                s3ServiceMulti.putObjects(uploadItems);          
-            }            
+                s3ServiceMulti.putObjects(xmlSummaryItem);
+            }
         } catch (final Exception e) {
             priorFailureException = e;
             
