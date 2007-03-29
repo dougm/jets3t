@@ -195,16 +195,9 @@
 				<include name="**/commons-logging/*.jar"/>
 				<include name="**/commons-codec/*.jar"/>
 				<include name="**/commons-httpclient/*.jar"/>
-				<include name="**/logging-log4j/*.jar"/>
 			</fileset>
 		</copy>
 
-		<!-- Create resources jar -->
-		<jar
-			basedir="${dir.resources}"			
-			file="${dir.dist-applets}/${dist.file.resources}"
-			/>
-		
 		<!-- Sign jars -->		
 		<signjar 
 			alias="${keystore.alias}"
@@ -219,16 +212,25 @@
 		<copy todir="${dir.dist-applets}">
 			<fileset dir="${dir.configs}">
 				<include name="jets3t.properties"/>
-				<include name="commons-logging.properties"/>
-				<include name="log4j.properties"/>
 				<include name="mime.types"/>
 				<include name="uploader.properties"/>
+			</fileset>
+		</copy>
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="${dir.applet}">
+				<include name="commons-logging.properties"/>
+				<include name="simplelog.properties"/>
 			</fileset>
 		</copy>
 
 		<!-- Copy applet running HTML files -->
 		<copy todir="${dir.dist-applets}">
 			<fileset dir="${dir.applet}" includes="*uploader*"/>
+		</copy>
+		
+		<!-- Copy resources -->
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="${dir.resources}" includes="**"/>
 		</copy>
 	</target>
 		
@@ -253,15 +255,8 @@
 				<include name="**/commons-logging/*.jar"/>
 				<include name="**/commons-codec/*.jar"/>
 				<include name="**/commons-httpclient/*.jar"/>
-				<include name="**/logging-log4j/*.jar"/>
 			</fileset>
 		</copy>
-
-		<!-- Create resources jar -->
-		<jar
-			basedir="${dir.resources}"			
-			file="${dir.dist-applets}/${dist.file.resources}"
-			/>
 
 		<!-- Sign jars -->		
 		<signjar 
@@ -277,15 +272,24 @@
 		<copy todir="${dir.dist-applets}">
 			<fileset dir="${dir.configs}">
 				<include name="jets3t.properties"/>
-				<include name="commons-logging.properties"/>
-				<include name="log4j.properties"/>
 				<include name="mime.types"/>
+			</fileset>
+		</copy>
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="${dir.applet}">
+				<include name="commons-logging.properties"/>
+				<include name="simplelog.properties"/>
 			</fileset>
 		</copy>
 
 		<!-- Copy applet running HTML files -->
 		<copy todir="${dir.dist-applets}">
 			<fileset dir="${dir.applet}" includes="*cockpit*"/>
+		</copy>
+		
+		<!-- Copy resources -->
+		<copy todir="${dir.dist-applets}">
+			<fileset dir="${dir.resources}" includes="**"/>
 		</copy>
 	</target>
 
@@ -294,6 +298,7 @@
 		<delete dir="${dir.build}"/>
 		<delete dir="${dir.dist}"/>
 		<delete dir="${dir.apidocs}"/>
+		<delete dir="${dir.dist-applets}"/>		
 	</target>
 
 	<target name="api-docs">		

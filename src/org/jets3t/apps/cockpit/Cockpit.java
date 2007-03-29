@@ -55,7 +55,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -102,6 +101,7 @@ import org.jets3t.apps.cockpit.gui.ProgressDialog;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
+import org.jets3t.gui.GuiUtils;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.TableSorter;
@@ -174,6 +174,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private final TimeFormatter timeFormatter = new TimeFormatter();
     private final SimpleDateFormat yearAndTimeSDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private final SimpleDateFormat timeSDF = new SimpleDateFormat("HH:mm:ss");
+    
+    private final GuiUtils guiUtils = new GuiUtils();
     
     /**
      * Multi-threaded S3 service used by the application.
@@ -370,7 +372,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         JButton bucketActionButton = new JButton();
         bucketActionButton.setToolTipText("Bucket actions menu");
-        applyIcon(bucketActionButton, "/images/nuvola/16x16/actions/misc.png");
+        guiUtils.applyIcon(bucketActionButton, "/images/nuvola/16x16/actions/misc.png");
         bucketActionButton.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
                 JButton sourceButton = (JButton) e.getSource();
@@ -430,7 +432,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         
         JButton objectActionButton = new JButton();
         objectActionButton.setToolTipText("Object actions menu");
-        applyIcon(objectActionButton, "/images/nuvola/16x16/actions/misc.png");
+        guiUtils.applyIcon(objectActionButton, "/images/nuvola/16x16/actions/misc.png");
         objectActionButton.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
                 JButton sourceButton = (JButton) e.getSource();
@@ -499,27 +501,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         objectsTable.getDropTarget().setActive(false);
         objectsTableSP.getDropTarget().setActive(false);                
     }
-    
-    private void applyIcon(JMenuItem menuItem, String iconResourcePath) {
-        URL iconUrl = this.getClass().getResource(iconResourcePath);
-        if (iconUrl != null) {
-            ImageIcon icon = new ImageIcon(iconUrl);
-            menuItem.setIcon(icon);
-        } else {
-            log.warn("Unable to load menu icon with resource path: " + iconResourcePath);
-        }
-    }
-    
-    private void applyIcon(JButton button, String iconResourcePath) {
-        URL iconUrl = this.getClass().getResource(iconResourcePath);
-        if (iconUrl != null) {
-            ImageIcon icon = new ImageIcon(iconUrl);
-            button.setIcon(icon);
-        } else {
-            log.warn("Unable to load button icon with resource path: " + iconResourcePath);
-        }
-    }
-
+        
     /**
      * Initialise the application's menu bar.
      */
@@ -533,13 +515,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         loginMenuItem = new JMenuItem("Log in...");
         loginMenuItem.setActionCommand("LoginEvent");
         loginMenuItem.addActionListener(this);
-        applyIcon(loginMenuItem, "/images/nuvola/16x16/actions/connect_creating.png");
+        guiUtils.applyIcon(loginMenuItem, "/images/nuvola/16x16/actions/connect_creating.png");
         serviceMenu.add(loginMenuItem);
         
         logoutMenuItem = new JMenuItem("Log out");
         logoutMenuItem.setActionCommand("LogoutEvent");
         logoutMenuItem.addActionListener(this);
-        applyIcon(logoutMenuItem, "/images/nuvola/16x16/actions/connect_no.png");
+        guiUtils.applyIcon(logoutMenuItem, "/images/nuvola/16x16/actions/connect_no.png");
         serviceMenu.add(logoutMenuItem);
 
         if (isStandAloneApplication) {
@@ -548,7 +530,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             JMenuItem quitMenuItem = new JMenuItem("Quit");
             quitMenuItem.setActionCommand("QuitEvent");
             quitMenuItem.addActionListener(this);
-            applyIcon(quitMenuItem, "/images/nuvola/16x16/actions/exit.png");
+            guiUtils.applyIcon(quitMenuItem, "/images/nuvola/16x16/actions/exit.png");
             serviceMenu.add(quitMenuItem);
         }
 
@@ -561,19 +543,19 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         refreshBucketMenuItem = new JMenuItem("Refresh bucket listing");
         refreshBucketMenuItem.setActionCommand("RefreshBuckets");
         refreshBucketMenuItem.addActionListener(this);
-        applyIcon(refreshBucketMenuItem, "/images/nuvola/16x16/actions/reload.png");
+        guiUtils.applyIcon(refreshBucketMenuItem, "/images/nuvola/16x16/actions/reload.png");
         bucketActionMenu.add(refreshBucketMenuItem);
         
         viewBucketPropertiesMenuItem = new JMenuItem("View bucket properties...");
         viewBucketPropertiesMenuItem.setActionCommand("ViewBucketProperties");
         viewBucketPropertiesMenuItem.addActionListener(this);
-        applyIcon(viewBucketPropertiesMenuItem, "/images/nuvola/16x16/actions/viewmag.png");
+        guiUtils.applyIcon(viewBucketPropertiesMenuItem, "/images/nuvola/16x16/actions/viewmag.png");
         bucketActionMenu.add(viewBucketPropertiesMenuItem);
         
         updateBucketACLMenuItem = new JMenuItem("Update bucket's Access Control List...");
         updateBucketACLMenuItem.setActionCommand("UpdateBucketACL");
         updateBucketACLMenuItem.addActionListener(this);
-        applyIcon(updateBucketACLMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
+        guiUtils.applyIcon(updateBucketACLMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
         bucketActionMenu.add(updateBucketACLMenuItem);
         
         bucketActionMenu.add(new JSeparator());
@@ -581,13 +563,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         createBucketMenuItem = new JMenuItem("Create new bucket...");
         createBucketMenuItem.setActionCommand("CreateBucket");
         createBucketMenuItem.addActionListener(this);
-        applyIcon(createBucketMenuItem, "/images/nuvola/16x16/actions/viewmag+.png");
+        guiUtils.applyIcon(createBucketMenuItem, "/images/nuvola/16x16/actions/viewmag+.png");
         bucketActionMenu.add(createBucketMenuItem);
 
         JMenuItem thirdPartyBucketMenuItem = new JMenuItem("Add third-party bucket...");
         thirdPartyBucketMenuItem.setActionCommand("AddThirdPartyBucket");
         thirdPartyBucketMenuItem.addActionListener(this);
-        applyIcon(thirdPartyBucketMenuItem, "/images/nuvola/16x16/actions/viewmagfit.png");
+        guiUtils.applyIcon(thirdPartyBucketMenuItem, "/images/nuvola/16x16/actions/viewmagfit.png");
         bucketActionMenu.add(thirdPartyBucketMenuItem);
 
         bucketActionMenu.add(new JSeparator());
@@ -595,7 +577,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         deleteBucketMenuItem = new JMenuItem("Delete bucket...");
         deleteBucketMenuItem.setActionCommand("DeleteBucket");
         deleteBucketMenuItem.addActionListener(this);
-        applyIcon(deleteBucketMenuItem, "/images/nuvola/16x16/actions/cancel.png");
+        guiUtils.applyIcon(deleteBucketMenuItem, "/images/nuvola/16x16/actions/cancel.png");
         bucketActionMenu.add(deleteBucketMenuItem);
         
         viewBucketPropertiesMenuItem.setEnabled(false);
@@ -610,31 +592,31 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         refreshObjectMenuItem = new JMenuItem("Refresh object listing");
         refreshObjectMenuItem.setActionCommand("RefreshObjects");
         refreshObjectMenuItem.addActionListener(this);
-        applyIcon(refreshObjectMenuItem, "/images/nuvola/16x16/actions/reload.png");
+        guiUtils.applyIcon(refreshObjectMenuItem, "/images/nuvola/16x16/actions/reload.png");
         objectActionMenu.add(refreshObjectMenuItem);
         
         viewObjectPropertiesMenuItem = new JMenuItem("View object properties...");
         viewObjectPropertiesMenuItem.setActionCommand("ViewObjectProperties");
         viewObjectPropertiesMenuItem.addActionListener(this);
-        applyIcon(viewObjectPropertiesMenuItem, "/images/nuvola/16x16/actions/viewmag.png");
+        guiUtils.applyIcon(viewObjectPropertiesMenuItem, "/images/nuvola/16x16/actions/viewmag.png");
         objectActionMenu.add(viewObjectPropertiesMenuItem);
         
         updateObjectACLMenuItem = new JMenuItem("Update object(s) Access Control List(s)...");
         updateObjectACLMenuItem.setActionCommand("UpdateObjectACL");
         updateObjectACLMenuItem.addActionListener(this);
-        applyIcon(updateObjectACLMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
+        guiUtils.applyIcon(updateObjectACLMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
         objectActionMenu.add(updateObjectACLMenuItem);
 
         downloadObjectMenuItem = new JMenuItem("Download object(s)...");
         downloadObjectMenuItem.setActionCommand("DownloadObjects");
         downloadObjectMenuItem.addActionListener(this);
-        applyIcon(downloadObjectMenuItem, "/images/nuvola/16x16/actions/1downarrow.png");
+        guiUtils.applyIcon(downloadObjectMenuItem, "/images/nuvola/16x16/actions/1downarrow.png");
         objectActionMenu.add(downloadObjectMenuItem);
             
         uploadFilesMenuItem = new JMenuItem("Upload file(s)...");
         uploadFilesMenuItem.setActionCommand("UploadFiles");
         uploadFilesMenuItem.addActionListener(this);
-        applyIcon(uploadFilesMenuItem, "/images/nuvola/16x16/actions/1uparrow.png");
+        guiUtils.applyIcon(uploadFilesMenuItem, "/images/nuvola/16x16/actions/1uparrow.png");
         objectActionMenu.add(uploadFilesMenuItem);
         
         objectActionMenu.add(new JSeparator());
@@ -642,13 +624,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         generatePublicGetUrl = new JMenuItem("Generate Public GET URL...");
         generatePublicGetUrl.setActionCommand("GeneratePublicGetURL");
         generatePublicGetUrl.addActionListener(this);
-        applyIcon(generatePublicGetUrl, "/images/nuvola/16x16/actions/wizard.png");
+        guiUtils.applyIcon(generatePublicGetUrl, "/images/nuvola/16x16/actions/wizard.png");
         objectActionMenu.add(generatePublicGetUrl);        
         
         generateTorrentUrl = new JMenuItem("Generate Torrent URL...");
         generateTorrentUrl.setActionCommand("GenerateTorrentURL");
         generateTorrentUrl.addActionListener(this);
-        applyIcon(generateTorrentUrl, "/images/nuvola/16x16/actions/wizard.png");
+        guiUtils.applyIcon(generateTorrentUrl, "/images/nuvola/16x16/actions/wizard.png");
         objectActionMenu.add(generateTorrentUrl);        
 
         objectActionMenu.add(new JSeparator());
@@ -656,7 +638,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         deleteObjectMenuItem = new JMenuItem("Delete object(s)...");
         deleteObjectMenuItem.setActionCommand("DeleteObjects");
         deleteObjectMenuItem.addActionListener(this);
-        applyIcon(deleteObjectMenuItem, "/images/nuvola/16x16/actions/cancel.png");
+        guiUtils.applyIcon(deleteObjectMenuItem, "/images/nuvola/16x16/actions/cancel.png");
         objectActionMenu.add(deleteObjectMenuItem);
         
         viewObjectPropertiesMenuItem.setEnabled(false);
@@ -675,7 +657,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         bucketLoggingMenuItem.setActionCommand("BucketLogging");
         bucketLoggingMenuItem.addActionListener(this);
         bucketLoggingMenuItem.setEnabled(false);
-        applyIcon(bucketLoggingMenuItem, "/images/nuvola/16x16/actions/toggle_log.png");
+        guiUtils.applyIcon(bucketLoggingMenuItem, "/images/nuvola/16x16/actions/toggle_log.png");
         toolsMenu.add(bucketLoggingMenuItem);
         
         toolsMenu.add(new JSeparator());
@@ -683,7 +665,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         preferencesDialogMenuItem = new JMenuItem("Preferences...");
         preferencesDialogMenuItem.setActionCommand("PreferencesDialog");
         preferencesDialogMenuItem.addActionListener(this);
-        applyIcon(preferencesDialogMenuItem, "/images/nuvola/16x16/actions/configure.png");
+        guiUtils.applyIcon(preferencesDialogMenuItem, "/images/nuvola/16x16/actions/configure.png");
         toolsMenu.add(preferencesDialogMenuItem);
         
         // Help menu.

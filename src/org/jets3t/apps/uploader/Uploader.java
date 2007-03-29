@@ -59,7 +59,6 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -99,6 +98,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
+import org.jets3t.gui.GuiUtils;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.skins.SkinsFactory;
@@ -224,6 +224,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
     private final Insets insetsNone = new Insets(0, 0, 0, 0);
+    
+    private final GuiUtils guiUtils = new GuiUtils();
 
     private int currentState = 0;
     
@@ -426,17 +428,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         String applicationIconPath = uploaderProperties.getStringProperty("gui.applicationIcon", null);
         if (!isRunningAsApplet && applicationIconPath != null) {            
-            try {
-                URL iconUrl = this.getClass().getResource(applicationIconPath);
-                if (iconUrl != null) {
-                    ImageIcon icon = new ImageIcon(iconUrl);
-                    ownerFrame.setIconImage(icon.getImage());
-                } else {
-                    log.warn("Unable to find application icon: " + applicationIconPath);
-                }
-            } catch (Exception e) {
-                log.error("Failed to set application icon: " + applicationIconPath, e);
-            }
+            guiUtils.applyIcon(ownerFrame, applicationIconPath);
         }
         String footerHtml = uploaderProperties.getStringProperty("gui.footerHtml", null);        
         String footerIconPath = uploaderProperties.getStringProperty("gui.footerIcon", null);        
@@ -451,18 +443,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             includeFooter = true;
         }
         if (footerIconPath != null) {
-            try {
-                URL iconUrl = this.getClass().getResource(footerIconPath);
-                if (iconUrl != null) {
-                    ImageIcon icon = new ImageIcon(iconUrl);
-                    footerLabel.setIcon(icon);
-                    includeFooter = true;
-                } else {
-                    log.warn("Unable to find footer icon: " + footerIconPath);
-                }
-            } catch (Exception e) {
-                log.error("Failed to set application icon: " + applicationIconPath, e);
-            }
+            guiUtils.applyIcon(footerLabel, footerIconPath);
         }
         
         userInputFields = new UserInputFields(GRID_BAG_LAYOUT, insetsDefault,
@@ -1286,14 +1267,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         boolean hasText = false;
         
         if (buttonImagePath != null && buttonImagePath.length() > 0) {
-            URL iconURL = this.getClass().getResource(buttonImagePath);
-            if (iconURL == null) {
+            if (!guiUtils.applyIcon(button, buttonImagePath)) {
                 log.error("Unable to load image URL for a button with property prefix '" 
-                    + propertiesPrefix + "'. Image path: " + buttonImagePath);                        
-            } else {
-                ImageIcon icon = new ImageIcon(iconURL);
-                button.setIcon(icon);
-                hasImage = true;
+                    + propertiesPrefix + "'. Image path: " + buttonImagePath);                                        
             }
         }
         if (buttonText != null && buttonText.length() > 0) {
