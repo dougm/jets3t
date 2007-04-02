@@ -93,7 +93,7 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/servlets/gatekeeper"/>
 		<war 
 			destfile="${dir.dist}/jets3t-${version}/servlets/gatekeeper/${dist.file.gatekeeper}"
-			webxml="${dir.configs}/gatekeeper-web.xml"
+			webxml="${dir.servlet}/gatekeeper-web.xml"
 			>
 			
 			<lib dir="${dir.dist}/jets3t-${version}/jars" includes="${dist.file.service}"/>
@@ -103,9 +103,8 @@
 			<lib dir="${dir.libs}/logging-log4j" includes="*.jar"/>
 			<lib dir="${dir.libs}/safehaus_jug" includes="*.jar"/>
 			
-			<classes dir="${dir.configs}">
-				<include name="commons-logging.properties"/>
-				<include name="log4j.properties"/>
+			<classes dir="${dir.servlet}">
+				<include name="*.properties"/>
 			</classes>			
 			<classes dir="${dir.build}">
 				<include name="org/jets3t/servlets/gatekeeper/**"/>
