@@ -530,8 +530,10 @@ public class EncryptionUtil {
      * 
      * @param testAvailability
      * if true each apparently available cipher is tested and only those that pass
-     * {@link #isCipherAvailableForUse(String)} are returned. 
+     * {@link #isCipherAvailableForUse(String)} are returned.
+     *  
      * @return
+     * a list of all the available PBE cipher names on the system.
      */
     public static String[] listAvailablePbeCiphers(boolean testAvailability) {
         Set ciphers = Security.getAlgorithms("Cipher");

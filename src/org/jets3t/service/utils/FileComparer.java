@@ -264,7 +264,7 @@ public class FileComparer {
      * where the map's key for each object is the relative path to the object.
      * 
      * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildFileMap(File, String)
+     * @see #buildFileMap(File, String, boolean)
      * 
      * @param s3Service
      * @param bucket
@@ -288,7 +288,7 @@ public class FileComparer {
      * map.
      * 
      * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildFileMap(File, String)
+     * @see #buildFileMap(File, String, boolean)
      * 
      * @param s3Service
      * @param bucket
@@ -369,7 +369,7 @@ public class FileComparer {
      * generated using other methods in this class.
      * 
      * @param filesMap
-     *        a map of keys/Files built using the method {@link #buildFileMap(File, String)}
+     *        a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
      * @param s3ObjectsMap
      *        a map of keys/S3Objects built using the method 
      *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3ServiceEventListener)}
@@ -393,7 +393,7 @@ public class FileComparer {
      * generated using other methods in this class.
      * 
      * @param filesMap
-     *        a map of keys/Files built using the method {@link #buildFileMap(File, String)}
+     *        a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
      * @param s3ObjectsMap
      *        a map of keys/S3Objects built using the method 
      *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3ServiceEventListener)}

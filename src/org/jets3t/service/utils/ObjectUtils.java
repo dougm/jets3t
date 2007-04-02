@@ -62,7 +62,7 @@ public class ObjectUtils {
      *     data (added if gzipping or encryption is applied)</li>
      * </ul>   
      *
-     * @param objectkey
+     * @param objectKey
      * the object key name to use in S3 
      * @param dataFile  
      * the file to prepare for upload.
@@ -219,6 +219,7 @@ public class ObjectUtils {
      * the password required to decrypt encrypted objects.
      * 
      * @return
+     * a download package representing an S3Object and a taret file for the object's data.
      * @throws Exception
      */
     public static DownloadPackage createPackageForDownload(S3Object object, File fileTarget, 
