@@ -27,6 +27,7 @@
 			destdir="${dir.build}"
 			debug="${debug}"
 			source="1.4"
+			target="${build.target}"
 		>
 			<classpath refid="classpath"/>
 		</javac>
@@ -145,13 +146,6 @@
     </target>
 	
 	<target name="package" depends="dist,package-applets,api-docs">
-		<!-- Copy documentation to dist directory so it's included in archive files -->
-		<mkdir dir="${dir.dist}/jets3t-${version}/docs/api"/>
-		<copy 			
-			todir="${dir.dist}/jets3t-${version}/docs/api">
-			<fileset dir="${dir.apidocs}" includes="**/*.htm*"/>
-		</copy>
-		
 		<!-- Copy source code to dist directory so it's included in src archive files -->
 		<mkdir dir="${dir.dist}/jets3t-${version}/src"/>
 		<copy 			
@@ -162,13 +156,7 @@
 		<!-- Create zip archive -->
 		<zip 
 			destfile="${dir.dist}/jets3t-${version}.zip"
-			basedir="${dir.dist}/jets3t-${version}"/>
-		
-		<!-- Copy Release Notes document to website directory -->
-		<copy
-			todir="${dir.website}">
-		    <fileset dir="." includes="RELEASE_NOTES.txt"/>
-		</copy>
+			basedir="${dir.dist}/jets3t-${version}"/>		
 	</target>
 	
 	<target name="package-applets" depends="package-applet-cockpit,package-applet-uploader">
@@ -293,12 +281,31 @@
 		</copy>
 	</target>
 
+	<target name="website" depends="package">		
+		<!-- Copy applets directory to website -->
+		<mkdir dir="${dir.website}/applets-jets3t-${version}"/>
+		<copy 			
+			todir="${dir.website}/applets-jets3t-${version}">
+			<fileset dir="${dir.dist-applets}"/>
+		</copy>	
+
+		<!-- Copy Release Notes document to website directory -->
+		<copy
+			todir="${dir.website}">
+		    <fileset dir="." includes="RELEASE_NOTES.txt"/>
+		</copy>
+		
+		<!-- Copy API documentation to website -->
+		<mkdir dir="${dir.website}/api"/>
+		<copy 			
+			todir="${dir.website}/api">
+			<fileset dir="${dir.apidocs}" includes="**/*.htm*"/>
+		</copy>	
+	</target>
 
 	<target name="clean">
 		<delete dir="${dir.build}"/>
 		<delete dir="${dir.dist}"/>
-		<delete dir="${dir.apidocs}"/>
-		<delete dir="${dir.dist-applets}"/>		
 	</target>
 
 	<target name="api-docs">		
