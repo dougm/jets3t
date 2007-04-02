@@ -56,7 +56,7 @@ public class GuiUtils {
                 String firstPathComponent = iconResourcePath.substring(0, firstSlashIndex);
                 String pathRemainder = iconResourcePath.substring(firstSlashIndex);
                 URL baseUrl = this.getClass().getResource(firstPathComponent);
-                iconUrl = new URL(baseUrl.toURI() + RestUtils.encodeUrlPath(pathRemainder, "/"));                
+                iconUrl = new URL(baseUrl.toString() + RestUtils.encodeUrlPath(pathRemainder, "/"));                
                 iconUrl.getContent(); // Check whether there is data availabel at the built path.
             } catch (Exception e) {
                 log.warn("Unable to load icon with resource path: " + iconResourcePath);
