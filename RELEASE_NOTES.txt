@@ -20,6 +20,11 @@ SYNCHRONIZE
 - Progress status messages shortened to fit into 80 character width consoles.
 
 
+UPLOADER
+
+- Improved skinning capabilities.
+
+
 TOOLKIT
 
   * General
@@ -32,6 +37,11 @@ TOOLKIT
   of cipher algorithms available for encrypting files.
 - The method S3Service.listObjectsChunked now includes Common Prefixes in the
   result object returned.
+
+  * REST S3 Service
+
+- Proxy settings are now configurable via the jets3t.properties settings:
+  httpclient.proxy-autodetect, httpclient.proxy-host, httpclient.proxy-port
 
   * Multi-threaded Service
   
