@@ -201,16 +201,30 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         }
         httpClient.setHostConfiguration(hostConfig);
 
-        // Try to detect any proxy settings from applet.
-        ProxyHost proxyHost = null;
-        try {            
-            proxyHost = PluginProxyUtil.detectProxy(new URL(hostConfig.getHostURL()));
-            if (proxyHost != null) {
-                hostConfig.setProxyHost(proxyHost);
-            }                
-        } catch (Throwable t) {
-            log.debug("Unable to set proxy configuration", t);
-        }        
+        // Retrieve Proxy settings.
+        boolean proxyAutodetect = jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true);        
+        String proxyHostAddress = jets3tProperties.getStringProperty("httpclient.proxy-host", null);
+        int proxyPort = jets3tProperties.getIntProperty("httpclient.proxy-port", -1);
+        
+        // Use explicit proxy settings, if available.
+        if (proxyHostAddress != null && proxyPort != -1) {
+            log.info("Using Proxy: " + proxyHostAddress + ":" + proxyPort);
+            hostConfig.setProxy(proxyHostAddress, proxyPort);
+        }
+        // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
+        else if (proxyAutodetect) {        
+            // Try to detect any proxy settings from applet.
+            ProxyHost proxyHost = null;
+            try {            
+                proxyHost = PluginProxyUtil.detectProxy(new URL(hostConfig.getHostURL()));
+                if (proxyHost != null) {
+                    log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
+                    hostConfig.setProxyHost(proxyHost);
+                }                
+            } catch (Throwable t) {
+                log.debug("Unable to set proxy configuration", t);
+            }        
+        }
                 
         if (credentialsProvider != null) {
             log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
