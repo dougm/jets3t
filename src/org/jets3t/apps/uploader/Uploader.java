@@ -1270,6 +1270,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             if (!guiUtils.applyIcon(button, buttonImagePath)) {
                 log.error("Unable to load image URL for a button with property prefix '" 
                     + propertiesPrefix + "'. Image path: " + buttonImagePath);                                        
+            } else {
+                hasImage = true;
             }
         }
         if (buttonText != null && buttonText.length() > 0) {
