@@ -49,7 +49,24 @@ The configuration files include:
 
 * JAR files
 
-Jar files are available in the "jars" directory.
+The compiled JetS3t code jar files are available in the "jars" directory,
+and include the following:
+
+jets3t-0.5.1.jar      : The JetS3t toolkit. The toolkit including the JetS3t
+                      : service implementions of interest developers and 
+                      : which underlies all the other JetS3t applications.
+                      : http://jets3t.s3.amazonaws.com/toolkit/toolkit.html
+cockpit-0.5.1.jar     : Cockpit, a GUI application/applet for viewing and
+                      : managing the contents of an S3 account.
+                      : http://jets3t.s3.amazonaws.com/applications/cockpit.html
+synchronize-0.5.1.jar : Synchronize, a console application for synchronizing 
+                      : directories on a computer with an Amazon S3 account.
+                      : http://jets3t.s3.amazonaws.com/applications/synchronize.html
+uploader-0.5.1.jar    : a wizard-based GUI application/applet that S3 account 
+                      : holders (Service Providers) may provide to clients to 
+                      : allow them to upload files to S3 without requiring 
+                      : access to the Service Provider's S3 credentials
+                      : http://jets3t.s3.amazonaws.com/applications/uploader.html
 
 The class files in these jars are compiled with Sun's JDK version 1.4.2
 and have debugging turned on to provide more information if errors occur. 
