@@ -1842,7 +1842,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     throw e;
                 } catch (Exception e) {
                     stopProgressDialog();                
-                    String message = "Unable to download objects";
+                    String message = "Unable to " + (upload? "upload" : "download") + " objects";
                     log.error(message, e);
                     ErrorDialog.showDialog(ownerFrame, hyperlinkListener, message, e);
                 }
@@ -2130,6 +2130,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
+            stopProgressDialog();
             String message = "Unable to upload object(s)";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, message, e);
