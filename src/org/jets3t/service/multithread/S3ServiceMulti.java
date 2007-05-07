@@ -1161,12 +1161,6 @@ public class S3ServiceMulti implements Serializable {
                 result = s3Service.putObject(bucket, s3Object);
             } catch (S3ServiceException e) {
                 result = e;
-            } finally {
-                try {
-                    s3Object.closeDataInputStream();
-                } catch (IOException e) {
-                    log.error("Unable to close Object's input stream", e);                        
-                }
             }
         }
         

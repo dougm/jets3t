@@ -203,6 +203,7 @@ public class S3Object extends BaseS3Object {
     public void closeDataInputStream() throws IOException {
         if (this.dataInputStream != null) {
             this.dataInputStream.close();
+            this.dataInputStream = null;
         }
     }
     

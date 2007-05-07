@@ -941,6 +941,12 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         Map map = createObjectImpl(bucketName, object.getKey(), object.getContentType(), 
             requestEntity, object.getMetadataMap(), object.getAcl());
+        
+        try {
+            object.closeDataInputStream();
+        } catch (IOException e) {
+            log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
+        }
 
         object.replaceAllMetadata(map);
         return object;
@@ -1146,8 +1152,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * (eg {@link AccessControlList#REST_CANNED_PUBLIC_READ_WRITE}). 
      * 
      * @return
-     * the S3Object put to S3. The S3Object returned will be identical to the object provided, 
-     * except that the data input stream (if any) will have been consumed.
+     * the S3Object put to S3. The S3Object returned will represent the object created in S3.
      * 
      * @throws S3ServiceException
      */
@@ -1175,14 +1180,15 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             S3Object uploadedObject = ServiceUtils.buildObjectFromPath(putMethod.getPath());
             object.setBucketName(uploadedObject.getBucketName());
             object.setKey(uploadedObject.getKey());
-            
-            object.getDataInputStream().close();
+                       
+            try {
+                object.closeDataInputStream();
+            } catch (IOException e) {
+                log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
+            }
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to determine name of object created with signed PUT", e); 
-        } catch (IOException e) {
-            log.warn("Unable to close object's input stream", e);
-        }
-        
+        }        
         return object;
     }
 
