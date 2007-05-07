@@ -111,6 +111,23 @@ public class S3ServiceMulti implements Serializable {
         this.s3Service = s3Service;
         addServiceEventListener(listener);
         this.sleepTime = threadSleepTimeMS;
+        
+        // Sanity-check the maximum thread and connection settings to ensure the maximum number
+        // of connections is at least equal to the largest of the maximum thread counts, and warn
+        // the use of potential problems.
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);        
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+        int maxConnectionCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("httpclient.max-connections", 4);
+        if (maxConnectionCount < maxThreadCount) {
+            log.warn("Insufficient connections available (httpclient.max-connections) to run " + maxThreadCount 
+                + " simultaneous threads (s3service.max-thread-count) - please adjust JetS3t settings");
+        } else if (maxConnectionCount < adminMaxThreadCount) {
+            log.warn("Insufficient connections available (httpclient.max-connections) to run " + adminMaxThreadCount 
+                + " simultaneous admin threads (s3service.admin-max-thread-count) - please adjust JetS3t settings");            
+        }
     }    
 
     /**
