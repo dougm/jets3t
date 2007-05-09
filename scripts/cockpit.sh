@@ -60,4 +60,4 @@ CP=$CP:$JETS3T_HOME/libs/misc/BareBonesBrowserLaunch.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.14.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-135.jar
 
-$EXEC -classpath $CP org.jets3t.apps.cockpit.Cockpit
+"$EXEC" -classpath "$CP" org.jets3t.apps.cockpit.Cockpit
