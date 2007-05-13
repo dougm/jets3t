@@ -148,7 +148,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             jets3tProperties.getIntProperty("httpclient.max-connections", 4));
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
-
+        
         connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
         connectionParams.setTcpNoDelay(true);
         
@@ -731,7 +731,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 httpMethod.getResponseBodyAsStream().close();
             }
         } catch (S3ServiceException e) {
-            log.warn("Unable to access bucket: " + bucketName, e);
+            log.debug("Bucket does not exist: " + bucketName, e);
             return false;
         } catch (IOException e) {
             log.warn("Unable to close response body input stream", e);
