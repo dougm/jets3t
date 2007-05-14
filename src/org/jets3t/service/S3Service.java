@@ -511,6 +511,11 @@ public abstract class S3Service implements Serializable {
      * preconditions.
      * <p>
      * This method can be performed by anonymous services.
+     * <p>
+     * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
+     * The data stream should be consumed and closed as soon as is practical as network connections 
+     * may be held open until the streams are closed. Excessive unclosed streams can lead to 
+     * connection starvation.
      *  
      * @param bucket
      * the bucket containing the object.
@@ -810,6 +815,11 @@ public abstract class S3Service implements Serializable {
      * Returns an object representing the details of an item in S3 that meets any given preconditions.
      * The object is returned with the object's data.
      * <p>
+     * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
+     * The data stream should be consumed and closed as soon as is practical as network connections 
+     * may be held open until the streams are closed. Excessive unclosed streams can lead to 
+     * connection starvation.
+     * <p>
      * An exception is thrown if any of the preconditions fail. 
      * Preconditions are only applied if they are non-null.
      * <p>
@@ -852,6 +862,11 @@ public abstract class S3Service implements Serializable {
     /**
      * Returns an object representing the details of an item in S3 that meets any given preconditions.
      * The object is returned with the object's data.
+     * <p>
+     * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
+     * The data stream should be consumed and closed as soon as is practical as network connections 
+     * may be held open until the streams are closed. Excessive unclosed streams can lead to 
+     * connection starvation.
      * <p>
      * An exception is thrown if any of the preconditions fail. 
      * Preconditions are only applied if they are non-null.
