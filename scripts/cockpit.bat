@@ -40,7 +40,7 @@ goto noJavaHome
 
 :gotJavaHome
 
-set EXEC="%JAVA_HOME%\bin\java"
+set EXEC=%JAVA_HOME%\bin\java
 
 :noJavaHome
 
