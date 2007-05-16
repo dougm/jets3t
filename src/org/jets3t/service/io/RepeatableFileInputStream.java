@@ -38,7 +38,7 @@ public class RepeatableFileInputStream extends InputStream implements IRepeatabl
 
     private File file = null;
     private FileInputStream fis = null;
-    private int bytesReadTotal = 0;
+    private long bytesReadTotal = 0;
 
     /**
      * Creates a repeatable input stream based on a file.

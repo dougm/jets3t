@@ -49,7 +49,7 @@ public class RepeatableRequestEntity implements RequestEntity {
     private String contentType = null;
     private long contentLength = 0;
     
-    int bytesWritten = 0;    
+    long bytesWritten = 0;    
     private IRepeatableInputStream repeatableInputStream = null;
     private ProgressMonitoredInputStream progressMonitoredIS = null;
     
