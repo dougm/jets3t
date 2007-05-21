@@ -41,5 +41,15 @@ public interface IRepeatableInputStream {
      * that no further IO operations as possible.
      */
     public void repeatInputStream() throws IOException;
+    
+    public int available() throws IOException;
+
+    public void close() throws IOException;
+
+    public int read() throws IOException;
+
+    public int read(byte[] arg0, int arg1, int arg2) throws IOException;
+
+    public int read(byte[] arg0) throws IOException;
 
 }
