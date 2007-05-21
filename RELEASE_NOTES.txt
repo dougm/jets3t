@@ -29,6 +29,7 @@ TOOLKIT
 
   * General
 
+- Fixed bugs that caused uploads greater than 2GB to fail.
 - File listings as built using the FileComparer.buildFileMap() methods can be
   set not to include place-holder objects to represent empty directories 
   (mimetype "application/x-directory") with the new configuration setting
@@ -40,6 +41,8 @@ TOOLKIT
 
   * REST S3 Service
 
+- Rudimentary bandwidth throttling using the jets3t.properties setting
+  httpclient.read-throttle, which is specified in KB/s.
 - Proxy settings are now configurable via the jets3t.properties settings:
   httpclient.proxy-autodetect, httpclient.proxy-host, httpclient.proxy-port
 
