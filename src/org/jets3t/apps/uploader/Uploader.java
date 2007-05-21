@@ -106,7 +106,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.io.BytesTransferredWatcher;
+import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CancelEventTrigger;
@@ -995,13 +995,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
             
             // Monitor generation of MD5 hash, and provide feedback via the progress bar. 
-            final long transferredBytesTotal[] = new long[1];
-            transferredBytesTotal[0] = 0;
-            final BytesTransferredWatcher hashWatcher = new BytesTransferredWatcher() {
-                public void bytesTransferredUpdate(long transferredBytes) {
-                    transferredBytesTotal[0] += transferredBytes;
+            BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
+                public void updateBytesTransferred(long byteCount) {
+                    super.updateBytesTransferred(byteCount);
+                    
                     final int percentage = 
-                        (int) (100 * transferredBytesTotal[0] / filesSizeTotal[0]);
+                        (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());                            
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             progressBar.setValue(percentage);
@@ -1017,7 +1016,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 log.debug("Computing MD5 hash for file: " + file);
                 byte[] fileHash = ServiceUtils.computeMD5Hash(
                     new ProgressMonitoredInputStream( // Report on MD5 hash progress.
-                        new FileInputStream(file), hashWatcher));
+                        new FileInputStream(file), progressWatcher));
                 
                 S3Object object = new S3Object(null, file);
                 object.setMd5Hash(fileHash);
@@ -1205,11 +1204,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 int percentage = (int) 
                     (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
                 
-                String transferDetailsText = " ";
-                if (watcher.isBytesPerSecondAvailable()) {
-                    long bytesPerSecond = watcher.getBytesPerSecond();
-                    transferDetailsText = "Speed: " + byteFormatter.formatByteSize(bytesPerSecond) + "/s";
-                }
+                long bytesPerSecond = watcher.getBytesPerSecond();
+                String transferDetailsText = "Speed: " + byteFormatter.formatByteSize(bytesPerSecond) + "/s";
+
                 if (watcher.isTimeRemainingAvailable()) {
                     long secondsRemaining = watcher.getTimeRemaining();
                     if (transferDetailsText.trim().length() > 0) {

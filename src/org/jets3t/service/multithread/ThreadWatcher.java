@@ -18,7 +18,7 @@
  */
 package org.jets3t.service.multithread;
 
-import java.util.Vector;
+import org.jets3t.service.io.BytesProgressWatcher;
 
 /**
  * A thread watcher is associated with a multi-threaded S3 operation and contains information about
@@ -46,30 +46,18 @@ import java.util.Vector;
  * @author James Murty
  */
 public class ThreadWatcher {
-    /**
-     * The number of bytes transferred updates (via setBytesTransferredInfo) that must occurbefore transfer
-     * before transfer rate and ETA is calculated.
-     */
-    private static final int MIN_TRANSFER_UPDATES_FOR_RATE = 20;
-    
     private long completedThreads = 0;
     private long threadCount = 0;
     private CancelEventTrigger cancelEventListener = null;
-    private long watcherStartTimeMS = -1;
-    private long bytesTransferred = -1;
-    private long bytesTotal = -1;
-    private long bytesPerSecond = -1;
-    private long timeRemainingSeconds = -1;
+    private BytesProgressWatcher[] progressWatchers = null;
 
-    /*
-     * Variables to track the transfer rate over the last MIN_TRANSFER_UPDATES_FOR_RATE updates.
-     */
-    private int bytesUpdateCount = 0;
-    private Vector historicBytesTransferredQueue = new Vector();
-    private Vector historicTimeQueue = new Vector();
-
-    protected ThreadWatcher() {
-        this.watcherStartTimeMS = System.currentTimeMillis();
+    protected ThreadWatcher(BytesProgressWatcher[] progressWatchers) {
+        this.progressWatchers = progressWatchers;
+        this.threadCount = this.progressWatchers.length;
+    }
+    
+    protected ThreadWatcher(long threadCount) {
+        this.threadCount = threadCount;
     }
     
     /**
@@ -80,8 +68,8 @@ public class ThreadWatcher {
      * @param threadCount
      * the total number of threads.
      */
-    protected void setThreadsCompletedRatio(long completedThreads, long threadCount) {
-        setThreadsCompletedRatio(completedThreads, threadCount, null);
+    protected void updateThreadsCompletedCount(long completedThreads) {
+        updateThreadsCompletedCount(completedThreads, null);
     }
     
     /**
@@ -95,73 +83,12 @@ public class ThreadWatcher {
      * @param cancelEventListener
      * the listener to notify of cancellation events.
      */
-    protected void setThreadsCompletedRatio(long completedThreads, long threadCount, 
-        CancelEventTrigger cancelEventListener) 
+    protected void updateThreadsCompletedCount(long completedThreads, CancelEventTrigger cancelEventListener) 
     {
         this.completedThreads = completedThreads;
-        this.threadCount = threadCount;
         this.cancelEventListener = cancelEventListener;        
     }    
     
-    /**
-     * Sets the number of bytes already transferred, and the total number of bytes that will be
-     * transferred.
-     * <p>
-     * If this method has been called more than {@link #MIN_TRANSFER_UPDATES_FOR_RATE} times, such
-     * that there is enough historical information to work with, this method also calculates the 
-     * current transfer rate and an estimate of when the transfer will complete.
-     *  
-     * @param bytesTransferred
-     * @param bytesTotal
-     */
-    protected void setBytesTransferredInfo(long bytesTransferred, long bytesTotal) {
-        long now = System.currentTimeMillis();
-
-        this.bytesTotal = bytesTotal;
-        this.bytesTransferred = bytesTransferred;
-        
-        // Store historic information for transfer rate calculations.
-        historicTimeQueue.add(new Long(now));
-        historicBytesTransferredQueue.add(new Long(bytesTransferred));
-
-        // Calculate the current transfer rate, and the time remaining for the data transfer,
-        // once the minimum number of bytes transferred udpates have occurred.
-        this.bytesUpdateCount++;
-        if (this.bytesUpdateCount > MIN_TRANSFER_UPDATES_FOR_RATE) {
-            // Get the number of bytes transfered as of MIN_UPDATES_FOR_CURRENT_RATE updates ago.
-            Long historicByteTransferCount = (Long) historicBytesTransferredQueue.firstElement();
-            historicBytesTransferredQueue.remove(0);
-            
-            // Get the time as of MIN_UPDATES_FOR_CURRENT_RATE updates ago.
-            Long historicTime = (Long) historicTimeQueue.firstElement();
-            historicTimeQueue.remove(0);
-
-            long intervalsElapsedTimeMS = now - historicTime.longValue();
-            long intervalsBytesTransferred = bytesTransferred - historicByteTransferCount.longValue();
-            long bytesRemaining = bytesTotal - bytesTransferred;
-            
-            // Calculate the current bytes/s transfer rate.
-            if (intervalsElapsedTimeMS > 0) {
-                this.bytesPerSecond = 1000 * intervalsBytesTransferred / intervalsElapsedTimeMS;                
-            }
-            
-            // Calculate the averate bytes/s transfer rate.
-            long overallElapsedTimeMS = System.currentTimeMillis() - watcherStartTimeMS;
-            long overallBytesPerSecond = -1;
-            if (overallElapsedTimeMS > 0) {
-                overallBytesPerSecond = 1000 * bytesTransferred / overallElapsedTimeMS;
-            }
-            
-            // Calculate the time until the transfer is complete, using the *overall* bytes/second rate.
-            if (bytesRemaining > 0 && overallBytesPerSecond > 0) {
-                double remainingSecsDouble = (double) bytesRemaining / overallBytesPerSecond;
-                this.timeRemainingSeconds = Math.round(remainingSecsDouble);
-            } else {
-                this.timeRemainingSeconds = 0;
-            }            
-        }
-    }
-
     /**
      * @return
      * the number of threads that have completed. 
@@ -187,7 +114,7 @@ public class ThreadWatcher {
      * the threads it is watching.  
      */
     public boolean isBytesTransferredInfoAvailable() {
-        return (bytesTotal >= 0 && bytesTransferred >= 0);
+        return (progressWatchers != null);
     }    
     
     /**
@@ -201,7 +128,7 @@ public class ThreadWatcher {
         if (!isBytesTransferredInfoAvailable()) {
             throw new IllegalStateException("Bytes Transferred Info is not available in this object");
         }
-        return bytesTotal;
+        return BytesProgressWatcher.sumBytesToTransfer(progressWatchers);
     }
 
     /**
@@ -215,32 +142,18 @@ public class ThreadWatcher {
         if (!isBytesTransferredInfoAvailable()) {
             throw new IllegalStateException("Bytes Transferred Info is not available in this object");
         }
-        return bytesTransferred;
+        return BytesProgressWatcher.sumBytesTransferred(progressWatchers);
     }
 
     /**
-     * If this method returns true, the method {@link #getBytesPerSecond()} will contain 
-     * an estimate of the per-second rate of data transfer.
-     * 
-     * @return 
-     * true if this watcher contains an estimate of the per-second rate of data transfer.  
-     */
-    public boolean isBytesPerSecondAvailable() {
-        return (this.bytesPerSecond >= 0);
-    }
-    
-    /**
      * @return
-     * an estimate of the per-second byte rate transfer speed.
+     * an estimate of the recent rate of bytes/second transfer speed.
      * @throws IllegalStateException
      * if the per-second byte transfer rate estimate is not available - check this availability
      * with the {@link #isBytesPerSecondAvailable()} method.
      */
     public long getBytesPerSecond() {
-        if (!isBytesPerSecondAvailable()) {
-            throw new IllegalStateException("Bytes per-second estimate is not available in this object");
-        }
-        return this.bytesPerSecond;
+        return BytesProgressWatcher.calculateRecentByteRatePerSecond(progressWatchers);
     }
     
     /**
@@ -251,7 +164,7 @@ public class ThreadWatcher {
      * true if this watcher contains an estimate of the completion time for the data transfer.  
      */
     public boolean isTimeRemainingAvailable() {
-        return (this.timeRemainingSeconds >= 0);
+        return (progressWatchers != null);
     }
     
     /**
@@ -266,7 +179,7 @@ public class ThreadWatcher {
         if (!isTimeRemainingAvailable()) {
             throw new IllegalStateException("Time remaining estimate is not available in this object");
         }
-        return this.timeRemainingSeconds;
+        return BytesProgressWatcher.calculateRemainingTime(progressWatchers);
     }
 
     /** 

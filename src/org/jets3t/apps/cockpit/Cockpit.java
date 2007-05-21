@@ -112,7 +112,7 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.io.BytesTransferredWatcher;
+import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CancelEventTrigger;
@@ -881,8 +881,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         } else if ("LogoutEvent".equals(event.getActionCommand())) {
             logoutEvent();
         } else if ("QuitEvent".equals(event.getActionCommand())) {
-            this.destroy();
-            ownerFrame.dispose();
+            System.exit(0);
         } 
         
         // Bucket Events.
@@ -1816,20 +1815,18 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     }
                     
                     // Monitor generation of MD5 hash, and provide feedback via the progress bar. 
-                    final long hashedBytesTotal[] = new long[1];
-                    hashedBytesTotal[0] = 0;
-                    final BytesTransferredWatcher hashWatcher = new BytesTransferredWatcher() {
-                        public void bytesTransferredUpdate(long transferredBytes) {
-                            hashedBytesTotal[0] += transferredBytes;
-                            final int percentage = 
-                                (int) (100 * hashedBytesTotal[0] / filesSizeTotal[0]);
-
-                            updateProgressDialog(statusText, "", percentage);
+                    BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
+                        public void updateBytesTransferred(long byteCount) {
+                            super.updateBytesTransferred(byteCount);
+                            
+                            String detailsText = formatBytesProgressWatcherDetails(this, true);
+                            int progressValue = (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());                            
+                            updateProgressDialog(statusText, detailsText, progressValue);
                         }
                     };
-                    
+                                        
                     FileComparerResults comparisonResults = 
-                        FileComparer.buildDiscrepancyLists(localFilesMap, s3ObjectsMap, hashWatcher);
+                        FileComparer.buildDiscrepancyLists(localFilesMap, s3ObjectsMap, progressWatcher);
                     
                     stopProgressDialog(); 
                     
@@ -2088,20 +2085,38 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 return;
             }
             
-            startProgressDialog("Prepared 0 of " + fileKeysForUpload.size() 
-                + " file(s) for upload", "", 0, fileKeysForUpload.size(), null, null);
-                                    
+            final String[] statusText = new String[1]; 
+            statusText[0] = "Prepared 0 of " + fileKeysForUpload.size() + " file(s) for upload";
+            startProgressDialog(statusText[0], "", 0, 100, null, null);
+                
+            long bytesToProcess = 0;
+            for (Iterator iter = fileKeysForUpload.iterator(); iter.hasNext();) {
+                File file = (File) uploadingFilesMap.get(iter.next().toString());
+                bytesToProcess += file.length() *
+                    (cockpitPreferences.isUploadEncryptionActive() || cockpitPreferences.isUploadCompressionActive() ? 3 : 1); 
+            }
+            
+            BytesProgressWatcher progressWatcher = new BytesProgressWatcher(bytesToProcess) {
+                public void updateBytesTransferred(long byteCount) {
+                    super.updateBytesTransferred(byteCount);
+                    
+                    String detailsText = formatBytesProgressWatcherDetails(this, false);
+                    int progressValue = (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());                            
+                    updateProgressDialog(statusText[0], detailsText, progressValue);
+                }
+            };
+            
             // Populate S3Objects representing upload files with metadata etc.
             final S3Object[] objects = new S3Object[fileKeysForUpload.size()];
             int objectIndex = 0;
             for (Iterator iter = fileKeysForUpload.iterator(); iter.hasNext();) {
                 String fileKey = iter.next().toString();
                 File file = (File) uploadingFilesMap.get(fileKey);
-                
+                                                
                 S3Object newObject = ObjectUtils
                     .createObjectForUpload(fileKey, file, 
                         (cockpitPreferences.isUploadEncryptionActive() ? encryptionUtil : null),
-                        cockpitPreferences.isUploadCompressionActive());
+                        cockpitPreferences.isUploadCompressionActive(), progressWatcher);
                 
                 String aclPreferenceString = cockpitPreferences.getUploadACLPermission();
                 if (CockpitPreferences.UPLOAD_ACL_PERMISSION_PRIVATE.equals(aclPreferenceString)) {
@@ -2114,10 +2129,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     log.warn("Ignoring unrecognised upload ACL permission setting: " + aclPreferenceString);                    
                 }
                 
-                
-                updateProgressDialog("Prepared " + (objectIndex + 1) 
-                    + " of " + fileKeysForUpload.size() + " file(s) for upload", 
-                    "", (objectIndex + 1));
+                statusText[0] = "Prepared " + (objectIndex + 1) 
+                    + " of " + fileKeysForUpload.size() + " file(s) for upload";
                 
                 objects[objectIndex++] = newObject;
             }
@@ -2495,21 +2508,27 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
            
     private String formatTransferDetails(ThreadWatcher watcher) {
-        String detailsText = null;
-        if (watcher.isBytesTransferredInfoAvailable()) {
-            detailsText = " ";
-        }
-        if (watcher.isBytesPerSecondAvailable()) {
-            long bytesPerSecond = watcher.getBytesPerSecond();
-            detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
-        }
+        long bytesPerSecond = watcher.getBytesPerSecond();
+        String detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
+        
         if (watcher.isTimeRemainingAvailable()) {
-            if (detailsText.trim().length() > 0) {
-                detailsText += " - ";
-            }
             long secondsRemaining = watcher.getTimeRemaining();
-            detailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining);
+            detailsText += " - Time remaining: " + timeFormatter.formatTime(secondsRemaining);
         }
+        return detailsText;
+    }
+    
+    private String formatBytesProgressWatcherDetails(BytesProgressWatcher watcher, boolean includeBytes) {
+        long secondsRemaining = watcher.getRemainingTime();
+        
+        String detailsText = 
+            (includeBytes 
+                ? byteFormatter.formatByteSize(watcher.getBytesTransferred()) 
+                  + " of " + byteFormatter.formatByteSize(watcher.getBytesToTransfer())
+                  + " - "
+                : "")                    
+            + "Time remaining: " + 
+            timeFormatter.formatTime(secondsRemaining);
         return detailsText;
     }
     

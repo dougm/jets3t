@@ -31,7 +31,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.io.BytesTransferredWatcher;
+import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CreateObjectsEvent;
@@ -129,7 +129,7 @@ public class Synchronize {
         throws Exception 
     {        
         S3Object newObject = ObjectUtils
-            .createObjectForUpload(targetKey, file, encryptionUtil, isGzipEnabled);
+            .createObjectForUpload(targetKey, file, encryptionUtil, isGzipEnabled, null);
         
         if ("PUBLIC_READ".equalsIgnoreCase(aclString)) {
             newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);                        
@@ -147,10 +147,9 @@ public class Synchronize {
 
     private String formatTransferDetails(ThreadWatcher watcher) {
         String detailsText = "";
-        if (watcher.isBytesPerSecondAvailable()) {
-            long bytesPerSecond = watcher.getBytesPerSecond();
-            detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
-        }
+        long bytesPerSecond = watcher.getBytesPerSecond();
+        detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
+
         if (watcher.isTimeRemainingAvailable()) {
             if (detailsText.trim().length() > 0) {
                 detailsText += " - ";
@@ -625,13 +624,11 @@ public class Synchronize {
         }
         
         // Monitor generation of MD5 hashes, and provide feedback via progress messages.
-        final long hashedBytesTotal[] = new long[] { 0 };
-        final BytesTransferredWatcher hashWatcher = new BytesTransferredWatcher() {
-            public void bytesTransferredUpdate(long transferredBytes) {
-                hashedBytesTotal[0] += transferredBytes;
-                final int percentage = 
-                    (int) (100 * hashedBytesTotal[0] / filesSizeTotal[0]);
-
+        BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
+            public void updateBytesTransferred(long byteCount) {
+                super.updateBytesTransferred(byteCount);
+                
+                int percentage = (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());
                 printProgressLine("Comparing files: " + percentage + "% of " +
                     byteFormatter.formatByteSize(filesSizeTotal[0]));
             }
@@ -639,7 +636,7 @@ public class Synchronize {
 
         printProgressLine("Comparing S3 contents with local system");        
         FileComparerResults discrepancyResults = 
-            FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap, hashWatcher);
+            FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap, progressWatcher);
 
         // Perform the requested action on the set of disrepancies.
         if ("UP".equals(actionCommand)) {

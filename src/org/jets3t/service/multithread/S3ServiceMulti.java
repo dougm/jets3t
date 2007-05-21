@@ -36,8 +36,8 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.io.BytesTransferredWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
+import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -80,7 +80,7 @@ public class S3ServiceMulti implements Serializable {
     /**
      * Construct a multi-threaded service based on an S3Service and which sends event notifications
      * to an event listening class. EVENT_IN_PROGRESS events are sent at the default time interval
-     * of 200ms. 
+     * of 500ms. 
      * 
      * @param s3Service
      *        an S3Service implementation that will be used to perform S3 requests. This implementation
@@ -89,7 +89,7 @@ public class S3ServiceMulti implements Serializable {
      *        the event listener which will handle event notifications.
      */
     public S3ServiceMulti(S3Service s3Service, S3ServiceEventListener listener) {
-        this(s3Service, listener, 200);
+        this(s3Service, listener, 500);
     }
 
     /**
@@ -238,7 +238,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(CreateBucketsEvent.newStartedEvent(threadWatcher));        
             }
@@ -275,33 +275,28 @@ public class S3ServiceMulti implements Serializable {
      */
     public void putObjects(final S3Bucket bucket, final S3Object[] objects) {    
         final List incompletedObjectsList = new ArrayList();
-        final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
-        final long bytesCompleted[] = new long[] {0};
-        
-        BytesTransferredWatcher bytesTransferredListener = new BytesTransferredWatcher() {
-            public void bytesTransferredUpdate(long transferredBytes) {
-                bytesCompleted[0] += transferredBytes;
-            }
-        };
+        final List progressWatchers = new ArrayList();
         
         // Start all queries in the background.
         CreateObjectRunnable[] runnables = new CreateObjectRunnable[objects.length];
         for (int i = 0; i < runnables.length; i++) {
             incompletedObjectsList.add(objects[i]);
-            runnables[i] = new CreateObjectRunnable(bucket, objects[i], bytesTransferredListener);
+            BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
+            runnables[i] = new CreateObjectRunnable(bucket, objects[i], progressMonitor);
+            progressWatchers.add(progressMonitor);
         }        
         
         int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getIntProperty("s3service.max-thread-count", 4);
         
-        // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount) {
+        // Wait for threads to finish, or be cancelled.
+        ThreadWatcher threadWatcher = new ThreadWatcher(
+            (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
+        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
-                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher));        
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 incompletedObjectsList.removeAll(completedResults);
                 S3Object[] completedObjects = (S3Object[]) completedResults
                     .toArray(new S3Object[completedResults.size()]);
@@ -346,7 +341,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -413,7 +408,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount) {
+        (new ThreadGroupManager(runnables, maxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -488,7 +483,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
@@ -546,7 +541,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(LookupACLEvent.newStartedEvent(threadWatcher));        
             }
@@ -596,7 +591,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(UpdateACLEvent.newStartedEvent(threadWatcher));        
             }
@@ -635,13 +630,7 @@ public class S3ServiceMulti implements Serializable {
      * an output stream where the object's contents will be written to.
      */
     public void downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) {
-        // Initialise byte transfer monitoring variables.
-        final long bytesCompleted[] = new long[] {0};
-        final BytesTransferredWatcher bytesTransferredListener = new BytesTransferredWatcher() {
-            public void bytesTransferredUpdate(long transferredBytes) {
-                bytesCompleted[0] += transferredBytes;
-            }
-        };
+        final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
 
         // Start all queries in the background.
@@ -649,29 +638,29 @@ public class S3ServiceMulti implements Serializable {
         final S3Object[] objects = new S3Object[downloadPackages.length];
         for (int i = 0; i < runnables.length; i++) {
             objects[i] = downloadPackages[i].getObject();
+            BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
                         
             incompleteObjectDownloadList.add(objects[i]);
+            progressWatchers.add(progressMonitor);
+            
             runnables[i] = new DownloadObjectRunnable(bucket, objects[i].getKey(), 
-                downloadPackages[i], bytesTransferredListener);    
+                downloadPackages[i], progressMonitor);    
         }
 
-        // Set total bytes to 0 to flag the fact we cannot monitor the bytes transferred. 
-        final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
-        
         int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getIntProperty("s3service.max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount) {
+        ThreadWatcher threadWatcher = new ThreadWatcher(
+            (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
+        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
-                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher));
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 incompleteObjectDownloadList.removeAll(completedResults);
                 S3Object[] completedObjects = (S3Object[]) completedResults
                     .toArray(new S3Object[completedResults.size()]);
-                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(DownloadObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
             }
             public void fireCancelEvent() {
@@ -729,7 +718,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.max-thread-count", 4);
 
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount) {
+        (new ThreadGroupManager(runnables, maxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -802,7 +791,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher));        
             }
@@ -874,7 +863,7 @@ public class S3ServiceMulti implements Serializable {
             .getIntProperty("s3service.admin-max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount) {
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher));        
             }
@@ -922,40 +911,35 @@ public class S3ServiceMulti implements Serializable {
                 + "SignedUrlHandler interface to make the method putObjects(SignedUrlAndObject[] signedPutUrlAndObjects) available");
         }
         
-        final List incompletedObjectsList = new ArrayList();        
-        final long bytesCompleted[] = new long[] {0};
+        final List progressWatchers = new ArrayList();
+        final List incompletedObjectsList = new ArrayList();
         
         // Calculate total byte count being transferred.
         S3Object objects[] = new S3Object[signedPutUrlAndObjects.length];
         for (int i = 0; i < signedPutUrlAndObjects.length; i++) {
             objects[i] = signedPutUrlAndObjects[i].getObject();
         }
-        final long bytesTotal = ServiceUtils.countBytesInObjects(objects);
-        
-        BytesTransferredWatcher bytesTransferredListener = new BytesTransferredWatcher() {
-            public void bytesTransferredUpdate(long transferredBytes) {
-                bytesCompleted[0] += transferredBytes;
-            }
-        };
-        
+                
         // Start all queries in the background.
         SignedPutRunnable[] runnables = new SignedPutRunnable[signedPutUrlAndObjects.length];
         for (int i = 0; i < runnables.length; i++) {
+            BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
+            progressWatchers.add(progressMonitor);
             incompletedObjectsList.add(signedPutUrlAndObjects[i].getObject());
-            runnables[i] = new SignedPutRunnable(signedPutUrlAndObjects[i], bytesTransferredListener);
+            runnables[i] = new SignedPutRunnable(signedPutUrlAndObjects[i], progressMonitor);
         }        
         
         int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getIntProperty("s3service.max-thread-count", 4);
         
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount) {
+        ThreadWatcher threadWatcher = new ThreadWatcher(
+            (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
+        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher) {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
-                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher));        
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                threadWatcher.setBytesTransferredInfo(bytesCompleted[0], bytesTotal);
                 incompletedObjectsList.removeAll(completedResults);
                 S3Object[] completedObjects = (S3Object[]) completedResults
                     .toArray(new S3Object[completedResults.size()]);
@@ -1157,14 +1141,14 @@ public class S3ServiceMulti implements Serializable {
         private S3Bucket bucket = null;
         private S3Object s3Object = null;    
         private InterruptableInputStream interruptableInputStream = null;
-        private BytesTransferredWatcher bytesTransferredListener = null;
+        private BytesProgressWatcher progressMonitor = null;
         
         private Object result = null;
         
-        public CreateObjectRunnable(S3Bucket bucket, S3Object s3Object, BytesTransferredWatcher bytesTransferredListener) {
+        public CreateObjectRunnable(S3Bucket bucket, S3Object s3Object, BytesProgressWatcher progressMonitor) {
             this.bucket = bucket;
             this.s3Object = s3Object;
-            this.bytesTransferredListener = bytesTransferredListener;
+            this.progressMonitor = progressMonitor;
         }
 
         public void run() {
@@ -1172,7 +1156,7 @@ public class S3ServiceMulti implements Serializable {
                 if (s3Object.getDataInputStream() != null) {
                     interruptableInputStream = new InterruptableInputStream(s3Object.getDataInputStream());
                     ProgressMonitoredInputStream pmInputStream = new ProgressMonitoredInputStream(
-                        interruptableInputStream, bytesTransferredListener);
+                        interruptableInputStream, progressMonitor);
                     s3Object.setDataInputStream(pmInputStream);
                 }
                 result = s3Service.putObject(bucket, s3Object);
@@ -1258,17 +1242,17 @@ public class S3ServiceMulti implements Serializable {
         private S3Bucket bucket = null;
         private DownloadPackage downloadPackage = null;
         private InterruptableInputStream interruptableInputStream = null;
-        private BytesTransferredWatcher bytesTransferredListener = null;
+        private BytesProgressWatcher progressMonitor = null;
         
         private Object result = null;
 
         public DownloadObjectRunnable(S3Bucket bucket, String objectKey, DownloadPackage downloadPackage, 
-            BytesTransferredWatcher bytesTransferredListener) 
+            BytesProgressWatcher progressMonitor) 
         {
             this.bucket = bucket;
             this.objectKey = objectKey;
             this.downloadPackage = downloadPackage;
-            this.bytesTransferredListener = bytesTransferredListener;
+            this.progressMonitor = progressMonitor;
         }
         
         public void run() {            
@@ -1282,7 +1266,7 @@ public class S3ServiceMulti implements Serializable {
                 // Setup monitoring of stream bytes tranferred. 
                 interruptableInputStream = new InterruptableInputStream(object.getDataInputStream()); 
                 bufferedInputStream = new BufferedInputStream(
-                    new ProgressMonitoredInputStream(interruptableInputStream, bytesTransferredListener));
+                    new ProgressMonitoredInputStream(interruptableInputStream, progressMonitor));
                 
                 bufferedOutputStream = new BufferedOutputStream(
                     downloadPackage.getOutputStream());
@@ -1344,13 +1328,13 @@ public class S3ServiceMulti implements Serializable {
     private class SignedPutRunnable extends AbstractRunnable {
         private SignedUrlAndObject signedUrlAndObject = null;    
         private InterruptableInputStream interruptableInputStream = null;
-        private BytesTransferredWatcher bytesTransferredListener = null;
+        private BytesProgressWatcher progressMonitor = null;
         
         private Object result = null;
         
-        public SignedPutRunnable(SignedUrlAndObject signedUrlAndObject, BytesTransferredWatcher bytesTransferredListener) {
+        public SignedPutRunnable(SignedUrlAndObject signedUrlAndObject, BytesProgressWatcher progressMonitor) {
             this.signedUrlAndObject = signedUrlAndObject;
-            this.bytesTransferredListener = bytesTransferredListener;
+            this.progressMonitor = progressMonitor;
         }
 
         public void run() {
@@ -1359,7 +1343,7 @@ public class S3ServiceMulti implements Serializable {
                     interruptableInputStream = new InterruptableInputStream(
                         signedUrlAndObject.getObject().getDataInputStream());
                     ProgressMonitoredInputStream pmInputStream = new ProgressMonitoredInputStream(
-                        interruptableInputStream, bytesTransferredListener);
+                        interruptableInputStream, progressMonitor);
                     signedUrlAndObject.getObject().setDataInputStream(pmInputStream);
                 }
                 SignedUrlHandler signedPutUploader = (SignedUrlHandler) s3Service;
@@ -1424,10 +1408,16 @@ public class S3ServiceMulti implements Serializable {
          */
         private boolean alreadyFired[] = null;
         
+        private ThreadWatcher threadWatcher = null;
         
-        public ThreadGroupManager(AbstractRunnable[] runnables, int maxThreadCount) {            
+        private long lastProgressEventFiredTime = 0;
+        
+        
+        public ThreadGroupManager(AbstractRunnable[] runnables, int maxThreadCount, ThreadWatcher threadWatcher) {            
             this.runnables = runnables;
             this.maxThreadCount = maxThreadCount;
+            this.threadWatcher = threadWatcher;
+            
             this.threads = new Thread[runnables.length];
             started = new boolean[runnables.length]; // All values initialized to false.
             alreadyFired = new boolean[runnables.length]; // All values initialized to false.
@@ -1556,27 +1546,27 @@ public class S3ServiceMulti implements Serializable {
                 // Start some threads
                 startPendingThreads();                
                 
-                // Create the thread's watcher object.
-                ThreadWatcher threadWatcher = new ThreadWatcher();
-                
-                threadWatcher.setThreadsCompletedRatio(0, runnables.length, cancelEventTrigger); 
+                threadWatcher.updateThreadsCompletedCount(0, cancelEventTrigger); 
                 fireStartEvent(threadWatcher);
                 
                 // Loop while threads haven't been interrupted/cancelled, and at least one thread is 
                 // still active (ie hasn't finished its work)
                 while (!interrupted[0] && getPendingThreadCount() > 0) {
                     try {
-                        Thread.sleep(sleepTime);
+                        Thread.sleep(100);
     
                         if (interrupted[0]) {
                             // Do nothing, we've been interrupted during sleep.                        
                         } else {
-                            // Fire progress event.
-                            int completedThreads = runnables.length - getPendingThreadCount();                    
-                            threadWatcher.setThreadsCompletedRatio(
-                                completedThreads, runnables.length, cancelEventTrigger);
-                            List completedResults = getNewlyCompletedResults();                    
-                            fireProgressEvent(threadWatcher, completedResults);
+                            if (System.currentTimeMillis() - lastProgressEventFiredTime > sleepTime) {                                
+                                // Fire progress event.
+                                int completedThreads = runnables.length - getPendingThreadCount();                    
+                                threadWatcher.updateThreadsCompletedCount(completedThreads, cancelEventTrigger);
+                                List completedResults = getNewlyCompletedResults();
+                                
+                                lastProgressEventFiredTime = System.currentTimeMillis();
+                                fireProgressEvent(threadWatcher, completedResults);                                
+                            }
                             
                             // Start more threads.
                             startPendingThreads();                
@@ -1591,8 +1581,7 @@ public class S3ServiceMulti implements Serializable {
                     fireCancelEvent();
                 } else {
                     int completedThreads = runnables.length - getPendingThreadCount();                    
-                    threadWatcher.setThreadsCompletedRatio(
-                        completedThreads, runnables.length, cancelEventTrigger);
+                    threadWatcher.updateThreadsCompletedCount(completedThreads, cancelEventTrigger);
                     List completedResults = getNewlyCompletedResults();                    
                     fireProgressEvent(threadWatcher, completedResults);
                     if (completedResults.size() > 0) {
