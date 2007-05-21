@@ -40,12 +40,12 @@ public class BytesProgressWatcher {
     private boolean isStarted = false;
     private long bytesToTransfer = 0;
     
-    private long startTimeAllTransfers = -1;
+    private long startTimeAllTransfersMS = -1;
     private long totalBytesInAllTransfers = 0;
 
-    private long startTimeCurrentTransfer = -1;
+    private long startTimeCurrentTransferMS = -1;
     private long totalBytesInCurrentTransfer = 0;
-    private long endTimeCurrentTransfer = -1;
+    private long endTimeCurrentTransferMS = -1;
 
     private Map historyOfBytesBySecond = new TreeMap();
     private long earliestHistorySecond = Long.MAX_VALUE;
@@ -76,11 +76,11 @@ public class BytesProgressWatcher {
      *
      */
     public void resetWatcher() {
-        startTimeCurrentTransfer = System.currentTimeMillis();
-        if (startTimeAllTransfers == -1) {
-            startTimeAllTransfers = startTimeCurrentTransfer;
+        startTimeCurrentTransferMS = System.currentTimeMillis();
+        if (startTimeAllTransfersMS == -1) {
+            startTimeAllTransfersMS = startTimeCurrentTransferMS;
         }
-        endTimeCurrentTransfer = -1;
+        endTimeCurrentTransferMS = -1;
         totalBytesInCurrentTransfer = 0;
         isStarted = true;
     }
@@ -91,7 +91,7 @@ public class BytesProgressWatcher {
      * @param byteCount
      * the number of bytes that have been transferred.
      */
-    public void updateBytesTransferred(long byteCount) {
+    public synchronized void updateBytesTransferred(long byteCount) {
         // Start the monitor when we are notified of the first bytes transferred.
         if (!isStarted) {
             resetWatcher();
@@ -103,7 +103,7 @@ public class BytesProgressWatcher {
         
         // Recognise when all the expected bytes have been transferred and mark the end time.
         if (totalBytesInCurrentTransfer >= bytesToTransfer) {
-            endTimeCurrentTransfer = System.currentTimeMillis();
+            endTimeCurrentTransferMS = System.currentTimeMillis();
         }
         
         // Keep historical records of the byte counts transferred in a given second.
@@ -122,7 +122,7 @@ public class BytesProgressWatcher {
         }
 
         // Remove any history records we are no longer interested in.
-        long removeHistoryBeforeSecond = currentSecond.longValue() - (SECONDS_OF_HISTORY + 1);
+        long removeHistoryBeforeSecond = currentSecond.longValue() - SECONDS_OF_HISTORY;
         for (long sec = earliestHistorySecond; sec < removeHistoryBeforeSecond; sec++) {
             historyOfBytesBySecond.remove(Long.valueOf(sec));
         }
@@ -165,21 +165,34 @@ public class BytesProgressWatcher {
      * the byte rate (per second) based on the historical information for the last
      * {@link #SECONDS_OF_HISTORY} seconds before the current time. 
      */
-    public long getRecentByteRatePerSecond() {
+    public synchronized double getRecentByteRatePerSecond() {
+        if (!isStarted) {
+            return 0;
+        }
+        
         long currentSecond = System.currentTimeMillis() / 1000;
+        long startSecond = 1 + (currentSecond - SECONDS_OF_HISTORY);        
+        long endSecond = (endTimeCurrentTransferMS != -1 
+            ? endTimeCurrentTransferMS / 1000
+            : currentSecond); 
+        
+        if (currentSecond - SECONDS_OF_HISTORY > endSecond) {
+            // This item finished too long ago, ignore it now.
+            historyOfBytesBySecond = null;
+            return 0;
+        }
 
         // Count the number of bytes transferred from SECONDS_OF_HISTORY ago to the second before now.
         long sumOfBytes = 0;
-        int numberOfSecondsInHistory = 0;
-        for (long sec = earliestHistorySecond; sec < currentSecond; sec++) {            
+        long numberOfSecondsInHistory = 0;
+        for (long sec = startSecond; sec <= endSecond; sec++) {            
             numberOfSecondsInHistory++;
             Long bytesInSecond = (Long) historyOfBytesBySecond.get(Long.valueOf(sec));
             if (bytesInSecond != null) {
                 sumOfBytes += bytesInSecond.longValue();
             }
         }
-        
-        return sumOfBytes / numberOfSecondsInHistory;
+        return (double)sumOfBytes / numberOfSecondsInHistory;
     }
     
     ///////////////////////////////////////////////////////////////////////////
@@ -197,11 +210,11 @@ public class BytesProgressWatcher {
         if (!isStarted) {
             return 0;
         }
-        if (endTimeCurrentTransfer != -1) {
+        if (endTimeCurrentTransferMS != -1) {
             // Transfer is complete, report the time it took.
-            return endTimeCurrentTransfer - startTimeCurrentTransfer;
+            return endTimeCurrentTransferMS - startTimeCurrentTransferMS;
         } else {
-            return System.currentTimeMillis() - startTimeCurrentTransfer;
+            return System.currentTimeMillis() - startTimeCurrentTransferMS;
         }
     }
         
@@ -224,7 +237,7 @@ public class BytesProgressWatcher {
      * times the transfer was reset.
      */
     protected long getHistoricStartTimeMS() {
-        return startTimeAllTransfers;
+        return startTimeAllTransfersMS;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -320,13 +333,13 @@ public class BytesProgressWatcher {
      * {@link #SECONDS_OF_HISTORY} seconds). 
      */
     public static long calculateRecentByteRatePerSecond(BytesProgressWatcher[] progressWatchers) {
-        long sumOfRates = 0;
+        double sumOfRates = 0;
         for (int i = 0; i < progressWatchers.length; i++) {
             if (progressWatchers[i].isStarted()) {
                 sumOfRates += progressWatchers[i].getRecentByteRatePerSecond();
             }
         }
-        return sumOfRates;
+        return Math.round(sumOfRates);
     }
              
 }
