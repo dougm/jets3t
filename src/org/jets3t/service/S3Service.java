@@ -234,6 +234,9 @@ public abstract class S3Service implements Serializable {
      * @param secondsSinceEpoch
      * the time after which URL's signature will no longer be valid. This time cannot be null.
      *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds. 
+     * @param s3EndpointHostname
+     * the S3 endpoint host name to use instead of <tt>s3.amazonaws.com</tt>. If this parameter
+     * is null the default endpoint specified in jets3t.properties will be used.  
      * 
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
@@ -241,7 +244,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey, 
-        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch) 
+        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch, String s3EndpointHostname) 
         throws S3ServiceException
     {
         String fullKey = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
@@ -261,11 +264,54 @@ public abstract class S3Service implements Serializable {
         boolean isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getBoolProperty("s3service.https-only", true);
 
-        if (isHttpsOnly) {
-            return "https://" + getS3EndpointHost() + "/" + fullKey;
-        } else {            
-            return "http://" + getS3EndpointHost() + "/" + fullKey;
+        if (s3EndpointHostname == null) {
+            s3EndpointHostname = getS3EndpointHost();
         }
+        
+        // If the bucket name and endpoint are the same this is a 'vanity' hostname, so we can
+        // leave the bucket out of the URL (seeing as it is present in the hostname)
+        String keyURL = (bucketName.equals(s3EndpointHostname) 
+            ? fullKey.substring(bucketName.length() + 1) 
+            : fullKey);
+        
+        if (isHttpsOnly) {
+            return "https://" + s3EndpointHostname + "/" + keyURL;
+        } else {            
+            return "http://" + s3EndpointHostname + "/" + keyURL;
+        }
+    }
+    
+    /**
+     * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
+     * to whoever uses the URL up until the time specified.
+     * 
+     * @param method
+     * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param headersMap
+     * headers to add to the signed URL, may be null. 
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param awsCredentials
+     * the credentials of someone with sufficient privileges to grant access to the bucket/object 
+     * @param secondsSinceEpoch
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds. 
+     * 
+     * @return
+     * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
+     * 
+     * @throws S3ServiceException
+     */
+    public static String createSignedUrl(String method, String bucketName, String objectKey, 
+        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch) 
+        throws S3ServiceException
+    {
+        return createSignedUrl(method, bucketName, objectKey, 
+            headersMap, awsCredentials, secondsSinceEpoch, null);
     }
     
     /**
