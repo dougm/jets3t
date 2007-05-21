@@ -40,7 +40,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.io.BytesTransferredWatcher;
+import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -397,8 +397,8 @@ public class FileComparer {
      * @param s3ObjectsMap
      *        a map of keys/S3Objects built using the method 
      *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3ServiceEventListener)}
-     * @param hashWatcher
-     *        reports on the progress of file hash generation.
+     * @param progressWatcher
+     *        watches the progress of file hash generation.
      * @return
      * an object containing the results of the file comparison.
      * 
@@ -408,7 +408,7 @@ public class FileComparer {
      * @throws ParseException
      */
     public static FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap, 
-        BytesTransferredWatcher hashWatcher)
+        BytesProgressWatcher progressWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
         List onlyOnServerKeys = new ArrayList();
@@ -435,9 +435,9 @@ public class FileComparer {
                 } else {
                     // Compare file hashes.
                     InputStream hashInputStream = null;
-                    if (hashWatcher != null) {
+                    if (progressWatcher != null) {
                         hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
-                            new FileInputStream(file), hashWatcher);
+                            new FileInputStream(file), progressWatcher);
                     } else {
                         hashInputStream = new FileInputStream(file);
                     }

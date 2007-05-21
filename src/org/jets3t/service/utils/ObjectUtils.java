@@ -31,7 +31,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.GZipDeflatingInputStream;
+import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.security.EncryptionUtil;
@@ -71,6 +73,8 @@ public class ObjectUtils {
      * encryption utility object will be used to encrypt the file's data. 
      * @param gzipFile
      * if true the file will be Gzipped.
+     * @param progressWatcher
+     * watcher to monitor progress of file transformation and hash generation.
      * 
      * @return
      * an S3Object representing the file, or a transformed copy of the file, complete with
@@ -80,7 +84,7 @@ public class ObjectUtils {
      * exceptions could include IO failures, gzipping and encryption failures.
      */
     public static S3Object createObjectForUpload(String objectKey, File dataFile, 
-        EncryptionUtil encryptionUtil, boolean gzipFile) throws Exception 
+        EncryptionUtil encryptionUtil, boolean gzipFile, BytesProgressWatcher progressWatcher) throws Exception 
     {
         S3Object s3Object = new S3Object(objectKey);
         
@@ -92,26 +96,72 @@ public class ObjectUtils {
             s3Object.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
         } else {
             s3Object.setContentType(Mimetypes.getInstance().getMimetype(dataFile));
-
-            File uploadFile = transformUploadFile(dataFile, s3Object, encryptionUtil, gzipFile);
-            
+            File uploadFile = transformUploadFile(dataFile, s3Object, encryptionUtil, 
+                gzipFile, progressWatcher);
             s3Object.setContentLength(uploadFile.length());
             s3Object.setDataInputFile(uploadFile);
-
+            
             // Compute the upload file's MD5 hash.
-            s3Object.setMd5Hash(ServiceUtils.computeMD5Hash(
-                new FileInputStream(uploadFile)));
+            InputStream inputStream = new BufferedInputStream(new FileInputStream(uploadFile));
+            if (progressWatcher != null) {
+                inputStream = new ProgressMonitoredInputStream(inputStream, progressWatcher);
+            }
+            s3Object.setMd5Hash(ServiceUtils.computeMD5Hash(inputStream));
             
             if (!uploadFile.equals(dataFile)) {
                 // Compute the MD5 hash of the *original* file, if upload file has been altered
                 // through encryption or gzipping.
+                inputStream = new BufferedInputStream(new FileInputStream(dataFile));
+                if (progressWatcher != null) {
+                    inputStream = new ProgressMonitoredInputStream(inputStream, progressWatcher);
+                }                
+                
                 s3Object.addMetadata(
                     S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5,
-                    ServiceUtils.toBase64(ServiceUtils.computeMD5Hash(new FileInputStream(dataFile))));
+                    ServiceUtils.toBase64(ServiceUtils.computeMD5Hash(inputStream)));
             }            
         }
         return s3Object;
     }    
+    
+    /**
+     * Prepares a file for upload to a named object in S3, potentially transforming it if 
+     * zipping or encryption is requested.
+     * <p> 
+     * The file will have the following metadata items added:
+     * <ul>
+     * <li><i>Constants.METADATA_JETS3T_LOCAL_FILE_DATE</i> : The local file's last modified date
+     *     in ISO 8601 format</li>
+     * <li><tt>Content-Type</tt> : A content type guessed from the file's extension, or 
+     *     </i>Mimetypes.MIMETYPE_JETS3T_DIRECTORY</i> if the file is a directory</li>
+     * <li><tt>Content-Length</tt> : The size of the file</li>
+     * <li><tt>MD5-Hash</tt> : An MD5 hash of the file's data</li>
+     * <li><i>S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5</i> : An MD5 hash of the original file's 
+     *     data (added if gzipping or encryption is applied)</li>
+     * </ul>   
+     *
+     * @param objectKey
+     * the object key name to use in S3 
+     * @param dataFile  
+     * the file to prepare for upload.
+     * @param encryptionUtil
+     * if this variable is null no encryption will be applied, otherwise the provided 
+     * encryption utility object will be used to encrypt the file's data. 
+     * @param gzipFile
+     * if true the file will be Gzipped.
+     * 
+     * @return
+     * an S3Object representing the file, or a transformed copy of the file, complete with
+     * all JetS3t-specific metadata items set and ready for upload to S3.  
+     *  
+     * @throws Exception    
+     * exceptions could include IO failures, gzipping and encryption failures.
+     */
+    public static S3Object createObjectForUpload(String objectKey, File dataFile, 
+        EncryptionUtil encryptionUtil, boolean gzipFile) throws Exception
+    {
+        return createObjectForUpload(objectKey, dataFile, encryptionUtil, gzipFile, null);
+    }
     
     /**
      * Prepares a file prior to upload by encrypting and/or gzipping it according to the
@@ -127,6 +177,10 @@ public class ObjectUtils {
      * encryption utility object will be used to encrypt the file's data. 
      * @param gzipFile
      * if true the file will be Gzipped.
+     * @param progressWatcher
+     * watcher to monitor progress of file transformation and hash generation. Note
+     * that if encryption and/or gzipping is enabled, the underlying file will be
+     * read 3 times instead of once.
      * 
      * @return  
      * the original file if no encryption/gzipping options are set, otherwise a 
@@ -136,7 +190,7 @@ public class ObjectUtils {
      * exceptions could include IO failures, gzipping and encryption failures.
      */
     private static File transformUploadFile(File dataFile, S3Object s3Object, 
-        EncryptionUtil encryptionUtil, boolean gzipFile) throws Exception 
+        EncryptionUtil encryptionUtil, boolean gzipFile, BytesProgressWatcher progressWatcher) throws Exception 
     {
         if (!gzipFile && (encryptionUtil == null)) {
             // No file pre-processing required.
@@ -180,6 +234,10 @@ public class ObjectUtils {
             
             log.debug("Transforming upload file '" + dataFile + "' to temporary file '" 
                 + tempUploadFile.getAbsolutePath() + "': " + actionText);
+            
+            if (progressWatcher != null) {
+                inputStream = new ProgressMonitoredInputStream(inputStream, progressWatcher);
+            }
     
             // Write transformed data to temporary file.
             byte[] buffer = new byte[8192];
