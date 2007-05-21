@@ -330,7 +330,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
     public static void showDialog(Frame owner, S3Bucket bucket) {
         ItemPropertiesDialog dialog = new ItemPropertiesDialog(owner, "Bucket properties", false);
         dialog.displayBucketProperties(bucket);
-        dialog.show();
+        dialog.setVisible(true);
         dialog.dispose();
     }
 
@@ -346,7 +346,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
     public static void showDialog(Frame owner, S3Object[] objects) {
         ItemPropertiesDialog dialog = new ItemPropertiesDialog(owner, "Object properties", true);
         dialog.displayObjectsProperties(objects);
-        dialog.show();
+        dialog.setVisible(true);
         dialog.dispose();
     }
 
@@ -361,7 +361,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             currentObjectIndex--;
             displayObjectProperties();
         } else if ("OK".equals(e.getActionCommand())) {
-            this.hide();
+            this.setVisible(false);
         }
     }
 

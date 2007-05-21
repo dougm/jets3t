@@ -378,10 +378,10 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		if ("OK".equals(e.getActionCommand())) {
 			updateAccessControlList();
-			this.hide();
+			this.setVisible(false);
 		} else if ("Cancel".equals(e.getActionCommand())) {
 			updatedAccessControlList = null;
-			this.hide();
+			this.setVisible(false);
 		} else if ("addCanonicalGrantee".equals(e.getActionCommand())) {
 			int rowIndex = canonicalGranteeTableModel.addGrantee(
 				new CanonicalGrantee("NewCanonicalId"), Permission.PERMISSION_READ);
@@ -429,7 +429,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 			accessControlDialog = new AccessControlDialog(owner, hyperlinkListener);
 		}
 		accessControlDialog.initData(s3Items, accessControlList);
-		accessControlDialog.show();
+		accessControlDialog.setVisible(true);
 		return accessControlDialog.getUpdatedAccessControlList();
 	}
 	

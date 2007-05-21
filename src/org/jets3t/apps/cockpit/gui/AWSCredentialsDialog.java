@@ -92,7 +92,7 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
         if (e.getSource().equals(okButton)) {
             isConfirmed = true;
         }
-        this.hide();
+        this.setVisible(false);
     }
     
     /**
@@ -142,7 +142,7 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
     public static AWSCredentials showDialog(Frame ownerFrame, boolean askForFriendlyName, HyperlinkActivatedListener hyperlinkListener) {
         AWSCredentialsDialog dialog = new AWSCredentialsDialog(
             ownerFrame, askForFriendlyName, hyperlinkListener);
-        dialog.show();
+        dialog.setVisible(true);
         
         AWSCredentials awsCredentials = null; 
         if (dialog.isConfirmed()) {

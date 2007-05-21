@@ -196,7 +196,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                 } else if (loginMode == LOGIN_MODE_DIRECT) {
                     this.awsCredentials = new AWSCredentials(
                         loginCredentialsPanel.getAWSAccessKey(), loginCredentialsPanel.getAWSSecretKey());
-                    this.hide();
+                    this.setVisible(false);
                 }
             } else if (actionMode == ACTION_MODE_STORE) {
                 if (loginMode == LOGIN_MODE_PASSPHRASE) {
@@ -211,7 +211,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             }
         } else if (e.getSource().equals(cancelButton)) {
             this.awsCredentials = null;
-            this.hide();
+            this.setVisible(false);
         }
     }
     
@@ -362,7 +362,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                             progressDialog.stopDialog();
                         }
                      });
-                    myself.hide();
+                    myself.setVisible(false);
                 } catch (S3ServiceException e) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -475,7 +475,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         
         try {
             this.awsCredentials = AWSCredentials.load(password, credentialsFile);
-            this.hide();
+            this.setVisible(false);
         } catch (Exception e) {
             String message = "<html><center>Unable to load your AWS Credentials from the file: " 
                 + credentialsFile + "<br><br>Please check your password</center></html>";

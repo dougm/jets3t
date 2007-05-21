@@ -40,8 +40,6 @@ import javax.swing.KeyStroke;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jets3t.apps.cockpit.CockpitPreferences;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
@@ -57,8 +55,6 @@ import org.jets3t.service.security.EncryptionUtil;
  */
 public class PreferencesDialog extends JDialog implements ActionListener, ChangeListener {
     private static final long serialVersionUID = -5208140886913744801L;
-
-    private static final Log log = LogFactory.getLog(PreferencesDialog.class);
 
     private static PreferencesDialog preferencesDialog = null;
     
@@ -272,9 +268,9 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             cockpitPreferences.setEncryptionAlgorithm(
                 (String) encryptAlgorithmComboBox.getSelectedItem());
             
-            this.hide();
+            this.setVisible(false);
         } else if (e.getSource().equals(cancelButton)) {
-            this.hide();
+            this.setVisible(false);
         } 
     }
     
@@ -300,7 +296,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         if (preferencesDialog == null) {
             preferencesDialog = new PreferencesDialog(cockpitPreferences, owner, hyperlinkListener);
         }        
-        preferencesDialog.show();
+        preferencesDialog.setVisible(true);
     }
 
 }

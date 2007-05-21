@@ -175,7 +175,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
     
     public void actionPerformed(ActionEvent event) {
         if (event.getSource().equals(finishedButton)) {
-            this.hide();
+            this.setVisible(false);
         } else if (event.getSource().equals(loggedBucketComboBox)) {
             prefixTextField.setEnabled(false);
             loggedToBucketComboBox.setEnabled(false);
@@ -327,7 +327,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
     public static void showDialog(Frame ownerFrame, S3Service s3Service, String[] bucketNames, HyperlinkActivatedListener hyperlinkListener) {
         BucketLoggingDialog dialog = new BucketLoggingDialog(
             ownerFrame, s3Service, bucketNames, hyperlinkListener);
-        dialog.show();        
+        dialog.setVisible(true);        
         dialog.dispose();
     }
         
