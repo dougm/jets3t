@@ -21,18 +21,28 @@ package org.jets3t.service.impl.rest.httpclient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Random;
 
 import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.io.IRepeatableInputStream;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.RepeatableInputStream;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * An HttpClient request entity whose underlying data can be re-read (that is, repeated) 
- * if necessary to retry failed transmissions.
+ * if necessary to retry failed transmissions. This class also provides basic byte-rate
+ * throttling by throttling the reading of request bodies, the throttling value is set
+ * with the JetS3t property <tt>httpclient.read-throttle</tt>. If Logging is enabled
+ * for this class the MD5 hash values (Base64 and Hex) are logged after all data has 
+ * been written to the output stream.
  * <p>
  * This class works by using an underlying {@link IRepeatableInputStream} input stream to wrap
  * the real data input stream.
@@ -45,14 +55,22 @@ import org.jets3t.service.io.RepeatableInputStream;
 public class RepeatableRequestEntity implements RequestEntity {
     private final Log log = LogFactory.getLog(RepeatableRequestEntity.class);
 
+    private String name = null;
     private InputStream is = null;
     private String contentType = null;
     private long contentLength = 0;
     
-    long bytesWritten = 0;    
+    private long bytesWritten = 0;    
     private IRepeatableInputStream repeatableInputStream = null;
     private ProgressMonitoredInputStream progressMonitoredIS = null;
     
+    protected static long MAX_BYTES_PER_SECOND = 0; 
+    private static volatile long bytesWrittenThisSecond = 0;
+    private static volatile long currentSecondMonitored = 0;
+    private static final Random random = new Random();    
+    
+    private MessageDigest messageDigest = null;
+
     /**
      * Creates a repeatable request entity for the input stream provided.
      * <p>
@@ -68,11 +86,12 @@ public class RepeatableRequestEntity implements RequestEntity {
      * @param contentType
      * @param contentLength
      */
-    public RepeatableRequestEntity(InputStream is, String contentType, long contentLength) {
+    public RepeatableRequestEntity(String name, InputStream is, String contentType, long contentLength) {
         if (is == null) {
             throw new IllegalArgumentException("InputStream cannot be null");
         }
         this.is = is;
+        this.name = name;
         this.contentLength = contentLength;
         this.contentType = contentType;
         
@@ -91,7 +110,17 @@ public class RepeatableRequestEntity implements RequestEntity {
             log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
             this.is = new RepeatableInputStream(is);
             this.repeatableInputStream = (IRepeatableInputStream) this.is;
-        } 
+        }         
+        
+        MAX_BYTES_PER_SECOND = 1024 * Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getLongProperty("httpclient.read-throttle", 0);
+        if (log.isDebugEnabled()) {            
+            try {
+                messageDigest = MessageDigest.getInstance("MD5");
+            } catch (NoSuchAlgorithmException e) {
+                log.warn("Unable to calculate MD5 hash of data sent as algorithm is not available");
+            }
+        }
     }
     
     public long getContentLength() {
@@ -118,8 +147,8 @@ public class RepeatableRequestEntity implements RequestEntity {
      * {@link IRepeatableInputStream#repeatInputStream()}. 
      * <p>
      * If a {@link ProgressMonitoredInputStream} is attached, this monitor will be notified that 
-     * data is being repeated by being sent the number of bytes being repeated as a negative number
-     * (because the progress has jumped backwards as this amount of data has to be repeated).
+     * data is being repeated by being reset with 
+     * {@link ProgressMonitoredInputStream#resetProgressMonitor()}.
      */
     public void writeRequest(OutputStream out) throws IOException {        
         if (bytesWritten > 0) {
@@ -129,20 +158,94 @@ public class RepeatableRequestEntity implements RequestEntity {
 
             // Notify progress monitored input stream that we've gone backwards (if one is attached) 
             if (progressMonitoredIS != null) {
-                progressMonitoredIS.sendNotificationUpdate(0 - bytesWritten);
+                progressMonitoredIS.resetProgressMonitor();
             }
             
             bytesWritten = 0;
         }
-
-        byte[] tmp = new byte[8192];
+        
+        if (messageDigest != null) {
+            messageDigest.reset();
+        }
+        
+        byte[] tmp = new byte[1024];
         int count = 0;
 
-        while ((count = is.read(tmp)) >= 0) {
+        while ((count = this.is.read(tmp)) >= 0) {
+            throttle(count);
+            
             bytesWritten += count;
             
-            out.write(tmp, 0, count);            
+            out.write(tmp, 0, count);
+            
+            if (messageDigest != null) {
+                messageDigest.update(tmp, 0, count);
+            }
         }                
+        
+        if (messageDigest != null) {
+            byte[] hash = messageDigest.digest();
+            log.debug("MD5 digest of data sent for '" + name + "' - B64:" 
+                + ServiceUtils.toBase64(hash) + " Hex:" + ServiceUtils.toHex(hash));
+        }
+    }
+    
+    /**
+     * Throttles the speed at which data is writting by this request entity to the 
+     * maximum rate in KB/s specified by {@link #MAX_BYTES_PER_SECOND}. The method
+     * works by repeatedly delaying its completion until writing the requested number
+     * of bytes will not exceed the imposed limit for the current second. The delay
+     * imposed each time the completion is deferred is a random value between 0-500ms.   
+     * <p>
+     * This method is static and is shared by all instances of this class, so the byte 
+     * rate limit applies for all currently active RepeatableRequestEntity instances. 
+     * 
+     * @param bytesToWrite
+     * the count of bytes that will be written once this method returns. 
+     * @throws IOException
+     * an exception is thrown if the sleep delay is interrupted.
+     */
+    protected static void throttle(int bytesToWrite) throws IOException {
+        if (MAX_BYTES_PER_SECOND <= 0) {
+            // No throttling is applied.
+            return;
+        }
+        
+        // All calculations are based on the current second time interval.
+        long currentSecond = System.currentTimeMillis() / 1000;
+        boolean isCurrentSecond, willExceedThrottle;
+        
+        // All calculations are synchronized as this method can be called by multiple threads.
+        synchronized (random) {
+            // Check whether a new second has ticked over.
+            isCurrentSecond = currentSecond == currentSecondMonitored;
+            
+            // If a new second hasn't ticked over, we must limit the number of extra bytes
+            // written this second.
+            willExceedThrottle = isCurrentSecond 
+                && bytesWrittenThisSecond + bytesToWrite > MAX_BYTES_PER_SECOND;
+                
+            if (!isCurrentSecond) {
+                // We are in a brand new second, it is safe to write some bytes.
+                currentSecondMonitored = currentSecond;
+                bytesWrittenThisSecond = bytesToWrite;            
+            }
+            if (!willExceedThrottle) {
+                // We can write bytes without exceeding the limit.
+                bytesWrittenThisSecond += bytesToWrite;   
+            }                
+        }
+        
+        if (willExceedThrottle) {
+            // Sleep for a random interval, then make a recursive call to see if we 
+            // will be allowed to write bytes then.
+            try {
+                Thread.sleep(random.nextInt(500));
+            } catch (InterruptedException e) {
+                throw new IOException("Throttling of transmission was interrupted");
+            }
+            throttle(bytesToWrite);
+        } 
     }
     
 }
