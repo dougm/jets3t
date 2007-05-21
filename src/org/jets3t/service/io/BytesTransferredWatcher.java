@@ -21,6 +21,8 @@ package org.jets3t.service.io;
 /**
  * Interface that provides notifications of the count of bytes transferred in some process.  
  * 
+ * @deprecated Deprecated after JetS3t version 0.5.0, use {@link BytesProgressWatcher} instead.
+ * 
  * @author James Murty
  */
 public interface BytesTransferredWatcher {
