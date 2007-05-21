@@ -4,6 +4,7 @@ Version 0.5.1
 
 COCKPIT
 
+- Generate signed GET URLs based on 'vanity' hostnames.
 - Encryption algorithm can be changed in the preferences dialog.
 - Progress dialogs modified to fix display problems with JDK version 1.6.
 

@@ -98,6 +98,7 @@ import org.jets3t.apps.cockpit.gui.ItemPropertiesDialog;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.PreferencesDialog;
 import org.jets3t.apps.cockpit.gui.ProgressDialog;
+import org.jets3t.apps.cockpit.gui.SignedGetUrlDialog;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
@@ -2250,25 +2251,30 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         S3Object currentObject = objects[0];
 
-        Object response = JOptionPane.showInputDialog(ownerFrame,
-            "For how many hours should '" + currentObject.getKey() + "' be accessible by the URL?",
-            "Generate Public URL", JOptionPane.QUESTION_MESSAGE, null, null, "0.5");
-            
-        if (response == null) {
+        SignedGetUrlDialog dialog = new SignedGetUrlDialog(ownerFrame, null);
+        dialog.setVisible(true);
+        
+        boolean okClicked = dialog.getOkClicked();
+        String hostname = dialog.getHostname();
+        String expiryTimeStr = dialog.getExpiryTime();
+        dialog.dispose();
+        
+        if (!okClicked) {
             return;
         }
         
         try {
             // Determine expiry time for URL
-            double hoursFromNow = Double.parseDouble(response.toString());
+            double hoursFromNow = Double.parseDouble(expiryTimeStr);
             int secondsFromNow = (int) (hoursFromNow * 60 * 60);
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.SECOND, secondsFromNow);
-
+            long secondsSinceEpoch = cal.getTimeInMillis() / 1000;
+                        
             // Generate URL
-            String signedUrl = S3Service.createSignedGetUrl(
+            String signedUrl = S3Service.createSignedUrl("GET",
                 getCurrentSelectedBucket().getName(), currentObject.getKey(),
-                s3ServiceMulti.getAWSCredentials(), cal.getTime());
+                null, s3ServiceMulti.getAWSCredentials(), secondsSinceEpoch, hostname);
             
             // Display signed URL
             JOptionPane.showInputDialog(ownerFrame,
