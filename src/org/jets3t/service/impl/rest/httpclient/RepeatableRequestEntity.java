@@ -195,7 +195,7 @@ public class RepeatableRequestEntity implements RequestEntity {
      * maximum rate in KB/s specified by {@link #MAX_BYTES_PER_SECOND}. The method
      * works by repeatedly delaying its completion until writing the requested number
      * of bytes will not exceed the imposed limit for the current second. The delay
-     * imposed each time the completion is deferred is a random value between 0-500ms.   
+     * imposed each time the completion is deferred is a random value between 0-250ms.   
      * <p>
      * This method is static and is shared by all instances of this class, so the byte 
      * rate limit applies for all currently active RepeatableRequestEntity instances. 
@@ -213,12 +213,12 @@ public class RepeatableRequestEntity implements RequestEntity {
         
         // All calculations are based on the current second time interval.
         long currentSecond = System.currentTimeMillis() / 1000;
-        boolean isCurrentSecond, willExceedThrottle;
+        boolean willExceedThrottle;
         
         // All calculations are synchronized as this method can be called by multiple threads.
         synchronized (random) {
             // Check whether a new second has ticked over.
-            isCurrentSecond = currentSecond == currentSecondMonitored;
+            boolean isCurrentSecond = currentSecond == currentSecondMonitored;
             
             // If a new second hasn't ticked over, we must limit the number of extra bytes
             // written this second.
@@ -233,14 +233,14 @@ public class RepeatableRequestEntity implements RequestEntity {
             if (!willExceedThrottle) {
                 // We can write bytes without exceeding the limit.
                 bytesWrittenThisSecond += bytesToWrite;   
-            }                
+            }
         }
         
         if (willExceedThrottle) {
             // Sleep for a random interval, then make a recursive call to see if we 
             // will be allowed to write bytes then.
             try {
-                Thread.sleep(random.nextInt(500));
+                Thread.sleep(random.nextInt(250));
             } catch (InterruptedException e) {
                 throw new IOException("Throttling of transmission was interrupted");
             }
