@@ -253,7 +253,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     {
         try {
             log.debug("Performing " + httpMethod.getName() 
-                    + " request, expecting response code " + expectedResponseCode);
+                    + " request for '" + httpMethod.getPath() 
+                    + "', expecting response code " + expectedResponseCode);
 
             // Variables to manage S3 Internal Server 500 errors.
             boolean completedWithoutRecoverableError = true;
@@ -281,18 +282,21 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     contentType = httpMethod.getResponseHeader("Content-Type").getValue();
                 }
                 
-                log.debug("Request returned with headers: " + Arrays.asList(httpMethod.getResponseHeaders()));
-                log.debug("Request returned with Content-Type: " + contentType);
+                log.debug("Response for '" + httpMethod.getPath() 
+                    + "'. Content-Type: " + contentType
+                    + ", Headers: " + Arrays.asList(httpMethod.getResponseHeaders()));
                         
                 // Check we received the expected result code.
                 if (responseCode != expectedResponseCode) {                
-                    log.debug("Unexpected response code " + responseCode + ", expected " + expectedResponseCode);
+                    log.debug("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
+                        + responseCode + ", expected " + expectedResponseCode);
                     
                     if (Mimetypes.MIMETYPE_XML.equals(contentType)
                         && httpMethod.getResponseBodyAsStream() != null
                         && httpMethod.getResponseContentLength() != 0) 
                     {
-                        log.debug("Received error response with XML message");
+                        log.debug("Response '" + httpMethod.getPath() 
+                            + "' - Received error response with XML message");
         
                         StringBuffer sb = new StringBuffer();
                         BufferedReader reader = null;
@@ -312,7 +316,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         // Throw exception containing the XML message document.
                         S3ServiceException exception = 
                             new S3ServiceException("S3 " + httpMethod.getName() 
-                                + " failed.", sb.toString());
+                                + " failed for '" + httpMethod.getPath() + "'", sb.toString());
                         
                         if ("RequestTimeout".equals(exception.getS3ErrorCode())) {
                             int retryMaxCount = Jets3tProperties
@@ -321,12 +325,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             
                             if (requestTimeoutErrorCount < retryMaxCount) {
                                 requestTimeoutErrorCount++;                                
-                                log.warn("Retrying connection that failed with RequestTimeout error"
+                                log.warn("Response '" + httpMethod.getPath() 
+                                    + "' - Retrying connection that failed with RequestTimeout error"
                                     + ", attempt number " + requestTimeoutErrorCount + " of " 
                                     + retryMaxCount);
                                 completedWithoutRecoverableError = false;
                             } else {
-                                log.warn("Exceeded maximum number of retries for RequestTimeout errors: "
+                                log.warn("Response '" + httpMethod.getPath() 
+                                    + "' - Exceeded maximum number of retries for RequestTimeout errors: "
                                     + retryMaxCount);
                                 throw exception;
                             }
@@ -350,8 +356,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             // Retrying after InternalError 500, don't throw exception.
                         } else {
                             // Throw exception containing the HTTP error fields.
-                            throw new S3ServiceException("S3 " 
-                                + httpMethod.getName() + " request failed. " 
+                            throw new S3ServiceException("S3 " + httpMethod.getName() 
+                                + " request failed for '" + httpMethod.getPath() + "' - " 
                                 + "ResponseCode=" + httpMethod.getStatusCode()
                                 + ", ResponseMessage=" + httpMethod.getStatusText()
                                 + (responseText != null ? "\n" + responseText : ""));   
@@ -378,7 +384,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         } catch (Throwable t) {
             log.debug("Releasing method after error: " + t.getMessage());            
             httpMethod.releaseConnection();
-            throw new S3ServiceException("S3 " + httpMethod.getName() + " connection failed", t);
+            throw new S3ServiceException("S3 " + httpMethod.getName() 
+                + " connection failed for '" + httpMethod.getPath() + "'", t);
         } 
     }
     
@@ -928,7 +935,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         if (object.getDataInputStream() != null) {
             if (object.containsMetadata("Content-Length")) {
                 log.debug("Uploading object data with Content-Length: " + object.getContentLength());
-                requestEntity = new RepeatableRequestEntity(                    
+                requestEntity = new RepeatableRequestEntity(object.getKey(),                     
                     object.getDataInputStream(), object.getContentType(), object.getContentLength());
             } else {
                 // Use InputStreamRequestEntity for objects with an unknown content length, as the
@@ -1167,7 +1174,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         }
         
         if (object.getDataInputStream() != null) {
-            putMethod.setRequestEntity(new RepeatableRequestEntity(
+            putMethod.setRequestEntity(new RepeatableRequestEntity(object.getKey(),
                 object.getDataInputStream(), object.getContentType(), object.getContentLength()));
         }
 
