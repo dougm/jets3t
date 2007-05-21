@@ -107,13 +107,13 @@ public class BytesProgressWatcher {
         }
         
         // Keep historical records of the byte counts transferred in a given second.
-        Long currentSecond = Long.valueOf(System.currentTimeMillis() / 1000);
+        Long currentSecond = new Long(System.currentTimeMillis() / 1000);
         Long bytesInSecond = (Long) historyOfBytesBySecond.get(currentSecond);
         if (bytesInSecond != null) {
             historyOfBytesBySecond.put(currentSecond, 
-                Long.valueOf(byteCount + bytesInSecond.longValue()));
+                new Long(byteCount + bytesInSecond.longValue()));
         } else {
-            historyOfBytesBySecond.put(currentSecond, Long.valueOf(byteCount));            
+            historyOfBytesBySecond.put(currentSecond, new Long(byteCount));            
         }
 
         // Remember the earliest second value for which we have historical info.
@@ -124,7 +124,7 @@ public class BytesProgressWatcher {
         // Remove any history records we are no longer interested in.
         long removeHistoryBeforeSecond = currentSecond.longValue() - SECONDS_OF_HISTORY;
         for (long sec = earliestHistorySecond; sec < removeHistoryBeforeSecond; sec++) {
-            historyOfBytesBySecond.remove(Long.valueOf(sec));
+            historyOfBytesBySecond.remove(new Long(sec));
         }
         earliestHistorySecond = removeHistoryBeforeSecond;
     }
@@ -187,7 +187,7 @@ public class BytesProgressWatcher {
         long numberOfSecondsInHistory = 0;
         for (long sec = startSecond; sec <= endSecond; sec++) {            
             numberOfSecondsInHistory++;
-            Long bytesInSecond = (Long) historyOfBytesBySecond.get(Long.valueOf(sec));
+            Long bytesInSecond = (Long) historyOfBytesBySecond.get(new Long(sec));
             if (bytesInSecond != null) {
                 sumOfBytes += bytesInSecond.longValue();
             }
