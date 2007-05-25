@@ -137,7 +137,9 @@ public class AWSCredentials implements Serializable {
         IllegalStateException, IllegalBlockSizeException, BadPaddingException,
         InvalidAlgorithmParameterException, IOException
     {
-        save(password, new FileOutputStream(file));
+        FileOutputStream fos = new FileOutputStream(file);
+        save(password, fos);
+        fos.close();
     }
     
     /**
@@ -147,7 +149,8 @@ public class AWSCredentials implements Serializable {
      * @param password
      * the password used to encrypt the credentials.
      * @param outputStream
-     * the output stream to write the encrypted credentials data to.
+     * the output stream to write the encrypted credentials data to, this stream must be closed by
+     * the caller.
      * 
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
@@ -165,29 +168,20 @@ public class AWSCredentials implements Serializable {
         InvalidAlgorithmParameterException, IOException
     {
         BufferedOutputStream bufferedOS = null;
-        try {
-            EncryptionUtil encryptionUtil = new EncryptionUtil(password);
-            bufferedOS = new BufferedOutputStream(outputStream);
+        EncryptionUtil encryptionUtil = new EncryptionUtil(password);
+        bufferedOS = new BufferedOutputStream(outputStream);
 
-            // Encrypt AWS credentials
-            String dataToEncrypt = getAccessKey() + KEYS_DELIMITER + getSecretKey();
-            byte[] encryptedData = encryptionUtil.encrypt(dataToEncrypt);
-            
-            // Write plain-text header information to file.
-            bufferedOS.write((VERSION_PREFIX + EncryptionUtil.DEFAULT_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
-            bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
-            bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
-            
-            bufferedOS.write(encryptedData);
-            bufferedOS.close();
-        } finally {
-            if (bufferedOS != null) {
-                try {
-                    bufferedOS.close();
-                } catch (IOException e) {
-                }
-            }
-        }
+        // Encrypt AWS credentials
+        String dataToEncrypt = getAccessKey() + KEYS_DELIMITER + getSecretKey();
+        byte[] encryptedData = encryptionUtil.encrypt(dataToEncrypt);
+        
+        // Write plain-text header information to file.
+        bufferedOS.write((VERSION_PREFIX + EncryptionUtil.DEFAULT_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        
+        bufferedOS.write(encryptedData);
+        bufferedOS.flush();
     }
 
     /**

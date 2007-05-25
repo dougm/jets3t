@@ -343,5 +343,32 @@
 		</java>
 	</target>
 
+	
+	<target name="runFakeS3Server" depends="compile">
+		<java classname="org.jets3t.tests.FakeS3Server" fork="true">
+			<jvmarg line="-Djavax.net.ssl.keyStore=${keystore.file}"/>
+			<jvmarg line="-Djavax.net.ssl.keyStorePassword=${keystore.storepass}"/>
+
+			<classpath>
+				<fileset dir="${dir.libs}" includes="**/*.jar"/>
+				<path path="${dir.build}" />
+			</classpath>			
+		</java>
+	</target>
+
+	<target name="runCockpitToFakeS3Server" depends="compile">
+		<java classname="org.jets3t.apps.cockpit.Cockpit" fork="true">
+			<jvmarg line="-Djavax.net.ssl.trustStore=${keystore.file}"/>
+			<jvmarg line="-Djavax.net.ssl.trustStorePassword=${keystore.storepass}"/>
+
+			<classpath>
+				<fileset dir="${dir.libs}" includes="**/*.jar"/>
+				<path path="${dir.build}" />
+				<path path="${dir.resources}" />
+				<path path="${dir.configs}" />
+			</classpath>			
+		</java>
+	</target>
+	
 </project>
 
