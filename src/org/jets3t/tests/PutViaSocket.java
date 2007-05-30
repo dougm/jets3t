@@ -68,7 +68,7 @@ public class PutViaSocket {
 
     public static void main(String[] args) throws Exception {
         
-        String filename = "/Users/jmurty/temp/Maildir.backup.tar"; // "system.sparseimage";
+        String filename = "/Users/jmurty/temp/system.sparseimage";
         String bucketName = "1FMFX9QNQHMZ32MPA7G2.Test";
         String contentType = "application/octet-stream";
         String serverHostname = "s3.amazonaws.com";         
@@ -88,6 +88,10 @@ public class PutViaSocket {
 
         System.out.println("Connecting to " + serverHostname + ":" + port);
         Socket socket = socketFactory.createSocket(serverHostname, port);
+        
+        socket.setKeepAlive(true);
+        socket.setSoTimeout(60000);
+        socket.setTcpNoDelay(true);
         
         OutputStream out = new BufferedOutputStream(socket.getOutputStream(), 2048);
         InputStream in = socket.getInputStream();
