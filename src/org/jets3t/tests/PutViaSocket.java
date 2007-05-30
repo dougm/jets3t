@@ -1,6 +1,7 @@
 package org.jets3t.tests;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -67,16 +68,16 @@ public class PutViaSocket {
 
     public static void main(String[] args) throws Exception {
         
-        String filename = "/Users/myhome/samplefile.txt";
-        String bucketName = "MyTestBucket";
+        String filename = "/Users/jmurty/temp/Maildir.backup.tar"; // "system.sparseimage";
+        String bucketName = "1FMFX9QNQHMZ32MPA7G2.Test";
         String contentType = "application/octet-stream";
-        String serverHostname = "s3.amazonaws.com"; 
+        String serverHostname = "s3.amazonaws.com";         
         int port = 443;
         
         File file = new File(filename);
         String url = "/" + bucketName + "/" + file.getName();
 
-        System.out.println("Computing MD5 hash of file");
+        System.out.println("Computing MD5 hash of file: " + file.getName());
         long fileSize = file.length();
         byte[] md5Hash = ServiceUtils.computeMD5Hash(
             new BufferedInputStream(new FileInputStream(file)));
@@ -88,7 +89,7 @@ public class PutViaSocket {
         System.out.println("Connecting to " + serverHostname + ":" + port);
         Socket socket = socketFactory.createSocket(serverHostname, port);
         
-        OutputStream out = socket.getOutputStream();
+        OutputStream out = new BufferedOutputStream(socket.getOutputStream(), 2048);
         InputStream in = socket.getInputStream();
         
         Map headersMap = new HashMap();
@@ -110,22 +111,43 @@ public class PutViaSocket {
         FileInputStream fis = new FileInputStream(file);
         long fileBytesTransferred = 0;
         
-        byte[] data = new byte[1024];
+        byte[] data = new byte[2048];
         int dataRead = 0;
+
+        int failureCount = 0;
+        int MAX_FAILURE_RETRIES = 10;
         
         // PUT Data
         System.out.println("Uploading " + fileSize + " bytes");
         while ((dataRead = fis.read(data)) != -1) {
-            out.write(data, 0, dataRead);
-            fileBytesTransferred += dataRead;
-            if (fileBytesTransferred % (1024 * 1024) == 0) {
-                System.out.println("Uploaded " 
-                    + (fileBytesTransferred / (double)(1024 * 1024)) + "MB of "
-                    + (fileSize / (double)(1024 * 1024)) + "MB");
+            try {
+                out.write(data, 0, dataRead);
+                fileBytesTransferred += dataRead;
+                if (fileBytesTransferred % (1024 * 1024) == 0) {
+                    System.out.println("Uploaded " 
+                        + (fileBytesTransferred / (double)(1024 * 1024)) + "MB of "
+                        + (fileSize / (double)(1024 * 1024)) + "MB");
+                }            
+                out.flush();
+            } catch (Exception e) {
+                // Try to recover from the failure (it's unlikely this will ever work)
+                failureCount++;
+                if (failureCount <= MAX_FAILURE_RETRIES) {
+                    System.out.println("SocketException " + failureCount + ", will retry: " + e);
+                    Thread.sleep(500);
+                } else {
+                    break;
+                }
             }
         }
         fis.close();
-        System.out.println("Upload completed");
+        
+        if (fileBytesTransferred < fileSize) {
+            System.out.println("Upload did not complete, only " + fileBytesTransferred + " of "
+                + fileSize + " bytes sent");                        
+        } else {
+            System.out.println("Upload completed");            
+        }
 
         // Read response
         System.out.println("\nRESPONSE:");
