@@ -38,7 +38,7 @@ import org.jets3t.service.utils.ServiceUtils;
 public class PutViaSocket {
     private static String TEST_PROPERTIES_FILENAME = "test.properties";
 
-    private static AWSCredentials loadAWSCredentials() throws Exception {
+    private static Properties loadTestProperties() throws IOException {
         InputStream propertiesIS = 
             ClassLoader.getSystemResourceAsStream(TEST_PROPERTIES_FILENAME);
         
@@ -48,18 +48,23 @@ public class PutViaSocket {
         }
         
         Properties testProperties = new Properties();        
-        testProperties.load(propertiesIS);
+        testProperties.load(propertiesIS);        
+        return testProperties;
+    }
+    
+    private static AWSCredentials loadAWSCredentials(Properties testProperties) throws Exception {
         return new AWSCredentials(
             testProperties.getProperty("aws.accesskey"),
             testProperties.getProperty("aws.secretkey"));
     }
 
-    private static String generateAuthorizationString(String url, Map headersMap) throws Exception {
+    private static String generateAuthorizationString(AWSCredentials awsCredentials, 
+        String url, Map headersMap) throws Exception 
+    {
         String canonicalString = RestUtils.makeCanonicalString("PUT", url, 
             headersMap, null);
 
         // Sign the canonical string.
-        AWSCredentials awsCredentials = loadAWSCredentials();
         String signedCanonical = ServiceUtils.signWithHmacSha1(
             awsCredentials.getSecretKey(), canonicalString);
 
@@ -67,17 +72,26 @@ public class PutViaSocket {
     }
 
     public static void main(String[] args) throws Exception {
+        Properties testProperties = loadTestProperties();
         
-        String filename = "/Users/jmurty/temp/system.sparseimage";
-        String bucketName = "1FMFX9QNQHMZ32MPA7G2.Test";
-        String contentType = "application/octet-stream";
-        String serverHostname = "s3.amazonaws.com";         
+        AWSCredentials awsCredentials = loadAWSCredentials(testProperties);
+        
+        String filename = testProperties.getProperty("filename");        
+        String bucketName = testProperties.getProperty("bucketName");
+        String contentType = testProperties.getProperty("contentType");
+        String serverHostname = testProperties.getProperty("serverHostname");        
         int port = 443;
+        
+        System.out.println("AWS Access Key: " + awsCredentials.getAccessKey());
+        System.out.println("filename: " + filename);
+        System.out.println("bucketName: " + bucketName);
+        System.out.println("contentType: " + contentType);
+        System.out.println("serverHostname: " + serverHostname);
         
         File file = new File(filename);
         String url = "/" + bucketName + "/" + file.getName();
 
-        System.out.println("Computing MD5 hash of file: " + file.getName());
+        System.out.println("\nComputing MD5 hash of file: " + file.getName());
         long fileSize = file.length();
         byte[] md5Hash = ServiceUtils.computeMD5Hash(
             new BufferedInputStream(new FileInputStream(file)));
@@ -106,7 +120,7 @@ public class PutViaSocket {
             "Content-MD5: " + headersMap.get("Content-MD5") + "\r\n" +
             "Content-Type: " + headersMap.get("Content-Type")  + "\r\n" +
             "Date: " + headersMap.get("Date") + "\r\n" + 
-            "Authorization: " + generateAuthorizationString(url,headersMap) + "\r\n" +                
+            "Authorization: " + generateAuthorizationString(awsCredentials, url,headersMap) + "\r\n" +                
             "Host: " + serverHostname + "\r\n" +
             "\r\n";
         
