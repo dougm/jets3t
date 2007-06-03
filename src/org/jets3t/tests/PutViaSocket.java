@@ -96,6 +96,12 @@ public class PutViaSocket {
                 + "' for property 'enableSSL' must be 'true' or 'false' (case-insensitive)");
         }
         
+        // Over-ride default server ports (80, 443) if a special port is configured.
+        String serverPortStr = testProperties.getProperty("serverPort", null);
+        if (serverPortStr != null) {
+            port = Integer.parseInt(serverPortStr);
+        }
+        
         boolean isS3AuthEnabled;
         String disableS3FeaturesStr = testProperties.getProperty("disableS3Features", "false");
         if ("true".equalsIgnoreCase(disableS3FeaturesStr)) {
