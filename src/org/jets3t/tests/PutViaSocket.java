@@ -78,15 +78,44 @@ public class PutViaSocket {
         
         String filename = testProperties.getProperty("filename");        
         String bucketName = testProperties.getProperty("bucketName");
-        String contentType = testProperties.getProperty("contentType");
-        String serverHostname = testProperties.getProperty("serverHostname");        
-        int port = 443;
+        String contentType = testProperties.getProperty("contentType", "application/octet-stream");
+        String serverHostname = testProperties.getProperty("serverHostname", "s3.amazonaws.com");        
+        String bufferSizeStr = testProperties.getProperty("bufferSize", "2048");
+        int byteBufferSize = Integer.parseInt(bufferSizeStr);
+
+        int port = 80;
+        boolean isEnableSSL;
+        String enableSslStr = testProperties.getProperty("enableSSL", "false");
+        if ("true".equalsIgnoreCase(enableSslStr)) {
+            isEnableSSL = true;
+            port = 443;
+        } else if ("false".equalsIgnoreCase(enableSslStr)) {
+            isEnableSSL = false;
+        } else {
+            throw new IllegalArgumentException("Boolean value '" + enableSslStr 
+                + "' for property 'enableSSL' must be 'true' or 'false' (case-insensitive)");
+        }
+        
+        boolean isS3AuthEnabled;
+        String disableS3FeaturesStr = testProperties.getProperty("disableS3Features", "false");
+        if ("true".equalsIgnoreCase(disableS3FeaturesStr)) {
+            isS3AuthEnabled = false;
+        } else if ("false".equalsIgnoreCase(disableS3FeaturesStr)) {
+            isS3AuthEnabled = true;
+        } else {
+            throw new IllegalArgumentException("Boolean value '" + disableS3FeaturesStr 
+                + "' for property 'disableS3Features' must be 'true' or 'false' (case-insensitive)");
+        }
         
         System.out.println("AWS Access Key: " + awsCredentials.getAccessKey());
         System.out.println("filename: " + filename);
         System.out.println("bucketName: " + bucketName);
         System.out.println("contentType: " + contentType);
         System.out.println("serverHostname: " + serverHostname);
+        System.out.println("serverPort: " + port);
+        System.out.println("bufferSize: " + byteBufferSize);
+        System.out.println("enableSSL? " + isEnableSSL);
+        System.out.println("isS3AuthEnabled? " + isS3AuthEnabled);
         
         File file = new File(filename);
         String url = "/" + bucketName + "/" + file.getName();
@@ -98,7 +127,12 @@ public class PutViaSocket {
         System.out.println("MD5 hash of file B64=" + ServiceUtils.toBase64(md5Hash)
             + " Hex=" + ServiceUtils.toHex(md5Hash));
         
-        SocketFactory socketFactory = SSLSocketFactory.getDefault();
+        SocketFactory socketFactory = null;
+        if (isEnableSSL) {
+            socketFactory = SSLSocketFactory.getDefault();
+        } else {
+            socketFactory = SocketFactory.getDefault();
+        }
 
         System.out.println("Connecting to " + serverHostname + ":" + port);
         Socket socket = socketFactory.createSocket(serverHostname, port);
@@ -107,20 +141,24 @@ public class PutViaSocket {
         socket.setSoTimeout(60000);
         socket.setTcpNoDelay(true);
         
-        OutputStream out = new BufferedOutputStream(socket.getOutputStream(), 2048);
+        OutputStream out = new BufferedOutputStream(socket.getOutputStream(), byteBufferSize);
         InputStream in = socket.getInputStream();
         
         Map headersMap = new HashMap();
         headersMap.put("Content-MD5", ServiceUtils.toBase64(md5Hash));
         headersMap.put("Content-Type", contentType);
         headersMap.put("Date", ServiceUtils.formatRfc822Date(new Date()));
+        headersMap.put("S3Authorization", generateAuthorizationString(awsCredentials, url,headersMap));
+                
         String headers = 
             "PUT " + url + " HTTP/1.1\r\n" +
             "Content-Length: " + fileSize + "\r\n" +
             "Content-MD5: " + headersMap.get("Content-MD5") + "\r\n" +
             "Content-Type: " + headersMap.get("Content-Type")  + "\r\n" +
-            "Date: " + headersMap.get("Date") + "\r\n" + 
-            "Authorization: " + generateAuthorizationString(awsCredentials, url,headersMap) + "\r\n" +                
+            "Date: " + headersMap.get("Date") + "\r\n" +
+            (isS3AuthEnabled
+                ? "Authorization: " + headersMap.get("S3Authorization") + "\r\n" 
+                : "") +                
             "Host: " + serverHostname + "\r\n" +
             "\r\n";
         
@@ -129,7 +167,7 @@ public class PutViaSocket {
         FileInputStream fis = new FileInputStream(file);
         long fileBytesTransferred = 0;
         
-        byte[] data = new byte[2048];
+        byte[] data = new byte[byteBufferSize];
         int dataRead = 0;
 
         int failureCount = 0;
