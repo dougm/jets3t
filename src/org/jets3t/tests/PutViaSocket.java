@@ -147,6 +147,8 @@ public class PutViaSocket {
         socket.setSoTimeout(60000);
         socket.setTcpNoDelay(true);
         
+        System.out.println("Connected to " + socket.getInetAddress().toString() + ":" + socket.getPort());
+        
         OutputStream out = new BufferedOutputStream(socket.getOutputStream(), byteBufferSize);
         InputStream in = socket.getInputStream();
         
@@ -168,6 +170,11 @@ public class PutViaSocket {
             "Host: " + serverHostname + "\r\n" +
             "\r\n";
         
+        // Output PUT Headers
+        System.out.println("\nREQUEST:");
+        System.out.print(headers);
+        System.out.println();
+        
         out.write(headers.getBytes());
         
         FileInputStream fis = new FileInputStream(file);
@@ -175,6 +182,7 @@ public class PutViaSocket {
         
         byte[] data = new byte[byteBufferSize];
         int dataRead = 0;
+        long megabytesSent = 0;
 
         int failureCount = 0;
         int MAX_FAILURE_RETRIES = 10;
@@ -185,12 +193,12 @@ public class PutViaSocket {
             try {
                 out.write(data, 0, dataRead);
                 fileBytesTransferred += dataRead;
-                if (fileBytesTransferred % (1024 * 1024) == 0) {
+                if (fileBytesTransferred / (1024 * 1024) > megabytesSent) {
                     System.out.println("Uploaded " 
                         + (fileBytesTransferred / (double)(1024 * 1024)) + "MB of "
                         + (fileSize / (double)(1024 * 1024)) + "MB");
+                    megabytesSent = fileBytesTransferred / (1024 * 1024);
                 }            
-                out.flush();
             } catch (Exception e) {
                 // Try to recover from the failure (it's unlikely this will ever work)
                 failureCount++;
@@ -202,6 +210,7 @@ public class PutViaSocket {
                 }
             }
         }
+        out.flush();
         fis.close();
         
         if (fileBytesTransferred < fileSize) {
