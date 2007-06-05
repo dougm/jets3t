@@ -192,7 +192,9 @@ public class BytesProgressWatcher {
                 sumOfBytes += bytesInSecond.longValue();
             }
         }
-        return (double)sumOfBytes / numberOfSecondsInHistory;
+        return (numberOfSecondsInHistory == 0
+            ? 0
+            : (double)sumOfBytes / numberOfSecondsInHistory);
     }
     
     ///////////////////////////////////////////////////////////////////////////
