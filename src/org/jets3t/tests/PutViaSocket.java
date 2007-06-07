@@ -160,14 +160,16 @@ public class PutViaSocket {
                 
         String headers = 
             "PUT " + url + " HTTP/1.1\r\n" +
-            "Content-Length: " + fileSize + "\r\n" +
-            "Content-MD5: " + headersMap.get("Content-MD5") + "\r\n" +
-            "Content-Type: " + headersMap.get("Content-Type")  + "\r\n" +
+            "User-Agent: PutViaSocket/1.0\r\n" +
+            "Host: " + serverHostname + "\r\n" +
+            "Accept: */*\r\n" +
             "Date: " + headersMap.get("Date") + "\r\n" +
             (isS3AuthEnabled
                 ? "Authorization: " + headersMap.get("S3Authorization") + "\r\n" 
                 : "") +                
-            "Host: " + serverHostname + "\r\n" +
+            "Content-Length: " + fileSize + "\r\n" +
+            "Content-MD5: " + headersMap.get("Content-MD5") + "\r\n" +
+            "Content-Type: " + headersMap.get("Content-Type")  + "\r\n" +
             "Expect: 100-continue\r\n" +
             "\r\n";
         
@@ -185,17 +187,25 @@ public class PutViaSocket {
         // Handle Expect: 100-Continue
         out.flush();
         Thread.sleep(500);
+        boolean isContinueOK = false;
         if (in.available() > 0) {
-            // Uh oh, something must have gone wrong. Write the server's response and quit.
             System.out.println("\nResponse to Expect: 100-Continue...");
             while ((dataRead = in.read(data)) != -1) {
                 String line = new String(data, 0, dataRead);
                 System.out.print(line);
+                if (line.contains("HTTP/1.1 100 Continue")) {
+                    isContinueOK = true;
+                    break;
+                }                
             }
-            System.out.println("\n\nQuitting without performing upload");
-            in.close();
-            out.close();
-            return;
+           
+            if (!isContinueOK) {
+                // Uh oh, something must have gone wrong. Write the server's response and quit.
+                System.out.println("\n\nQuitting without performing upload");
+                in.close();
+                out.close();
+                return;
+            }
         } 
         
         FileInputStream fis = new FileInputStream(file);
