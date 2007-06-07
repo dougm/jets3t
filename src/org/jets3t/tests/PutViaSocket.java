@@ -168,6 +168,7 @@ public class PutViaSocket {
                 ? "Authorization: " + headersMap.get("S3Authorization") + "\r\n" 
                 : "") +                
             "Host: " + serverHostname + "\r\n" +
+            "Expect: 100-continue\r\n" +
             "\r\n";
         
         // Output PUT Headers
@@ -175,15 +176,31 @@ public class PutViaSocket {
         System.out.print(headers);
         System.out.println();
         
+        byte[] data = new byte[byteBufferSize];
+        int dataRead = 0;
+        long megabytesSent = 0;
+        
         out.write(headers.getBytes());
+        
+        // Handle Expect: 100-Continue
+        out.flush();
+        Thread.sleep(500);
+        if (in.available() > 0) {
+            // Uh oh, something must have gone wrong. Write the server's response and quit.
+            System.out.println("\nResponse to Expect: 100-Continue...");
+            while ((dataRead = in.read(data)) != -1) {
+                String line = new String(data, 0, dataRead);
+                System.out.print(line);
+            }
+            System.out.println("\n\nQuitting without performing upload");
+            in.close();
+            out.close();
+            return;
+        } 
         
         FileInputStream fis = new FileInputStream(file);
         long fileBytesTransferred = 0;
         
-        byte[] data = new byte[byteBufferSize];
-        int dataRead = 0;
-        long megabytesSent = 0;
-
         int failureCount = 0;
         int MAX_FAILURE_RETRIES = 10;
         
@@ -195,7 +212,7 @@ public class PutViaSocket {
                 fileBytesTransferred += dataRead;
                 if (fileBytesTransferred / (1024 * 1024) > megabytesSent) {
                     System.out.println("Uploaded " 
-                        + (fileBytesTransferred / (double)(1024 * 1024)) + "MB of "
+                        + (int)(fileBytesTransferred / (double)(1024 * 1024)) + "MB of "
                         + (fileSize / (double)(1024 * 1024)) + "MB");
                     megabytesSent = fileBytesTransferred / (1024 * 1024);
                 }            
