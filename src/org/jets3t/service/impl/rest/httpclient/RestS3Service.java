@@ -149,7 +149,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
         
-        connectionParams.setBooleanParameter("http.protocol.expect-continue", true);
         connectionParams.setTcpNoDelay(true);
         
         connectionManager = new MultiThreadedHttpConnectionManager();
@@ -164,7 +163,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         }
         log.debug("Setting user agent string: " + userAgent);
         clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
-        
+
+        clientParams.setBooleanParameter("http.protocol.expect-continue", true);
+
         // Replace default error retry handler.
         final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
         
@@ -716,7 +717,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         // Add encoded authorization to connection as HTTP Authorization header. 
         String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signedCanonical;
-        httpMethod.setRequestHeader("Authorization", authorizationString);                                
+        httpMethod.setRequestHeader("Authorization", authorizationString);
     }
 
     
