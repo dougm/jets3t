@@ -84,13 +84,13 @@ public class PutViaSocket {
         int byteBufferSize = Integer.parseInt(bufferSizeStr);
 
         int port = 80;
-        boolean isEnableSSL;
+        boolean isSslEnabled;
         String enableSslStr = testProperties.getProperty("enableSSL", "false");
         if ("true".equalsIgnoreCase(enableSslStr)) {
-            isEnableSSL = true;
+            isSslEnabled = true;
             port = 443;
         } else if ("false".equalsIgnoreCase(enableSslStr)) {
-            isEnableSSL = false;
+            isSslEnabled = false;
         } else {
             throw new IllegalArgumentException("Boolean value '" + enableSslStr 
                 + "' for property 'enableSSL' must be 'true' or 'false' (case-insensitive)");
@@ -112,7 +112,18 @@ public class PutViaSocket {
             throw new IllegalArgumentException("Boolean value '" + disableS3FeaturesStr 
                 + "' for property 'disableS3Features' must be 'true' or 'false' (case-insensitive)");
         }
-        
+
+        boolean isBugBehaviourEnabled;
+        String enableBugBehaviourStr = testProperties.getProperty("enableBugBehaviour", "false");
+        if ("true".equalsIgnoreCase(enableBugBehaviourStr)) {
+            isBugBehaviourEnabled = true;
+        } else if ("false".equalsIgnoreCase(enableBugBehaviourStr)) {
+            isBugBehaviourEnabled = false;
+        } else {
+            throw new IllegalArgumentException("Boolean value '" + enableBugBehaviourStr
+                + "' for property 'enableBugBehaviour' must be 'true' or 'false' (case-insensitive)");
+        }
+
         System.out.println("AWS Access Key: " + awsCredentials.getAccessKey());
         System.out.println("filename: " + filename);
         System.out.println("bucketName: " + bucketName);
@@ -120,8 +131,9 @@ public class PutViaSocket {
         System.out.println("serverHostname: " + serverHostname);
         System.out.println("serverPort: " + port);
         System.out.println("bufferSize: " + byteBufferSize);
-        System.out.println("enableSSL? " + isEnableSSL);
+        System.out.println("isSslEnabled? " + isSslEnabled);
         System.out.println("isS3AuthEnabled? " + isS3AuthEnabled);
+        System.out.println("isBugBehaviourEnabled? " + isBugBehaviourEnabled);
         
         File file = new File(filename);
         String url = "/" + bucketName + "/" + file.getName();
@@ -134,13 +146,13 @@ public class PutViaSocket {
             + " Hex=" + ServiceUtils.toHex(md5Hash));
         
         SocketFactory socketFactory = null;
-        if (isEnableSSL) {
+        if (isSslEnabled) {
             socketFactory = SSLSocketFactory.getDefault();
         } else {
             socketFactory = SocketFactory.getDefault();
         }
 
-        System.out.println("Connecting to " + serverHostname + ":" + port);
+        System.out.println("\nConnecting to " + serverHostname + ":" + port);
         Socket socket = socketFactory.createSocket(serverHostname, port);
         
         socket.setKeepAlive(true);
@@ -158,20 +170,37 @@ public class PutViaSocket {
         headersMap.put("Date", ServiceUtils.formatRfc822Date(new Date()));
         headersMap.put("S3Authorization", generateAuthorizationString(awsCredentials, url,headersMap));
                 
-        String headers = 
-            "PUT " + url + " HTTP/1.1\r\n" +
-            "User-Agent: PutViaSocket/1.0\r\n" +
-            "Host: " + serverHostname + "\r\n" +
-            "Accept: */*\r\n" +
-            "Date: " + headersMap.get("Date") + "\r\n" +
-            (isS3AuthEnabled
-                ? "Authorization: " + headersMap.get("S3Authorization") + "\r\n" 
-                : "") +                
-            "Content-Length: " + fileSize + "\r\n" +
-            "Content-MD5: " + headersMap.get("Content-MD5") + "\r\n" +
-            "Content-Type: " + headersMap.get("Content-Type")  + "\r\n" +
-            "Expect: 100-continue\r\n" +
-            "\r\n";
+        String headers = "";
+        if (isBugBehaviourEnabled) {
+            // Original Headers that exhibit the Bad Digest bug.
+            headers = 
+                "PUT " + url + " HTTP/1.1\r\n" +
+                "Content-Length: " + fileSize + "\r\n" +
+                "Content-MD5: " + headersMap.get("Content-MD5") + "\r\n" +
+                "Content-Type: " + headersMap.get("Content-Type") + "\r\n" +
+                "Date: " + headersMap.get("Date") + "\r\n" +
+                (isS3AuthEnabled
+                    ? "Authorization: " + headersMap.get("S3Authorization") + "\r\n" 
+                    : "") +
+                "Host: " + serverHostname + "\r\n" +
+                "\r\n";
+        } else {
+            // Complete Header set re-ordered following s3curl example, has succeeded at least once.
+            headers = 
+                "PUT " + url + " HTTP/1.1\r\n" +
+                "User-Agent: PutViaSocket/1.0\r\n" +
+                "Host: " + serverHostname + "\r\n" +
+                "Accept: */*\r\n" +
+                "Date: " + headersMap.get("Date") + "\r\n" +
+                (isS3AuthEnabled
+                    ? "Authorization: " + headersMap.get("S3Authorization") + "\r\n" 
+                    : "") +                
+                "Content-Length: " + fileSize + "\r\n" +
+                "Content-MD5: " + headersMap.get("Content-MD5") + "\r\n" +
+                "Content-Type: " + headersMap.get("Content-Type") + "\r\n" +
+                "Expect: 100-continue\r\n" +            
+                "\r\n";
+        }            
         
         // Output PUT Headers
         System.out.println("\nREQUEST:");
@@ -183,31 +212,32 @@ public class PutViaSocket {
         long megabytesSent = 0;
         
         out.write(headers.getBytes());
-        
-        // Handle Expect: 100-Continue
         out.flush();
-        Thread.sleep(500);
-        boolean isContinueOK = false;
-        if (in.available() > 0) {
-            System.out.println("\nResponse to Expect: 100-Continue...");
-            while ((dataRead = in.read(data)) != -1) {
-                String line = new String(data, 0, dataRead);
-                System.out.print(line);
-                if (line.contains("HTTP/1.1 100 Continue")) {
-                    isContinueOK = true;
-                    break;
-                }                
-            }
-           
-            if (!isContinueOK) {
-                // Uh oh, something must have gone wrong. Write the server's response and quit.
-                System.out.println("\n\nQuitting without performing upload");
-                in.close();
-                out.close();
-                return;
-            }
-        } 
         
+        if (!isBugBehaviourEnabled) {
+            // Handle Expect: 100-Continue
+            Thread.sleep(500);
+            boolean isContinueOK = false;
+            if (in.available() > 0) {
+                System.out.println("\nResponse to Expect: 100-Continue...");
+                while ((dataRead = in.read(data)) != -1) {
+                    String line = new String(data, 0, dataRead);
+                    System.out.print(line);
+                    if (line.contains("HTTP/1.1 100 Continue")) {
+                        isContinueOK = true;
+                        break;
+                    }                
+                }
+               
+                if (!isContinueOK) {
+                    // Uh oh, something must have gone wrong. Write the server's response and quit.
+                    System.out.println("\n\nQuitting without performing upload");
+                    in.close();
+                    out.close();
+                    return;
+                }
+            } 
+        }        
         FileInputStream fis = new FileInputStream(file);
         long fileBytesTransferred = 0;
         
