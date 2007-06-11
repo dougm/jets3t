@@ -78,7 +78,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
     
     public void actionPerformed(ActionEvent e) {
         if ("OK".equals(e.getActionCommand())) {
-            this.hide();
+            this.setVisible(false);
         }
     }
     
