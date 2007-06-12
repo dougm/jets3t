@@ -223,7 +223,7 @@ public class PutViaSocket {
                 while ((dataRead = in.read(data)) != -1) {
                     String line = new String(data, 0, dataRead);
                     System.out.print(line);
-                    if (line.contains("HTTP/1.1 100 Continue")) {
+                    if (line.indexOf("HTTP/1.1 100 Continue") >= 0) {
                         isContinueOK = true;
                         break;
                     }                
