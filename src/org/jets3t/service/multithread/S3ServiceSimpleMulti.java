@@ -18,6 +18,8 @@
  */
 package org.jets3t.service.multithread;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -146,7 +148,9 @@ public class S3ServiceSimpleMulti {
     }
     
     /**
-     * Retrieves multiple objects (including details and data)
+     * Retrieves multiple objects (including details and data).
+     * The objects' data will be stored in temporary files, and can be retrieved using
+     * {@link S3Object#getDataInputStream()}. 
      * 
      * @param bucket
      * the bucket containing the objects.
@@ -157,15 +161,38 @@ public class S3ServiceSimpleMulti {
      * @throws S3ServiceException
      */
     public S3Object[] getObjects(S3Bucket bucket, S3Object[] objects) throws S3ServiceException {
-        String[] objectKeys = new String[objects.length];
-        for (int i = 0; i < objects.length; i++) {
-            objectKeys[i] = objects[i].getKey();
+        DownloadPackage[] downloadPackages = new DownloadPackage[objects.length];
+        try {
+            for (int i = 0; i < downloadPackages.length; i++) {
+                // Create a temporary file for data, file will auto-delete on JVM exit.
+                File tempFile = File.createTempFile("jets3t-", ".tmp");
+                tempFile.deleteOnExit();
+                
+                downloadPackages[i] = new DownloadPackage(objects[i], tempFile);
+            }
+        } catch (IOException e) {
+            throw new S3ServiceException("Unable to create temporary file to store object data", e);
         }
-        return getObjects(bucket, objectKeys);
+        
+        final List objectList = new ArrayList();
+        S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
+                super.s3ServiceEventPerformed(event);
+                if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                    objectList.addAll(Arrays.asList(event.getDownloadedObjects()));
+                }
+            };
+        };
+        
+        (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, downloadPackages);
+        throwError(adaptor);
+        return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
     
     /**
-     * Retrieves multiple objects (including details and data)
+     * Retrieves multiple objects (including details and data).
+     * The objects' data will be stored in temporary files, and can be retrieved using
+     * {@link S3Object#getDataInputStream()}. 
      * 
      * @param bucket
      * the bucket containing the objects.
@@ -177,18 +204,11 @@ public class S3ServiceSimpleMulti {
      * @throws S3ServiceException
      */
     public S3Object[] getObjects(final S3Bucket bucket, final String[] objectKeys) throws S3ServiceException {
-        final List objectList = new ArrayList();
-        S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
-            public void s3ServiceEventPerformed(GetObjectsEvent event) {
-                super.s3ServiceEventPerformed(event);
-                if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                    objectList.addAll(Arrays.asList(event.getCompletedObjects()));
-                }
-            };
-        };
-        (new S3ServiceMulti(s3Service, adaptor)).getObjects(bucket, objectKeys);
-        throwError(adaptor);
-        return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
+        S3Object[] objects = new S3Object[objectKeys.length]; 
+        for (int i = 0; i < objectKeys.length; i++) {
+            objects[i] = new S3Object(objectKeys[i]);
+        }
+        return getObjects(bucket, objects);
     }
 
     /**

@@ -62,6 +62,10 @@ public class DownloadPackage {
         return object;
     }
     
+    public File getDataFile() {
+        return outputFile;
+    }
+    
     /**
      * Creates an output stream to receive the object's data. The output stream is based on a 
      * FileOutputStream, but will also be wrapped in a GZipInflatingOutputStream if

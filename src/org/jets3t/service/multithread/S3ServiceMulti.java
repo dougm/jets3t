@@ -658,7 +658,7 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher));
             }
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                incompleteObjectDownloadList.removeAll(completedResults);
+                incompleteObjectDownloadList.removeAll(completedResults);                
                 S3Object[] completedObjects = (S3Object[]) completedResults
                     .toArray(new S3Object[completedResults.size()]);
                 fireServiceEvent(DownloadObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
@@ -1288,6 +1288,7 @@ public class S3ServiceMulti implements Serializable {
                 }                
 
                 object.setDataInputStream(null);
+                object.setDataInputFile(downloadPackage.getDataFile());
                 result = object;
             } catch (Throwable t) {
                 result = t;
