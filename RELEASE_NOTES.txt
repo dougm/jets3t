@@ -30,7 +30,8 @@ TOOLKIT
 
   * General
 
-- Fixed bugs that caused uploads greater than 2GB to fail.
+- Fixed bugs that caused uploads greater than 2GB to fail 
+  (Expect: 100-Continue is now supported)
 - File listings as built using the FileComparer.buildFileMap() methods can be
   set not to include place-holder objects to represent empty directories 
   (mimetype "application/x-directory") with the new configuration setting
@@ -53,6 +54,9 @@ TOOLKIT
   actions with the new configuration setting s3service.admin-max-thread-count.
   These connections run much faster with more threads and as they are light 
   weight they less likely to fail with higher thread counts.
+- Fixed S3ServiceSimpleMulti class to work with download sets larger than the
+  number of available HTTP connections. Objects' data is now cached in temp
+  files automatically.
 
 
 -------------
