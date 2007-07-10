@@ -906,13 +906,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     			userBucketName = responseMessage.getApplicationProperties().getProperty("UserBucket");
     			userPath = responseMessage.getApplicationProperties().getProperty("UserPath", "");
     			userVanityHost = responseMessage.getApplicationProperties().getProperty("UserVanityHost");
-                userCanUpload = Boolean.parseBoolean(
+                userCanUpload = "true".equalsIgnoreCase(
                     responseMessage.getApplicationProperties().getProperty("UserCanUpload"));
-                userCanDownload = Boolean.parseBoolean(
+                userCanDownload = "true".equalsIgnoreCase(
                     responseMessage.getApplicationProperties().getProperty("UserCanDownload"));
-                userCanDelete = Boolean.parseBoolean(
+                userCanDelete = "true".equalsIgnoreCase(
                     responseMessage.getApplicationProperties().getProperty("UserCanDelete"));
-                userCanACL = Boolean.parseBoolean(
+                userCanACL = "true".equalsIgnoreCase(
                     responseMessage.getApplicationProperties().getProperty("UserCanACL"));
                 
                 objectTableModel.setUsersPath(userPath);
