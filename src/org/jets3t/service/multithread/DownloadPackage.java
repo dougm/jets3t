@@ -29,8 +29,8 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.EncryptionUtil;
 
 /**
- * A simple container object to associate an {@link S3Object} with an output file, where the 
- * object's data will be written to.
+ * A simple container object to associate one of an {@link S3Object} or a signed URL string
+ * with an output file, where the object's data will be written to. 
  * <p>
  * This class is used by {@link S3ServiceMulti#downloadObjects(S3Bucket, DownloadPackage[])}
  * to download objects.   
@@ -41,6 +41,8 @@ public class DownloadPackage {
     private static final Log log = LogFactory.getLog(DownloadPackage.class);
 
     private S3Object object = null;
+    private String signedUrl = null;
+    
     private File outputFile = null;
     private boolean isUnzipping = false;
     private EncryptionUtil encryptionUtil = null;
@@ -58,12 +60,34 @@ public class DownloadPackage {
         this.encryptionUtil = encryptionUtil;
     }
     
+    public DownloadPackage(String signedUrl, S3Object object, File outputFile, boolean isUnzipping, 
+            EncryptionUtil encryptionUtil) 
+        {
+            this.signedUrl = signedUrl;        
+    		this.object = object;        
+            this.outputFile = outputFile;
+            this.isUnzipping = isUnzipping;
+            this.encryptionUtil = encryptionUtil;
+        }
+
     public S3Object getObject() {
         return object;
     }
     
     public File getDataFile() {
         return outputFile;
+    }
+    
+    public String getSignedUrl() {
+    	return signedUrl;
+    }
+     
+    public void setSignedUrl(String url) {
+    	signedUrl = url;
+    }
+    
+    public boolean isSignedDownload() {
+    	return signedUrl != null;
     }
     
     /**
