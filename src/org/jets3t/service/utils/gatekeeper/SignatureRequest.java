@@ -21,6 +21,8 @@ package org.jets3t.service.utils.gatekeeper;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jets3t.service.model.S3Object;
+
 /**
  * Represents a signature request - that is, a request that a Gatekeeper allow a specific operation
  * (signature type) on a specific object in S3. The operations that may be requested are: get, head, put.
@@ -33,6 +35,8 @@ public class SignatureRequest {
     public static final String SIGNATURE_TYPE_HEAD = "head";
     public static final String SIGNATURE_TYPE_PUT = "put";
     public static final String SIGNATURE_TYPE_DELETE = "delete";
+    public static final String SIGNATURE_TYPE_ACL_LOOKUP = "acl-lookup";
+    public static final String SIGNATURE_TYPE_ACL_UPDATE = "acl-update";
     
     private String signatureType = null;
     private String objectKey = null;
@@ -138,7 +142,9 @@ public class SignatureRequest {
         if (!SIGNATURE_TYPE_GET.equals(signatureType)
             && !SIGNATURE_TYPE_HEAD.equals(signatureType)
             && !SIGNATURE_TYPE_PUT.equals(signatureType)
-            && !SIGNATURE_TYPE_DELETE.equals(signatureType)) 
+            && !SIGNATURE_TYPE_DELETE.equals(signatureType)
+            && !SIGNATURE_TYPE_ACL_LOOKUP.equals(signatureType)
+            && !SIGNATURE_TYPE_ACL_UPDATE.equals(signatureType)) 
         {            
             throw new IllegalArgumentException("Illegal signature type: " + signatureType);
         }
@@ -191,5 +197,11 @@ public class SignatureRequest {
     public boolean isSigned() {
         return getSignedUrl() != null;
     }    
+    
+    public S3Object buildObject() {
+    	S3Object object = new S3Object(getObjectKey());
+    	object.addAllMetadata(getObjectMetadata());
+    	return object;
+    }
     
 }

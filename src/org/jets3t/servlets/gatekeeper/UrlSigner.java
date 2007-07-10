@@ -18,11 +18,13 @@
  */
 package org.jets3t.servlets.gatekeeper;
 
+import java.util.Calendar;
+import java.util.Date;
+
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 
@@ -40,38 +42,14 @@ import org.jets3t.service.utils.gatekeeper.SignatureRequest;
  * @author James Murty
  */
 public abstract class UrlSigner {
-    protected AWSCredentials awsCredentials = null;
     
     /**
      * Constructs a UrlSigner with the following required properties from the servlet configuration:
-     * <ul>
-     * <li><tt>AwsAccessKey</tt>: The AWS Access Key for an S3 account</li>
-     * <li><tt>AwsSecretKey</tt>: The AWS Secret Key for an S3 account</li>
-     * </ul>
      * 
      * @param servletConfig
      * @throws ServletException
      */
     public UrlSigner(ServletConfig servletConfig) throws ServletException {
-        String awsAccessKey = servletConfig.getInitParameter("AwsAccessKey");
-        String awsSecretKey = servletConfig.getInitParameter("AwsSecretKey");
-
-        // Fail with an exception if required init params are missing.
-        boolean missingInitParam = false;
-        String errorMessage = "Missing required servlet init parameters for UrlSigner: ";
-        if (awsAccessKey == null || awsAccessKey.length() == 0) {
-            errorMessage += "AwsAccessKey ";
-            missingInitParam = true;
-        }
-        if (awsSecretKey == null || awsSecretKey.length() == 0) {
-            errorMessage += "AwsSecretKey ";
-            missingInitParam = true;
-        }
-        if (missingInitParam) {
-            throw new ServletException(errorMessage);
-        }        
-        
-        this.awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
     }
 
     /**
@@ -154,4 +132,56 @@ public abstract class UrlSigner {
         ClientInformation clientInformation, SignatureRequest signatureRequest)
         throws S3ServiceException;
 
+    /**
+     * Generate a signed GET URL for an ACL-based signature request.
+     *  
+     * @param requestMessage
+     * the request message received from the client. 
+     * @param clientInformation
+     * information about the client's end-point, and any Session or Principal associated with the client. 
+     * @param signatureRequest
+     * a pre-approved signature request.
+     * 
+     * @return
+     * a signed URL string that will allow the operation specified in the signature request
+     * on the object specified in the signature request. 
+     * 
+     * @throws S3ServiceException
+     */
+    public abstract String signGetAcl(GatekeeperMessage requestMessage,
+        ClientInformation clientInformation, SignatureRequest signatureRequest)
+        throws S3ServiceException;
+
+    /**
+     * Generate a signed PUT URL for an ACL-based signature request.
+     *  
+     * @param requestMessage
+     * the request message received from the client. 
+     * @param clientInformation
+     * information about the client's end-point, and any Session or Principal associated with the client. 
+     * @param signatureRequest
+     * a pre-approved signature request.
+     * 
+     * @return
+     * a signed URL string that will allow the operation specified in the signature request
+     * on the object specified in the signature request. 
+     * 
+     * @throws S3ServiceException
+     */
+    public abstract String signPutAcl(GatekeeperMessage requestMessage,
+        ClientInformation clientInformation, SignatureRequest signatureRequest)
+        throws S3ServiceException;
+
+    
+    /**
+     * @return
+     * the date and time when signed URLs should expire, calculated by adding the number of seconds
+     * until expiry to the current time.
+     */
+    protected Date calculateExpiryTime(int secondsUntilExpiry) {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.SECOND, secondsUntilExpiry);
+        return cal.getTime();        
+    }
+    
 }

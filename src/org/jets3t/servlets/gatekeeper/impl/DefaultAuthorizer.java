@@ -52,4 +52,13 @@ public class DefaultAuthorizer extends Authorizer {
         return true;
     }
 
+    /**
+     * Returns true in all cases.
+     */
+	public boolean allowBucketListingRequest(
+			GatekeeperMessage requestMessage, ClientInformation clientInformation) 
+	{
+		return true;
+	}
+
 }

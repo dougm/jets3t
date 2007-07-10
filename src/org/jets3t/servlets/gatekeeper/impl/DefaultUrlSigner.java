@@ -18,19 +18,16 @@
  */
 package org.jets3t.servlets.gatekeeper.impl;
 
-import java.util.Calendar;
-import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.servlets.gatekeeper.ClientInformation;
@@ -47,8 +44,7 @@ import org.jets3t.servlets.gatekeeper.UrlSigner;
  * @author James Murty
  */
 public class DefaultUrlSigner extends UrlSigner {
-    private final static Log log = LogFactory.getLog(DefaultUrlSigner.class);
-    
+    protected AWSCredentials awsCredentials = null;
     protected String s3BucketName = null;
     protected int secondsUntilExpiry = 0;
     
@@ -60,6 +56,8 @@ public class DefaultUrlSigner extends UrlSigner {
      * <p>
      * The required parameters that must be available in the servlet configuration are:
      * <ul>
+     * <li><tt>AwsAccessKey</tt>: The AWS Access Key for an S3 account</li>
+     * <li><tt>AwsSecretKey</tt>: The AWS Secret Key for an S3 account</li>
      * <li><tt>S3BucketName</tt>: The bucket all objects are stored in (regardless of what bucket
      * name the client provided).</li>
      * <li><tt>SecondsToSign</tt>: How many seconds until the signed URLs will expire<br>
@@ -74,6 +72,26 @@ public class DefaultUrlSigner extends UrlSigner {
      */
     public DefaultUrlSigner(ServletConfig servletConfig) throws ServletException {
         super(servletConfig);
+        
+        String awsAccessKey = servletConfig.getInitParameter("AwsAccessKey");
+        String awsSecretKey = servletConfig.getInitParameter("AwsSecretKey");
+
+        // Fail with an exception if required init params are missing.
+        boolean missingInitParam = false;
+        String errorMessage = "Missing required servlet init parameters for UrlSigner: ";
+        if (awsAccessKey == null || awsAccessKey.length() == 0) {
+            errorMessage += "AwsAccessKey ";
+            missingInitParam = true;
+        }
+        if (awsSecretKey == null || awsSecretKey.length() == 0) {
+            errorMessage += "AwsSecretKey ";
+            missingInitParam = true;
+        }
+        if (missingInitParam) {
+            throw new ServletException(errorMessage);
+        }        
+        
+        this.awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
         
         String secondsToSign = servletConfig.getInitParameter("SecondsToSign");
         if (secondsToSign == null || secondsToSign.length() == 0) {
@@ -114,26 +132,13 @@ public class DefaultUrlSigner extends UrlSigner {
             }
         }
     }
-    
-    /**
-     * @return
-     * the date and time when signed URLs should expire, calculated by adding the number of seconds
-     * until expiry to the current time.
-     */
-    protected Date calculateExpiryTime() {
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.SECOND, secondsUntilExpiry);
-        log.debug("Expiry time for all signed URLs: " + cal.getTime());
-        return cal.getTime();        
-    }
-
-    
+        
     public String signDelete(GatekeeperMessage requestMessage, 
         ClientInformation clientInformation,SignatureRequest signatureRequest) throws S3ServiceException
     {
         updateObject(signatureRequest, requestMessage.getMessageProperties());
         return S3Service.createSignedDeleteUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
-            awsCredentials, calculateExpiryTime());
+            awsCredentials, calculateExpiryTime(secondsUntilExpiry));
     }
 
     public String signGet(GatekeeperMessage requestMessage, 
@@ -141,7 +146,7 @@ public class DefaultUrlSigner extends UrlSigner {
     {
         updateObject(signatureRequest, requestMessage.getMessageProperties());
         return S3Service.createSignedGetUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
-            awsCredentials, calculateExpiryTime());
+            awsCredentials, calculateExpiryTime(secondsUntilExpiry));
     }
 
     public String signHead(GatekeeperMessage requestMessage, 
@@ -149,7 +154,7 @@ public class DefaultUrlSigner extends UrlSigner {
     {
         updateObject(signatureRequest, requestMessage.getMessageProperties());
         return S3Service.createSignedHeadUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(), 
-            awsCredentials, calculateExpiryTime());
+            awsCredentials, calculateExpiryTime(secondsUntilExpiry));
     }
 
     public String signPut(GatekeeperMessage requestMessage, 
@@ -157,7 +162,23 @@ public class DefaultUrlSigner extends UrlSigner {
     {
         updateObject(signatureRequest, requestMessage.getMessageProperties());
         return S3Service.createSignedPutUrl(signatureRequest.getBucketName(), signatureRequest.getObjectKey(),
-            signatureRequest.getObjectMetadata(), awsCredentials, calculateExpiryTime());
+            signatureRequest.getObjectMetadata(), awsCredentials, calculateExpiryTime(secondsUntilExpiry));
+    }
+
+    public String signGetAcl(GatekeeperMessage requestMessage, ClientInformation clientInformation, SignatureRequest signatureRequest) throws S3ServiceException {
+        updateObject(signatureRequest, requestMessage.getMessageProperties());
+        long secondsSinceEpoch = calculateExpiryTime(secondsUntilExpiry).getTime() / 1000;
+        
+        return S3Service.createSignedUrl("GET", signatureRequest.getBucketName(), signatureRequest.getObjectKey(),
+            true, null, awsCredentials, secondsSinceEpoch);
+    }
+
+    public String signPutAcl(GatekeeperMessage requestMessage, ClientInformation clientInformation, SignatureRequest signatureRequest) throws S3ServiceException {
+        updateObject(signatureRequest, requestMessage.getMessageProperties());
+        long secondsSinceEpoch = calculateExpiryTime(secondsUntilExpiry).getTime() / 1000;
+
+        return S3Service.createSignedUrl("PUT", signatureRequest.getBucketName(), signatureRequest.getObjectKey(),
+            true, signatureRequest.getObjectMetadata(), awsCredentials, secondsSinceEpoch);
     }
 
 }

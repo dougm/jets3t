@@ -51,6 +51,9 @@ public class GatekeeperMessage {
     public static final String GATEKEEPER_ERROR_CODE__NO_ROUTE_TO_HOST = "6";
     public static final String GATEKEEPER_ERROR_CODE__PROTOCOL_EXCEPTION = "7";
     public static final String GATEKEEPER_ERROR_CODE__SOCKET_EXCEPTION = "8";
+    public static final String GATEKEEPER_ERROR_CODE__UNAUTHORIZED_CLIENT = "9";
+    public static final String GATEKEEPER_ERROR_CODE__NO_ACCESS_ALLOWED = "10";
+    public static final String GATEKEEPER_ERROR_CODE__GATEKEEPER_CONFIGURATION_ERROR = "98";
     public static final String GATEKEEPER_ERROR_CODE__UNKNOWN_EXCEPTION = "99";
     
     
@@ -89,6 +92,12 @@ public class GatekeeperMessage {
      */
     public static final String SUMMARY_DOCUMENT_METADATA_FLAG = "jets3t-uploader-summary-doc";
     
+    /**
+     * A flag name that indicates the Gatekeeper servlet should perform a bucket listing -
+     * for example as used by CockpitLite
+     */
+    public static final String LIST_OBJECTS_IN_BUCKET_FLAG = "list-objects-in-bucket";
+
     private Properties applicationProperties = new Properties();
     private Properties messageProperties = new Properties(); 
     private List signatureRequestList = new ArrayList();
@@ -189,9 +198,9 @@ public class GatekeeperMessage {
     }
 
     private void encodeProperty(Properties properties, String propertyName, Object value) {
-        if (value != null && (value instanceof String)) {
+        if (value != null) {
             log.debug("Encoding property: " + propertyName + "=" + value);
-            properties.put(propertyName, value);
+            properties.put(propertyName, value.toString());
         }        
     }
         

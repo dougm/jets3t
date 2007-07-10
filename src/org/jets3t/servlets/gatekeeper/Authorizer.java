@@ -65,4 +65,21 @@ public abstract class Authorizer {
     public abstract boolean allowSignatureRequest(GatekeeperMessage requestMessage, 
         ClientInformation clientInformation, SignatureRequest signatureRequest);
 
+    /**
+     * Authorizes a bucket listing operation for a client as represented by a the gatekeeper
+     * request message.
+     * <p>
+     * Authorization decisions can be made based on any of the inputs provided to this method.
+     * 
+     * @param requestMessage
+     * the Gatekeeper request message.
+     * @param clientInformation
+     * information about the client end-point this request was received from.
+     * 
+     * @return
+     * true if the request is allowed, false otherwise.
+     */
+    public abstract boolean allowBucketListingRequest(GatekeeperMessage requestMessage, 
+    		ClientInformation clientInformation);
+
 }
