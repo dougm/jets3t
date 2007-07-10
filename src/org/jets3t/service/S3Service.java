@@ -243,12 +243,17 @@ public abstract class S3Service implements Serializable {
      * 
      * @throws S3ServiceException
      */
-    public static String createSignedUrl(String method, String bucketName, String objectKey, 
+    public static String createSignedUrl(String method, String bucketName, String objectKey, boolean isAclOperation, 
         Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch, String s3EndpointHostname) 
         throws S3ServiceException
     {
         String fullKey = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
-        fullKey += "?AWSAccessKeyId=" + awsCredentials.getAccessKey();
+        if (isAclOperation) {
+            fullKey += "?acl&";
+        } else {
+            fullKey += "?";
+        }
+        fullKey += "AWSAccessKeyId=" + awsCredentials.getAccessKey();
         fullKey += "&Expires=" + secondsSinceEpoch;
 
         String canonicalString = RestUtils.makeCanonicalString(method, "/" + fullKey,
@@ -307,10 +312,10 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey, 
-        Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch) 
+        boolean isAclOperation, Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch) 
         throws S3ServiceException
     {
-        return createSignedUrl(method, bucketName, objectKey, 
+        return createSignedUrl(method, bucketName, objectKey, isAclOperation,
             headersMap, awsCredentials, secondsSinceEpoch, null);
     }
     
@@ -335,7 +340,7 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        return createSignedUrl("GET", bucketName, objectKey, null, 
+        return createSignedUrl("GET", bucketName, objectKey, false, null, 
             awsCredentials, secondsSinceEpoch);
     }
 
@@ -364,7 +369,7 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        return createSignedUrl("PUT", bucketName, objectKey, headersMap, 
+        return createSignedUrl("PUT", bucketName, objectKey, false, headersMap, 
             awsCredentials, secondsSinceEpoch);
     }
             
@@ -389,7 +394,7 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        return createSignedUrl("DELETE", bucketName, objectKey, null, 
+        return createSignedUrl("DELETE", bucketName, objectKey, false, null, 
             awsCredentials, secondsSinceEpoch);
     }
 
@@ -414,7 +419,7 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
-        return createSignedUrl("HEAD", bucketName, objectKey, null, 
+        return createSignedUrl("HEAD", bucketName, objectKey, false, null, 
             awsCredentials, secondsSinceEpoch);
     }
 
