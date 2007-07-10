@@ -256,6 +256,14 @@ public class PutViaSocket {
                         + (fileSize / (double)(1024 * 1024)) + "MB");
                     megabytesSent = fileBytesTransferred / (1024 * 1024);
                 }            
+                
+                // Check for any data available in the socket input/error streams
+                if (in.available() > 0) {
+                    // Uh oh, this shouldn't happen. We'd better stop the upload and print out the error.
+                    System.out.println("\nERROR: Unexpected data in server input stream mid-transfer, halting upload");
+                    break;
+                }
+                
             } catch (Exception e) {
                 // Try to recover from the failure (it's unlikely this will ever work)
                 failureCount++;
