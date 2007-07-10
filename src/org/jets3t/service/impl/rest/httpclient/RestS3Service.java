@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -59,6 +60,7 @@ import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
 import org.jets3t.service.io.UnrecoverableIOException;
@@ -357,11 +359,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             // Retrying after InternalError 500, don't throw exception.
                         } else {
                             // Throw exception containing the HTTP error fields.
+                        	HttpException httpException = new HttpException(
+                        			httpMethod.getStatusCode(), httpMethod.getStatusText());
                             throw new S3ServiceException("S3 " + httpMethod.getName() 
                                 + " request failed for '" + httpMethod.getPath() + "' - " 
                                 + "ResponseCode=" + httpMethod.getStatusCode()
                                 + ", ResponseMessage=" + httpMethod.getStatusText()
-                                + (responseText != null ? "\n" + responseText : ""));   
+                                + (responseText != null ? "\n" + responseText : ""),
+                                httpException);
                         }
                     }
                 }
@@ -1183,11 +1188,17 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
         // Consume response data and release connection.
         putMethod.releaseConnection();
-        
+
         try {
             S3Object uploadedObject = ServiceUtils.buildObjectFromPath(putMethod.getPath());
             object.setBucketName(uploadedObject.getBucketName());
             object.setKey(uploadedObject.getKey());
+            try {
+				object.setLastModifiedDate(ServiceUtils.parseRfc822Date(
+					putMethod.getResponseHeader("Date").getValue()));
+			} catch (ParseException e1) {
+				log.warn("Unable to interpret date of object PUT in S3", e1);
+			}
                        
             try {
                 object.closeDataInputStream();
@@ -1258,6 +1269,69 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      */
     public S3Object getObjectDetailsWithSignedUrl(String signedHeadUrl) throws S3ServiceException {
         return getObjectWithSignedUrlImpl(signedHeadUrl, true);
+    }
+    
+    /**
+     * Gets an object's ACL details using a pre-signed GET URL generated for that object.
+     * This method is an implementation of the interface {@link SignedUrlHandler}. 
+     * 
+     * @param signedAclUrl
+     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, boolean, java.util.Map, org.jets3t.service.security.AWSCredentials, long)}.
+     * 
+     * @return
+     * the AccessControlList settings of the object in S3.
+     * 
+     * @throws S3ServiceException
+     */
+    public AccessControlList getObjectAclWithSignedUrl(String signedAclUrl) 
+	    throws S3ServiceException 
+	{
+	    HttpMethodBase httpMethod = new GetMethod(signedAclUrl);        
+        
+        HashMap requestParameters = new HashMap();
+        requestParameters.put("acl","");
+
+	    performRequest(httpMethod, 200);
+        return (new XmlResponsesSaxParser()).parseAccessControlListResponse(
+            new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+	}    
+    
+    /**
+     * Sets an object's ACL details using a pre-signed PUT URL generated for that object.
+     * This method is an implementation of the interface {@link SignedUrlHandler}. 
+     * 
+     * @param signedAclUrl
+     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, boolean, java.util.Map, org.jets3t.service.security.AWSCredentials, long)}.
+     * @param acl
+     * the ACL settings to apply to the object represented by the signed URL.
+     * 
+     * @return
+     * the AccessControlList settings of the object in S3.
+     * 
+     * @throws S3ServiceException
+     */
+    public void putObjectAclWithSignedUrl(String signedAclUrl, AccessControlList acl) throws S3ServiceException {
+        PutMethod putMethod = new PutMethod(signedAclUrl);
+        
+        if (acl != null) {
+            if (AccessControlList.REST_CANNED_PRIVATE.equals(acl)) {
+                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "private");
+            } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) { 
+                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "public-read");
+            } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(acl)) { 
+                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "public-read-write");
+            } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(acl)) {
+                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "authenticated-read");
+            } else {
+                String aclAsXml = acl.toXml();
+                putMethod.setRequestEntity(new StringRequestEntity(aclAsXml));
+            }
+        }
+        
+        performRequest(putMethod, 200);
+
+        // Consume response data and release connection.
+        putMethod.releaseConnection();
     }
     
     private S3Object getObjectWithSignedUrlImpl(String signedGetOrHeadUrl, boolean headOnly) 
