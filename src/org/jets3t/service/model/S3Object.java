@@ -23,8 +23,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -38,6 +43,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class S3Object extends BaseS3Object {
+    private final Log log = LogFactory.getLog(S3Object.class);
+
     private static final long serialVersionUID = -2883501141593631181L;
     
     /*
@@ -284,7 +291,7 @@ public class S3Object extends BaseS3Object {
      * available (eg if the object has only just been created) the object's creation date is 
      * returned instead. If both last modified and creation dates are unavailable, null is returned.
      */
-    public Date getLastModifiedDate() {
+    public Date getLastModifiedDate() {    	
 		Date lastModifiedDate = (Date) getMetadata(METADATA_HEADER_LAST_MODIFIED_DATE);
 		if (lastModifiedDate == null) {
 			// Perhaps this object has just been created, in which case we can use the Date metadata.
@@ -447,4 +454,32 @@ public class S3Object extends BaseS3Object {
     public void setMetadataComplete(boolean isMetadataComplete) {
         this.isMetadataComplete = isMetadataComplete;
     }
+    
+    /**
+     * Add metadata information to the object. If date metadata items (as recognized by name)
+     * are added and the value is not a date, the value is parsed as an ISO 8601 string.
+     */
+    public void addMetadata(String name, Object value) {
+    	try {
+	    	if (METADATA_HEADER_LAST_MODIFIED_DATE.equals(name) && !(value instanceof Date)) {
+	    		value = ServiceUtils.parseIso8601Date(value.toString());
+	    	} else if (METADATA_HEADER_DATE.equals(name) && !(value instanceof Date)) {
+	    		value = ServiceUtils.parseIso8601Date(value.toString());
+	    	} 
+    	} catch (ParseException e) {
+    		log.error("Unable to parse value we expect to be a valid date: "
+                + name + "=" + value, e);
+    	}
+    	
+    	super.addMetadata(name, value);
+    }
+    
+    public void addAllMetadata(Map metadata) {
+    	Iterator iter = metadata.entrySet().iterator();
+    	while (iter.hasNext()) {
+    		Map.Entry entry = (Map.Entry) iter.next();
+    		addMetadata(entry.getKey().toString(), entry.getValue());
+    	}
+    }
+    
 }
