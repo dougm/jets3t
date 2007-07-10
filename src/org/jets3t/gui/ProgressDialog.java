@@ -1,4 +1,22 @@
-package org.jets3t.apps.cockpit.gui;
+/*
+ * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
+ * This is a java.net project, see https://jets3t.dev.java.net/
+ * 
+ * Copyright 2007 James Murty
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
+ */
+package org.jets3t.gui;
 
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -7,6 +25,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Properties;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
@@ -16,7 +35,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.KeyStroke;
+import javax.swing.LookAndFeel;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.multithread.CancelEventTrigger;
 
 /**
@@ -27,9 +52,14 @@ import org.jets3t.service.multithread.CancelEventTrigger;
  * @author James Murty
  */
 public class ProgressDialog extends JDialog implements ActionListener {
-    private static final long serialVersionUID = 693631358222230912L;
+    private static final long serialVersionUID = -6031102393562980815L;
+
+    private static final Log log = LogFactory.getLog(ProgressDialog.class);
 
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
+
+    private Properties applicationProperties = null;
+    private SkinsFactory skinsFactory = null;
 
     private JLabel statusMessageLabel = null;
     private JLabel detailsTextLabel = null;
@@ -43,36 +73,51 @@ public class ProgressDialog extends JDialog implements ActionListener {
      * @param owner         the Frame over which the progress dialog will be displayed and centred
      * @param title         the title for the progress dialog
      */
-    public ProgressDialog(Frame owner, String title) 
+    public ProgressDialog(Frame owner, String title, Properties applicationProperties) 
     {
         super(owner, title, true);
+        this.applicationProperties = applicationProperties;
         initGui();
     }
 
     private void initGui() {
+        // Initialise skins factory. 
+        skinsFactory = SkinsFactory.getInstance(applicationProperties); 
+        
+        // Set Skinned Look and Feel.
+        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");        
+        try {
+            UIManager.setLookAndFeel(lookAndFeel);
+        } catch (UnsupportedLookAndFeelException e) {
+            log.error("Unable to set skinned LookAndFeel", e);
+        }       
+
         this.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         this.setResizable(true);
                     
         JPanel container = new JPanel(new GridBagLayout());
         
-        statusMessageLabel = new JLabel(" ");
+        statusMessageLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressDialogStatusMessageLabel"); 
+        statusMessageLabel.setText(" ");
         statusMessageLabel.setHorizontalAlignment(JLabel.CENTER);
         container.add(statusMessageLabel, 
             new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
-        progressBar = new JProgressBar();
+        progressBar = skinsFactory.createSkinnedJProgressBar("ProgressDialogProgressBar", 0, 100); 
         progressBar.setPreferredSize(new Dimension(550, 20));
         
         container.add(progressBar, 
             new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
-        detailsTextLabel = new JLabel(" ");
+        detailsTextLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressDialogDetailedMessageLabel"); 
+        detailsTextLabel.setText(" ");
         detailsTextLabel.setHorizontalAlignment(JLabel.CENTER);
         container.add(detailsTextLabel, 
             new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         // Display the cancel button if a cancel event listener is available.
-        cancelButton = new JButton("Cancel");
+        cancelButton = skinsFactory.createSkinnedJButton("ProgressDialogCancelButton");
+        cancelButton.setText("Cancel");
         cancelButton.setActionCommand("Cancel");
         cancelButton.addActionListener(this);
         cancelButton.setDefaultCapable(true);
@@ -163,9 +208,11 @@ public class ProgressDialog extends JDialog implements ActionListener {
         if (this.cancelEventTrigger != null) {
             cancelButton.setText(cancelButtonText);
             cancelButton.setEnabled(true);
+            cancelButton.setVisible(true);
         } else {
-            cancelButton.setText("Cannot Cancel");
-            cancelButton.setEnabled(false);
+            cancelButton.setVisible(false);
+//            cancelButton.setText("Cannot Cancel");
+//            cancelButton.setEnabled(false);
         }
                 
         this.setVisible(true);
