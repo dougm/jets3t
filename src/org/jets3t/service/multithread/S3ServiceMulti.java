@@ -678,6 +678,69 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
+     * A convenience method to download multiple objects from S3 to pre-existing output streams, which
+     * is particularly useful for downloading objects to files. 
+     * The S3 objects are represented as signed URLs.
+     * <p>
+     * This method sends {@link DownloadObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-thread-count</tt>.
+     * 
+     * @param bucket
+     * the bucket containing the objects
+     * @param downloadPackages
+     * an array of download packages containing the object to be downloaded, and able to build
+     * an output stream where the object's contents will be written to.
+     */
+    public void downloadObjectsWithSignedURLs(final DownloadPackage[] downloadPackages) {
+        final List progressWatchers = new ArrayList();        
+        final List incompleteObjectDownloadList = new ArrayList();
+
+        // Start all queries in the background.
+        DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
+        final S3Object[] objects = new S3Object[downloadPackages.length];
+        for (int i = 0; i < runnables.length; i++) {
+            objects[i] = downloadPackages[i].getObject();
+            BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
+                        
+            incompleteObjectDownloadList.add(objects[i]);
+            progressWatchers.add(progressMonitor);
+            
+            runnables[i] = new DownloadObjectRunnable(downloadPackages[i], progressMonitor);    
+        }
+
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+        
+        // Wait for threads to finish, or be cancelled.        
+        ThreadWatcher threadWatcher = new ThreadWatcher(
+            (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
+        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher));
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                incompleteObjectDownloadList.removeAll(completedResults);                
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
+                fireServiceEvent(DownloadObjectsEvent.newInProgressEvent(threadWatcher, completedObjects));
+            }
+            public void fireCancelEvent() {
+                S3Object[] incompleteObjects = (S3Object[]) incompleteObjectDownloadList
+                    .toArray(new S3Object[incompleteObjectDownloadList.size()]);
+                fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(DownloadObjectsEvent.newCompletedEvent());                    
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable));
+            }
+        }).run();
+    }
+
+    /**
      * Retrieves multiple objects (details and data) from a bucket using signed GET URLs corresponding
      * to those objects.
      * <p>
@@ -824,6 +887,59 @@ public class S3ServiceMulti implements Serializable {
     }
     
     /**
+     * Updates/sets Acess Control List (ACL) information for multiple objects in a bucket, and sends 
+     * {@link UpdateACLEvent} notification events.
+     * The S3 objects are represented as signed URLs.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
+     * 
+     * @param bucket
+     * the bucket containing the objects
+     * @param objects
+     * the objects to update/set ACL details for.
+     */
+    public void putObjectsACLs(final String[] signedURLs, final AccessControlList acl) throws MalformedURLException, UnsupportedEncodingException {
+        final List pendingObjectsList = new ArrayList();
+
+        // Start all queries in the background.
+        PutACLRunnable[] runnables = new PutACLRunnable[signedURLs.length];
+        for (int i = 0; i < runnables.length; i++) {
+            URL url = new URL(signedURLs[i]);
+            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            pendingObjectsList.add(object);
+            runnables[i] = new PutACLRunnable(signedURLs[i], acl);
+        }
+        
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
+        // Wait for threads to finish, or be cancelled.        
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(UpdateACLEvent.newStartedEvent(threadWatcher));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                pendingObjectsList.removeAll(completedResults);
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
+                fireServiceEvent(UpdateACLEvent.newInProgressEvent(threadWatcher, completedObjects));
+            }
+            public void fireCancelEvent() {
+                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
+                    .toArray(new S3Object[pendingObjectsList.size()]);
+                fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(UpdateACLEvent.newCompletedEvent());                    
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable));
+            }
+        }).run();
+    }
+
+    /**
      * Deletes multiple objects from a bucket using signed DELETE URLs corresponding to those objects.
      * <p>
      * Deletes using signed DELETE URLs can be performed without the underlying S3Service knowing 
@@ -959,6 +1075,80 @@ public class S3ServiceMulti implements Serializable {
         }).run();
     }
 
+    /**
+     * Retrieves ACL information about multiple objects from a bucket using signed GET ACL URLs 
+     * corresponding to those objects.
+     * The S3 objects are represented as signed URLs.
+     * <p>
+     * Object retrieval using signed GET URLs can be performed without the underlying S3Service knowing 
+     * the AWSCredentials for the target S3 account, however the underlying service must implement
+     * the {@link SignedUrlHandler} interface. 
+     * <p>
+     * This method sends {@link LookupACLEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-thread-count</tt>.
+     * 
+     * @param signedAclURLs
+     * signed GET URL strings corresponding to the objects to be queried.
+     * 
+     * @throws IllegalStateException
+     * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     */
+    public void getObjectsACLs(final String[] signedAclURLs) throws MalformedURLException, UnsupportedEncodingException {
+        if (!(s3Service instanceof SignedUrlHandler)) {
+            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
+                + "SignedUrlHandler interface to make the method getObjects(String[] signedGetURLs) available");
+        }
+        
+        final List pendingObjectKeysList = new ArrayList();
+
+        // Start all queries in the background.
+        GetACLRunnable[] runnables = new GetACLRunnable[signedAclURLs.length];
+        for (int i = 0; i < runnables.length; i++) {
+            URL url = new URL(signedAclURLs[i]);
+            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            pendingObjectKeysList.add(object);
+            
+            runnables[i] = new GetACLRunnable(signedAclURLs[i]);
+        }
+        
+        int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.max-thread-count", 4);
+
+        // Wait for threads to finish, or be cancelled.        
+        (new ThreadGroupManager(runnables, maxThreadCount, new ThreadWatcher(runnables.length)) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(LookupACLEvent.newStartedEvent(threadWatcher));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                S3Object[] completedObjects = (S3Object[]) completedResults
+                    .toArray(new S3Object[completedResults.size()]);
+                for (int i = 0; i < completedObjects.length; i++) {
+                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                }
+                fireServiceEvent(LookupACLEvent.newInProgressEvent(threadWatcher, completedObjects));
+            }
+            public void fireCancelEvent() {
+                List cancelledObjectsList = new ArrayList();
+                Iterator iter = pendingObjectKeysList.iterator();
+                while (iter.hasNext()) {
+                    String key = (String) iter.next();
+                    cancelledObjectsList.add(new S3Object(key));
+                }
+                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
+                    .toArray(new S3Object[cancelledObjectsList.size()]);
+                fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(LookupACLEvent.newCompletedEvent());                    
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(LookupACLEvent.newErrorEvent(throwable));
+            }
+        }).run();
+    }
+
     ///////////////////////////////////////////////
     // Private classes used by the methods above //
     ///////////////////////////////////////////////
@@ -994,6 +1184,8 @@ public class S3ServiceMulti implements Serializable {
     private class PutACLRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
         private S3Object s3Object = null;        
+        private String signedUrl = null;
+        private AccessControlList signedUrlAcl = null;
         private Object result = null;
         
         public PutACLRunnable(S3Bucket bucket, S3Object s3Object) {
@@ -1001,15 +1193,34 @@ public class S3ServiceMulti implements Serializable {
             this.s3Object = s3Object;
         }
 
+        public PutACLRunnable(String signedAclUrl, AccessControlList signedUrlAcl) {
+            this.signedUrl = signedAclUrl;
+            this.signedUrlAcl = signedUrlAcl;
+            this.bucket = null;
+            this.s3Object = null;
+        }
+
         public void run() {
             try {
-                if (s3Object == null) {
-                    s3Service.putBucketAcl(bucket);                    
+                if (signedUrl == null) {
+                    if (s3Object == null) {
+                        s3Service.putBucketAcl(bucket);                    
+                    } else {
+                        s3Service.putObjectAcl(bucket, s3Object);                                        
+                    }                
+                    result = s3Object;
                 } else {
-                    s3Service.putObjectAcl(bucket, s3Object);                                        
+                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    handler.putObjectAclWithSignedUrl(signedUrl, signedUrlAcl);
+                    URL url = new URL(signedUrl);
+                    S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+                    object.setAcl(signedUrlAcl);
+                    result = object;                    
                 }
-                result = s3Object;
-            } catch (S3ServiceException e) {
+            } catch (RuntimeException e) {
+                result = e;
+                throw e;
+            } catch (Exception e) {
                 result = e;
             }            
         }
@@ -1028,7 +1239,8 @@ public class S3ServiceMulti implements Serializable {
      */
     private class GetACLRunnable extends AbstractRunnable {
         private S3Bucket bucket = null;
-        private S3Object object = null;        
+        private S3Object object = null;       
+        private String signedAclUrl = null;
         private Object result = null;
         
         public GetACLRunnable(S3Bucket bucket, S3Object object) {
@@ -1036,12 +1248,30 @@ public class S3ServiceMulti implements Serializable {
             this.object = object;
         }
 
+        public GetACLRunnable(String signedAclUrl) {
+            this.signedAclUrl = signedAclUrl;
+            this.bucket = null;
+            this.object = null;
+        }
+
         public void run() {
             try {
-                AccessControlList acl = s3Service.getObjectAcl(bucket, object.getKey());
-                object.setAcl(acl);
-                result = object;
-            } catch (S3ServiceException e) {
+                if (signedAclUrl == null) {
+                    AccessControlList acl = s3Service.getObjectAcl(bucket, object.getKey());
+                    object.setAcl(acl);
+                    result = object;
+                } else {
+                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    AccessControlList acl = handler.getObjectAclWithSignedUrl(signedAclUrl);
+                    URL url = new URL(signedAclUrl);
+                    object = ServiceUtils.buildObjectFromPath(url.getPath());
+                    object.setAcl(acl);
+                    result = object;
+                }
+            } catch (RuntimeException e) {
+                result = e;
+                throw e;
+            } catch (Exception e) {
                 result = e;
             }            
         }
@@ -1245,7 +1475,7 @@ public class S3ServiceMulti implements Serializable {
         private BytesProgressWatcher progressMonitor = null;
         
         private Object result = null;
-
+      
         public DownloadObjectRunnable(S3Bucket bucket, String objectKey, DownloadPackage downloadPackage, 
             BytesProgressWatcher progressMonitor) 
         {
@@ -1255,13 +1485,24 @@ public class S3ServiceMulti implements Serializable {
             this.progressMonitor = progressMonitor;
         }
         
+        public DownloadObjectRunnable(DownloadPackage downloadPackage, BytesProgressWatcher progressMonitor) 
+        {
+            this.downloadPackage = downloadPackage;
+            this.progressMonitor = progressMonitor;
+        }
+
         public void run() {            
             BufferedInputStream bufferedInputStream = null;
             BufferedOutputStream bufferedOutputStream = null;
             S3Object object = null;
 
             try {
-                object = s3Service.getObject(bucket, objectKey);
+            	if (!downloadPackage.isSignedDownload()) {
+            		object = s3Service.getObject(bucket, objectKey);
+            	} else {
+                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    object = handler.getObjectWithSignedUrl(downloadPackage.getSignedUrl());
+            	}
 
                 // Setup monitoring of stream bytes tranferred. 
                 interruptableInputStream = new InterruptableInputStream(object.getDataInputStream()); 
