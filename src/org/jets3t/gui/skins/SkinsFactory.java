@@ -25,12 +25,16 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.LookAndFeel;
@@ -38,6 +42,7 @@ import javax.swing.UIManager;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 
 /**
@@ -89,6 +94,11 @@ public class SkinsFactory {
      * A set of properties that may contain skin-specific properties.
      */
     private SkinsFactory(Properties properties) {
+        // Gracefully handle missing properties.
+        if (properties == null) {
+            properties = new Properties();
+        }
+        
         this.skinName = properties.getProperty("skin.name");
         if (this.skinName == null) {
             this.skinName = DEFAULT_SKIN_NAME;
@@ -210,6 +220,24 @@ public class SkinsFactory {
      * item should look or behave.
      * 
      * @return
+     * a <code>SkinnedJComboBox</code> class implementation for the current skin, or a default
+     * JComboBox if no skin-specific implementation is available.
+     */
+    public JCheckBox createSkinnedJCheckBox(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJCheckBox"), itemName);        
+        if (instance != null) {
+            return (JCheckBox) instance;
+        } else {
+            return new JCheckBox();
+        }        
+    }
+
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
      * a <code>SkinnedJPanel</code> class implementation for the current skin, or a default
      * JPanel if no skin-specific implementation is available.
      */
@@ -222,6 +250,24 @@ public class SkinsFactory {
         }                
     }
     
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJTable</code> class implementation for the current skin, or a default
+     * JPanel if no skin-specific implementation is available.
+     */
+    public JTable createSkinnedJTable(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJTable"), itemName);        
+        if (instance != null) {
+            return (JTable) instance;
+        } else {
+            return new JTable();
+        }                
+    }
+
     /**
      * @param itemName
      * the name of this specific item in the GUI, which may be used to determine how the skinned
@@ -249,13 +295,28 @@ public class SkinsFactory {
      * a <code>SkinnedJLabel</code> class implementation for the current skin, or a default
      * JHtmlLabel if no skin-specific implementation is available.
      */
-    public JHtmlLabel createSkinnedJHtmlLabel(String itemName) {
+    public JHtmlLabel createSkinnedJHtmlLabel(String itemName, HyperlinkActivatedListener hyperlinkListener) {
         Object instance = instantiateClass(buildSkinnedClassName("SkinnedJHtmlLabel"), itemName);        
         if (instance != null) {
-            return (JHtmlLabel) instance;
+            JHtmlLabel label = (JHtmlLabel) instance;
+            label.setHyperlinkeActivatedListener(hyperlinkListener);
+            return label;
         } else {
-            return new JHtmlLabel(null);
+            return new JHtmlLabel(hyperlinkListener);
         }                
+    }
+
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     * 
+     * @return
+     * a <code>SkinnedJLabel</code> class implementation for the current skin, or a default
+     * JHtmlLabel if no skin-specific implementation is available.
+     */
+    public JHtmlLabel createSkinnedJHtmlLabel(String itemName) {
+    	return createSkinnedJHtmlLabel(itemName, null);
     }
 
     /**
@@ -309,6 +370,24 @@ public class SkinsFactory {
             return (JTextArea) instance;
         } else {
             return new JTextArea();
+        }
+    }
+
+    public JPopupMenu createSkinnedJPopupMenu(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJPopupMenu"), itemName);
+        if (instance != null) {
+            return (JPopupMenu) instance;
+        } else {
+            return new JPopupMenu();
+        }
+    }
+
+    public JMenuItem createSkinnedJMenuItem(String itemName) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJMenuItem"), itemName);
+        if (instance != null) {
+            return (JMenuItem) instance;
+        } else {
+            return new JMenuItem();
         }
     }
 
