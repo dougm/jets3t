@@ -94,17 +94,17 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.apps.cockpit.gui.AccessControlDialog;
 import org.jets3t.apps.cockpit.gui.BucketLoggingDialog;
 import org.jets3t.apps.cockpit.gui.BucketTableModel;
-import org.jets3t.apps.cockpit.gui.ItemPropertiesDialog;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.PreferencesDialog;
-import org.jets3t.apps.cockpit.gui.ProgressDialog;
 import org.jets3t.apps.cockpit.gui.SignedGetUrlDialog;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.GuiUtils;
 import org.jets3t.gui.HyperlinkActivatedListener;
+import org.jets3t.gui.ItemPropertiesDialog;
 import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.ProgressDialog;
 import org.jets3t.gui.TableSorter;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -829,7 +829,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         final CancelEventTrigger cancelEventListener) 
     {
         if (this.progressDialog == null) {
-            this.progressDialog = new ProgressDialog(this.ownerFrame, "Please wait...");
+            this.progressDialog = new ProgressDialog(this.ownerFrame, "Please wait...", null);
         }
         
         this.getContentPane().setCursor(new Cursor(Cursor.WAIT_CURSOR));
@@ -1079,7 +1079,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * Displays the currently selected bucket's properties in the dialog {@link ItemPropertiesDialog}. 
      */
     private void listBucketProperties() {
-        ItemPropertiesDialog.showDialog(ownerFrame, getCurrentSelectedBucket());
+        ItemPropertiesDialog.showDialog(ownerFrame, getCurrentSelectedBucket(), null);
     }
     
     /**
@@ -2273,7 +2273,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         
             // Generate URL
             String signedUrl = S3Service.createSignedUrl("GET",
-                getCurrentSelectedBucket().getName(), currentObject.getKey(),
+                getCurrentSelectedBucket().getName(), currentObject.getKey(), false,
                 null, s3ServiceMulti.getAWSCredentials(), secondsSinceEpoch, hostname);
             
             // Display signed URL
@@ -2494,7 +2494,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 } else if (isViewingObjectProperties) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects());
+                            ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects(), null);
                             isViewingObjectProperties = false;                    
                         }
                     });

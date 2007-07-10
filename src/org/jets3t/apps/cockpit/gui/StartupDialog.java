@@ -49,6 +49,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.ProgressDialog;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
@@ -316,7 +317,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             return;
         }
         
-        final ProgressDialog progressDialog = new ProgressDialog(ownerFrame, "Retrieving AWS Credentials");
+        final ProgressDialog progressDialog = new ProgressDialog(
+            ownerFrame, "Retrieving AWS Credentials", null);
         final StartupDialog myself = this;
             
         (new Thread(new Runnable() {
@@ -421,7 +423,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             return;
         }
         
-        final ProgressDialog progressDialog = new ProgressDialog(ownerFrame, "Storing AWS Credentials");            
+        final ProgressDialog progressDialog = new ProgressDialog(
+            ownerFrame, "Storing AWS Credentials", null);            
         final StartupDialog myself = this;
 
         (new Thread(new Runnable() {

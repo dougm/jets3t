@@ -40,6 +40,7 @@ import javax.swing.SwingUtilities;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.ProgressDialog;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
@@ -195,7 +196,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
                     (new Thread() {
                         public void run() {
                             final ProgressDialog progressDialog = 
-                                new ProgressDialog(ownerFrame, "Bucket Logging");
+                                new ProgressDialog(ownerFrame, "Bucket Logging", null);
                             
                             SwingUtilities.invokeLater(new Runnable() {
                                 public void run() {
@@ -255,7 +256,7 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
             (new Thread(new Runnable() {
                 public void run() {
                     final ProgressDialog progressDialog = 
-                        new ProgressDialog(ownerFrame, "Bucket Logging");
+                        new ProgressDialog(ownerFrame, "Bucket Logging", null);
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             progressDialog.startDialog("Setting bucket logging status", 
