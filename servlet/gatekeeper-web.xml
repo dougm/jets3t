@@ -9,8 +9,7 @@
 		<servlet-name>GatekeeperServlet</servlet-name>
 		<servlet-class>org.jets3t.servlets.gatekeeper.GatekeeperServlet</servlet-class>
 		
-		<!-- Optional parameters for GatekeeperServlet -->
-		<!--
+		<!-- Implementation configuration for GatekeeperServlet -->
 		<init-param>
 			<param-name>TransactionIdProviderClass</param-name>
 			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultTransactionIdProvider</param-value>
@@ -23,9 +22,12 @@
 			<param-name>UrlSignerClass</param-name>
 			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner</param-value>
 		</init-param>		
-		-->
-		
-		<!-- Required parameters for any UrlSigner implementation -->
+		<init-param>
+			<param-name>BucketListerClass</param-name>
+			<param-value>org.jets3t.servlets.gatekeeper.impl.DefaultBucketLister</param-value>
+		</init-param>		
+
+		<!-- Required parameters for default implementations -->
 		<init-param>
 			<param-name>AwsAccessKey</param-name>
 			<param-value></param-value>
@@ -34,8 +36,6 @@
 			<param-name>AwsSecretKey</param-name>
 			<param-value></param-value>
 		</init-param>
-		
-		<!-- Required parameters for DefaultUrlSigner -->
 		<init-param>
 			<param-name>SecondsToSign</param-name>
 			<param-value>30</param-value>
@@ -44,6 +44,7 @@
 			<param-name>S3BucketName</param-name>
 			<param-value></param-value>
 		</init-param>
+		
 	</servlet>
 
 	<servlet-mapping>
