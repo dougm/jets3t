@@ -91,7 +91,6 @@ import org.apache.commons.httpclient.auth.NTLMScheme;
 import org.apache.commons.httpclient.auth.RFC2617Scheme;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.apps.cockpit.gui.AccessControlDialog;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.GuiUtils;
@@ -152,8 +151,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     
 	private static final String PROPERTIES_FILENAME = "cockpitlite.properties";
 	
-    public static final String HELP_PAGE = "http://jets3t.s3.amazonaws.com/applications/cockpit.html";
-    
     public static final String APPLICATION_DESCRIPTION = "Cockpit Lite/0.5.1";
     
     public static final String APPLICATION_TITLE = "JetS3t Cockpit Lite";
@@ -986,7 +983,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             userCanDelete && count > 0);
         viewObjectPropertiesMenuItem.setEnabled(count > 0);
         generatePublicGetUrl.setEnabled(count == 1);
-        togglePublicMenuItem.setEnabled(count == 1);
     }
     
     /**
@@ -1092,10 +1088,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
      * application's <code>S3ServiceMulti</code> triggers a <code>LookupACLEvent</code>.
-     * <p>
-     * The ACL details are retrieved for the currently selected objects in the gui, then the
-     * {@link AccessControlDialog} is displayed to allow the user to update the ACL settings
-     * for these objects.
      * 
      * @param event
      */
