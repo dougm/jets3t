@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Iterator;
@@ -102,19 +103,22 @@ public class S3Object extends BaseS3Object {
     
     /**
      * Create an object representing text data. The object is initialized with the given
-     * key, the given string as its data, a content type of <code>text/plain</code>, and a 
-     * content length matching the string's length.
+     * key, the given string as its data encoded as UTF-8, a content type of 
+     * <code>text/plain</code>, and a content length matching the string's length.
      * 
      * @param bucket
      * the bucket the object belongs to, or will be placed in.
      * @param key
      * the key name for the object.
      * @param dataString
-     * the text data the object will contain. This string cannot be null.
+     * the text data the object will contain. Text data will be encoded as UTF-8. 
+     * This string cannot be null.
      */
-    public S3Object(S3Bucket bucket, String key, String dataString) {
+    public S3Object(S3Bucket bucket, String key, String dataString) throws UnsupportedEncodingException 
+    {
         this(bucket, key);
-        ByteArrayInputStream bais = new ByteArrayInputStream(dataString.getBytes());
+        ByteArrayInputStream bais = new ByteArrayInputStream(
+            dataString.getBytes(Constants.DEFAULT_ENCODING));
         setDataInputStream(bais);
         setContentLength(bais.available());
         setContentType("text/plain");
