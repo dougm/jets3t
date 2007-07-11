@@ -75,6 +75,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
     private JTextField objectETagTextField = null;
     private JTextField bucketNameTextField = null;
     private DefaultTableModel objectMetadataTableModel = null;
+    private JLabel ownerNameLabel = null;
+    private JLabel ownerIdLabel = null;
     private JLabel currentObjectLabel = null;
     private JButton previousObjectButton = null;
     private JButton nextObjectButton = null;
@@ -139,12 +141,12 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             bucketCreationDateLabel.setText("Creation date:");
             bucketCreationDateTextField = skinsFactory.createSkinnedJTextField("BucketCreationDateTextField");
             bucketCreationDateTextField.setEditable(false);
-            JLabel ownerNameLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerNameLabel");
+            ownerNameLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerNameLabel");
             ownerNameLabel.setText("Owner name:");
             ownerNameTextField = skinsFactory.createSkinnedJTextField("OwnerNameTextField");
             ownerNameTextField.setEditable(false);
-            JLabel ownerIdLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerIdLabel");
-            ownerIdLabel.setText("Creation date:");
+            ownerIdLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerIdLabel");
+            ownerIdLabel.setText("Owner ID:");
             ownerIdTextField = skinsFactory.createSkinnedJTextField("OwnerIdTextField");
             ownerIdTextField.setEditable(false);
             
@@ -187,19 +189,19 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             objectLastModifiedTextField = skinsFactory.createSkinnedJTextField("ObjectLastModifiedTextField");
             objectLastModifiedTextField.setEditable(false);
             JLabel objectETagLabel = skinsFactory.createSkinnedJHtmlLabel("ObjectETagLabel");
-            objectETagLabel.setText("Bucket name:");
+            objectETagLabel.setText("ETag:");
             objectETagTextField = skinsFactory.createSkinnedJTextField("ObjectETagTextField");
             objectETagTextField.setEditable(false);
             JLabel bucketNameLabel = skinsFactory.createSkinnedJHtmlLabel("BucketNameLabel");
             bucketNameLabel.setText("Bucket name:");
             bucketNameTextField = skinsFactory.createSkinnedJTextField("BucketNameTextField");
             bucketNameTextField.setEditable(false);
-            JLabel ownerNameLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerNameLabel");
+            ownerNameLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerNameLabel");
             ownerNameLabel.setText("Owner name:");
             ownerNameTextField = skinsFactory.createSkinnedJTextField("OwnerNameTextField");
             ownerNameTextField.setEditable(false);
-            JLabel ownerIdLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerIdLabel");
-            ownerIdLabel.setText("Creation date:");
+            ownerIdLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerIdLabel");
+            ownerIdLabel.setText("Owner ID:");
             ownerIdTextField = skinsFactory.createSkinnedJTextField("OwnerIdTextField");
             ownerIdTextField.setEditable(false);
 
@@ -328,11 +330,17 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         bucketCreationDateTextField.setText(String.valueOf(bucket.getCreationDate()));
 
         if (bucket.getOwner() != null) {
+            ownerNameLabel.setVisible(true);
+            ownerNameTextField.setVisible(true);
+            ownerIdLabel.setVisible(true);
+            ownerIdTextField.setVisible(true);            
             ownerNameTextField.setText(bucket.getOwner().getDisplayName());
             ownerIdTextField.setText(bucket.getOwner().getId());
         } else {
-            ownerNameTextField.setText("");
-            ownerIdTextField.setText("");            
+            ownerNameLabel.setVisible(false);
+            ownerNameTextField.setVisible(false);
+            ownerIdLabel.setVisible(false);
+            ownerIdTextField.setVisible(false);            
         }        
         
         this.pack();
@@ -366,11 +374,17 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         bucketNameTextField.setText(object.getBucketName());
 
         if (object.getOwner() != null) {
+            ownerNameLabel.setVisible(true);
+            ownerNameTextField.setVisible(true);
+            ownerIdLabel.setVisible(true);
+            ownerIdTextField.setVisible(true);            
             ownerNameTextField.setText(object.getOwner().getDisplayName());
             ownerIdTextField.setText(object.getOwner().getId());
         } else {
-            ownerNameTextField.setText("");
-            ownerIdTextField.setText("");            
+            ownerNameLabel.setVisible(false);
+            ownerNameTextField.setVisible(false);
+            ownerIdLabel.setVisible(false);
+            ownerIdTextField.setVisible(false);            
         }
         
         // Clear old table contents
