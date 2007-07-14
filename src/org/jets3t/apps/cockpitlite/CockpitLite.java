@@ -97,6 +97,7 @@ import org.jets3t.gui.GuiUtils;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.ItemPropertiesDialog;
 import org.jets3t.gui.ProgressDialog;
+import org.jets3t.gui.ProgressPanel;
 import org.jets3t.gui.TableSorter;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Constants;
@@ -167,10 +168,19 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     
     private Jets3tProperties cockpitLiteProperties = null;
     
+    private static final String ACL_PRIVATE_DESCRIPTION = "Private";
+    private static final String ACL_PUBLIC_DESCRIPTION = "Public";
+    private static final String ACL_UNKNOWN_DESCRIPTION = "?";
+    
     /**
      * Properties set in stand-alone application from the command line arguments.
      */
     private Properties standAloneArgumentProperties = null;
+    
+    /**
+     * Stores the active ProgressPanel objects that track event progress.
+     */
+    private Map progressPanelMap = new HashMap();
     
     /**
      * Multi-threaded S3 service used by the application.
@@ -204,8 +214,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     public static final int SOCKET_CONNECTION_TIMEOUT = 60000;
     public static final int MAX_CONNECTION_RETRIES = 5;
     
-    private JPanel primaryPanel = null;
-    private CardLayout primaryPanelCardLayout = null;
+    private JPanel stackPanel = null;
+    private CardLayout stackPanelCardLayout = null;
     
     // Object main menu items
     private JPopupMenu objectActionMenu = null;
@@ -234,6 +244,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private JScrollPane objectsTableSP = null;
     private CLObjectTableModel objectTableModel =  null;
     private TableSorter objectTableModelSorter = null;
+    
+    // Progress notification aea
+    private JPanel progressNotificationPanel = null;
     
     private JLabel objectsSummaryLabel = null;
         
@@ -266,7 +279,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      */
     private boolean isViewingObjectProperties = false;
 
-        
     /**
      * Constructor to run this application as an Applet.
      */
@@ -415,11 +427,24 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             log.error("Unable to set skinned LookAndFeel", e);
         }    	
     	                
-        // Setup the primary panel, which contains all other panels as a stack.
-        primaryPanel = skinsFactory.createSkinnedJPanel("PrimaryPanel");
-        primaryPanelCardLayout = new CardLayout();
-        primaryPanel.setLayout(primaryPanelCardLayout);
+        // Primary panel that contains all other items.
+        JPanel primaryPanel = skinsFactory.createSkinnedJPanel("PrimaryPanel");
+        primaryPanel.setLayout(new GridBagLayout());
         this.getContentPane().add(primaryPanel);
+        
+        // Setup the stack panel, which contains all other panels as a stack.
+        stackPanel = skinsFactory.createSkinnedJPanel("StackPanel");
+        stackPanelCardLayout = new CardLayout();
+        stackPanel.setLayout(stackPanelCardLayout);
+        primaryPanel.add(stackPanel,
+            new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
+        
+        // Progress notification panel
+        progressNotificationPanel = skinsFactory.createSkinnedJPanel("ProgressNotificationPanel");
+        progressNotificationPanel.setLayout(new GridBagLayout());
+        primaryPanel.add(progressNotificationPanel, 
+            new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                new Insets(5, 0, 5, 0), 0, 0));
         
         int row = 0;
                                
@@ -462,7 +487,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         filterObjectsPanel = skinsFactory.createSkinnedJPanel("FilterPanel");
         filterObjectsPanel.setLayout(new GridBagLayout());
         filterObjectsPrefix = skinsFactory.createSkinnedJTextField("FilterPrefix");
-        filterObjectsPrefix.setToolTipText("Only show objects with this prefix");
+        filterObjectsPrefix.setToolTipText("Only show files starting with this string");
         filterObjectsPrefix.addActionListener(this);
         filterObjectsPrefix.setActionCommand("RefreshObjects");
         JLabel filterPrefixLabel = skinsFactory.createSkinnedJHtmlLabel("FilterPrefixLable", this);
@@ -481,7 +506,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         filterObjectsCheckBox.setText("Search files");
         filterObjectsCheckBox.setEnabled(true);
         filterObjectsCheckBox.addActionListener(this); 
-        filterObjectsCheckBox.setToolTipText("Check this option to search the objects listed");
+        filterObjectsCheckBox.setToolTipText("Check this option to search your files");
         objectsHeadingLabel = skinsFactory.createSkinnedJHtmlLabel("ObjectsHeadingLabel", this);
         objectsHeadingLabel.setText("Not logged in");
         objectsPanel.add(objectsHeadingLabel, 
@@ -490,7 +515,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             new GridBagConstraints(1, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
                         
         JButton objectActionButton = skinsFactory.createSkinnedJButton("ObjectMenuButton"); 
-        objectActionButton.setToolTipText("Object actions menu");
+        objectActionButton.setToolTipText("File actions menu");
         guiUtils.applyIcon(objectActionButton, "/images/nuvola/16x16/actions/misc.png");
         objectActionButton.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
@@ -538,7 +563,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         objectsSummaryLabel.setFocusable(false);
         objectsPanel.add(objectsSummaryLabel, 
                 new GridBagConstraints(0, ++row, 3, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        
+                
         // Object action menu.
         objectActionMenu = skinsFactory.createSkinnedJPopupMenu("ObjectPopupMenu");
         
@@ -573,7 +598,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         objectActionMenu.add(new JSeparator());
 
         togglePublicMenuItem = skinsFactory.createSkinnedJMenuItem("AclToggleMenuItem");
-        togglePublicMenuItem.setText("Make private/public...");
+        togglePublicMenuItem.setText("Change privacy setting...");
         togglePublicMenuItem.setActionCommand("TogglePublicPrivate");
         togglePublicMenuItem.addActionListener(this);
         guiUtils.applyIcon(togglePublicMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
@@ -602,10 +627,10 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         generatePublicGetUrl.setEnabled(false);
         deleteObjectMenuItem.setEnabled(false);
         
-        // Card layout in primary panel
-        primaryPanel.add(loginPanel, "LoginPanel");
-        primaryPanel.add(objectsPanel, "ObjectsPanel");
-                
+        // Card layout in stack panel
+        stackPanel.add(loginPanel, "LoginPanel");
+        stackPanel.add(objectsPanel, "ObjectsPanel");
+        
         // Set preferred sizes
         int preferredWidth = 800;
         int preferredHeight = 600;
@@ -774,7 +799,63 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             }
          });
     }
+    
+    
+    protected synchronized void startProgressPanel(Object operationId, String statusMessage, 
+        int maxCount, CancelEventTrigger cancelEventTrigger) 
+    {
+        // Create new progress panel.
+        final ProgressPanel progressPanel = new ProgressPanel(
+            cockpitLiteProperties.getProperties(), cancelEventTrigger);
+        progressPanel.startProgress(statusMessage, 0, maxCount);
         
+        // Store this panel against the operation ID it tracks.
+        progressPanelMap.put(operationId, progressPanel);
+        
+        // Display panel in progress notification area.
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                progressNotificationPanel.add(progressPanel,
+                    new GridBagConstraints(0, progressNotificationPanel.getComponents().length, 
+                        1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                progressNotificationPanel.revalidate();        
+            }
+         });
+    }
+    
+    protected synchronized void updateProgressPanel(Object operationId, final String statusMessage, 
+        final int currentCount) 
+    {
+        // Retrieve progress panel.
+        final ProgressPanel progressPanel = (ProgressPanel) progressPanelMap.get(operationId);
+        
+        if (progressPanel != null) {
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    progressPanel.updateProgress(statusMessage, currentCount);                    
+                }
+             });
+        }
+    }
+    
+    protected synchronized void stopProgressPanel(Object operationId) {
+        // Retrieve progress panel.
+        final ProgressPanel progressPanel = (ProgressPanel) progressPanelMap.get(operationId);
+        
+        if (progressPanel != null) {
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    progressPanel.dispose();   
+                    progressPanelMap.remove(progressPanel);
+                    
+                    progressNotificationPanel.removeAll();            
+                    progressNotificationPanel.revalidate();
+                }
+             });
+        }
+    }
+     
+    
     /**
      * Event handler for this application, handles all menu items.
      */
@@ -797,7 +878,37 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 }
             }.start();
         } else if ("TogglePublicPrivate".equals(event.getActionCommand())) {
-            lookupObjectsAccessControlLists();
+            new Thread() {
+                public void run() {                                       
+                    S3Object object = getSelectedObjects()[0];
+                    String aclStatus = objectTableModel.getObjectAclStatus(object);
+                    boolean originalAclWasPublic = ACL_PUBLIC_DESCRIPTION.equals(aclStatus);
+                    
+                    ToggleAclDialog dialog = new ToggleAclDialog(ownerFrame, 
+                        originalAclWasPublic, null, cockpitLiteProperties.getProperties());
+                    dialog.setVisible(true);
+                    
+                    // Update ACL setting.
+                    S3Object minimalObject = new S3Object(object.getKey());
+    
+                    AccessControlList newAcl = (dialog.isPublicAclSet() 
+                        ? AccessControlList.REST_CANNED_PUBLIC_READ
+                        : AccessControlList.REST_CANNED_PRIVATE);
+                    
+                    if (newAcl != null) {
+                        if (AccessControlList.REST_CANNED_PRIVATE.equals(newAcl)) {                                    
+                            minimalObject.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "private");
+                        } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(newAcl)) { 
+                            minimalObject.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "public-read");
+                        } 
+                    }                
+                    
+                    updateObjectsAccessControlLists(
+                        new S3Object[] {minimalObject}, newAcl);
+
+                    dialog.dispose();
+                }
+            }.start();
         } else if ("GeneratePublicGetURL".equals(event.getActionCommand())) {
             generatePublicGetUrl();
         } else if ("DeleteObjects".equals(event.getActionCommand())) {
@@ -838,7 +949,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             } else {
                 filterObjectsPanel.setVisible(false);
                 filterObjectsPrefix.setText("");
-                listObjects();
             }
         }
         
@@ -871,9 +981,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         	cockpitLiteProperties.setProperty("Username", usernameTextField.getText());
         	cockpitLiteProperties.setProperty("PasswordHash", passwordMd5AsHex);
         	
-            startProgressDialog("Searching for your files", 
-        		"Please be patient, this may take some time if you have many files", 
-        		0, 0, null, null);
+            startProgressPanel(this, "Finding files", 0, null);
                 
     		// Perform object listing operation via Gatekeeper.
     		Map requestProperties = new HashMap();
@@ -887,7 +995,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 				gkClient.requestActionThroughGatekeeper(
 						null, null, new S3Object[] {}, requestProperties);		
 			
-			stopProgressDialog();
+			stopProgressPanel(this);
 			
             String gatekeeperErrorCode = responseMessage.getApplicationProperties()
             	.getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
@@ -921,21 +1029,23 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 			+ "</b>   User: <b>" + userName + "</b>   "
                 			+ (userVanityHost != null? "Host: <b>" + userVanityHost + "</b>" : ""));
                     	
-		    			objectTableModel.removeAllObjects();
+                        objectTableModel.removeAllObjects();
 		    			objectTableModel.addObjects(objects);
 		                updateObjectsSummary();
 		                refreshObjectMenuItem.setEnabled(true);
+
+                        lookupObjectsAccessControlLists(objects);
                     }
                 });
     			
-        		primaryPanelCardLayout.show(primaryPanel, "ObjectsPanel");
+        		stackPanelCardLayout.show(stackPanel, "ObjectsPanel");
             } else {
             	// Listing failed
             	ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), 
             		"Your log-in information was not correct, please try again", null);                	
             }
 		} catch (Exception e) {
-			stopProgressDialog();
+			stopProgressPanel(this);
             log.error("Gatekeeper login failed", e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), 
             		"Log-in failed, please try again", e);
@@ -973,16 +1083,20 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Actions performed when an object is selected in the objects list table.
      */
     private void objectSelectedAction() {
-        int count = getSelectedObjects().length;    
+        S3Object[] selectedObjects = getSelectedObjects();
+        int count = selectedObjects.length;    
         
         togglePublicMenuItem.setEnabled(
-            userCanACL && count > 0);
+            userCanACL && count == 1);
         downloadObjectMenuItem.setEnabled(
             userCanDownload && count > 0);
         deleteObjectMenuItem.setEnabled(
             userCanDelete && count > 0);
         viewObjectPropertiesMenuItem.setEnabled(count > 0);
-        generatePublicGetUrl.setEnabled(count == 1);
+        generatePublicGetUrl.setEnabled(
+            count == 1 
+            && ACL_PUBLIC_DESCRIPTION.equals(
+                objectTableModel.getObjectAclStatus(selectedObjects[0])));
     }
     
     /**
@@ -1056,12 +1170,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * in the <code>s3ServiceEventPerformed</code> method specific to <code>LookupACLEvent</code>s.
      *
      */
-    private void lookupObjectsAccessControlLists() {
+    private void lookupObjectsAccessControlLists(final S3Object[] objects) {
         (new Thread() {
             public void run() {
                 try {
                     SignatureRequest[] signatureRequests = requestSignedRequests(
-                            SignatureRequest.SIGNATURE_TYPE_ACL_LOOKUP, getSelectedObjects());
+                            SignatureRequest.SIGNATURE_TYPE_ACL_LOOKUP, objects);
                     
                     if (signatureRequests != null) {
                         String[] signedRequests = new String[signatureRequests.length];
@@ -1071,19 +1185,19 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                             
                         s3ServiceMulti.getObjectsACLs(signedRequests);
                     } else {
-                        // Listing failed
+                        // Signature request failed
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(), 
                             "Sorry, you do not have the permission to view object privacy settings", null);                  
                     }
                 } catch (Exception e) {
-                    stopProgressDialog();
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(), 
                             "Permissions check failed, please try again", e);
-                }                                       
+                } 
             }    
         }).start();        
     }
+
 
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
@@ -1091,80 +1205,40 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * 
      * @param event
      */
-    public void s3ServiceEventPerformed(LookupACLEvent event) {
+    public void s3ServiceEventPerformed(final LookupACLEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
-            startProgressDialog(
-                "Retrieved 0 of " + event.getThreadWatcher().getThreadCount() + " ACL(s)", 
-                "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Lookup",  
-                event.getThreadWatcher().getCancelEventListener());
+            int threadCount = (int) event.getThreadWatcher().getThreadCount();
+            startProgressPanel(event.getUniqueOperationId(), "Privacy lookup 0/" + threadCount,
+                threadCount, event.getThreadWatcher().getCancelEventListener());            
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-            ThreadWatcher progressStatus = event.getThreadWatcher();
-            String statusText = "Retrieved " + progressStatus.getCompletedThreads() + " of " + progressStatus.getThreadCount() + " ACL(s)";
-            updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());
-            
-            S3Object[] objectsWithAcl = event.getObjectsWithACL();
-            for (int i = 0; i < objectsWithAcl.length; i++) {
-                boolean isPublicAcl = false;
+            int threadCount = (int) event.getThreadWatcher().getThreadCount();
+            int threadsCompleted = (int) event.getThreadWatcher().getCompletedThreads();
+            updateProgressPanel(event.getUniqueOperationId(), 
+                "Privacy lookup " + threadsCompleted + "/" + threadCount, threadsCompleted);
 
-                final AccessControlList originalAcl = objectsWithAcl[i].getAcl();
-                Iterator iter = originalAcl.getGrants().iterator();
-                while (iter.hasNext()) {
-                    GrantAndPermission gap = (GrantAndPermission) iter.next();
-                    if (GroupGrantee.ALL_USERS.equals(gap.getGrantee())
-                        && Permission.PERMISSION_READ.equals(gap.getPermission())) 
-                    {
-                        isPublicAcl = true;
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {            
+                    S3Object[] objectsWithAcl = event.getObjectsWithACL();
+                    for (int i = 0; i < objectsWithAcl.length; i++) {
+                        String aclStatus = getAclDescription(objectsWithAcl[i].getAcl());
+                        objectTableModel.updateObjectAclStatus(objectsWithAcl[i], aclStatus);                 
                     }
                 }
-                
-                final boolean isPublicAclFinal = isPublicAcl;
-                final S3Object objectToUpdate = objectsWithAcl[i];
-                
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        ToggleAclDialog dialog = new ToggleAclDialog(ownerFrame, 
-                            isPublicAclFinal, null, cockpitLiteProperties.getProperties());
-                        dialog.setVisible(true);
-                        if (dialog.isPublicAclSet() != isPublicAclFinal) {                            
-                            // ACL setting has been changed.
-                            AccessControlList newAcl = (dialog.isPublicAclSet() 
-                                ? AccessControlList.REST_CANNED_PUBLIC_READ
-                                : AccessControlList.REST_CANNED_PRIVATE);
-                            
-                            if (newAcl != null) {
-                                if (AccessControlList.REST_CANNED_PRIVATE.equals(newAcl)) {                                    
-                                    objectToUpdate.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "private");
-                                } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(newAcl)) { 
-                                    objectToUpdate.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "public-read");
-                                } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(newAcl)) { 
-                                    objectToUpdate.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "public-read-write");
-                                } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(newAcl)) {
-                                    objectToUpdate.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "authenticated-read");
-                                } 
-                            }
-                            
-                            updateObjectsAccessControlLists(
-                                new S3Object[] {objectToUpdate}, newAcl);
-                        }                        
-                        dialog.dispose();
-                    }
-                });
+            });
 
-            }
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
-            stopProgressDialog();                            
+            stopProgressPanel(event.getUniqueOperationId());
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            stopProgressDialog();        
+            stopProgressPanel(event.getUniqueOperationId());
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDialog();
-            
+            stopProgressPanel(event.getUniqueOperationId());
+
             String message = "Unable to lookup Access Control list for object(s)";
             log.error(message, event.getErrorCause());
-            ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, event.getErrorCause());
         }
     }
     
@@ -1185,14 +1259,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                             signedRequests[i] = signatureRequests[i].getSignedUrl();
                         }
                             
-                        s3ServiceMulti.putObjectsACLs(signedRequests, acl);
+                        s3ServiceMulti.putObjectsACLs(signedRequests, acl);                        
                     } else {
                         // Listing failed
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(), 
                             "Sorry, you do not have the permission to change object privacy settings", null);                  
                     }
                 } catch (Exception e) {
-                    stopProgressDialog();
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(), 
                             "Permissions check failed, please try again", e);
@@ -1209,26 +1282,40 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * 
      * @param event
      */
-    public void s3ServiceEventPerformed(UpdateACLEvent event) {
+    public void s3ServiceEventPerformed(final UpdateACLEvent event) {
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
-            startProgressDialog(
-                "Updated 0 of " + event.getThreadWatcher().getThreadCount() + " ACL(s)", 
-                "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Update", 
+            startProgressPanel(event.getUniqueOperationId(),
+                "Privacy update 0/" + event.getThreadWatcher().getThreadCount(), 
+                (int) event.getThreadWatcher().getThreadCount(),  
                 event.getThreadWatcher().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             ThreadWatcher progressStatus = event.getThreadWatcher();
-            String statusText = "Updated " + progressStatus.getCompletedThreads() + " of " + progressStatus.getThreadCount() + " ACL(s)";
-            updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                    
+            String statusText = "Privacy update " + progressStatus.getCompletedThreads() 
+                + "/" + progressStatus.getThreadCount();
+            updateProgressPanel(event.getUniqueOperationId(), statusText, 
+                (int) progressStatus.getCompletedThreads());
+
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {            
+                    S3Object[] objects = event.getObjectsWithUpdatedACL();
+                    for (int i = 0; i < objects.length; i++) {
+                        String aclStatus = getAclDescription(objects[i].getAcl());
+                        objectTableModel.updateObjectAclStatus(objects[i], aclStatus);
+                        objectSelectedAction();
+                    }
+                }
+            });
+            
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
-            stopProgressDialog();                            
+            stopProgressPanel(event.getUniqueOperationId());                            
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            stopProgressDialog();        
+            stopProgressPanel(event.getUniqueOperationId());                            
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            stopProgressDialog();
+            stopProgressPanel(event.getUniqueOperationId());                            
             
             String message = "Unable to update Access Control List(s)";
             log.error(message, event.getErrorCause());
@@ -1579,13 +1666,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     
     private SignatureRequest[] requestSignedRequests(String operationType, S3Object[] objects) {
     	try {
-            startProgressDialog("Checking permissions", 
-            		null, 0, 0, null, null);
+            startProgressPanel(this, "Checking permissions", 0, null); 
     		
         	GatekeeperMessage responseMessage = gkClient.requestActionThroughGatekeeper(
     			operationType, userBucketName, objects, cockpitLiteProperties.getProperties());
         	
-			stopProgressDialog();
+			stopProgressPanel(this);
 			
             String gatekeeperErrorCode = responseMessage.getApplicationProperties()
             	.getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
@@ -1607,7 +1693,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 //            		"Sorry, you do not have the necessary permissions", null);                	
             }
 		} catch (Exception e) {
-			stopProgressDialog();
+			stopProgressPanel(this);
             log.error("Gatekeeper permissions check failed", e);
             ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(), 
             		"Permissions check failed, please try again", e);
@@ -2098,7 +2184,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects(), 
-                                cockpitLiteProperties.getProperties());
+                                cockpitLiteProperties.getProperties(),
+                                // Only admin users with all rights can view metadata
+                                (userCanUpload && userCanDownload && userCanACL && userCanDelete));
                             isViewingObjectProperties = false;                    
                         }
                     });
@@ -2228,6 +2316,26 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 	public void s3ServiceEventPerformed(CreateBucketsEvent event) {
 		// Not applicable in this app.		
 	}
+    
+    public static String getAclDescription(AccessControlList acl) {
+        if (acl == null) { 
+            return ACL_UNKNOWN_DESCRIPTION;
+        }
+        
+        Iterator iter = acl.getGrants().iterator();
+        while (iter.hasNext()) {
+            GrantAndPermission gap = (GrantAndPermission) iter.next();
+            if (GroupGrantee.ALL_USERS.equals(gap.getGrantee())
+                && Permission.PERMISSION_READ.equals(gap.getPermission())) 
+            {
+                return ACL_PUBLIC_DESCRIPTION;
+            }
+        }
+        if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
+            return ACL_PUBLIC_DESCRIPTION;
+        }
+        return ACL_PRIVATE_DESCRIPTION;
+    }
             
     private class ContextMenuListener extends MouseAdapter {
         public void mousePressed(MouseEvent e) {

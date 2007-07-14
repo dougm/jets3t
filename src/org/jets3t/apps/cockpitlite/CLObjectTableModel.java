@@ -39,7 +39,7 @@ public class CLObjectTableModel extends DefaultTableModel {
     private String usersPath = "";
 
     public CLObjectTableModel() {
-        super(new String[] {"File","Size","Last Modified"}, 0);
+        super(new String[] {"File","Size","Last Modified","Public?"}, 0);
     }
     
     public void setUsersPath(String usersPath) {
@@ -71,11 +71,43 @@ public class CLObjectTableModel extends DefaultTableModel {
         // New object to insert.
         objectList.add(insertRow, object);
         this.insertRow(insertRow, new Object[] {object.getKey(), 
-            new Long(object.getContentLength()), object.getLastModifiedDate()});
+            new Long(object.getContentLength()), object.getLastModifiedDate(),
+            CockpitLite.getAclDescription(object.getAcl())});
         
         return insertRow;
     }
     
+    public int updateObjectAclStatus(S3Object objectWithAcl, String aclStatus) {
+        int updateRow = 
+            Collections.binarySearch(objectList, objectWithAcl, new Comparator() {
+                public int compare(Object o1, Object o2) {
+                    return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
+                }
+            });
+        if (updateRow >= 0) {
+            this.setValueAt(aclStatus, updateRow, 3);
+        } else {
+            // Object isn't in table!
+        }
+        return updateRow;        
+    }
+    
+    public String getObjectAclStatus(S3Object objectWithAcl) {
+        synchronized (objectList) {
+            int updateRow = 
+                Collections.binarySearch(objectList, objectWithAcl, new Comparator() {
+                    public int compare(Object o1, Object o2) {
+                        return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
+                    }
+                });
+            if (updateRow >= 0) {
+                return (String) this.getValueAt(updateRow, 3);
+            } else {
+                return null;
+            }
+        }
+    }
+
     public void addObjects(S3Object[] objects) {
         for (int i = 0; i < objects.length; i++) {
             addObject(objects[i]);
@@ -126,8 +158,10 @@ public class CLObjectTableModel extends DefaultTableModel {
             return String.class;
         } else if (columnIndex == 1) {
             return Long.class;
-        } else {
+        } else if (columnIndex == 2) {
             return Date.class;
+        } else {
+            return String.class;
         }
     }
     
