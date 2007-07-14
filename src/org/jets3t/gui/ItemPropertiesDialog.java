@@ -86,6 +86,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
     private JTextField ownerIdTextField = null;
     
     private JTextField bucketCreationDateTextField = null;
+    
+    private boolean includeMetadata = true;
 
     /**
      * Construct a modal dialog displaying details of a bucket or object.
@@ -98,10 +100,11 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      * if true an object-specific dialog will be displayed, otherwise a bucket-specific dialog.
      */
     protected ItemPropertiesDialog(Frame owner, String title, boolean isObjectDialog,
-        Properties applicationProperties) 
+        Properties applicationProperties, boolean includeMetadata) 
     {
         super(owner, title, true);
         this.applicationProperties = applicationProperties;
+        this.includeMetadata = includeMetadata;
         this.initGui(isObjectDialog);
     }
 
@@ -277,17 +280,20 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         int row = 0;
         JPanel container = skinsFactory.createSkinnedJPanel("ItemPropertiesPanel");
         container.setLayout(new GridBagLayout());
-        container.add(commonPropertiesContainer, new GridBagConstraints(0, row++, 3, 1, 1, 0,
+        container.add(commonPropertiesContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
             GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
         if (isObjectBased) {
-            JHtmlLabel metadataLabel = skinsFactory.createSkinnedJHtmlLabel("MetadataLabel");
-            metadataLabel.setText("<html><b>Metadata</b></html>");
-            metadataLabel.setHorizontalAlignment(JLabel.CENTER);
-            container.add(metadataLabel, new GridBagConstraints(0, row++, 3, 1,
-                1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-                insetsVerticalSpace, 0, 0));
-            container.add(metadataContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
+            
+            if (includeMetadata) {            
+                JHtmlLabel metadataLabel = skinsFactory.createSkinnedJHtmlLabel("MetadataLabel");
+                metadataLabel.setText("<html><b>Metadata</b></html>");
+                metadataLabel.setHorizontalAlignment(JLabel.CENTER);
+                container.add(metadataLabel, new GridBagConstraints(0, row++, 3, 1,
+                    1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                    insetsVerticalSpace, 0, 0));
+                container.add(metadataContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
+            }
             
             // Object previous and next buttons, if we have multiple objects.
             previousObjectButton = skinsFactory.createSkinnedJButton("ItemPropertiesPreviousButton");
@@ -320,7 +326,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
 
         this.pack();
         if (isObjectBased) {
-            this.setSize(this.getWidth(), 500);
+            this.setSize(400, (includeMetadata ? 500 : 300));
         }
         this.setLocationRelativeTo(this.getOwner());
     }
@@ -392,7 +398,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             objectMetadataTableModel.removeRow(0);
         }        
 
-        // Remove the metadata items already displayed.
+        // Remove the metadata items already displayed, or not suitable for gui display.
         Map objectMetadata = new HashMap(object.getMetadataMap());
         objectMetadata.remove(S3Object.METADATA_HEADER_CONTENT_LENGTH);
         objectMetadata.remove(S3Object.METADATA_HEADER_CONTENT_TYPE);
@@ -400,6 +406,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         objectMetadata.remove(S3Object.METADATA_HEADER_ETAG);
         objectMetadata.remove(S3Object.METADATA_HEADER_LAST_MODIFIED_DATE);
         objectMetadata.remove(S3Object.METADATA_HEADER_OWNER);
+        objectMetadata.remove("id-2"); // HTTP request-specific information
+        objectMetadata.remove("request-id"); // HTTP request-specific information
 
         // Display remaining metadata items in the table.        
         Iterator mdIter = objectMetadata.entrySet().iterator();
@@ -421,7 +429,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      */
     public static void showDialog(Frame owner, S3Bucket bucket, Properties applicationProperties) {
         ItemPropertiesDialog dialog = 
-            new ItemPropertiesDialog(owner, "Bucket properties", false, applicationProperties);
+            new ItemPropertiesDialog(owner, "Bucket properties", false, applicationProperties, false);
         dialog.displayBucketProperties(bucket);
         dialog.setVisible(true);
         dialog.dispose();
@@ -436,9 +444,10 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      * @param objects
      * the object whose details will be displayed
      */
-    public static void showDialog(Frame owner, S3Object[] objects, Properties applicationProperties) {
+    public static void showDialog(Frame owner, S3Object[] objects, Properties applicationProperties,
+        boolean includeMetadata) {
         ItemPropertiesDialog dialog = 
-            new ItemPropertiesDialog(owner, "Object properties", true, applicationProperties);
+            new ItemPropertiesDialog(owner, "Object properties", true, applicationProperties,includeMetadata);
         dialog.displayObjectsProperties(objects);
         dialog.setVisible(true);
         dialog.dispose();

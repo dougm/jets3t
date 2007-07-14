@@ -2494,7 +2494,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 } else if (isViewingObjectProperties) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects(), null);
+                            ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects(), null, true);
                             isViewingObjectProperties = false;                    
                         }
                     });
