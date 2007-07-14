@@ -36,36 +36,38 @@ import org.jets3t.service.model.S3Object;
 public class DeleteObjectsEvent extends ServiceEvent {
     private S3Object[] objects = null;
     
-    private DeleteObjectsEvent(int eventCode) {
-        super(eventCode);
+    private DeleteObjectsEvent(int eventCode, Object uniqueOperationId) {
+        super(eventCode, uniqueOperationId);
     }
     
-    public static DeleteObjectsEvent newErrorEvent(Throwable t) {
-        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_ERROR);
+    public static DeleteObjectsEvent newErrorEvent(Throwable t, Object uniqueOperationId) {
+        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_ERROR, uniqueOperationId);
         event.setErrorCause(t);
         return event;
     }
 
-    public static DeleteObjectsEvent newStartedEvent(ThreadWatcher threadWatcher) {
-        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_STARTED);
+    public static DeleteObjectsEvent newStartedEvent(ThreadWatcher threadWatcher, Object uniqueOperationId) {
+        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_STARTED, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         return event;
     }
 
-    public static DeleteObjectsEvent newInProgressEvent(ThreadWatcher threadWatcher, S3Object[] deletedObjects) {
-        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_IN_PROGRESS);
+    public static DeleteObjectsEvent newInProgressEvent(ThreadWatcher threadWatcher, 
+        S3Object[] deletedObjects, Object uniqueOperationId) 
+    {
+        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_IN_PROGRESS, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         event.setObjects(deletedObjects);
         return event;
     }
 
-    public static DeleteObjectsEvent newCompletedEvent() {
-        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_COMPLETED);
+    public static DeleteObjectsEvent newCompletedEvent(Object uniqueOperationId) {
+        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_COMPLETED, uniqueOperationId);
         return event;
     }
     
-    public static DeleteObjectsEvent newCancelledEvent(S3Object[] remainingObjects) {
-        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_CANCELLED);
+    public static DeleteObjectsEvent newCancelledEvent(S3Object[] remainingObjects, Object uniqueOperationId) {
+        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_CANCELLED, uniqueOperationId);
         event.setObjects(remainingObjects);
         return event;
     }

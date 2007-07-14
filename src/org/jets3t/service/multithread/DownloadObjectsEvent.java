@@ -37,37 +37,39 @@ import org.jets3t.service.model.S3Object;
 public class DownloadObjectsEvent extends ServiceEvent {	
 	private S3Object[] objects = null;
     
-    private DownloadObjectsEvent(int eventCode) {
-        super(eventCode);
+    private DownloadObjectsEvent(int eventCode, Object uniqueOperationId) {
+        super(eventCode, uniqueOperationId);
     }
     
 
-    public static DownloadObjectsEvent newErrorEvent(Throwable t) {
-        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_ERROR);
+    public static DownloadObjectsEvent newErrorEvent(Throwable t, Object uniqueOperationId) {
+        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_ERROR, uniqueOperationId);
         event.setErrorCause(t);
         return event;
     }
 
-    public static DownloadObjectsEvent newStartedEvent(ThreadWatcher threadWatcher) {
-        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_STARTED);
+    public static DownloadObjectsEvent newStartedEvent(ThreadWatcher threadWatcher, Object uniqueOperationId) {
+        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_STARTED, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         return event;
     }
 
-    public static DownloadObjectsEvent newInProgressEvent(ThreadWatcher threadWatcher, S3Object[] completedObjects) {
-        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_IN_PROGRESS);
+    public static DownloadObjectsEvent newInProgressEvent(ThreadWatcher threadWatcher, 
+        S3Object[] completedObjects, Object uniqueOperationId) 
+    {
+        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_IN_PROGRESS, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         event.setObjects(completedObjects);
         return event;
     }
 
-    public static DownloadObjectsEvent newCompletedEvent() {
-        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_COMPLETED);
+    public static DownloadObjectsEvent newCompletedEvent(Object uniqueOperationId) {
+        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_COMPLETED, uniqueOperationId);
         return event;
     }
     
-    public static DownloadObjectsEvent newCancelledEvent(S3Object[] incompletedObjects) {
-        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_CANCELLED);
+    public static DownloadObjectsEvent newCancelledEvent(S3Object[] incompletedObjects, Object uniqueOperationId) {
+        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_CANCELLED, uniqueOperationId);
         event.setObjects(incompletedObjects);
         return event;
     }

@@ -36,37 +36,39 @@ import org.jets3t.service.model.S3Bucket;
 public class CreateBucketsEvent extends ServiceEvent {	
 	private S3Bucket[] buckets = null;
     
-    private CreateBucketsEvent(int eventCode) {
-        super(eventCode);
+    private CreateBucketsEvent(int eventCode, Object uniqueOperationId) {
+        super(eventCode, uniqueOperationId);
     }
     
 
-    public static CreateBucketsEvent newErrorEvent(Throwable t) {
-        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_ERROR);
+    public static CreateBucketsEvent newErrorEvent(Throwable t, Object uniqueOperationId) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_ERROR, uniqueOperationId);
         event.setErrorCause(t);
         return event;
     }
 
-    public static CreateBucketsEvent newStartedEvent(ThreadWatcher threadWatcher) {
-        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_STARTED);
+    public static CreateBucketsEvent newStartedEvent(ThreadWatcher threadWatcher, Object uniqueOperationId) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_STARTED, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         return event;
     }
 
-    public static CreateBucketsEvent newInProgressEvent(ThreadWatcher threadWatcher, S3Bucket[] completedBuckets) {
-        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_IN_PROGRESS);
+    public static CreateBucketsEvent newInProgressEvent(ThreadWatcher threadWatcher, 
+        S3Bucket[] completedBuckets, Object uniqueOperationId) 
+    {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_IN_PROGRESS, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         event.setBuckets(completedBuckets);
         return event;
     }
 
-    public static CreateBucketsEvent newCompletedEvent() {
-        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_COMPLETED);
+    public static CreateBucketsEvent newCompletedEvent(Object uniqueOperationId) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_COMPLETED, uniqueOperationId);
         return event;
     }
     
-    public static CreateBucketsEvent newCancelledEvent(S3Bucket[] incompletedBuckets) {
-        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_CANCELLED);
+    public static CreateBucketsEvent newCancelledEvent(S3Bucket[] incompletedBuckets, Object uniqueOperationId) {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_CANCELLED, uniqueOperationId);
         event.setBuckets(incompletedBuckets);
         return event;
     }

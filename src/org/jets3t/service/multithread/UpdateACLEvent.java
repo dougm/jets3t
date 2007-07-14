@@ -36,37 +36,39 @@ import org.jets3t.service.model.S3Object;
 public class UpdateACLEvent extends ServiceEvent {	
     private S3Object[] objects = null;
     
-    private UpdateACLEvent(int eventCode) {
-        super(eventCode);
+    private UpdateACLEvent(int eventCode, Object uniqueOperationId) {
+        super(eventCode, uniqueOperationId);
     }
     
 
-    public static UpdateACLEvent newErrorEvent(Throwable t) {
-        UpdateACLEvent event = new UpdateACLEvent(EVENT_ERROR);
+    public static UpdateACLEvent newErrorEvent(Throwable t, Object uniqueOperationId) {
+        UpdateACLEvent event = new UpdateACLEvent(EVENT_ERROR, uniqueOperationId);
         event.setErrorCause(t);
         return event;
     }
 
-    public static UpdateACLEvent newStartedEvent(ThreadWatcher threadWatcher) {
-        UpdateACLEvent event = new UpdateACLEvent(EVENT_STARTED);
+    public static UpdateACLEvent newStartedEvent(ThreadWatcher threadWatcher, Object uniqueOperationId) {
+        UpdateACLEvent event = new UpdateACLEvent(EVENT_STARTED, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         return event;
     }
 
-    public static UpdateACLEvent newInProgressEvent(ThreadWatcher threadWatcher, S3Object[] completedObjects) {
-        UpdateACLEvent event = new UpdateACLEvent(EVENT_IN_PROGRESS);
+    public static UpdateACLEvent newInProgressEvent(ThreadWatcher threadWatcher, 
+        S3Object[] completedObjects, Object uniqueOperationId) 
+    {
+        UpdateACLEvent event = new UpdateACLEvent(EVENT_IN_PROGRESS, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         event.setObjects(completedObjects);
         return event;
     }
 
-    public static UpdateACLEvent newCompletedEvent() {
-        UpdateACLEvent event = new UpdateACLEvent(EVENT_COMPLETED);
+    public static UpdateACLEvent newCompletedEvent(Object uniqueOperationId) {
+        UpdateACLEvent event = new UpdateACLEvent(EVENT_COMPLETED, uniqueOperationId);
         return event;
     }
     
-    public static UpdateACLEvent newCancelledEvent(S3Object[] incompletedObjects) {
-        UpdateACLEvent event = new UpdateACLEvent(EVENT_CANCELLED);
+    public static UpdateACLEvent newCancelledEvent(S3Object[] incompletedObjects, Object uniqueOperationId) {
+        UpdateACLEvent event = new UpdateACLEvent(EVENT_CANCELLED, uniqueOperationId);
         event.setObjects(incompletedObjects);
         return event;
     }

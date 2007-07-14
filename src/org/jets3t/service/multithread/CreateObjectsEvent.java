@@ -36,37 +36,39 @@ import org.jets3t.service.model.S3Object;
 public class CreateObjectsEvent extends ServiceEvent {
     private S3Object[] objects = null;
     
-    private CreateObjectsEvent(int eventCode) {
-        super(eventCode);
+    private CreateObjectsEvent(int eventCode, Object uniqueOperationId) {
+        super(eventCode, uniqueOperationId);
     }
     
 
-    public static CreateObjectsEvent newErrorEvent(Throwable t) {
-        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_ERROR);
+    public static CreateObjectsEvent newErrorEvent(Throwable t, Object uniqueOperationId) {
+        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_ERROR, uniqueOperationId);
         event.setErrorCause(t);
         return event;
     }
 
-    public static CreateObjectsEvent newStartedEvent(ThreadWatcher threadWatcher) {
-        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_STARTED);
+    public static CreateObjectsEvent newStartedEvent(ThreadWatcher threadWatcher, Object uniqueOperationId) {
+        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_STARTED, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         return event;
     }
 
-    public static CreateObjectsEvent newInProgressEvent(ThreadWatcher threadWatcher, S3Object[] completedObjects) {
-        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_IN_PROGRESS);
+    public static CreateObjectsEvent newInProgressEvent(ThreadWatcher threadWatcher, 
+        S3Object[] completedObjects, Object uniqueOperationId) 
+    {
+        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_IN_PROGRESS, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         event.setObjects(completedObjects);
         return event;
     }
 
-    public static CreateObjectsEvent newCompletedEvent() {
-        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_COMPLETED);
+    public static CreateObjectsEvent newCompletedEvent(Object uniqueOperationId) {
+        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_COMPLETED, uniqueOperationId);
         return event;
     }
     
-    public static CreateObjectsEvent newCancelledEvent(S3Object[] incompletedObjects) {
-        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_CANCELLED);
+    public static CreateObjectsEvent newCancelledEvent(S3Object[] incompletedObjects, Object uniqueOperationId) {
+        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_CANCELLED, uniqueOperationId);
         event.setObjects(incompletedObjects);
         return event;
     }

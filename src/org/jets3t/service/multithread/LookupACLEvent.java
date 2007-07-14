@@ -36,37 +36,41 @@ import org.jets3t.service.model.S3Object;
 public class LookupACLEvent extends ServiceEvent {	
     private S3Object[] objects = null;
     
-    private LookupACLEvent(int eventCode) {
-        super(eventCode);
+    private LookupACLEvent(int eventCode, Object uniqueOperationId) {
+        super(eventCode, uniqueOperationId);
     }
     
 
-    public static LookupACLEvent newErrorEvent(Throwable t) {
-        LookupACLEvent event = new LookupACLEvent(EVENT_ERROR);
+    public static LookupACLEvent newErrorEvent(Throwable t, Object uniqueOperationId) {
+        LookupACLEvent event = new LookupACLEvent(EVENT_ERROR, uniqueOperationId);
         event.setErrorCause(t);
         return event;
     }
 
-    public static LookupACLEvent newStartedEvent(ThreadWatcher threadWatcher) {
-        LookupACLEvent event = new LookupACLEvent(EVENT_STARTED);
+    public static LookupACLEvent newStartedEvent(ThreadWatcher threadWatcher, Object uniqueOperationId) {
+        LookupACLEvent event = new LookupACLEvent(EVENT_STARTED, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         return event;
     }
 
-    public static LookupACLEvent newInProgressEvent(ThreadWatcher threadWatcher, S3Object[] completedObjects) {
-        LookupACLEvent event = new LookupACLEvent(EVENT_IN_PROGRESS);
+    public static LookupACLEvent newInProgressEvent(ThreadWatcher threadWatcher, 
+        S3Object[] completedObjects, Object uniqueOperationId) 
+    {
+        LookupACLEvent event = new LookupACLEvent(EVENT_IN_PROGRESS, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
         event.setObjects(completedObjects);
         return event;
     }
 
-    public static LookupACLEvent newCompletedEvent() {
-        LookupACLEvent event = new LookupACLEvent(EVENT_COMPLETED);
+    public static LookupACLEvent newCompletedEvent(Object uniqueOperationId) {
+        LookupACLEvent event = new LookupACLEvent(EVENT_COMPLETED, uniqueOperationId);
         return event;
     }
     
-    public static LookupACLEvent newCancelledEvent(S3Object[] incompletedObjects) {
-        LookupACLEvent event = new LookupACLEvent(EVENT_CANCELLED);
+    public static LookupACLEvent newCancelledEvent(S3Object[] incompletedObjects, 
+        Object uniqueOperationId) 
+    {
+        LookupACLEvent event = new LookupACLEvent(EVENT_CANCELLED, uniqueOperationId);
         event.setObjects(incompletedObjects);
         return event;
     }

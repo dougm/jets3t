@@ -55,11 +55,13 @@ public abstract class ServiceEvent {
     public static final int EVENT_CANCELLED = 4;
 
     private int eventCode = 0;
+    private Object uniqueOperationId = null;
     private Throwable t = null;
     private ThreadWatcher threadWatcher = null;
 
-    protected ServiceEvent(int eventCode) {
+    protected ServiceEvent(int eventCode, Object uniqueOperationId) {
         this.eventCode = eventCode;
+        this.uniqueOperationId = uniqueOperationId;
     }
     
     protected void setThreadWatcher(ThreadWatcher threadWatcher) {
@@ -68,6 +70,10 @@ public abstract class ServiceEvent {
     
     protected void setErrorCause(Throwable t) {
         this.t = t;
+    }
+    
+    public Object getUniqueOperationId() {
+        return uniqueOperationId;
     }
     
     /**
