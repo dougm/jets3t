@@ -77,7 +77,7 @@ public class ToggleAclDialog extends JDialog implements ActionListener {
     public ToggleAclDialog(JDialog ownerDialog, boolean isPublicObject,
         HyperlinkActivatedListener hyperlinkListener, Properties applicationProperties) 
     {
-        super(ownerDialog, "Toggle privacy settings", true);
+        super(ownerDialog, "Change privacy", true);
         this.hyperlinkListener = hyperlinkListener;
         this.applicationProperties = applicationProperties;
         this.isPublicObject = isPublicObject;
