@@ -286,8 +286,15 @@ public class BytesProgressWatcher {
         long bytesRemaining = 
             sumBytesToTransfer(progressWatchers) 
             - sumBytesTransferred(progressWatchers);
+        double bytesPerSecond = calculateOverallBytesPerSecond(progressWatchers);
+        
+        if (Math.abs(bytesPerSecond) < 0.001d) {
+            // No transfer has occurred yet.
+            return 0;
+        }
+        
         double remainingSecs = 
-            (double) bytesRemaining / calculateOverallBytesPerSecond(progressWatchers);
+            (double) bytesRemaining / bytesPerSecond;
         return Math.round(remainingSecs);
     }
     
