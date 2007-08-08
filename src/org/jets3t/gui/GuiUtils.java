@@ -45,6 +45,9 @@ public class GuiUtils {
      * the component to apply the icon to, supported components are: JMenuItem, JButton, JLabel, Frame.
      * @param iconResourcePath
      * the path to an icon image in the classpath.
+     * 
+     * @return
+     * true if the icon was found and applied to the component
      */
     public boolean applyIcon(Object component, String iconResourcePath) {
         URL iconUrl = this.getClass().getResource(iconResourcePath);        
