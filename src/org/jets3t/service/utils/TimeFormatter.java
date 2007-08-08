@@ -24,6 +24,28 @@ package org.jets3t.service.utils;
  * @author James Murty
  */
 public class TimeFormatter {
+    
+    private String hourSuffix = null;
+    private String hoursSuffix = null;
+    private String minuteSuffix = null;
+    private String minutesSuffix = null;
+    private String secondSuffix = null;
+    private String secondsSuffix = null;
+    
+    public TimeFormatter() {
+        this(" hour", " hours", " minute", " minutes", " second", " seconds");
+    }
+    
+    public TimeFormatter(String hourSuffix, String hoursSuffix, String minuteSuffix, 
+        String minutesSuffix, String secondSuffix, String secondsSuffix) 
+    {
+        this.hourSuffix = hourSuffix;
+        this.hoursSuffix = hoursSuffix;
+        this.minuteSuffix = minuteSuffix;
+        this.minutesSuffix = minutesSuffix;
+        this.secondSuffix = secondSuffix;
+        this.secondsSuffix = secondsSuffix;
+    }
 
     /**
      * Formats a seconds time value into a brief representation, such as <code>37 minutes</code>.
@@ -63,54 +85,54 @@ public class TimeFormatter {
         
         if (hours > 0) {
             if (mins > 45) {
-                return (hours + 1) + " hours";
+                return (hours + 1) + hourSuffix;
             } else if (mins > 30) {
                 if (useUnicodeChars) {
-                    return hours + "\u00BE hours"; // Three quarters
+                    return hours + "\u00BE" + hoursSuffix; // Three quarters
                 } else {
-                    return hours + " 3/4 hours";
+                    return hours + " 3/4" + hoursSuffix;
                 }
             } else if (mins > 15) {
                 if (useUnicodeChars) {
-                    return hours + "\u00BD hours"; // One half               
+                    return hours + "\u00BD" + hoursSuffix; // One half               
                 } else {
-                    return hours + " 1/2 hours";
+                    return hours + " 1/2" + hoursSuffix;
                 }
             } else if (mins > 0) {
                 if (useUnicodeChars) {
-                    return hours + "\u00BC hours"; // One quarter               
+                    return hours + "\u00BC" + hoursSuffix; // One quarter               
                 } else {
-                    return hours + " 1/4 hours";
+                    return hours + " 1/4" + hoursSuffix;
                 }
             } else {
                 return hours + " hour" + (hours > 1? "s" : "");                
             }
         } else if (mins > 0) {
             if (seconds > 45) {
-                return (mins + 1) + " minutes";
+                return (mins + 1) + minutesSuffix;
             } else if (seconds > 30) {
                 if (useUnicodeChars) {
-                    return mins + "\u00BE minutes"; // Three quarters
+                    return mins + "\u00BE" + minutesSuffix; // Three quarters
                 } else {
-                    return mins + " 3/4 minutes";
+                    return mins + " 3/4" + minutesSuffix;
                 }
             } else if (seconds > 15) {
                 if (useUnicodeChars) {
-                    return mins + "\u00BD minutes"; // One half
+                    return mins + "\u00BD" + minutesSuffix; // One half
                 } else {
-                    return mins + " 1/2 minutes";                    
+                    return mins + " 1/2" + minutesSuffix;                    
                 }
             } else if (seconds > 0) {
                 if (useUnicodeChars) {
-                    return mins + "\u00BC minutes"; // One quarter
+                    return mins + "\u00BC" + minutesSuffix; // One quarter
                 } else {
-                    return mins + " 1/4 minutes";
+                    return mins + " 1/4" + minutesSuffix;
                 }
             } else {
-                return mins + " minute" + (mins > 1? "s" : "");
+                return mins + (mins > 1? minutesSuffix : minuteSuffix);
             }
         } else {
-            return seconds + " second" + (seconds != 1? "s" : "");
+            return seconds + (seconds != 1? secondsSuffix : secondSuffix);
         }
     }
     
