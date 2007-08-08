@@ -409,10 +409,20 @@ public class ServiceUtils {
         if (urlPath.startsWith("/")) {
             urlPath = urlPath.substring(1); // Ignore first '/' character.
         }
-        String bucketName = URLDecoder.decode(
-            urlPath.substring(0, urlPath.indexOf("/")), Constants.DEFAULT_ENCODING);
-        String objectKey = URLDecoder.decode( 
-            urlPath.substring(bucketName.length() + 1), Constants.DEFAULT_ENCODING);
+        int slashIndex = urlPath.indexOf("/");
+
+        String bucketName = null;
+        String objectKey = null;
+        if (slashIndex < 0) {
+            // There is no bucket name in the URL, must be using virtual hosting.
+            objectKey = URLDecoder.decode( 
+                urlPath, Constants.DEFAULT_ENCODING);            
+        } else {
+            bucketName = URLDecoder.decode(
+                urlPath.substring(0, slashIndex), Constants.DEFAULT_ENCODING);
+            objectKey = URLDecoder.decode( 
+                urlPath.substring(bucketName.length() + 1), Constants.DEFAULT_ENCODING);            
+        }
         
         S3Object object = new S3Object(objectKey);
         object.setBucketName(bucketName);
