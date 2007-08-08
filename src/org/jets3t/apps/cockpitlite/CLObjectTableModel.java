@@ -25,6 +25,8 @@ import java.util.Date;
 
 import javax.swing.table.DefaultTableModel;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.model.S3Object;
 
 /**
@@ -34,7 +36,9 @@ import org.jets3t.service.model.S3Object;
  */
 public class CLObjectTableModel extends DefaultTableModel {
     private static final long serialVersionUID = 8570725021470237261L;
-    
+
+    private static final Log log = LogFactory.getLog(CLObjectTableModel.class);
+
     private ArrayList objectList = new ArrayList();
     private String usersPath = "";
 
@@ -78,6 +82,8 @@ public class CLObjectTableModel extends DefaultTableModel {
     }
     
     public int updateObjectAclStatus(S3Object objectWithAcl, String aclStatus) {
+        sanitizeObjectKey(objectWithAcl);
+        
         int updateRow = 
             Collections.binarySearch(objectList, objectWithAcl, new Comparator() {
                 public int compare(Object o1, Object o2) {
@@ -88,6 +94,7 @@ public class CLObjectTableModel extends DefaultTableModel {
             this.setValueAt(aclStatus, updateRow, 3);
         } else {
             // Object isn't in table!
+            log.warn("Cannot find object named '" + objectWithAcl.getKey() + "' in objects table");
         }
         return updateRow;        
     }
