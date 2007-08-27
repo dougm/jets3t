@@ -7,7 +7,8 @@ COCKPIT
 - Generate signed GET URLs based on 'vanity' hostnames.
 - Encryption algorithm can be changed in the preferences dialog.
 - Progress dialogs modified to fix display problems with JDK version 1.6.
-
+- Fixed bug causing encrypted files not to be automatically recognised/decrypted 
+  in some cases
 
 SYNCHRONIZE
 
@@ -25,6 +26,13 @@ UPLOADER
 
 - Improved skinning capabilities.
 
+
+COCKPIT LITE
+
+- New Gatekeeper-compatible client application that allows almost all S3 
+  operations to be performed by a client via Gatekeeper-provided 
+  signed URLs
+  
 
 TOOLKIT
 
