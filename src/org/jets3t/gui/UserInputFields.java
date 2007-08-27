@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.apps.uploader;
+package org.jets3t.gui;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -39,10 +39,9 @@ import javax.swing.JTextField;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.gui.HyperlinkActivatedListener;
-import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Utility class to manage User Inputs by representing the possible user input fields as GUI 
@@ -54,7 +53,6 @@ import org.jets3t.service.Jets3tProperties;
 public class UserInputFields {
     private static final Log log = LogFactory.getLog(UserInputFields.class);
     
-    private GridBagLayout GRID_BAG_LAYOUT = null;
     private Insets insetsDefault = null;
     private HyperlinkActivatedListener hyperlinkListener = null;
     private SkinsFactory skinsFactory = null;
@@ -66,8 +64,6 @@ public class UserInputFields {
      * Constructs the object ready to generate GUI elements to represent the configured
      * user input fields.
      * 
-     * @param defaultGridBagLayout
-     * the default grid bag layout to use when displaying the GUI elements.
      * @param defaultInsets
      * the default insets to use when displaying the GUI elements.
      * @param hyperlinkListener
@@ -76,10 +72,9 @@ public class UserInputFields {
      * @param skinsFactory
      * the skin factory used to create GUI elements.
      */
-    public UserInputFields(GridBagLayout defaultGridBagLayout, Insets defaultInsets, 
-        HyperlinkActivatedListener hyperlinkListener, SkinsFactory skinsFactory) 
+    public UserInputFields(Insets defaultInsets, HyperlinkActivatedListener hyperlinkListener, 
+        SkinsFactory skinsFactory) 
     {
-        GRID_BAG_LAYOUT = defaultGridBagLayout;
         this.insetsDefault = defaultInsets;
         this.hyperlinkListener = hyperlinkListener;
         this.skinsFactory = skinsFactory;
@@ -93,29 +88,36 @@ public class UserInputFields {
      * @param uploaderProperties
      * properties specific to the Uploader application that includes the field.* settings 
      * necessary to build the User Inputs screen.
+     * 
+     * @return
+     * true if there is at least one valid user input field, false otherwise.
      */
-    public void buildFieldsPanel(JPanel fieldsPanel, Jets3tProperties uploaderProperties) {
-        int fieldRow = 0;
+    public boolean buildFieldsPanel(JPanel fieldsPanel, Jets3tProperties uploaderProperties) {
+        int fieldIndex = 0;
         
         for (int fieldNo = 0; fieldNo < 100; fieldNo++) {
             String fieldName = uploaderProperties.getStringProperty("field." + fieldNo + ".name", null);
             String fieldType = uploaderProperties.getStringProperty("field." + fieldNo + ".type", null);
             String fieldPrompt = uploaderProperties.getStringProperty("field." + fieldNo + ".prompt", null);
             String fieldOptions = uploaderProperties.getStringProperty("field." + fieldNo + ".options", null);
+            String fieldDefault = uploaderProperties.getStringProperty("field." + fieldNo + ".default", null);
             
             if (fieldName == null) {
-                // Expect there to be at least one field at number 0 or 1. If not, stop looking.
-                if (fieldNo > 1) {
-                    return;
-                } else {
-                    continue;
-                }
+                log.debug("No field with index number " + fieldNo);
+                continue;
             } else {
                 if (fieldType == null || fieldPrompt == null) {
                     log.warn("Field '" + fieldName + "' missing .type or .prompt properties");
                     continue;
                 }
-                if ("radio".equals(fieldType)) {
+                
+                if ("message".equals(fieldType)) {
+                    JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
+                    label.setText(fieldPrompt);
+                    label.setHyperlinkeActivatedListener(hyperlinkListener);
+                    fieldsPanel.add(label,
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                } else if ("radio".equals(fieldType)) {
                     if (fieldOptions == null) {
                         log.warn("Radio button field '" + fieldName + "' is missing the required .options property");
                         continue;
@@ -125,10 +127,10 @@ public class UserInputFields {
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
                     JPanel optionsPanel = skinsFactory.createSkinnedJPanel("OptionsPanel");
-                    optionsPanel.setLayout(GRID_BAG_LAYOUT);
+                    optionsPanel.setLayout(new GridBagLayout());
                     int columnOffset = 0;
                     ButtonGroup buttonGroup = new ButtonGroup();                    
                     StringTokenizer st = new StringTokenizer(fieldOptions, ",");
@@ -137,7 +139,11 @@ public class UserInputFields {
                         JRadioButton radioButton = skinsFactory.createSkinnedJRadioButton(fieldName);
                         radioButton.setText(option);
                         buttonGroup.add(radioButton);
-                        if (buttonGroup.getButtonCount() == 1) {
+                        
+                        if (fieldDefault != null && fieldDefault.equals(option)) {
+                            // This option is the default one.
+                            radioButton.setSelected(true);                        
+                        } else if (buttonGroup.getButtonCount() == 1) {
                             // Make first button the default.
                             radioButton.setSelected(true);
                         }
@@ -146,7 +152,7 @@ public class UserInputFields {
                             new GridBagConstraints(columnOffset++, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
                     }
                     fieldsPanel.add(optionsPanel,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsNone, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsNone, 0, 0));
 
                     userInputComponentsMap.put(fieldName, buttonGroup);
                 } else if ("selection".equals(fieldType)) {
@@ -159,7 +165,7 @@ public class UserInputFields {
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
                     JComboBox comboBox = skinsFactory.createSkinnedJComboBox(fieldName);
                     StringTokenizer st = new StringTokenizer(fieldOptions, ",");
@@ -167,8 +173,13 @@ public class UserInputFields {
                         String option = st.nextToken();
                         comboBox.addItem(option);
                     }
+                    
+                    if (fieldDefault != null) {
+                        comboBox.setSelectedItem(fieldDefault);
+                    }
+                    
                     fieldsPanel.add(comboBox,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
                     userInputComponentsMap.put(fieldName, comboBox);
                 } else if ("text".equals(fieldType)) {
@@ -176,21 +187,29 @@ public class UserInputFields {
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
                     JTextField textField = skinsFactory.createSkinnedJTextField(fieldName);
+                    if (fieldDefault != null) {
+                        textField.setText(fieldDefault);
+                    }
+
                     fieldsPanel.add(textField,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-                    
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));                    
+
                     userInputComponentsMap.put(fieldName, textField);
                 } else if ("password".equals(fieldType)) {
                     JHtmlLabel label = skinsFactory.createSkinnedJHtmlLabel(fieldName);
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
                     JPasswordField passwordField = skinsFactory.createSkinnedJPasswordField(fieldName);
+                    if (fieldDefault != null) {
+                        passwordField.setText(fieldDefault);
+                    }
+
                     fieldsPanel.add(passwordField,
-                        new GridBagConstraints(0, fieldRow++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
                     
                     userInputComponentsMap.put(fieldName, passwordField);
                 } else if (fieldType.equals("textarea")) {
@@ -198,13 +217,17 @@ public class UserInputFields {
                     label.setText(fieldPrompt);
                     label.setHyperlinkeActivatedListener(hyperlinkListener);
                     fieldsPanel.add(label,
-                        new GridBagConstraints(0, fieldRow++, 2, 1, 0, 0, GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));                    
+                        new GridBagConstraints(0, fieldIndex++, 2, 1, 0, 0, GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));                    
                     JTextArea textArea = skinsFactory.createSkinnedJTextArea(fieldName);
                     textArea.setLineWrap(true);
+                    if (fieldDefault != null) {
+                        textArea.setText(fieldDefault);
+                    }
+
                     JScrollPane scrollPane = skinsFactory.createSkinnedJScrollPane(fieldName);
                     scrollPane.setViewportView(textArea);
                     fieldsPanel.add(scrollPane,
-                        new GridBagConstraints(0, fieldRow++, 2, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+                        new GridBagConstraints(0, fieldIndex++, 2, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
                     
                     userInputComponentsMap.put(fieldName, textArea);
                 } else {
@@ -212,14 +235,18 @@ public class UserInputFields {
                 }                
             }
         }
+        
+        return isUserInputFieldsAvailable();
     }
     
     /**
+     * 
+     * 
      * @return
      * properties containing the user's answers to the input fields. Property names correspond to
      * the field's name, and the property values are the user's response.
      */
-    public Properties getUserInputsAsProperties() {
+    public Properties getUserInputsAsProperties(boolean hashPasswords) {
         Properties properties = new Properties();
         
         for (Iterator iter = userInputComponentsMap.keySet().iterator(); iter.hasNext();) {
@@ -242,7 +269,18 @@ public class UserInputFields {
             } else if (component instanceof JTextField) {
                 fieldValue = ((JTextField) component).getText();
             } else if (component instanceof JPasswordField) {
-                fieldValue = new String(((JPasswordField) component).getPassword());
+                if (hashPasswords) {
+                    String password = new String(((JPasswordField) component).getPassword());
+                    try {
+                        fieldValue = ServiceUtils.toHex(
+                            ServiceUtils.computeMD5Hash(password.getBytes("UTF-8")));
+                    } catch (Exception e) {
+                        log.error("Unable to generate hash of password for field named '"
+                            + fieldName + "'", e);                        
+                    }
+                } else {
+                    fieldValue = new String(((JPasswordField) component).getPassword());    
+                }
             } else if (component instanceof JTextArea) {            
                 fieldValue = ((JTextArea) component).getText();
             } else {
