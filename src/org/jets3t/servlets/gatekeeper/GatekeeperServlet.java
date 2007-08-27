@@ -223,7 +223,7 @@ public class GatekeeperServlet extends HttpServlet {
             ClientInformation clientInformation = new ClientInformation(
                 request.getRemoteAddr(), request.getRemoteHost(), request.getRemoteUser(),
                 request.getRemotePort(), request.getSession(false), request.getUserPrincipal(),
-                request.getHeader("User-Agent"));
+                request.getHeader("User-Agent"), request);
                         
             // Generate Transaction ID, and store it in the message.
             String transactionId = transactionIdProvider.getTransactionId(gatekeeperMessage, clientInformation);

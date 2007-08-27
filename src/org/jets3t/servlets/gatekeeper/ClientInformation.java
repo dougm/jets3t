@@ -2,6 +2,7 @@ package org.jets3t.servlets.gatekeeper;
 
 import java.security.Principal;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 /**
@@ -25,9 +26,11 @@ public class ClientInformation {
     private HttpSession session = null;
     private Principal userPrincipal = null;
     private String userAgent = null;
+    private HttpServletRequest httpServletRequest = null;
     
     public ClientInformation(String remoteAddress, String remoteHost, String remoteUser,
-        int remotePort, HttpSession session, Principal userPrincipal, String userAgent) 
+        int remotePort, HttpSession session, Principal userPrincipal, String userAgent,
+        HttpServletRequest httpServletRequest) 
     {
         this.remoteAddress = remoteAddress;
         this.remoteHost = remoteHost;
@@ -36,6 +39,7 @@ public class ClientInformation {
         this.session = session;
         this.userPrincipal = userPrincipal;
         this.userAgent = userAgent;
+        this.httpServletRequest = httpServletRequest;
     }
 
     public String getRemoteAddress() {
@@ -64,6 +68,15 @@ public class ClientInformation {
 
     public String getUserAgent() {
         return userAgent;
+    }
+    
+    /**
+     * @return
+     * the original servlet request, in case the specific information captured in this
+     * class is not sufficient.
+     */
+    public HttpServletRequest getHttpServletRequest() {
+        return httpServletRequest;
     }
 
 }
