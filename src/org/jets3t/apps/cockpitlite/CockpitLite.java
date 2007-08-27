@@ -66,7 +66,6 @@ import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPasswordField;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
@@ -99,6 +98,7 @@ import org.jets3t.gui.ItemPropertiesDialog;
 import org.jets3t.gui.ProgressDialog;
 import org.jets3t.gui.ProgressPanel;
 import org.jets3t.gui.TableSorter;
+import org.jets3t.gui.UserInputFields;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -129,7 +129,6 @@ import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.ObjectUtils;
-import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
@@ -190,8 +189,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     
     private GatekeeperClientUtils gkClient = null;
     
-    private String userAccount = null;
-    private String userName = null;
     private String userBucketName = null;
     private String userVanityHost = null;
     private String userPath = "";
@@ -230,13 +227,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
     // Login panel items
     private JPanel loginPanel = null;
-    private JLabel loginMessageLabel = null;
-    private JLabel accountLabel = null;
-    private JTextField accountTextField = null;
-    private JLabel usernameLabel = null;
-    private JTextField usernameTextField = null;
-    private JLabel passwordLabel = null;
-    private JPasswordField passwordTextField = null;
     private JButton loginButton = null;
     
     // Objects table
@@ -252,6 +242,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private JLabel objectsSummaryLabel = null;
         
     private ProgressDialog progressDialog = null;
+    
+    private UserInputFields userInputFields = null;
         
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
@@ -390,8 +382,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }        
         
 		gkClient = new GatekeeperClientUtils(
-    			gatekeeperUrl,
-    			APPLICATION_DESCRIPTION, MAX_CONNECTION_RETRIES, HTTP_CONNECTION_TIMEOUT);
+    			gatekeeperUrl, 
+                APPLICATION_DESCRIPTION, MAX_CONNECTION_RETRIES, HTTP_CONNECTION_TIMEOUT,
+                this);
 
         // Initialise a non-authenticated service.
         try {
@@ -402,15 +395,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             String message = "Unable to start anonymous service";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
-        }        
-        
-        // Check whether login credentials are available in external properties.
-        if (cockpitLiteProperties.containsKey("AccountName")) {
-            accountTextField.setText(cockpitLiteProperties.getStringProperty("AccountName", ""));
-        }
-    	if (cockpitLiteProperties.containsKey("UserName")) {
-            usernameTextField.setText(cockpitLiteProperties.getStringProperty("UserName", ""));
-        }
+        }                
     }    
     
     /**
@@ -453,37 +438,16 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         row = 0;
         loginPanel = skinsFactory.createSkinnedJPanel("LoginPanel");
         loginPanel.setLayout(new GridBagLayout());
-        loginMessageLabel = skinsFactory.createSkinnedJHtmlLabel("LoginMessageLabel");
-        loginMessageLabel.setText("Please enter your log-in details below");
-        accountLabel = skinsFactory.createSkinnedJHtmlLabel("AccountLabel");
-        accountLabel.setText("Account Name: ");
-        usernameLabel = skinsFactory.createSkinnedJHtmlLabel("UsernameLabel");
-        usernameLabel.setText("User Name: ");
-        passwordLabel = skinsFactory.createSkinnedJHtmlLabel("PasswordLabel");
-        passwordLabel.setText("Password: ");
-        accountTextField = skinsFactory.createSkinnedJTextField("AccountTextField");
-        usernameTextField = skinsFactory.createSkinnedJTextField("UsernameTextField");
-        passwordTextField = skinsFactory.createSkinnedJPasswordField("PasswordTextField");
+        
+        userInputFields = new UserInputFields(insetsDefault, null, skinsFactory);
+        userInputFields.buildFieldsPanel(loginPanel, cockpitLiteProperties);
+
         loginButton = skinsFactory.createSkinnedJButton("LoginButton");
         loginButton.setText("Log me in");
         loginButton.addActionListener(this);
-        loginPanel.add(loginMessageLabel, 
-                new GridBagConstraints(0, row++, 2, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        loginPanel.add(accountLabel, 
-                new GridBagConstraints(0, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        loginPanel.add(accountTextField, 
-                new GridBagConstraints(1, row++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        loginPanel.add(usernameLabel, 
-                new GridBagConstraints(0, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        loginPanel.add(usernameTextField, 
-                new GridBagConstraints(1, row++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        loginPanel.add(passwordLabel, 
-                new GridBagConstraints(0, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        loginPanel.add(passwordTextField, 
-                new GridBagConstraints(1, row++, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         loginPanel.add(loginButton, 
-                new GridBagConstraints(0, row, 2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        
+            new GridBagConstraints(0, loginPanel.getComponentCount(), 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
+
         // Filter panel.
         filterObjectsPanel = skinsFactory.createSkinnedJPanel("FilterPanel");
         filterObjectsPanel.setLayout(new GridBagLayout());
@@ -974,13 +938,16 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 
     private void listObjects() {
         try {
-    		// Obtain login details from application's login screen.
-    		String password = new String(passwordTextField.getPassword());
-    		String passwordMd5AsHex = ServiceUtils.toHex(
-    			ServiceUtils.computeMD5Hash(password.getBytes("UTF-8")));
-        	cockpitLiteProperties.setProperty("AccountName", accountTextField.getText());
-        	cockpitLiteProperties.setProperty("Username", usernameTextField.getText());
-        	cockpitLiteProperties.setProperty("PasswordHash", passwordMd5AsHex);
+    		// Obtain login details from application's login screen and store them in
+            // the application properties so the details will be forwarded to the Gatekeeper
+            // with each request.
+            Properties loginProperties = userInputFields.getUserInputsAsProperties(true);
+            Iterator iter = loginProperties.keySet().iterator();
+            while (iter.hasNext()) {
+                String propertyName = (String) iter.next();
+                String propertyValue = loginProperties.getProperty(propertyName);
+                cockpitLiteProperties.setProperty(propertyName, propertyValue);
+            }
         	
             startProgressPanel(this, "Finding files", 0, null);
                 
@@ -1006,12 +973,11 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     			final S3Object[] objects = gkClient.buildS3ObjectsFromSignatureRequests(
 					responseMessage.getSignatureRequests());
     			
+                // User account description provided by Gatekeeper
+                final String accountDescription = 
+                    responseMessage.getApplicationProperties().getProperty("AccountDescription");
+                
     			// User's settings
-                userAccount = responseMessage.getApplicationProperties().getProperty("UserAccount");
-                userName = responseMessage.getApplicationProperties().getProperty("UserName");
-    			userBucketName = responseMessage.getApplicationProperties().getProperty("UserBucket");
-    			userPath = responseMessage.getApplicationProperties().getProperty("UserPath", "");
-    			userVanityHost = responseMessage.getApplicationProperties().getProperty("UserVanityHost");
                 userCanUpload = "true".equalsIgnoreCase(
                     responseMessage.getApplicationProperties().getProperty("UserCanUpload"));
                 userCanDownload = "true".equalsIgnoreCase(
@@ -1020,15 +986,18 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     responseMessage.getApplicationProperties().getProperty("UserCanDelete"));
                 userCanACL = "true".equalsIgnoreCase(
                     responseMessage.getApplicationProperties().getProperty("UserCanACL"));
+
+                userBucketName = responseMessage.getApplicationProperties().getProperty("S3BucketName");
+    			userPath = responseMessage.getApplicationProperties().getProperty("UserPath", "");
+    			userVanityHost = responseMessage.getApplicationProperties().getProperty("UserVanityHost");
                 
                 objectTableModel.setUsersPath(userPath);
                 uploadFilesMenuItem.setEnabled(userCanUpload);
     			
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                    	objectsHeadingLabel.setText("<html>Account: <b>" + userAccount 
-                			+ "</b>   User: <b>" + userName + "</b>   "
-                			+ (userVanityHost != null? "Host: <b>" + userVanityHost + "</b>" : ""));
+                    	objectsHeadingLabel.setText(
+                            (accountDescription != null ? accountDescription : "Logged in"));
                     	
                         objectTableModel.removeAllObjects();
 		    			objectTableModel.addObjects(objects);
