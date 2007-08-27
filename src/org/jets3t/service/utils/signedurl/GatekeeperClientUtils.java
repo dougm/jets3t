@@ -67,6 +67,7 @@ public class GatekeeperClientUtils {
     private String userAgentDescription;
     private int maxRetryCount;
     private int connectionTimeout;
+    private CredentialsProvider credentialsProvider = null;
 
     /**
      * TODO
@@ -74,12 +75,16 @@ public class GatekeeperClientUtils {
      * @param userAgentDescription
      * @param maxRetryCount
      * @param connectionTimeoutMS
+     * @param credentialsProvider
      */
-    public GatekeeperClientUtils(String gatekeeperUrl, String userAgentDescription, int maxRetryCount, int connectionTimeoutMS) {
+    public GatekeeperClientUtils(String gatekeeperUrl, String userAgentDescription, 
+        int maxRetryCount, int connectionTimeoutMS, CredentialsProvider credentialsProvider) 
+    {
     	this.gatekeeperUrl = gatekeeperUrl;
     	this.userAgentDescription = userAgentDescription;
     	this.maxRetryCount = maxRetryCount;
     	this.connectionTimeout = connectionTimeoutMS;
+        this.credentialsProvider = credentialsProvider; 
     }
 	
     /**
@@ -115,6 +120,10 @@ public class GatekeeperClientUtils {
         
         HttpClient httpClient = new HttpClient(clientParams);
         httpClient.getHttpConnectionManager().setParams(connectionParams);
+        
+        // httpClient.getParams().setAuthenticationPreemptive(true);
+        httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);                     
+
         return httpClient;
     }
 
@@ -187,9 +196,6 @@ public class GatekeeperClientUtils {
                 HostConfiguration hostConfig = new HostConfiguration();
                 hostConfig.setProxyHost(proxyHost);
                 httpClientGatekeeper.setHostConfiguration(hostConfig);
-                
-                httpClientGatekeeper.getParams().setAuthenticationPreemptive(true);
-                httpClientGatekeeper.getParams().setParameter(CredentialsProvider.PROVIDER, this);                     
             }
         } catch (Throwable t) {
             log.debug("No proxy detected");
