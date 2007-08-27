@@ -18,8 +18,6 @@
  */
 package org.jets3t.servlets.gatekeeper.impl;
 
-import java.util.Properties;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 
@@ -89,15 +87,7 @@ public class DefaultBucketLister extends BucketLister {
 
     public void listObjects(GatekeeperMessage gatekeeperMessage, 
     		ClientInformation clientInformation) throws S3ServiceException
-    {
-        // Properties provided by the CockpitLite client application.
-        // These properties are ignored in this implementation, you should do something
-        // more sensible with them...
-        Properties applicationProperties = gatekeeperMessage.getApplicationProperties();
-        String accountName = applicationProperties.getProperty("AccountName");
-        String username = applicationProperties.getProperty("Username");
-        String passwordHash = applicationProperties.getProperty("PasswordHash");
-                
+    {                
         // Build prefix based on user's path and any additional prefix provided.
         String prefix = null;
         if (gatekeeperMessage.getApplicationProperties().containsKey("Prefix")) {
@@ -121,10 +111,11 @@ public class DefaultBucketLister extends BucketLister {
     		gatekeeperMessage.addSignatureRequest(sr);
     	}
         
+        gatekeeperMessage.addApplicationProperty("AccountDescription", 
+            "<html>Bucket: <b>" + s3BucketName + "</b></html>");
+
         // Include an application property to inform Cockpit Lite of the user's bucket
-        gatekeeperMessage.addApplicationProperty("UserAccount", accountName);
-        gatekeeperMessage.addApplicationProperty("UserName", username);
-        gatekeeperMessage.addApplicationProperty("UserBucket", s3BucketName);
+        gatekeeperMessage.addApplicationProperty("S3BucketName", s3BucketName);
 
         gatekeeperMessage.addApplicationProperty("UserCanUpload", "true");
         gatekeeperMessage.addApplicationProperty("UserCanDownload", "true");
