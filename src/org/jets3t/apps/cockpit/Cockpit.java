@@ -1711,38 +1711,26 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Build map of S3 Objects being downloaded. 
         s3DownloadObjectsMap = FileComparer.populateS3ObjectMap("", getSelectedObjects());
 
-        // Identify objects that may clash with existing files, or may be directories,
-        // and retrieve details for these.
-        ArrayList potentialClashingObjects = new ArrayList();
+        // Identify objects that may clash with existing files.
         Set existingFilesObjectKeys = filesInDownloadDirectoryMap.keySet();
         Iterator objectsIter = s3DownloadObjectsMap.entrySet().iterator();
         while (objectsIter.hasNext()) {
             Map.Entry entry = (Map.Entry) objectsIter.next();
             String objectKey = (String) entry.getKey();
-            S3Object object = (S3Object) entry.getValue();
             
-            if (object.getContentLength() == 0 || existingFilesObjectKeys.contains(objectKey)) {
-                potentialClashingObjects.add(object);
-            }
             if (existingFilesObjectKeys.contains(objectKey)) {
                 filesAlreadyInDownloadDirectoryMap.put(
                     objectKey, filesInDownloadDirectoryMap.get(objectKey));
             }
         }
         
-        if (potentialClashingObjects.size() > 0) {
-            // Retrieve details of potential clashes.
-            final S3Object[] clashingObjects = (S3Object[])
-                potentialClashingObjects.toArray(new S3Object[potentialClashingObjects.size()]);
-            (new Thread() {
-                public void run() {
-                    isDownloadingObjects = true;
-                    retrieveObjectsDetails(clashingObjects);
-                }
-            }).start();
-        } else {
-            compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
-        }
+        // Retrieve details of objects for download
+        (new Thread() {
+            public void run() {
+                isDownloadingObjects = true;
+                retrieveObjectsDetails(getSelectedObjects());
+            }
+        }).start();
     }
     
     private void prepareForFilesUpload(File[] uploadFiles) {
