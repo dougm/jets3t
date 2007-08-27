@@ -101,6 +101,7 @@ import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.GuiUtils;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.gui.UserInputFields;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
@@ -446,8 +447,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             guiUtils.applyIcon(footerLabel, footerIconPath);
         }
         
-        userInputFields = new UserInputFields(GRID_BAG_LAYOUT, insetsDefault,
-            this, skinsFactory);
+        userInputFields = new UserInputFields(insetsDefault, this, skinsFactory);
         
         // Screeen 1 : User input fields.
         JPanel screen1Panel = skinsFactory.createSkinnedJPanel("Screen1Panel");
@@ -1310,7 +1310,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             primaryPanelCardLayout.show(primaryPanel, "screen1");
             buttonsPanelCardLayout.show(buttonsPanel, "visible");
         } else if (nextState == WIZARD_SCREEN_2) {
-            userInputProperties = userInputFields.getUserInputsAsProperties();
+            userInputProperties = userInputFields.getUserInputsAsProperties(false);
             
             primaryPanelCardLayout.show(primaryPanel, "screen2");
             dragDropTargetLabel.setText(
