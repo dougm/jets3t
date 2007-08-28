@@ -266,8 +266,6 @@ public class UserInputFields {
                 }
             } else if (component instanceof JComboBox) {
                 fieldValue = ((JComboBox) component).getSelectedItem().toString();
-            } else if (component instanceof JTextField) {
-                fieldValue = ((JTextField) component).getText();
             } else if (component instanceof JPasswordField) {
                 if (hashPasswords) {
                     String password = new String(((JPasswordField) component).getPassword());
@@ -281,6 +279,8 @@ public class UserInputFields {
                 } else {
                     fieldValue = new String(((JPasswordField) component).getPassword());    
                 }
+            } else if (component instanceof JTextField) {
+                fieldValue = ((JTextField) component).getText();
             } else if (component instanceof JTextArea) {            
                 fieldValue = ((JTextArea) component).getText();
             } else {
