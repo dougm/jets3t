@@ -65,18 +65,28 @@ public class CLObjectTableModel extends DefaultTableModel {
                     return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
                 }
             });
+
+        String aclStatus = null; 
         if (insertRow >= 0) {
+            // Retain the object's ACL status if it's available.
+            aclStatus = (String) this.getValueAt(insertRow, 3);
+            
             // We already have an item with this key, replace it.
             objectList.remove(insertRow);
-            this.removeRow(insertRow);                
+            this.removeRow(insertRow);
         } else {
             insertRow = (-insertRow) - 1;                
         }
+        
+        if (object.getAcl() != null || aclStatus == null) {
+            aclStatus = CockpitLite.getAclDescription(object.getAcl());
+        }
+        
         // New object to insert.
         objectList.add(insertRow, object);
         this.insertRow(insertRow, new Object[] {object.getKey(), 
             new Long(object.getContentLength()), object.getLastModifiedDate(),
-            CockpitLite.getAclDescription(object.getAcl())});
+            aclStatus});
         
         return insertRow;
     }
