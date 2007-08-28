@@ -1943,6 +1943,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
+            stopProgressDialog();                
+            
             String message = "Unable to download objects";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, message, e);
