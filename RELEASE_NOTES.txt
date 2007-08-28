@@ -7,8 +7,8 @@ COCKPIT
 - Generate signed GET URLs based on 'vanity' hostnames.
 - Encryption algorithm can be changed in the preferences dialog.
 - Progress dialogs modified to fix display problems with JDK version 1.6.
-- Fixed bug causing encrypted files not to be automatically recognised/decrypted 
-  in some cases
+- Fixed bug causing encrypted files not to be automatically recognised
+  and decrypted in some cases
 
 SYNCHRONIZE
 
@@ -31,7 +31,14 @@ COCKPIT LITE
 
 - New Gatekeeper-compatible client application that allows almost all S3 
   operations to be performed by a client via Gatekeeper-provided 
-  signed URLs
+  signed URLs.
+  
+  
+GATEKEEPER
+
+- Extended interfaces and default implementations to provide URL signing
+  for all operations performed by the new Cockpit Lite application.
+- Improved support for web proxies.
   
 
 TOOLKIT
