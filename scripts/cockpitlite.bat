@@ -67,6 +67,8 @@ set CP=%CP%;%MY_JETS3T_HOME%/libs/misc/BareBonesBrowserLaunch.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/logging-log4j/log4j-1.2.14.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/bouncycastle/bcprov-jdk14-135.jar
 
-"%EXEC%" -classpath "%CP%" org.jets3t.apps.cockpitlite.CockpitLite
+REM OutOfMemory errors? Increase the memory available by changing -Xmx128M
+
+"%EXEC%" -Xmx128M -classpath "%CP%" org.jets3t.apps.cockpitlite.CockpitLite
 
 :END
