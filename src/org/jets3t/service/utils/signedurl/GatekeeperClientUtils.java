@@ -268,5 +268,9 @@ public class GatekeeperClientUtils {
     	}
     	return objects;
     }
+    
+    public String getGatekeeperUrl() {
+        return gatekeeperUrl;
+    }
         
 }

@@ -1016,7 +1016,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             }
 		} catch (Exception e) {
 			stopProgressPanel(this);
-            log.error("Gatekeeper login failed", e);
+            log.error("Gatekeeper login failed for URL: " + gkClient.getGatekeeperUrl(), e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), 
             		"Log-in failed, please try again", e);
 		}    		            
