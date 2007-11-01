@@ -55,6 +55,7 @@ TOOLKIT
   of cipher algorithms available for encrypting files.
 - The method S3Service.listObjectsChunked now includes Common Prefixes in the
   result object returned.
+- Upgraded HTTPClient library to version 3.1
 
   * REST S3 Service
 

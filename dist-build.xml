@@ -170,7 +170,7 @@
             <fileset dir="${dir.applets}">
                 <include name="${dist.file.service}"/>
                 <include name="commons-codec-1.3.jar"/>
-                <include name="commons-httpclient-3.0.1.jar"/>
+                <include name="commons-httpclient-3.1.jar"/>
                 <include name="commons-logging-1.1.jar"/>
                 <include name="log4j-1.2.14.jar"/>
             </fileset>
