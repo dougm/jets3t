@@ -306,7 +306,8 @@ public class S3Object extends BaseS3Object {
 	
     /**
      * Set this object's last modified date based on information returned from S3.
-     * This method should only by used by code that reads S3 responses.
+     * This method should only by used internally by code that reads the last modified date
+     * from an S3 response, it must not be set prior to uploading data to S3.
      * 
      * @param lastModifiedDate
      */
