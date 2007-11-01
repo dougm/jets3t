@@ -30,7 +30,6 @@
 			target="${build.target}"
 		>
 			<classpath refid="classpath"/>
-            <exclude name="**/mir*"/>
 		</javac>
 	</target>
 		
@@ -125,7 +124,7 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/servlets/gatekeeper"/>	
 		<war 
 			destfile="${dir.dist}/jets3t-${version}/servlets/gatekeeper/${dist.file.gatekeeper}"
-			webxml="${dir.servlet}/mir-gatekeeper-web.xml"
+			webxml="${dir.servlet}/gatekeeper-web.xml"
 			>
 			
 			<lib dir="${dir.dist}/jets3t-${version}/jars" includes="${dist.file.service}"/>
@@ -139,8 +138,6 @@
                 <include name="commons-logging.properties"/>
                 <include name="log4j.properties"/>
                 <include name="simplelog.properties"/>
-
-                <include name="MIR_Accounts.xml"/>
 			</classes>			
 			<classes dir="${dir.build}">
 				<include name="org/jets3t/servlets/gatekeeper/**"/>
@@ -179,7 +176,7 @@
 		<mkdir dir="${dir.dist}/jets3t-${version}/src"/>
 		<copy 			
 			todir="${dir.dist}/jets3t-${version}/src">
-			<fileset dir="${dir.src}" includes="**/*.java" excludes="**/mir/*"/>
+			<fileset dir="${dir.src}" includes="**/*.java"/>
 		</copy>
 
 		<!-- Copy distribution build files -->
@@ -452,8 +449,7 @@
 			<classpath refid="classpath"/>
 			<fileset 
 				dir="${dir.src}" 
-				includes="**/*.java"
-				excludes="**/mir*/*.java"/>
+				includes="**/*.java"/>
 		</javadoc>
 	</target>
 	
