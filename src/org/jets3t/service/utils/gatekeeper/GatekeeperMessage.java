@@ -41,21 +41,7 @@ import org.apache.commons.logging.LogFactory;
  * @author James Murty
  */
 public class GatekeeperMessage {
-    private static final Log log = LogFactory.getLog(GatekeeperMessage.class);
-    
-    public static final String GATEKEEPER_ERROR_CODE__INVALID_CLIENT_VERSION = "1";
-    public static final String GATEKEEPER_ERROR_CODE__UNKNOWN_HOST = "2";
-    public static final String GATEKEEPER_ERROR_CODE__CONNECTION_TIMEOUT = "3";
-    public static final String GATEKEEPER_ERROR_CODE__CONNECTION_FAILURE = "4";
-    public static final String GATEKEEPER_ERROR_CODE__MALFORMED_URL = "5";
-    public static final String GATEKEEPER_ERROR_CODE__NO_ROUTE_TO_HOST = "6";
-    public static final String GATEKEEPER_ERROR_CODE__PROTOCOL_EXCEPTION = "7";
-    public static final String GATEKEEPER_ERROR_CODE__SOCKET_EXCEPTION = "8";
-    public static final String GATEKEEPER_ERROR_CODE__UNAUTHORIZED_CLIENT = "9";
-    public static final String GATEKEEPER_ERROR_CODE__NO_ACCESS_ALLOWED = "10";
-    public static final String GATEKEEPER_ERROR_CODE__GATEKEEPER_CONFIGURATION_ERROR = "98";
-    public static final String GATEKEEPER_ERROR_CODE__UNKNOWN_EXCEPTION = "99";
-    
+    private static final Log log = LogFactory.getLog(GatekeeperMessage.class);       
     
     /**
      * All message property names are delimited with a vertical bar (<tt>|</tt>).
@@ -81,8 +67,7 @@ public class GatekeeperMessage {
 
     /**
      * The property name for storing error codes a Gatekeeper can return to a client.
-     * The error codes a Gatekeeper may generate are listed in this class in the 
-     * GATEKEEPER_ERROR_CODE__xyz variables. 
+     * The error codes can be any string value.
      */
     public static final String APP_PROPERTY_GATEKEEPER_ERROR_CODE = "gatekeeperErrorCode";
 

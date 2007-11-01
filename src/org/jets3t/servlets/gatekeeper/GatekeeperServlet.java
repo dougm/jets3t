@@ -235,9 +235,7 @@ public class GatekeeperServlet extends HttpServlet {
         	{
         		log.warn("Cannot process POST request as Gatekeeper servlet did not initialize correctly");
         		gatekeeperMessage.addApplicationProperty(
-                        GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE, 
-                        GatekeeperMessage.GATEKEEPER_ERROR_CODE__GATEKEEPER_CONFIGURATION_ERROR);
-        		
+                        GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE, "GatekeeperInitializationError");        		
         	} else if (gatekeeperMessage.getApplicationProperties().containsKey(
             		GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG)) 
             {
