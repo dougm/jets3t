@@ -1094,7 +1094,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             s3ServiceMulti.putObjects(uploadItems);
             
             // If an XML summary document is required, PUT this in S3 as well.
-            if (includeXmlSummaryDoc && !uploadCancelled) {
+            if (includeXmlSummaryDoc && !uploadCancelled) {                
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        fileInformationLabel.setText(
+                            replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.summaryFileInformation", 
+                            "Missing property 'screen.4.summaryFileInformation'")));
+                        progressStatusTextLabel.setText(
+                            replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage", 
+                            "Missing property 'screen.4.connectingMessage'")));
+                    };
+                });                                 
+                
                 // Retrieve signed URL to PUT the XML summary document.
                 gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});                
                 SignedUrlAndObject[] xmlSummaryItem = 
@@ -1236,6 +1247,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             progressBar.setValue(0);          
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    cancelUploadButton.setEnabled(false);
+                }
+            });            
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             progressBar.setValue(0);          
@@ -1243,12 +1259,22 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             progressTransferDetailsLabel.setText("");
             uploadCancelled = true;
             drawWizardScreen(WIZARD_SCREEN_3);
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    cancelUploadButton.setEnabled(false);
+                }
+            });            
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             progressBar.setValue(0);          
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
             failWithFatalError(ERROR_CODE__S3_UPLOAD_FAILED);
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    cancelUploadButton.setEnabled(false);
+                }
+            });            
         }
     }
     
