@@ -265,6 +265,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     private volatile boolean uploadingFinalObject = false;
     
     /**
+     * If set to true via the "xmlSummary" configuration property, the Uploader will 
+     * generate an XML summary document describing the files uploaded by the user and 
+     * will upload this summary document to S3.
+     */
+    private volatile boolean includeXmlSummaryDoc = false;
+    
+    /**
      * Set to true when a file upload has been cancelled, to prevent the Uploader from
      * uploading an XML summary file when the prior file upload was cancelled.
      */
@@ -1064,7 +1071,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             /*
              * Prepare XML Summary document for upload, if the summary option is set.
              */
-            boolean includeXmlSummaryDoc = uploaderProperties.getBoolProperty("xmlSummary", false);
+            includeXmlSummaryDoc = uploaderProperties.getBoolProperty("xmlSummary", false);
             S3Object summaryXmlObject = null;
             if (includeXmlSummaryDoc) {
                 String priorTransactionId = gatekeeperMessage.getMessageProperties().getProperty(
@@ -1169,7 +1176,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    cancelUploadButton.setEnabled(true);
+                    // Cancel button is enabled unless this upload is for the XML summary doc.
+                    boolean isXmlSummaryUpload = includeXmlSummaryDoc && uploadingFinalObject;
+                    cancelUploadButton.setEnabled(!isXmlSummaryUpload);
                 }
             });
             
