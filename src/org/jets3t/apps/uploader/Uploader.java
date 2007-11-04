@@ -757,7 +757,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     extList = extList.replaceAll(",", " ");
                     
                     ErrorDialog.showDialog(ownerFrame, this, uploaderProperties.getProperties(),
-                        "File name must end with one of the following extensions:\n" + extList, null);                                
+                        "<html>File name must end with one of the following extensions:<br>" + 
+                        extList + "</html>", null);                                
                     return false;
                 }
             }
