@@ -29,7 +29,6 @@ import java.util.Properties;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -59,7 +58,6 @@ public class ErrorDialog extends JDialog implements ActionListener {
     private HyperlinkActivatedListener hyperlinkListener = null;
     private SkinsFactory skinsFactory = null;
     
-    private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
 
     
@@ -111,19 +109,14 @@ public class ErrorDialog extends JDialog implements ActionListener {
         okButton.addActionListener(this);
         this.getRootPane().setDefaultButton(okButton);
 
-        JPanel buttonsPanel = skinsFactory.createSkinnedJPanel("ErrorButtonsPanel");
-        buttonsPanel.setLayout(new GridBagLayout());
-        buttonsPanel.add(okButton, new GridBagConstraints(0, 0, 
-            1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsZero, 0, 0));
-        
         int row = 0;
         this.getContentPane().setLayout(new GridBagLayout());
         this.getContentPane().add(messageLabel, new GridBagConstraints(0, row++, 
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(12, 5, 12, 5), 0, 0));
         this.getContentPane().add(detailsLabel, new GridBagConstraints(0, row++, 
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-        this.getContentPane().add(buttonsPanel, new GridBagConstraints(0, row++, 
-            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        this.getContentPane().add(okButton, new GridBagConstraints(0, row++, 
+            1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
         
         this.pack();
         this.setLocationRelativeTo(this.getOwner());
