@@ -683,7 +683,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     } catch (Exception e) {
                         String errorMessage = "Unable to accept dropped item";
                         log.error(errorMessage, e);
-                        ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
+                        ErrorDialog.showDialog(ownerFrame, null, uploaderProperties.getProperties(),
+                            errorMessage, e);
                     }
                 } else {
                     dtde.rejectDrop();
@@ -720,7 +721,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (fileMaxCount > 0 && fileList.size() > fileMaxCount) {
             String errorMessage = "You may only upload " + fileMaxCount 
                 + (fileMaxCount == 1? " file" : " files") + " at a time";
-            ErrorDialog.showDialog(ownerFrame, this, errorMessage, null);
+            ErrorDialog.showDialog(ownerFrame, this, uploaderProperties.getProperties(),
+                errorMessage, null);
             return false;
         }
         
@@ -731,11 +733,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             long fileSizeMB = file.length() / (1024 * 1024);
 
             if (fileMinSizeMB > 0 && fileSizeMB < fileMinSizeMB) {
-                ErrorDialog.showDialog(ownerFrame, this, "File size must be greater than " + fileMinSizeMB + " MB", null);
+                ErrorDialog.showDialog(ownerFrame, this, uploaderProperties.getProperties(),
+                    "File size must be greater than " + fileMinSizeMB + " MB", null);
                 return false;
             }
             if (fileMaxSizeMB > 0 && fileSizeMB > fileMaxSizeMB) {
-                ErrorDialog.showDialog(ownerFrame, this, "File size must be less than " + fileMaxSizeMB + " MB", null);
+                ErrorDialog.showDialog(ownerFrame, this, uploaderProperties.getProperties(),
+                    "File size must be less than " + fileMaxSizeMB + " MB", null);
                 return false;
             }
         }        
@@ -752,8 +756,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     extList = extList.substring(1, extList.length() -1);
                     extList = extList.replaceAll(",", " ");
                     
-                    ErrorDialog.showDialog(ownerFrame, this, "File name must end with one of the following extensions:\n" 
-                        + extList, null);                                
+                    ErrorDialog.showDialog(ownerFrame, this, uploaderProperties.getProperties(),
+                        "File name must end with one of the following extensions:\n" + extList, null);                                
                     return false;
                 }
             }
@@ -1118,11 +1122,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         } catch (final Exception e) {
             priorFailureException = e;
-            
+
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     wizardStepBackward();
-                    ErrorDialog.showDialog(ownerFrame, null, "File upload failed", e);
+                    log.error("File upload failed", e);
+                    ErrorDialog.showDialog(ownerFrame, null, uploaderProperties.getProperties(),
+                        "File upload failed", e);
                 };
             });                    
         } 
