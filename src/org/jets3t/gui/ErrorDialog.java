@@ -135,7 +135,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
         
         StringBuffer detailsText = new StringBuffer();
         if (throwable instanceof S3ServiceException) {
-            detailsText.append("<html><table border=\"0\">");
+            detailsText.append("<table border=\"0\">");
             
             S3ServiceException s3se = (S3ServiceException) throwable;
             
@@ -172,10 +172,8 @@ public class ErrorDialog extends JDialog implements ActionListener {
                 cause = cause.getCause();
             }
             
-            detailsText.append("</table></html>");
-        } else {
-            detailsText.append("<html>");
-            
+            detailsText.append("</table>");
+        } else {            
             boolean firstCause = true;
             Throwable cause = throwable;
             while (cause != null && cause.getMessage() != null) {
@@ -186,8 +184,13 @@ public class ErrorDialog extends JDialog implements ActionListener {
                 firstCause = false;
                 cause = cause.getCause();
             }
+        }
+        
+        if (detailsText.length() > 0) {
+            detailsText.insert(0, "<html>");
             detailsText.append("</html>");
         }
+        
         return detailsText.toString();
     }
     
