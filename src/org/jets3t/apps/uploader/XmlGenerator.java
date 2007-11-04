@@ -127,7 +127,7 @@ public class XmlGenerator {
         rootElem.setAttribute("version", xmlVersionNumber);
         rootElem.setAttribute("uploadDate",
             ServiceUtils.formatIso8601Date(new Date()));
-        
+
         // Add application properties (user inputs and application parameters) to XML document.
         for (Iterator iter = applicationProperties.entrySet().iterator(); iter.hasNext();) {
             Map.Entry entry = (Map.Entry) iter.next();
@@ -151,7 +151,7 @@ public class XmlGenerator {
             ObjectAndSignatureRequestDetails objectDetails = details[i];
             rootElem.appendChild(createSignatureRequestElement(document, objectDetails));
         }
-        
+
         // Serialize XML document to String.
         StringWriter writer = new StringWriter();
         StreamResult streamResult = new StreamResult(writer);
@@ -161,8 +161,7 @@ public class XmlGenerator {
         Transformer serializer = tf.newTransformer();
         serializer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
         serializer.setOutputProperty(OutputKeys.INDENT, "yes");
-        serializer.transform(domSource, streamResult); 
-        
+        serializer.transform(domSource, streamResult);
         return writer.toString();
     }
     
@@ -219,7 +218,7 @@ public class XmlGenerator {
                     request.getObjectMetadata(), "SignedObject"));
             requestElem.appendChild(
                 createPropertyElement(document, null, request.getSignedUrl(), "SignedURL"));
-        } else {
+        } else if (request.getDeclineReason() != null) {
             requestElem.appendChild(
                 createPropertyElement(document, null, request.getDeclineReason(), "DeclineReason"));            
         }
@@ -237,6 +236,9 @@ public class XmlGenerator {
      * @return
      */
     private Element createObjectElement(Document document, String key, String bucketName, Map metadata, String elementName) {
+        if (key == null) { key = ""; }
+        if (bucketName == null) { bucketName = ""; }
+
         Element objectElement = document.createElement(elementName);
         objectElement.setAttribute("key", key);
         objectElement.setAttribute("bucketName", bucketName);
@@ -246,6 +248,7 @@ public class XmlGenerator {
             String metadataName = (String) entry.getKey();
             String metadataValue = (String) entry.getValue();
             
+            if (metadataValue == null) { metadataValue = ""; }
             objectElement.appendChild(
                 createPropertyElement(document, metadataName, metadataValue, "Metadata"));
         }
