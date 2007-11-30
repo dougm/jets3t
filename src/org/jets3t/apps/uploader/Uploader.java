@@ -1099,7 +1099,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             s3ServiceMulti.putObjects(uploadItems);
             
             // If an XML summary document is required, PUT this in S3 as well.
-            if (includeXmlSummaryDoc && !uploadCancelled) {                
+            if (includeXmlSummaryDoc && !uploadCancelled && !fatalErrorOccurred) {                
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
                         fileInformationLabel.setText(
