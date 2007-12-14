@@ -53,10 +53,10 @@
 	</servlet-mapping>
 	
 	<!-- 
-		Example BASIC Authentication security settings to require login 
-		before the Gatekeeper is accessible. To apply these settings 
-		comment them in and configure your servlet engine with 
-		username/password logins for the "gatekeeper" role.
+		Example BASIC Authentication security settings to require login before the 
+		Gatekeeper is accessible. To apply these settings, comment them in and 
+		configure your servlet engine with username/password logins for the 
+		"gatekeeper" and "gatekeeper-admin" roles.
 	-->
 	<!-- 
 	<security-constraint>
@@ -69,6 +69,7 @@
 	  
 	  <auth-constraint>
 		 <role-name>gatekeeper</role-name>
+		 <role-name>gatekeeper-admin</role-name>
 	  </auth-constraint>
 	</security-constraint>
 	
@@ -79,6 +80,7 @@
 	
 	<security-role>
 	  <role-name>gatekeeper</role-name>
+	  <role-name>gatekeeper-admin</role-name>
 	</security-role>
 	-->	
 
