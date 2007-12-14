@@ -32,9 +32,14 @@ public class S3Bucket extends BaseS3Object {
     
     public static final String METADATA_HEADER_CREATION_DATE = "Date";
 	public static final String METADATA_HEADER_OWNER = "Owner";
+    
+    public static final String LOCATION_EUROPE = "EU";
+    public static final String LOCATION_US = null;
 	
 	private String name = null;
 	private AccessControlList acl = null;
+    private String location = LOCATION_US;
+    private boolean isLocationKnown = false;
     
     public S3Bucket() {        
     }
@@ -43,8 +48,17 @@ public class S3Bucket extends BaseS3Object {
         this.name = name;
     }
 	
-	public String toString() {
-		return "S3Bucket [name=" + getName() + ",creationDate=" + getCreationDate() + ",owner=" + getOwner() + "] Metadata=" + getMetadataMap();
+    public S3Bucket(String name, String location) {
+        this.name = name;
+        this.location = location;
+        this.isLocationKnown = true;
+    }
+
+    public String toString() {
+		return "S3Bucket [name=" + getName() +
+            ",location=" + getLocation() +
+            ",creationDate=" + getCreationDate() + ",owner=" + getOwner() 
+            + "] Metadata=" + getMetadataMap();
 	}
 	
 	public S3Owner getOwner() {
@@ -84,5 +98,37 @@ public class S3Bucket extends BaseS3Object {
 	public void setName(String name) {
 		this.name = name;
 	}
+    
+    /**
+     * Set's the bucket's location. This method should only be used internally by 
+     * JetS3t methods that retrieve information directly from S3.
+     * 
+     * @param location
+     * A string representing the location. Legal values include
+     * {@link #LOCATION_US} and null (which are equivalent), or 
+     * {@link #LOCATION_EUROPE}.
+     */
+    public void setLocation(String location) {
+        this.location = location;
+        this.isLocationKnown = true;
+    }
+    
+    /**
+     * @return
+     * true if this object knows the bucket's location, false otherwise.
+     */
+    public boolean isLocationKnown() {
+        return this.isLocationKnown;
+    }
+    
+    /**
+     * @return
+     * the bucket's location represented as a string. "EU" 
+     * denotes a bucket located in Europe, while null denotes a bucket located 
+     * in the US. 
+     */
+    public String getLocation() {
+        return location;
+    }
 	
 }

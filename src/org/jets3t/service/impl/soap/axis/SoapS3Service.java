@@ -123,10 +123,10 @@ public class SoapS3Service extends S3Service {
         if (super.isHttpsOnly()) {
             // Use an SSL connection, to further secure the signature. 
             log.debug("SOAP service will use HTTPS for all communication");            
-            locator.setAmazonS3EndpointAddress("https://" + getS3EndpointHost() + "/soap");
+            locator.setAmazonS3EndpointAddress("https://" + Constants.S3_HOSTNAME + "/soap");
         } else {
             log.debug("SOAP service will use HTTP for all communication");
-            locator.setAmazonS3EndpointAddress("http://" + getS3EndpointHost() + "/soap");            
+            locator.setAmazonS3EndpointAddress("http://" + Constants.S3_HOSTNAME + "/soap");            
         }
         // Ensure we can get the stub.
         getSoapBinding();
@@ -456,7 +456,15 @@ public class SoapS3Service extends S3Service {
         }
     }
 
-    protected S3Bucket createBucketImpl(String bucketName, AccessControlList acl) throws S3ServiceException {
+    protected S3Bucket createBucketImpl(String bucketName, String location, 
+        AccessControlList acl) throws S3ServiceException 
+    {
+        if (location != S3Bucket.LOCATION_US) {
+            throw new S3ServiceException("The SOAP API interface for S3 does " +
+                "not allow you to create buckets located anywhere other than " +
+                "the US");
+        }
+        
         Grant[] grants = null;
         if (acl != null) {
             grants = convertACLtoGrants(acl);        
@@ -478,6 +486,14 @@ public class SoapS3Service extends S3Service {
             throw new S3ServiceException("Unable to Create Bucket: " + bucketName, e);   
         }
     }
+    
+    protected String getBucketLocationImpl(String bucketName) 
+        throws S3ServiceException
+    {
+        throw new S3ServiceException("The SOAP API interface for S3 does " +
+            "not allow you to retrieve location information for a bucket");    
+    }
+
     
     protected void deleteBucketImpl(String bucketName) throws S3ServiceException {
         try {
@@ -644,7 +660,7 @@ public class SoapS3Service extends S3Service {
                 String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
                     Constants.SOAP_SERVICE_NAME + "GetObjectExtended" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObjectExtended(
-                    bucketName, objectKey, true, true, false, byteRangeStart, byteRangeEnd,
+                    bucketName, objectKey, true, withData, false, byteRangeStart, byteRangeEnd,
                     ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags,
                     Boolean.FALSE, getAWSAccessKey(), timestamp, signature, null);
                 
@@ -663,7 +679,7 @@ public class SoapS3Service extends S3Service {
                 String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
                     Constants.SOAP_SERVICE_NAME + "GetObject" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObject(
-                    bucketName, objectKey, true, true, false,                
+                    bucketName, objectKey, true, withData, false,                
                     getAWSAccessKey(), timestamp, signature, null);                
             }
             
@@ -673,22 +689,18 @@ public class SoapS3Service extends S3Service {
             object.setBucketName(bucketName);
             
             // Get data details from the SOAP attachment.
-            Object[] attachments = s3SoapBinding.getAttachments();
-            log.debug("SOAP attachment count for " + object.getKey() + ": " + attachments.length);
-            for (int i = 0; i < attachments.length; i++) {
-                if (i > 0) {
-                    throw new S3ServiceException(
-                        "Received multiple SOAP attachment parts, this shouldn't happen");
-                }
-                AttachmentPart part = (AttachmentPart) attachments[i];
-                
-                object.setContentType(part.getContentType());
-                object.setContentLength(part.getSize());
-                if (withData) {
+            if (withData) {
+                Object[] attachments = s3SoapBinding.getAttachments();
+                log.debug("SOAP attachment count for " + object.getKey() + ": " + attachments.length);
+                for (int i = 0; i < attachments.length; i++) {
+                    if (i > 0) {
+                        throw new S3ServiceException(
+                            "Received multiple SOAP attachment parts, this shouldn't happen");
+                    }
+                    AttachmentPart part = (AttachmentPart) attachments[i];
+                    object.setContentType(part.getContentType());
+                    object.setContentLength(part.getSize());
                     object.setDataInputStream(part.getDataHandler().getInputStream());
-                } else {
-                    part.getDataHandler().getInputStream().close();
-                    part.clearContent();
                 }
             }
             

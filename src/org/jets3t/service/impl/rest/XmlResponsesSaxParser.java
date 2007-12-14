@@ -178,6 +178,14 @@ public class XmlResponsesSaxParser {
         return handler;
     }
 
+    public String parseBucketLocationResponse(InputStream inputStream)
+        throws S3ServiceException
+    {
+        BucketLocationHandler handler = new BucketLocationHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler.getLocation();
+    }
+
     // ////////////
     // Handlers //
     // ////////////
@@ -560,6 +568,60 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("LoggingEnabled")) {
                 bucketLoggingStatus.setTargetBucketName(targetBucket);
                 bucketLoggingStatus.setLogfilePrefix(targetPrefix);
+            } 
+            this.currText = new StringBuffer();
+        }
+
+        public void characters(char ch[], int start, int length) {
+            this.currText.append(ch, start, length);
+        }
+    }
+    
+    /**
+     * Handler for CreateBucketConfiguration response XML documents for a bucket.
+     * The document is parsed into a String representing the bucket's lcoation,
+     * available via the {@link #getLocation()} method.
+     * 
+     * @author James Murty
+     *
+     */
+    public class BucketLocationHandler extends DefaultHandler {
+        private String location = null;
+
+        private StringBuffer currText = null;
+
+        public BucketLocationHandler() {
+            super();
+            this.currText = new StringBuffer();
+        }
+
+        /**
+         * @return
+         * the bucket's location.
+         */
+        public String getLocation() {
+            return location;
+        }
+
+        public void startDocument() {
+        }
+
+        public void endDocument() {
+        }
+
+        public void startElement(String uri, String name, String qName, Attributes attrs) {
+            if (name.equals("CreateBucketConfiguration")) {
+            } 
+        }
+
+        public void endElement(String uri, String name, String qName) {
+            String elementText = this.currText.toString();
+            if (name.equals("LocationConstraint")) {
+                if (elementText.length() == 0) {
+                    location = null;
+                } else {
+                    location = elementText;
+                }
             } 
             this.currText = new StringBuffer();
         }

@@ -40,6 +40,8 @@ import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpMethodRetryHandler;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.ProxyHost;
+import org.apache.commons.httpclient.URI;
+import org.apache.commons.httpclient.URIException;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.httpclient.methods.DeleteMethod;
@@ -64,6 +66,7 @@ import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
 import org.jets3t.service.io.UnrecoverableIOException;
+import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
@@ -93,13 +96,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     private static final String PROTOCOL_INSECURE = "http";
     private static final int PORT_SECURE = 443;
     private static final int PORT_INSECURE = 80;
-    
-    private final HostConfiguration insecureHostConfig = new HostConfiguration();
-    private final HostConfiguration secureHostConfig = new HostConfiguration();
-    
+        
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
-    private HostConfiguration hostConfig = null;
     
     /**
      * Constructs the service and initialises the properties.
@@ -138,8 +137,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
         
         // Set HttpClient properties based on Jets3t Properties.
-        insecureHostConfig.setHost("http://" + getS3EndpointHost(), PORT_INSECURE, PROTOCOL_INSECURE);
-        secureHostConfig.setHost("https://" + getS3EndpointHost(), PORT_SECURE, PROTOCOL_SECURE);
+        HostConfiguration hostConfig = new HostConfiguration();
                         
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
         connectionParams.setConnectionTimeout(jets3tProperties.
@@ -196,12 +194,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         });
         
         httpClient = new HttpClient(clientParams, connectionManager);
-
-        if (isHttpsOnly()) {
-            hostConfig = secureHostConfig;
-        } else {
-            hostConfig = insecureHostConfig;
-        }
         httpClient.setHostConfiguration(hostConfig);
 
         // Retrieve Proxy settings.
@@ -219,7 +211,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             // Try to detect any proxy settings from applet.
             ProxyHost proxyHost = null;
             try {            
-                proxyHost = PluginProxyUtil.detectProxy(new URL(hostConfig.getHostURL()));
+                proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + Constants.S3_HOSTNAME));
                 if (proxyHost != null) {
                     log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
                     hostConfig.setProxyHost(proxyHost);
@@ -256,23 +248,42 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     {
         try {
             log.debug("Performing " + httpMethod.getName() 
-                    + " request for '" + httpMethod.getPath() 
+                    + " request for '" + httpMethod.getURI().toString() 
                     + "', expecting response code " + expectedResponseCode);
 
             // Variables to manage S3 Internal Server 500 errors.
             boolean completedWithoutRecoverableError = true;
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
+            int redirectCount = 0;
+            boolean wasRecentlyRedirected = false;
 
             // Perform the request, sleeping and retrying when S3 Internal Errors are encountered.
             int responseCode = -1;
             do {
-                // Build the authorization string for the method.        
-                buildAuthorizationString(httpMethod);
+                // Build the authorization string for the method (Unless we have just been redirected).
+                if (!wasRecentlyRedirected) {
+                    buildAuthorizationString(httpMethod);
+                } else {
+                    // Reset redirection flag
+                    wasRecentlyRedirected = false;
+                }
                 
-                responseCode = httpClient.executeMethod(hostConfig, httpMethod);
+                responseCode = httpClient.executeMethod(httpMethod);
 
-                if (responseCode == 500) {
+                if (responseCode == 307) {
+                    // Retry on Temporary Redirects, using new URI from location header                    
+                    Header locationHeader = httpMethod.getResponseHeader("location");
+                    httpMethod.setURI(new URI(locationHeader.getValue(), true));
+                    
+                    completedWithoutRecoverableError = false;
+                    redirectCount++;
+                    wasRecentlyRedirected = true;
+                    
+                    if (redirectCount > 5) {
+                        throw new S3ServiceException("Encountered too many 307 Redirects, aborting request.");
+                    } 
+                } else if (responseCode == 500) {
                     // Retry on S3 Internal Server 500 errors.
                     completedWithoutRecoverableError = false;
                     sleepOnInternalError(++internalErrorCount);
@@ -293,7 +304,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 if (responseCode != expectedResponseCode) {                
                     log.debug("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
                         + responseCode + ", expected " + expectedResponseCode);
-                    
+                                        
                     if (Mimetypes.MIMETYPE_XML.equals(contentType)
                         && httpMethod.getResponseBodyAsStream() != null
                         && httpMethod.getResponseContentLength() != 0) 
@@ -315,6 +326,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                                 reader.close();                                
                             }                            
                         }
+                        
+                        httpMethod.releaseConnection();
                         
                         // Throw exception containing the XML message document.
                         S3ServiceException exception = 
@@ -341,6 +354,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             }
                         } else if (responseCode == 500) {
                             // Retrying after InternalError 500, don't throw exception.
+                        } else if (responseCode == 307) {
+                            // Retrying after Temporary Redirect 307, don't throw exception.
+                            log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());                            
                         } else {
                             throw exception;                            
                         }
@@ -622,7 +638,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
         return httpMethod;
     }
-    
+        
     /**
      * Creates an {@link HttpMethod} object to handle a particular connection method.
      * 
@@ -643,18 +659,23 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             throw new S3ServiceException("Cannot connect to S3 Service with a null path");
         }
 
+        String hostname = generateS3HostnameForBucket(bucketName);
+
 		// Determine the resource string (ie the item's path in S3, including the bucket name)
-        String resourceString = "/" + bucketName + 
-            (objectKey != null? "/" + RestUtils.encodeUrlString(objectKey) : "");
+        String resourceString = "/";
+        if (hostname.equals(Constants.S3_HOSTNAME) && bucketName != null && bucketName.length() > 0) {
+            resourceString += bucketName + "/";
+        }
+        resourceString += (objectKey != null? RestUtils.encodeUrlString(objectKey) : "");
 
 		// Construct a URL representing a connection for the S3 resource.
         String url = null;
         if (isHttpsOnly()) {
-            log.debug("REST/HTTP service is using HTTPS for all communication");
-            url = PROTOCOL_SECURE + "://" + getS3EndpointHost() + ":" + PORT_SECURE + resourceString;
+            url = PROTOCOL_SECURE + "://" + hostname + ":" + PORT_SECURE + resourceString;
         } else {
-            url = PROTOCOL_INSECURE + "://" + getS3EndpointHost() + ":" + PORT_INSECURE + resourceString;        
+            url = PROTOCOL_INSECURE + "://" + hostname + ":" + PORT_INSECURE + resourceString;        
         }
+        log.debug("S3 URL: " + url);
         
         // Add additional request parameters to the URL for special cases (eg ACL operations)
         url = addRequestParametersToUrlPath(url, requestParameters);
@@ -698,9 +719,31 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             log.debug("Service has no AWS Credential and is un-authenticated, skipping authorization");
             return;
         }
+        
+        String hostname = null;
+        try {
+            hostname = httpMethod.getURI().getHost();
+        } catch (URIException e) {
+            log.error("Unable to determine hostname target for request", e);
+        }
 
-		// Determine the complete URL for the S3 resource, including any S3-specific parameters.        
+        /*
+         * Determine the complete URL for the S3 resource, including any S3-specific parameters.
+         */         
         String fullUrl = httpMethod.getPath();
+
+        // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
+        if (!Constants.S3_HOSTNAME.equals(hostname)) {
+            int subdomainOffset = hostname.indexOf(".s3.amazonaws.com");
+            if (subdomainOffset > 0) {
+                // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
+                fullUrl = "/" + hostname.substring(0, subdomainOffset) + httpMethod.getPath();                    
+            } else {
+                // Hostname represents a virtual host, so the bucket's name is identical to hostname
+                fullUrl = "/" + hostname + httpMethod.getPath();                    
+            }
+        }
+        
         String queryString = httpMethod.getQueryString();
         if (queryString != null && queryString.length() > 0) {
             fullUrl += "?" + queryString;
@@ -913,13 +956,28 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         }
     }
     
-    protected S3Bucket createBucketImpl(String bucketName, AccessControlList acl) 
+    protected S3Bucket createBucketImpl(String bucketName, String location, AccessControlList acl) 
         throws S3ServiceException 
     {        
         log.debug("Creating bucket with name: " + bucketName);
-        Map map = createObjectImpl(bucketName, null, null, null, null, acl);
         
-        S3Bucket bucket = new S3Bucket(bucketName);
+        HashMap metadata = new HashMap();
+        RequestEntity requestEntity = null;
+        
+        if (location != null) {
+            metadata.put("Content-Type", "text/xml");
+            try {
+                CreateBucketConfiguration config = new CreateBucketConfiguration(location);
+                metadata.put("Content-Length", String.valueOf(config.toXml().length()));
+                requestEntity = new StringRequestEntity(config.toXml(), "text/xml", Constants.DEFAULT_ENCODING);                
+            } catch (UnsupportedEncodingException e) {
+                throw new S3ServiceException("Unable to encode CreateBucketConfiguration XML document", e);
+            }    
+        }
+        
+        Map map = createObjectImpl(bucketName, null, null, requestEntity, metadata, acl);
+        
+        S3Bucket bucket = new S3Bucket(bucketName, location);
         bucket.setAcl(acl);
         bucket.replaceAllMetadata(map);
         return bucket;
@@ -1114,6 +1172,19 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         return responseObject;
     }
     
+    protected String getBucketLocationImpl(String bucketName) 
+        throws S3ServiceException
+    {
+        log.debug("Retrieving location of Bucket: " + bucketName);
+        
+        HashMap requestParameters = new HashMap();
+        requestParameters.put("location","");
+    
+        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+        return (new XmlResponsesSaxParser()).parseBucketLocationResponse(
+            new HttpMethodReleaseInputStream(httpMethod));        
+    }
+
     protected S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) 
         throws S3ServiceException
     {
@@ -1323,8 +1394,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(acl)) {
                 putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "authenticated-read");
             } else {
-                String aclAsXml = acl.toXml();
-                putMethod.setRequestEntity(new StringRequestEntity(aclAsXml));
+                try {
+                    String aclAsXml = acl.toXml();
+                    putMethod.setRequestEntity(new StringRequestEntity(
+                        aclAsXml, "text/xml", Constants.DEFAULT_ENCODING));
+                } catch (UnsupportedEncodingException e) {
+                    throw new S3ServiceException("Unable to encode ACL XML document", e);
+                }    
+
             }
         }
         

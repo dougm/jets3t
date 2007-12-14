@@ -1079,7 +1079,43 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * Displays the currently selected bucket's properties in the dialog {@link ItemPropertiesDialog}. 
      */
     private void listBucketProperties() {
-        ItemPropertiesDialog.showDialog(ownerFrame, getCurrentSelectedBucket(), null);
+        final S3Bucket selectedBucket = getCurrentSelectedBucket();
+        
+        if (selectedBucket.getAcl() == null || !selectedBucket.isLocationKnown()) {
+            // Retrieve all a bucket's details before displaying the summary.
+            new Thread(new Runnable() {
+                public void run() {                
+                    startProgressDialog("Retrieving details for bucket " + selectedBucket.getName());
+                    try {                    
+                        if (selectedBucket.getAcl() == null) {
+                            selectedBucket.setAcl(
+                                s3ServiceMulti.getS3Service().getBucketAcl(
+                                    selectedBucket));
+                        }
+                        if (!selectedBucket.isLocationKnown()) {
+                            selectedBucket.setLocation(
+                                s3ServiceMulti.getS3Service().getBucketLocation(
+                                    selectedBucket.getName()));
+                        }
+                        
+                        SwingUtilities.invokeLater(new Runnable() {
+                            public void run() {                                
+                                ItemPropertiesDialog.showDialog(ownerFrame, selectedBucket, null);                                                                
+                            }
+                        });                                           
+                    } catch (final Exception e) {
+                        stopProgressDialog();                                    
+                        String message = "Unable to retrieve details for bucket";
+                        log.error(message, e);
+                        ErrorDialog.showDialog(ownerFrame, null, message, e);
+                    } finally {
+                        stopProgressDialog();                                    
+                    }
+                };
+            }).start();                                
+        } else {        
+            ItemPropertiesDialog.showDialog(ownerFrame, selectedBucket, null);
+        }
     }
     
     /**
@@ -2245,7 +2281,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         dialog.setVisible(true);
         
         boolean okClicked = dialog.getOkClicked();
-        String hostname = dialog.getHostname();
+        boolean isVirtualHost = dialog.isVirtualHost();
         String expiryTimeStr = dialog.getExpiryTime();
         dialog.dispose();
         
@@ -2263,8 +2299,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         
             // Generate URL
             String signedUrl = S3Service.createSignedUrl("GET",
-                getCurrentSelectedBucket().getName(), currentObject.getKey(), false,
-                null, s3ServiceMulti.getAWSCredentials(), secondsSinceEpoch, hostname);
+                getCurrentSelectedBucket().getName(), currentObject.getKey(), null,
+                null, s3ServiceMulti.getAWSCredentials(), secondsSinceEpoch, isVirtualHost);
             
             // Display signed URL
             JOptionPane.showInputDialog(ownerFrame,

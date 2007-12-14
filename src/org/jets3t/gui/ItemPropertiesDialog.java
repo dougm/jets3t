@@ -36,6 +36,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -44,6 +45,8 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.skins.SkinsFactory;
+import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 
@@ -74,7 +77,10 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
     private JTextField objectLastModifiedTextField = null;
     private JTextField objectETagTextField = null;
     private JTextField bucketNameTextField = null;
+    private JTextField bucketLocationTextField = null;
     private DefaultTableModel objectMetadataTableModel = null;
+    private JTable grantsTable = null;
+    private DefaultTableModel grantsTableModel = null;
     private JLabel ownerNameLabel = null;
     private JLabel ownerIdLabel = null;
     private JLabel currentObjectLabel = null;
@@ -133,6 +139,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         commonPropertiesContainer.setLayout(new GridBagLayout());
         JPanel metadataContainer = skinsFactory.createSkinnedJPanel("ItemPropertiesMetadataPanel");
         metadataContainer.setLayout(new GridBagLayout());
+        JPanel grantsContainer = skinsFactory.createSkinnedJPanel("ItemPropertiesGrantsPanel");
+        grantsContainer.setLayout(new GridBagLayout());
 
         if (!isObjectBased) {
             // Display bucket details.
@@ -140,6 +148,10 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             bucketNameLabel.setText("Bucket name:");
             bucketNameTextField = skinsFactory.createSkinnedJTextField("BucketNameTextField");
             bucketNameTextField.setEditable(false);
+            JLabel bucketLocationLabel = skinsFactory.createSkinnedJHtmlLabel("BucketLocationLabel");
+            bucketLocationLabel.setText("Location:");
+            bucketLocationTextField = skinsFactory.createSkinnedJTextField("BucketLocationTextField");
+            bucketLocationTextField.setEditable(false);            
             JLabel bucketCreationDateLabel = skinsFactory.createSkinnedJHtmlLabel("BucketCreationDateLabel");
             bucketCreationDateLabel.setText("Creation date:");
             bucketCreationDateTextField = skinsFactory.createSkinnedJTextField("BucketCreationDateTextField");
@@ -153,26 +165,32 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             ownerIdTextField = skinsFactory.createSkinnedJTextField("OwnerIdTextField");
             ownerIdTextField.setEditable(false);
             
-            commonPropertiesContainer.add(bucketNameLabel, new GridBagConstraints(0, 0,
+            int row = 0;
+            commonPropertiesContainer.add(bucketNameLabel, new GridBagConstraints(0, row,
                 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-            commonPropertiesContainer.add(bucketNameTextField, new GridBagConstraints(1, 0, 1, 1, 1, 0,
+            commonPropertiesContainer.add(bucketNameTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-            
-            commonPropertiesContainer.add(bucketCreationDateLabel, new GridBagConstraints(0,
-                1, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0,
-                0));
-            commonPropertiesContainer.add(bucketCreationDateTextField, new GridBagConstraints(1, 1, 1, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-            
-            commonPropertiesContainer.add(ownerNameLabel, new GridBagConstraints(0, 2,
+
+            commonPropertiesContainer.add(bucketLocationLabel, new GridBagConstraints(0, ++row,
                 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-            commonPropertiesContainer.add(ownerNameTextField, new GridBagConstraints(1, 2, 1, 1, 1, 0,
+            commonPropertiesContainer.add(bucketLocationTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+
+            commonPropertiesContainer.add(bucketCreationDateLabel, new GridBagConstraints(0, ++row,
+                1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            commonPropertiesContainer.add(bucketCreationDateTextField, new GridBagConstraints(1, row, 
+                1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            
+            commonPropertiesContainer.add(ownerNameLabel, new GridBagConstraints(0, ++row,
+                1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            commonPropertiesContainer.add(ownerNameTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             
-            commonPropertiesContainer.add(ownerIdLabel, new GridBagConstraints(0, 3, 1,
+            commonPropertiesContainer.add(ownerIdLabel, new GridBagConstraints(0, ++row, 1,
                 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-            commonPropertiesContainer.add(ownerIdTextField, new GridBagConstraints(1, 3, 1, 1, 1, 0,
+            commonPropertiesContainer.add(ownerIdTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                        
         } else {
             // Display object details.
             JLabel objectKeyLabel = skinsFactory.createSkinnedJHtmlLabel("ObjectKeyLabel");
@@ -208,8 +226,6 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             ownerIdTextField = skinsFactory.createSkinnedJTextField("OwnerIdTextField");
             ownerIdTextField.setEditable(false);
 
-            
-            
             commonPropertiesContainer.add(objectKeyLabel, new GridBagConstraints(0, 0,
                 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
             commonPropertiesContainer.add(objectKeyTextField, new GridBagConstraints(1, 0, 1, 1, 1, 0,
@@ -267,6 +283,19 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
                 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         }
 
+        // Build grants table.
+        grantsTableModel = new DefaultTableModel(new Object[] {"Grantee", "Permission" }, 0) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        TableSorter grantsTableSorter = new TableSorter(grantsTableModel);            
+        grantsTable = skinsFactory.createSkinnedJTable("GrantsTable");
+        grantsTable.setModel(grantsTableSorter);
+        grantsTableSorter.setTableHeader(grantsTable.getTableHeader());
+        grantsContainer.add(new JScrollPane(grantsTable), new GridBagConstraints(0, 0, 1,
+            1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+
         // OK Button.
         JButton okButton = skinsFactory.createSkinnedJButton("ItemPropertiesOKButton");
         okButton.setText("Finished");
@@ -288,9 +317,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
                 JHtmlLabel metadataLabel = skinsFactory.createSkinnedJHtmlLabel("MetadataLabel");
                 metadataLabel.setText("<html><b>Metadata</b></html>");
                 metadataLabel.setHorizontalAlignment(JLabel.CENTER);
-                container.add(metadataLabel, new GridBagConstraints(0, row++, 3, 1,
-                    1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-                    insetsVerticalSpace, 0, 0));
+                container.add(metadataLabel, new GridBagConstraints(0, row++, 3, 1, 1, 0, 
+                    GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsVerticalSpace, 0, 0));
                 container.add(metadataContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
             }
@@ -319,6 +347,15 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             container.add(nextPreviousPanel, new GridBagConstraints(0, row, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
             row++;
+        } else {
+            JHtmlLabel grantsLabel = skinsFactory.createSkinnedJHtmlLabel("GrantsLabel");
+            grantsLabel.setText("<html><b>Permissions</b></html>");
+            grantsLabel.setHorizontalAlignment(JLabel.CENTER);
+            container.add(grantsLabel, new GridBagConstraints(0, row++, 3, 1,
+                1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                insetsVerticalSpace, 0, 0));
+            container.add(grantsContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
+                GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
         }
         container.add(okButton, new GridBagConstraints(0, row++, 3, 1, 0, 0, GridBagConstraints.CENTER,
             GridBagConstraints.NONE, insetsZero, 0, 0));
@@ -333,6 +370,14 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
     
     private void displayBucketProperties(S3Bucket bucket) {
         bucketNameTextField.setText(bucket.getName());
+        String location = "Unknown";
+        if (bucket.isLocationKnown()) {
+            location = bucket.getLocation();
+            if (location == null) {
+                location = "US";
+            }
+        }
+        bucketLocationTextField.setText(location);
         bucketCreationDateTextField.setText(String.valueOf(bucket.getCreationDate()));
 
         if (bucket.getOwner() != null) {
@@ -349,7 +394,25 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             ownerIdTextField.setVisible(false);            
         }        
         
+        if (bucket.getAcl() != null) {
+            // Display grants table.
+            grantsTable.setVisible(true);
+            while (grantsTableModel.getRowCount() > 0) {
+                grantsTableModel.removeRow(0);
+            }
+            AccessControlList acl = bucket.getAcl();
+            Iterator iter = acl.getGrants().iterator();
+            while (iter.hasNext()) {
+                GrantAndPermission gap = (GrantAndPermission) iter.next();
+                grantsTableModel.addRow(new Object[] {
+                    gap.getGrantee().getIdentifier(), gap.getPermission().toString()});
+            }
+        } else {
+            grantsTable.setVisible(false);
+        }
+        
         this.pack();
+        this.setSize(this.getWidth(), 350);            
         this.setLocationRelativeTo(this.getOwner());
     }
     
@@ -465,6 +528,26 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             displayObjectProperties();
         } else if ("OK".equals(e.getActionCommand())) {
             this.setVisible(false);
+        }
+    }
+
+    /**
+     * Table to represent ACL grantees.
+     *  
+     * @author James Murty
+     */
+    private class GranteeTable extends JTable {
+        private static final long serialVersionUID = -5339684196750695854L;
+
+        public GranteeTable() {
+            super();
+            TableSorter sorter = new TableSorter(new DefaultTableModel(
+                new String[] {"Grantee", "Permission"}, 3));
+            this.setModel(sorter);
+            sorter.setTableHeader(this.getTableHeader());
+
+            getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            getSelectionModel().addListSelectionListener(this);
         }
     }
 

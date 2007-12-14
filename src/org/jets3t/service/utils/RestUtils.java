@@ -192,6 +192,8 @@ public class RestUtils {
             buf.append("?torrent");
         } else if (resource.matches(".*[&?]logging($|=|&).*")) {
             buf.append("?logging");
+        } else if (resource.matches(".*[&?]location($|=|&).*")) {
+            buf.append("?location");
         }
 
         return buf.toString();

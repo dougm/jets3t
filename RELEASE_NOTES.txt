@@ -4,7 +4,7 @@ Version 0.5.1
 
 COCKPIT
 
-- Generate signed GET URLs based on 'vanity' hostnames.
+- Generate signed GET URLs based on virtual host names.
 - Encryption algorithm can be changed in the preferences dialog.
 - Progress dialogs modified to fix display problems with JDK version 1.6.
 - Fixed bug causing encrypted files not to be automatically recognised
@@ -45,6 +45,12 @@ TOOLKIT
 
   * General
 
+- Added support for buckets located in the EU. Due to this change, the 
+  "s3service.end-point-host" property is now obsolete.
+- Added a default bucket location configuration setting in 
+  jets3t.properties: "s3service.default-bucket-location". If you do not
+  use an explicit bucket location when you use the bucket creation API
+  method, the bucket will be created in this default location.
 - Fixed bugs that caused uploads greater than 2GB to fail 
   (Expect: 100-Continue is now supported)
 - File listings as built using the FileComparer.buildFileMap() methods can be

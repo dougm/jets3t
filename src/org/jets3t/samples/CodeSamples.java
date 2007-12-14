@@ -501,7 +501,7 @@ public class CodeSamples {
         // the object's contents. After 5 minutes, the URL will no longer work and you will only 
         // see an Access Denied message.
         String url = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
-            awsCredentials, expiryDate);
+            awsCredentials, expiryDate, false);
         System.out.println("Signed URL: " + url);
     }
     

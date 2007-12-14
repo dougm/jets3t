@@ -804,7 +804,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
             for (int i = 0; i < objects.length; i++) {
                 String signedPutUrl = S3Service.createSignedPutUrl(s3BucketName, objects[i].getKey(), 
-                    objects[i].getMetadataMap(), awsCredentials, expiryDate);
+                    objects[i].getMetadataMap(), awsCredentials, expiryDate, false);
                 
                 SignatureRequest signatureRequest = new SignatureRequest(
                     SignatureRequest.SIGNATURE_TYPE_PUT, objects[i].getKey());

@@ -27,6 +27,7 @@ import java.awt.event.ActionListener;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -53,7 +54,7 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener {
 
     private boolean okClicked = false;
     
-    private JTextField hostnameTextField = null;
+    private JCheckBox virtualHostCheckBox = null;
     private JTextField expiryTimeTextField = null;
     private JButton okButton = null;
     private JButton cancelButton = null;
@@ -68,14 +69,14 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener {
             + " anyone<br>who needs to access objects in your bucket for a limited time.</center></html>";
         JHtmlLabel introductionLabel = new JHtmlLabel(introductionText, hyperlinkListener);
         introductionLabel.setHorizontalAlignment(JLabel.CENTER);
-        JHtmlLabel hostNameLabel = new JHtmlLabel("<html><b>Host Name</b></html>", hyperlinkListener);
-        hostNameLabel.setHorizontalAlignment(JLabel.CENTER);        
+        JHtmlLabel virtualHostLabel = new JHtmlLabel("<html><b>Bucket is a virtual Host?</b></html>", hyperlinkListener);
+        virtualHostLabel.setHorizontalAlignment(JLabel.CENTER);        
         JHtmlLabel expiryTimeLabel = new JHtmlLabel("<html><b>Expiry Time</b> (Hours)</html>", hyperlinkListener);
         expiryTimeLabel.setHorizontalAlignment(JLabel.CENTER);        
         
-        hostnameTextField = new JTextField();
-        hostnameTextField.setText(S3Service.getS3EndpointHost());
-        hostnameTextField.setToolTipText("The hostname to use in the URL, also known as the virtual or vanity hostname.");
+        virtualHostCheckBox = new JCheckBox();
+        virtualHostCheckBox.setSelected(false);
+        virtualHostCheckBox.setToolTipText("Check this box if your bucket is configured as a virtual host.");
         expiryTimeTextField = new JTextField();
         expiryTimeTextField.setText("0.5");
         expiryTimeTextField.setToolTipText("How long in hours until the URL will expire");
@@ -110,10 +111,10 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener {
         int row = 0;
         panel.add(introductionLabel, new GridBagConstraints(0, row, 
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        panel.add(hostNameLabel, new GridBagConstraints(0, ++row, 
+        panel.add(virtualHostLabel, new GridBagConstraints(0, ++row, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        panel.add(hostnameTextField, new GridBagConstraints(1, row, 
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        panel.add(virtualHostCheckBox, new GridBagConstraints(1, row, 
+            1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         panel.add(expiryTimeLabel, new GridBagConstraints(0, ++row, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         panel.add(expiryTimeTextField, new GridBagConstraints(1, row, 
@@ -143,9 +144,9 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener {
         return okClicked;
     }
     
-    public String getHostname() {
-        return hostnameTextField.getText();
-    }
+    public boolean isVirtualHost() {
+        return virtualHostCheckBox.isSelected();
+    }       
     
     public String getExpiryTime() {
         return expiryTimeTextField.getText();

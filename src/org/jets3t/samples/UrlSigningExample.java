@@ -46,19 +46,19 @@ public class UrlSigningExample {
         
         // Create a signed HTTP PUT URL valid for 5 minutes.        
         String putUrl = S3Service.createSignedPutUrl(bucket.getName(), object.getKey(), 
-            object.getMetadataMap(), awsCredentials, expiryDate);
+            object.getMetadataMap(), awsCredentials, expiryDate, false);
         
         // Create a signed HTTP GET URL valid for 5 minutes.
         String getUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(),  
-            awsCredentials, expiryDate);
+            awsCredentials, expiryDate, false);
 
         // Create a signed HTTP HEAD URL valid for 5 minutes.
         String headUrl = S3Service.createSignedHeadUrl(bucket.getName(), object.getKey(),
-            awsCredentials, expiryDate);
+            awsCredentials, expiryDate, false);
 
         // Create a signed HTTP DELETE URL valid for 5 minutes.
         String deleteUrl = S3Service.createSignedDeleteUrl(bucket.getName(), object.getKey(),
-            awsCredentials, expiryDate);
+            awsCredentials, expiryDate, false);
         
         System.out.println("Signed PUT URL: " + putUrl);
         System.out.println("Signed GET URL: " + getUrl);
