@@ -94,6 +94,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.apps.cockpit.gui.AccessControlDialog;
 import org.jets3t.apps.cockpit.gui.BucketLoggingDialog;
 import org.jets3t.apps.cockpit.gui.BucketTableModel;
+import org.jets3t.apps.cockpit.gui.CreateBucketDialog;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.PreferencesDialog;
 import org.jets3t.apps.cockpit.gui.SignedGetUrlDialog;
@@ -1414,22 +1415,23 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private void createBucketAction() {
         String proposedNewName = 
-                s3ServiceMulti.getAWSCredentials().getAccessKey() + "." + "NewBucket";
-
-        final String bucketName = (String) JOptionPane.showInputDialog(ownerFrame, 
-            "Name for new bucket (no spaces allowed):",
-            "Create a new bucket", JOptionPane.QUESTION_MESSAGE,
-            null, null, proposedNewName);
-
-        if (bucketName != null) {
+            s3ServiceMulti.getAWSCredentials().getAccessKey().toLowerCase() 
+            + "." + "bucket-name";
+        
+        CreateBucketDialog dialog = new CreateBucketDialog(proposedNewName, ownerFrame, this);
+        dialog.setVisible(true);
+        
+        if (dialog.getOkClicked()) {
+            final S3Bucket newBucket = new S3Bucket(dialog.getBucketName(),
+                dialog.getBucketLocation());
+            
             new Thread() {
                 public void run() {
-                    s3ServiceMulti.createBuckets(
-                        new S3Bucket[] { new S3Bucket(bucketName) });
+                    s3ServiceMulti.createBuckets(new S3Bucket[] { newBucket });
                 }
-            }.start();        
-            
-        }            
+            }.start();           
+        }
+        dialog.dispose();
     }
         
     /**
