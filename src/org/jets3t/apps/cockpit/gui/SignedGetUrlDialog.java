@@ -42,7 +42,7 @@ import org.jets3t.service.S3Service;
 /**
  * Dialog box to query for settings to apply to signed GET URLs. This dialog should be created
  * and displayed with {@link #setVisible(true)}, and once control returns the user's responses 
- * are available via {@link #getOkClicked()}, {@link #getHostname()} and {@link #getExpiryTime()}.
+ * are available via {@link #getOkClicked()}, {@link #isVirtualHost()} and {@link #getExpiryTime()}.
  * <p>
  * The caller is responsible for disposing of this dialog.  
  * 
