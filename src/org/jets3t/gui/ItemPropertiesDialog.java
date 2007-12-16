@@ -293,8 +293,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         grantsTable = skinsFactory.createSkinnedJTable("GrantsTable");
         grantsTable.setModel(grantsTableSorter);
         grantsTableSorter.setTableHeader(grantsTable.getTableHeader());
-        grantsContainer.add(new JScrollPane(grantsTable), new GridBagConstraints(0, 0, 1,
-            1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+        grantsContainer.add(new JScrollPane(grantsTable), new GridBagConstraints(0, 0, 
+            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
 
         // OK Button.
         JButton okButton = skinsFactory.createSkinnedJButton("ItemPropertiesOKButton");
@@ -309,7 +309,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         int row = 0;
         JPanel container = skinsFactory.createSkinnedJPanel("ItemPropertiesPanel");
         container.setLayout(new GridBagLayout());
-        container.add(commonPropertiesContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
+        container.add(commonPropertiesContainer, new GridBagConstraints(0, row++, 1, 1, 1, 0,
             GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
         if (isObjectBased) {
             
@@ -317,9 +317,9 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
                 JHtmlLabel metadataLabel = skinsFactory.createSkinnedJHtmlLabel("MetadataLabel");
                 metadataLabel.setText("<html><b>Metadata</b></html>");
                 metadataLabel.setHorizontalAlignment(JLabel.CENTER);
-                container.add(metadataLabel, new GridBagConstraints(0, row++, 3, 1, 1, 0, 
+                container.add(metadataLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0, 
                     GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsVerticalSpace, 0, 0));
-                container.add(metadataContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
+                container.add(metadataContainer, new GridBagConstraints(0, row++, 1, 1, 1, 1,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
             }
             
@@ -351,10 +351,10 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             JHtmlLabel grantsLabel = skinsFactory.createSkinnedJHtmlLabel("GrantsLabel");
             grantsLabel.setText("<html><b>Permissions</b></html>");
             grantsLabel.setHorizontalAlignment(JLabel.CENTER);
-            container.add(grantsLabel, new GridBagConstraints(0, row++, 3, 1,
+            container.add(grantsLabel, new GridBagConstraints(0, row++, 1, 1,
                 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
                 insetsVerticalSpace, 0, 0));
-            container.add(grantsContainer, new GridBagConstraints(0, row++, 3, 1, 1, 1,
+            container.add(grantsContainer, new GridBagConstraints(0, row++, 1, 1, 1, 1,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
         }
         container.add(okButton, new GridBagConstraints(0, row++, 3, 1, 0, 0, GridBagConstraints.CENTER,
