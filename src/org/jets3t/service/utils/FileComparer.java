@@ -467,7 +467,7 @@ public class FileComparer {
                         try {
                             // A pre-computed MD5 hash file is available, try to read this hash value
                             BufferedReader br = new BufferedReader(new FileReader(computedHashFile));
-                            computedHash = ServiceUtils.fromHex(br.readLine().split("\b")[0]);
+                            computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
                             br.close();
                         } catch (Exception e) {
                             log.warn("Unable to read hash from computed MD5 file", e);
