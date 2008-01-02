@@ -465,8 +465,6 @@ public class FileComparer {
                         && computedHashFile.lastModified() > file.lastModified())
                     {
                         try {
-System.err.println("=== Reading MD5 file: " + computedHashFile.getAbsolutePath());            
-                            
                             // A pre-computed MD5 hash file is available, try to read this hash value
                             BufferedReader br = new BufferedReader(new FileReader(computedHashFile));
                             computedHash = ServiceUtils.fromHex(br.readLine().split("\b")[0]);
@@ -477,7 +475,6 @@ System.err.println("=== Reading MD5 file: " + computedHashFile.getAbsolutePath()
                     }
                     
                     if (computedHash == null) {
-System.err.println("=== Generating MD5 file on-the-fly for file: " + file.getName());            
                         // A pre-computed hash file was not available, or could not be read. 
                         // Calculate the hash value anew.
                         InputStream hashInputStream = null;
@@ -497,7 +494,6 @@ System.err.println("=== Generating MD5 file on-the-fly for file: " + file.getNam
                         || computedHashFile.lastModified() < file.lastModified()))
                     {
                         // Create or update a pre-computed MD5 hash file.
-System.err.println("=== Writing MD5 file: " + computedHashFile.getAbsolutePath());                                    
                         try {
                             FileWriter fw = new FileWriter(computedHashFile);                            
                             fw.write(ServiceUtils.toHex(computedHash));
