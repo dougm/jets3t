@@ -18,9 +18,12 @@
  */
 package org.jets3t.service.utils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
@@ -38,6 +41,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.io.BytesProgressWatcher;
@@ -109,6 +113,16 @@ public class FileComparer {
                     + "'", e);
             }
         }
+        
+        if (Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("filecomparer.skip-upload-of-md5-files", false))
+        {
+            Pattern pattern = Pattern.compile(".*\\.md5");
+            log.debug("Skipping upload of pre-computed MD5 files with path '*.md5' using the regexp: " 
+                + pattern.pattern());
+            ignorePatternList.add(pattern);                                
+        }        
+        
         return ignorePatternList;
     }
     
@@ -128,7 +142,7 @@ public class FileComparer {
         Iterator patternIter = ignorePatternList.iterator();
         while (patternIter.hasNext()) {
             Pattern pattern = (Pattern) patternIter.next();
-            
+
             if (pattern.matcher(file.getName()).matches()) {
                 log.debug("Ignoring " + (file.isDirectory() ? "directory" : "file") 
                     + " matching pattern '" + pattern.pattern() + "': " + file.getName());                
@@ -434,16 +448,64 @@ public class FileComparer {
                     alreadySynchronisedKeys.add(keyPath);
                 } else {
                     // Compare file hashes.
-                    InputStream hashInputStream = null;
-                    if (progressWatcher != null) {
-                        hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
-                            new FileInputStream(file), progressWatcher);
-                    } else {
-                        hashInputStream = new FileInputStream(file);
+                    boolean useMd5Files = 
+                        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                        .getBoolProperty("filecomparer.use-md5-files", false);
+
+                    boolean generateMd5Files = 
+                        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                        .getBoolProperty("filecomparer.generate-md5-files", false);                                        
+                    
+                    byte[] computedHash = null;
+                    
+                    // Check whether a pre-computed MD5 hash file is available
+                    File computedHashFile = new File(file.getPath() + ".md5");
+                    if (useMd5Files
+                        && computedHashFile.canRead()
+                        && computedHashFile.lastModified() > file.lastModified())
+                    {
+                        try {
+System.err.println("=== Reading MD5 file: " + computedHashFile.getAbsolutePath());            
+                            
+                            // A pre-computed MD5 hash file is available, try to read this hash value
+                            BufferedReader br = new BufferedReader(new FileReader(computedHashFile));
+                            computedHash = ServiceUtils.fromHex(br.readLine().split("\b")[0]);
+                            br.close();
+                        } catch (Exception e) {
+                            log.warn("Unable to read hash from computed MD5 file", e);
+                        }
                     }
                     
-                    String fileHashAsBase64 = ServiceUtils.toBase64(
-                        ServiceUtils.computeMD5Hash(hashInputStream));
+                    if (computedHash == null) {
+System.err.println("=== Generating MD5 file on-the-fly for file: " + file.getName());            
+                        // A pre-computed hash file was not available, or could not be read. 
+                        // Calculate the hash value anew.
+                        InputStream hashInputStream = null;
+                        if (progressWatcher != null) {
+                            hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
+                                new FileInputStream(file), progressWatcher);
+                        } else {
+                            hashInputStream = new FileInputStream(file);
+                        }
+                        computedHash = ServiceUtils.computeMD5Hash(hashInputStream);
+                    }
+                                                                                
+                    String fileHashAsBase64 = ServiceUtils.toBase64(computedHash);
+                    
+                    if (generateMd5Files && !file.getName().endsWith(".md5") &&
+                        (!computedHashFile.exists() 
+                        || computedHashFile.lastModified() < file.lastModified()))
+                    {
+                        // Create or update a pre-computed MD5 hash file.
+System.err.println("=== Writing MD5 file: " + computedHashFile.getAbsolutePath());                                    
+                        try {
+                            FileWriter fw = new FileWriter(computedHashFile);                            
+                            fw.write(ServiceUtils.toHex(computedHash));
+                            fw.close();
+                        } catch (Exception e) {
+                            log.warn("Unable to write computed MD5 hash to a file", e);
+                        }
+                    }
                     
                     // Get the S3 object's Base64 hash.
                     String objectHash = null;
