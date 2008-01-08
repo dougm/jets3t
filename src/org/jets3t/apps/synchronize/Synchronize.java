@@ -767,6 +767,10 @@ public class Synchronize {
         System.out.println("   Encrypt files when backing up and decrypt encrypted files when restoring. If");
         System.out.println("   this option is specified the properties must contain a password.");
         System.out.println("");
+        System.out.println("--properties <filename>");
+        System.out.println("   Load the synchronizer app properties from the given file instead of from");
+        System.out.println("   a synchronizer.properties file in the classpath.");
+        System.out.println("");
         System.out.println("Report");
         System.out.println("------");
         System.out.println("Report items are printed on a single line with an action flag followed by");
