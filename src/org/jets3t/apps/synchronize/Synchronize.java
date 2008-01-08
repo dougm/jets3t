@@ -19,6 +19,7 @@
 package org.jets3t.apps.synchronize;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -792,14 +793,9 @@ public class Synchronize {
      * @throws Exception
      */
     public static void main(String args[]) throws Exception {
-        // Read the Synchronize properties file.
         String propertiesFileName = "synchronize.properties";
-        Jets3tProperties properties = Jets3tProperties.getInstance(propertiesFileName);
-        if (!properties.isLoaded()) {
-            System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found in the classpath");
-            System.exit(2);                        
-        }
-        
+        Jets3tProperties properties = null;
+
         // Required arguments
         String actionCommand = null;
         String s3Path = null;
@@ -815,10 +811,7 @@ public class Synchronize {
         boolean isNoDelete = false;
         boolean isGzipEnabled = false;
         boolean isEncryptionEnabled = false;
-        
-        // Upload options
-        boolean uploadIgnoreMissingPaths = properties.getBoolProperty("upload.ignoreMissingPaths", false);        
-        
+                
         // Parse arguments.
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -842,6 +835,22 @@ public class Synchronize {
                     isGzipEnabled = true; 
                 } else if (arg.equalsIgnoreCase("-c") || arg.equalsIgnoreCase("--crypto")) {
                     isEncryptionEnabled = true; 
+                } else if (arg.equalsIgnoreCase("--properties")) {
+                    if (i + 1 < args.length) {
+                        // Read the Synchronize properties file from the specified file            
+                        i++;
+                        propertiesFileName = args[i];
+                        File propertiesFile = new File(propertiesFileName);
+                        if (!propertiesFile.canRead()) {
+                            System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found");
+                            System.exit(2);                        
+                        }
+                        properties = Jets3tProperties.getInstance(
+                            new FileInputStream(propertiesFileName), propertiesFile.getName());                        
+                    } else {
+                        System.err.println("ERROR: --properties option must be followed by a file path");
+                        printHelpAndExit(false);                        
+                    }
                 } else {
                     System.err.println("ERROR: Invalid option: " + arg);
                     printHelpAndExit(false);
@@ -874,7 +883,7 @@ public class Synchronize {
                         }         
                     } else {
                         if (!file.canRead()) {
-                            if (uploadIgnoreMissingPaths) {
+                            if (properties != null && properties.getBoolProperty("upload.ignoreMissingPaths", false)) {
                                 System.err.println("WARN: Ignoring missing upload path: " + file);
                                 continue;
                             } else {
@@ -903,6 +912,15 @@ public class Synchronize {
             printHelpAndExit(false);            
         }
         
+        if (properties == null) {        
+            // Read the Synchronize properties file from the classpath            
+            properties = Jets3tProperties.getInstance(propertiesFileName);
+            if (!properties.isLoaded()) {
+                System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found in the classpath");
+                System.exit(2);                        
+            }
+        }
+                
         // Ensure the Synchronize properties file contains everything we need.
         if (!properties.containsKey("accesskey")) {
             System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: accesskey");
