@@ -178,7 +178,7 @@ public class BytesProgressWatcher {
         
         if (currentSecond - SECONDS_OF_HISTORY > endSecond) {
             // This item finished too long ago, ignore it now.
-            historyOfBytesBySecond = null;
+            historyOfBytesBySecond.clear();
             return 0;
         }
 
