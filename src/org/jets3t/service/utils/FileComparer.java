@@ -438,8 +438,35 @@ public class FileComparer {
             String keyPath = (String) entry.getKey();
             S3Object s3Object = (S3Object) entry.getValue();
 
+            // A special-case check to identify objects created by Panic's
+            // Transmit application that serve as directory placehoders -
+            // a similar concept to the placeholders JetS3t uses but sadly
+            // these look different.
+            if (keyPath.endsWith("/")
+                && s3Object.getContentLength() == 0
+                && "binary/octet-stream".equals(s3Object.getContentType()))
+            {
+                boolean ignorePanicDirPlaceholders = 
+                    Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                    .getBoolProperty("filecomparer.ignore-panic-dir-placeholders", false);
+                
+                if (ignorePanicDirPlaceholders) {                                
+                    log.debug("Ignoring object that looks like a directory " +
+                        "placeholder created by Panic's Transmit application: " + keyPath);
+                    alreadySynchronisedKeys.add(keyPath);                
+                    continue;
+                } else {
+                    log.warn("Identified an object that looks like a directory " +
+                        "placeholder created by Panic's Transmit application. " +
+                        "If this object was indeed created by Transmit, it will not " +
+                        "be handled properly unless the JetS3t property " +
+                        "\"filecomparer.ignore-panic-dir-placeholders\" is set to " +
+                        "true. " + s3Object);                    
+                }
+            }
+
             // Check whether local file is already on server
-            if (filesMap.containsKey(keyPath)) {
+            if (filesMap.containsKey(keyPath)) {                                
                 // File has been backed up in the past, is it still up-to-date?
                 File file = (File) filesMap.get(keyPath);
 
