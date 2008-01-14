@@ -387,13 +387,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     }
                 }
             } while (!completedWithoutRecoverableError);
-            
+
             // Release immediately any connections without response bodies.
             if ((httpMethod.getResponseBodyAsStream() == null 
                 || httpMethod.getResponseBodyAsStream().available() == 0)
                 && httpMethod.getResponseContentLength() == 0) 
             {
-                 log.debug("Releasing response without content");
+                log.debug("Releasing response without content");
                 byte[] responseBody = httpMethod.getResponseBody();
 
                 if (responseBody != null && responseBody.length > 0) 
@@ -611,6 +611,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             // Respond with the actual guaranteed content length of the uploaded data.
             contentLength = ((PutMethod)httpMethod).getRequestEntity().getContentLength();
         }
+                
+        // Release connection after PUT (there ought to be no response content)
+        httpMethod.releaseConnection();
         
         return new HttpMethodAndByteCount(httpMethod, contentLength);
     }
