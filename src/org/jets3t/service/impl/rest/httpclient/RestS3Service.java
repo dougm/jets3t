@@ -1264,7 +1264,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         putMethod.releaseConnection();
 
         try {
-            S3Object uploadedObject = ServiceUtils.buildObjectFromPath(putMethod.getPath());
+            S3Object uploadedObject = ServiceUtils.buildObjectFromUrl(putMethod.getURI().getHost(), putMethod.getPath());
             object.setBucketName(uploadedObject.getBucketName());
             object.setKey(uploadedObject.getKey());
             try {
@@ -1279,6 +1279,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             } catch (IOException e) {
                 log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
             }
+        } catch (URIException e) {
+            throw new S3ServiceException("Unable to lookup URI for object created with signed PUT", e); 
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to determine name of object created with signed PUT", e); 
         }        
@@ -1431,8 +1433,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         S3Object responseObject = null;
         try {
-            responseObject = ServiceUtils.buildObjectFromPath(
+            responseObject = ServiceUtils.buildObjectFromUrl(
+                httpMethod.getURI().getHost(),
                 httpMethod.getPath().substring(1));
+        } catch (URIException e) {
+            throw new S3ServiceException("Unable to lookup URI for object created with signed PUT", e); 
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to determine name of object created with signed PUT", e); 
         }

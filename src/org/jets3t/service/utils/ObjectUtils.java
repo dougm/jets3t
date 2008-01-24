@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
@@ -87,6 +88,9 @@ public class ObjectUtils {
         EncryptionUtil encryptionUtil, boolean gzipFile, BytesProgressWatcher progressWatcher) throws Exception 
     {
         S3Object s3Object = new S3Object(objectKey);
+        
+        // Set object explicitly to private access by default. 
+        s3Object.setAcl(AccessControlList.REST_CANNED_PRIVATE);
         
         s3Object.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE, 
             ServiceUtils.formatIso8601Date(new Date(dataFile.lastModified())));

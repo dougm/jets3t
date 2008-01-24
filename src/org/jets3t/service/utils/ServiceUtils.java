@@ -394,36 +394,50 @@ public class ServiceUtils {
     }    
     
     /**
-     * Builds an object based on the bucket name and object key information available in a 
-     * URL path. 
+     * Builds an object based on the bucket name and object key information 
+     * available in the components of a URL. 
      * 
+     * @param host
+     * the host name component of a URL that may include the bucket name, 
+     * if an alternative host name is in use.
      * @param urlPath
-     * the path of a URL that references an S3 object, excluding the preceeding protocol and server
-     * information as well as any URL parameters. This URL <b>must</b> include both the bucket
-     * name and object key components for this method to work.
+     * the path of a URL that references an S3 object, and which may or may 
+     * not include the bucket name.
      * 
      * @return
-     * the object referred to in the URL path.
+     * the object referred to by the URL components.
      */
-    public static S3Object buildObjectFromPath(String urlPath) throws UnsupportedEncodingException {
+    public static S3Object buildObjectFromUrl(String host, String urlPath) throws UnsupportedEncodingException {
         if (urlPath.startsWith("/")) {
-            urlPath = urlPath.substring(1); // Ignore first '/' character.
-        }
-        int slashIndex = urlPath.indexOf("/");
-
-        String bucketName = null;
-        String objectKey = null;
-        if (slashIndex < 0) {
-            // There is no bucket name in the URL, must be using virtual hosting.
-            objectKey = URLDecoder.decode( 
-                urlPath, Constants.DEFAULT_ENCODING);            
-        } else {
-            bucketName = URLDecoder.decode(
-                urlPath.substring(0, slashIndex), Constants.DEFAULT_ENCODING);
-            objectKey = URLDecoder.decode( 
-                urlPath.substring(bucketName.length() + 1), Constants.DEFAULT_ENCODING);            
+            urlPath = urlPath.substring(1); // Ignore first '/' character in url path.
         }
         
+        String bucketName = null;
+        String objectKey = null;
+        
+        if (!Constants.S3_HOSTNAME.equals(host)) {
+            // Bucket name is available in URL's host name.
+            if (host.endsWith(Constants.S3_HOSTNAME)) {
+                // Bucket name is available as S3 subdomain
+                bucketName = host.substring(0, 
+                    host.length() - Constants.S3_HOSTNAME.length() - 1);
+            } else {
+                // URL refers to a virtual host name
+                bucketName = host;
+            }
+        } else {
+            // Bucket name must be first component of URL path
+            int slashIndex = urlPath.indexOf("/");
+            bucketName = URLDecoder.decode(
+                urlPath.substring(0, slashIndex), Constants.DEFAULT_ENCODING);
+            
+            // Remove the bucket name component of the host name
+            urlPath = urlPath.substring(bucketName.length() + 1);                        
+        }
+
+        objectKey = URLDecoder.decode( 
+            urlPath, Constants.DEFAULT_ENCODING);            
+
         S3Object object = new S3Object(objectKey);
         object.setBucketName(bucketName);
         return object;

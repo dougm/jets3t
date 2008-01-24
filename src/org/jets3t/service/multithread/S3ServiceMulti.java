@@ -782,7 +782,7 @@ public class S3ServiceMulti implements Serializable {
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedGetURLs.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedGetURLs[i]);
-            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            S3Object object = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
             pendingObjectKeysList.add(object);
             
             runnables[i] = new GetObjectRunnable(signedGetURLs[i], false);
@@ -856,7 +856,7 @@ public class S3ServiceMulti implements Serializable {
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedHeadURLs.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedHeadURLs[i]);
-            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            S3Object object = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
             pendingObjectKeysList.add(object);
 
             runnables[i] = new GetObjectRunnable(signedHeadURLs[i], true);
@@ -919,7 +919,7 @@ public class S3ServiceMulti implements Serializable {
         PutACLRunnable[] runnables = new PutACLRunnable[signedURLs.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedURLs[i]);
-            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            S3Object object = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
             pendingObjectsList.add(object);
             runnables[i] = new PutACLRunnable(signedURLs[i], acl);
         }
@@ -983,7 +983,7 @@ public class S3ServiceMulti implements Serializable {
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[signedDeleteUrls.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedDeleteUrls[i]);
-            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            S3Object object = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
             objectsToDeleteList.add(object);
             
             runnables[i] = new DeleteObjectRunnable(signedDeleteUrls[i]);
@@ -1123,7 +1123,7 @@ public class S3ServiceMulti implements Serializable {
         GetACLRunnable[] runnables = new GetACLRunnable[signedAclURLs.length];
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedAclURLs[i]);
-            S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+            S3Object object = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
             pendingObjectKeysList.add(object);
             
             runnables[i] = new GetACLRunnable(signedAclURLs[i]);
@@ -1228,7 +1228,7 @@ public class S3ServiceMulti implements Serializable {
                     SignedUrlHandler handler = (SignedUrlHandler) s3Service;
                     handler.putObjectAclWithSignedUrl(signedUrl, signedUrlAcl);
                     URL url = new URL(signedUrl);
-                    S3Object object = ServiceUtils.buildObjectFromPath(url.getPath());
+                    S3Object object = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
                     object.setAcl(signedUrlAcl);
                     result = object;                    
                 }
@@ -1279,7 +1279,7 @@ public class S3ServiceMulti implements Serializable {
                     SignedUrlHandler handler = (SignedUrlHandler) s3Service;
                     AccessControlList acl = handler.getObjectAclWithSignedUrl(signedAclUrl);
                     URL url = new URL(signedAclUrl);
-                    object = ServiceUtils.buildObjectFromPath(url.getPath());
+                    object = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
                     object.setAcl(acl);
                     result = object;
                 }
@@ -1330,7 +1330,7 @@ public class S3ServiceMulti implements Serializable {
                     SignedUrlHandler handler = (SignedUrlHandler) s3Service;
                     handler.deleteObjectWithSignedUrl(signedDeleteUrl);
                     URL url = new URL(signedDeleteUrl);
-                    result = ServiceUtils.buildObjectFromPath(url.getPath());
+                    result = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
                 }
             } catch (RuntimeException e) {
                 result = e;

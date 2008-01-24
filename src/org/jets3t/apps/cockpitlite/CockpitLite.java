@@ -1886,7 +1886,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             // ... otherwise show the number of completed threads.
             else {
                 startProgressPanel(event.getUniqueOperationId(),
-                    "Download 0/" + watcher.getThreadCount(), 
+                    "Upload 0/" + watcher.getThreadCount(), 
                     (int) watcher.getThreadCount(), 
                     event.getThreadWatcher().getCancelEventListener());                
             }
@@ -2312,7 +2312,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }
         if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
             return ACL_PUBLIC_DESCRIPTION;
-        }
+        } 
         return ACL_PRIVATE_DESCRIPTION;
     }
             
