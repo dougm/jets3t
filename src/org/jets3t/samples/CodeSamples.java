@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -151,7 +152,8 @@ public class CodeSamples {
         // Create an object containing a greeting string as input stream data.
         String greeting = "Hello World!";
         S3Object helloWorldObject = new S3Object("HelloWorld2.txt");
-        ByteArrayInputStream greetingIS = new ByteArrayInputStream(greeting.getBytes());
+        ByteArrayInputStream greetingIS = new ByteArrayInputStream(
+            greeting.getBytes(Constants.DEFAULT_ENCODING));
         helloWorldObject.setDataInputStream(greetingIS);
         helloWorldObject.setContentLength(greetingIS.available());
         helloWorldObject.setContentType("text/plain");

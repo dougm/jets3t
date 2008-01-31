@@ -40,6 +40,7 @@ import javax.swing.JTextField;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.skins.SkinsFactory;
+import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -271,7 +272,7 @@ public class UserInputFields {
                     String password = new String(((JPasswordField) component).getPassword());
                     try {
                         fieldValue = ServiceUtils.toHex(
-                            ServiceUtils.computeMD5Hash(password.getBytes("UTF-8")));
+                            ServiceUtils.computeMD5Hash(password.getBytes(Constants.DEFAULT_ENCODING)));
                     } catch (Exception e) {
                         log.error("Unable to generate hash of password for field named '"
                             + fieldName + "'", e);                        
