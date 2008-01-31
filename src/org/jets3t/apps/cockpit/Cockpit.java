@@ -672,7 +672,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         // Help menu.
         JMenu helpMenu = new JMenu("Help");
-        cockpitHelpMenuItem = new JMenuItem("Cockpit Guide - Web Page");
+        cockpitHelpMenuItem = new JMenuItem("Cockpit Guide");
         cockpitHelpMenuItem.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
                try {
@@ -684,7 +684,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
            } 
         });
         helpMenu.add(cockpitHelpMenuItem);
-        amazonS3HelpMenuItem = new JMenuItem("Amazon S3 - Web Page");
+        amazonS3HelpMenuItem = new JMenuItem("Amazon S3");
         amazonS3HelpMenuItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 try {
@@ -1027,9 +1027,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             } 
 
             listAllBuckets();            
-            updateObjectsSummary(false);
+            objectsSummaryLabel.setText(" ");
             
-            ownerFrame.setTitle(APPLICATION_TITLE + " : " + awsCredentials.getAccessKey());
             loginMenuItem.setEnabled(false);
             logoutMenuItem.setEnabled(true);
             
@@ -1059,8 +1058,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             bucketsTable.clearSelection();
             bucketTableModel.removeAllBuckets();
             objectTableModel.removeAllObjects();
-                        
-            updateObjectsSummary(false);
+            
+            objectsSummaryLabel.setText(" ");
 
             ownerFrame.setTitle(APPLICATION_TITLE);
             loginMenuItem.setEnabled(true);
@@ -1157,6 +1156,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         public void run() {
                             for (int i = 0; i < buckets.length; i++) {
                                 bucketTableModel.addBucket(buckets[i]);
+                                
+                                if (i == 0) {
+                                    ownerFrame.setTitle(APPLICATION_TITLE + " : " + 
+                                        buckets[i].getOwner().getDisplayName());
+                                }
                             }
                         }
                     });
@@ -2211,6 +2215,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     for (int i = 0; i < event.getCreatedObjects().length; i++) {
                         objectTableModel.addObject(event.getCreatedObjects()[i]);
                     }
+                    if (event.getCreatedObjects().length > 0) {
+                        updateObjectsSummary(true);
+                    }
                 }
             });
             
@@ -2388,6 +2395,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     for (int i = 0; i < event.getDeletedObjects().length; i++) {
                         objectTableModel.removeObject(
                             event.getDeletedObjects()[i]);
+                    }
+                    if (event.getDeletedObjects().length > 0) {
+                        updateObjectsSummary(true);
                     }
                 }
             });

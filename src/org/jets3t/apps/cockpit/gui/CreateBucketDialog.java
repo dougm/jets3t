@@ -76,7 +76,9 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         locationValueMap.put("Europe", "EU");
     }
     
-    public CreateBucketDialog(String suggestedBucketName, Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener) {
+    public CreateBucketDialog(String suggestedBucketName, Frame ownerFrame, 
+        HyperlinkActivatedListener hyperlinkListener) 
+    {
         super(ownerFrame, "Create a new bucket", true);
         
         cancelButton = new JButton("Cancel");
@@ -94,8 +96,8 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         bucketLocationLabel.setHorizontalAlignment(JLabel.CENTER);        
         bucketNameIsValidDNSResultLabel = new JLabel("No");
         JHtmlLabel bucketNameIsValidDNSExplanationLabel = new JHtmlLabel(
-            "<html><font size=\"-2\">If your bucket name is a valid DNS name, you can choose a storage location<br>" +
-            "other than the US and may potentially use the bucket as a virtual host.</font></html>", hyperlinkListener);
+            "<html><font size=\"-2\">If your bucket name is DNS-compatible, you can choose a storage location<br>" +
+            "other than the U.S. and may potentially use the bucket as a virtual host.</font></html>", hyperlinkListener);
         bucketNameIsValidDNSExplanationLabel.setHorizontalAlignment(JLabel.CENTER);        
         
         bucketNameTextField = new JTextField();
@@ -168,11 +170,11 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         panel.add(bucketNameTextField, new GridBagConstraints(1, row, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        panel.add(bucketNameIsValidDNSExplanationLabel, new GridBagConstraints(0, ++row, 
+            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         panel.add(bucketNameIsValidDNSLabel, new GridBagConstraints(0, ++row, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         panel.add(bucketNameIsValidDNSResultLabel, new GridBagConstraints(1, row, 
-            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
-        panel.add(bucketNameIsValidDNSExplanationLabel, new GridBagConstraints(0, ++row, 
             2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         panel.add(bucketLocationLabel, new GridBagConstraints(0, ++row, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
