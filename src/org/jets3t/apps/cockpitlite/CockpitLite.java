@@ -255,6 +255,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private Map filesForUploadMap = null;
     private Map s3ExistingObjectsMap = null;
     
+    private File fileChoosersLastUploadDirectory = null;    
+    
     private JPanel filterObjectsPanel = null;
     private JCheckBox filterObjectsCheckBox = null;
     private JTextField filterObjectsPrefix = null;
@@ -892,6 +894,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             fileChooser.setDialogTitle("Choose file(s) to upload");
             fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
             fileChooser.setApproveButtonText("Upload files");
+            fileChooser.setCurrentDirectory(fileChoosersLastUploadDirectory);
             
             int returnVal = fileChooser.showOpenDialog(ownerFrame);
             if (returnVal != JFileChooser.APPROVE_OPTION) {
@@ -902,6 +905,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             if (uploadFiles.length == 0) {
                 return;
             }
+
+            // Save the chosen directory location for next time.
+            fileChoosersLastUploadDirectory = uploadFiles[0].getParentFile();
 
             new Thread() {
                 public void run() {                           
