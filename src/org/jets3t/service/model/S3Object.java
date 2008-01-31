@@ -103,8 +103,9 @@ public class S3Object extends BaseS3Object {
     
     /**
      * Create an object representing text data. The object is initialized with the given
-     * key, the given string as its data encoded as UTF-8, a content type of 
-     * <code>text/plain</code>, and a content length matching the string's length.
+     * key, the given string as its data content (encoded as UTF-8), a content type of 
+     * <code>text/plain; charset=utf-8</code>, and a content length matching the 
+     * string's length.
      * 
      * @param bucket
      * the bucket the object belongs to, or will be placed in.
@@ -121,7 +122,7 @@ public class S3Object extends BaseS3Object {
             dataString.getBytes(Constants.DEFAULT_ENCODING));
         setDataInputStream(bais);
         setContentLength(bais.available());
-        setContentType("text/plain");
+        setContentType("text/plain; charset=utf-8");
     }
 
     /**
