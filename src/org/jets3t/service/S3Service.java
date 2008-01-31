@@ -647,7 +647,22 @@ public abstract class S3Service implements Serializable {
                 + " cannot be performed with an invalid object: " + object);
         }
     }    
-    
+
+    /**
+     * Throws an exception if an object's key name is null or empty.
+     * @param key
+     * An object's key name.
+     * @param action
+     * the action being attempted which this assertion is applied, for debugging purposes.
+     * @throws S3ServiceException
+     */
+    protected void assertValidObject(String key, String action) throws S3ServiceException {
+        if (key == null || key.length() == 0) {
+            throw new S3ServiceException("The action " + action
+                + " cannot be performed with an invalid object key name: " + key);
+        }
+    }    
+
     /////////////////////////////////////////////////
     // Methods below this point perform actions in S3
     /////////////////////////////////////////////////
@@ -981,6 +996,7 @@ public abstract class S3Service implements Serializable {
      */
     public void deleteObject(S3Bucket bucket, String objectKey) throws S3ServiceException {
         assertValidBucket(bucket, "deleteObject");
+        assertValidObject(objectKey, "deleteObject");
         deleteObject(bucket.getName(), objectKey);
     }
 
@@ -996,6 +1012,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public void deleteObject(String bucketName, String objectKey) throws S3ServiceException {
+        assertValidObject(objectKey, "deleteObject");
         deleteObjectImpl(bucketName, objectKey);
     }
 
