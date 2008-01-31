@@ -42,7 +42,7 @@
 		</init-param>
 		<init-param>
 			<param-name>SecondsToSign</param-name>
-			<param-value>30</param-value>
+			<param-value>180</param-value>
 		</init-param>
 		
 	</servlet>
