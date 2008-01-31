@@ -27,8 +27,7 @@
 			destdir="${dir.build}"
 			debug="${debug}"
 			source="1.4"
-			target="${build.target}"
-		>
+			target="${build.target}">
 			<classpath refid="classpath"/>
 		</javac>
 	</target>
@@ -172,12 +171,15 @@
     </target>
 	
 	<target name="package" depends="dist,package-applets,api-docs">
-		<!-- Copy source code to dist directory so it's included in src archive files -->
-		<mkdir dir="${dir.dist}/jets3t-${version}/src"/>
-		<copy 			
-			todir="${dir.dist}/jets3t-${version}/src">
-			<fileset dir="${dir.src}" includes="**/*.java"/>
-		</copy>
+		<!-- Zip source code to dist directory so it's included in distribution -->
+		<zip destfile="${dir.dist}/jets3t-${version}/src.zip"
+			basedir="${dir.src}/.."
+			includes="src/**/*.java"/>				
+
+		<!-- Zip API documentation to dist directory so it's included in distribution -->
+		<zip destfile="${dir.dist}/jets3t-${version}/api-docs.zip"
+			basedir="${dir.apidocs}/.."
+			includes="api-docs/**"/>	
 
 		<!-- Copy distribution build files -->
 		<copy
