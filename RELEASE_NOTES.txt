@@ -54,6 +54,10 @@ TOOLKIT
   jets3t.properties: "s3service.default-bucket-location". If you do not
   use an explicit bucket location when you use the bucket creation API
   method, the bucket will be created in this default location.
+- Corrected the metadata name for the original date object metadata item, which
+  was originally mis-typed as "jets3t-original-file-date-iso860". This name is
+  now "jets3t-original-file-date-iso8601" (added "1" to the end). JetS3t
+  tools remain compatible with the original metadata name.
 - The FileComparer class used by JetS3t applications can now be configured to
   use pre-generated <filename>.md5 files as a source for MD5 hash values, 
   removing the need for hash values to be calculated for every synchronization 

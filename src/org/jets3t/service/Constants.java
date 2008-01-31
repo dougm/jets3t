@@ -71,11 +71,19 @@ public class Constants {
     // JetS3t-specific metadata item names.
     ///////////////////////////////////////
     /**
+     * MISTYPED metadata header for storing the original date of a local file uploaded to S3, 
+     * so it can be used subsequently to compare files instead of relying on the S3 upload date.
+     * 
+     * @deprecated 0.5.1 
+     */
+    public static final String METADATA_JETS3T_LOCAL_FILE_DATE_DEPRECATED = "jets3t-original-file-date-iso860";
+
+    /**
      * Metadata header for storing the original date of a local file uploaded to S3, so it can
      * be used subsequently to compare files instead of relying on the S3 upload date.
      */
-    public static final String METADATA_JETS3T_LOCAL_FILE_DATE = "jets3t-original-file-date-iso860";
-    
+    public static final String METADATA_JETS3T_LOCAL_FILE_DATE = "jets3t-original-file-date-iso8601";
+
     /**
      * Metadata header for storing information about data encryption applied by JetS3t tools.
      * @deprecated Obsolete after version 0.4.0
