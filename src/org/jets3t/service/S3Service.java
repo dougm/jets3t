@@ -19,6 +19,8 @@
 package org.jets3t.service;
 
 import java.io.Serializable;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
@@ -72,6 +74,17 @@ public abstract class S3Service implements Serializable {
     private String invokingApplicationDescription = null;
     private boolean isHttpsOnly = true;
     private int internalErrorRetryMax = 5;
+    
+    /**
+     * The approximate difference in the current time between your computer and
+     * Amazon's S3 server, measured in milliseconds.
+     * 
+     * This value is 0 by default. Use the {@link #currentTimeWithOffset()} to 
+     * obtain the current time with this offset factor included, and the 
+     * {@link #adjustTime()} method to calculate an offset value for your
+     * computer based on a response from an AWS server.
+     */
+    protected long timeOffset = 0;
         
     /**
      * Construct an <code>S3Service</code> identified by the given AWS Principal.
@@ -1374,6 +1387,53 @@ public abstract class S3Service implements Serializable {
             }
         }
     }
+    
+
+    /**
+     * Sets a time offset value to reflect the time difference between your
+     * computer's clock and the current time according to an S3 server. This
+     * method returns the calculated time difference and also sets the 
+     * timeOffset variable in this class.
+     * 
+     * Ideally you should not rely on this method to overcome clock-related
+     * disagreements between your computer and S3. If you computer is set
+     * to update its clock periodically and has the correct timezone setting 
+     * you should never have to resort to this work-around.
+     */
+    public long adjustTime() throws Exception {
+        // Connect to an AWS server to obtain response headers.
+        URL url = new URL("http://s3.amazonaws.com/");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.connect();
+
+        // Retrieve the time according to AWS, based on the Date header
+        Date s3Time = ServiceUtils.parseRfc822Date(conn.getHeaderField("Date"));
+
+        // Calculate the difference between the current time according to AWS,
+        // and the current time according to your computer's clock.
+        Date localTime = new Date();
+        this.timeOffset = s3Time.getTime() - localTime.getTime();
+
+        log.debug("Calculated time offset value of " + this.timeOffset +
+                " milliseconds between the local machine and an S3 server");
+
+        return this.timeOffset;
+    }
+    
+    
+    /**
+     * Returns the current date and time, adjusted according to the time
+     * offset between your computer and an AWS server (as set by the
+     * {@link #adjustOffsetTime} method).
+     * 
+     * @return
+     * the current time, or the current time adjusted to match the AWS time 
+     * if the {@link #adjustOffsetTime} method has been invoked.
+     */
+    public Date getCurrentTimeWithOffset() {
+        return new Date(System.currentTimeMillis() + timeOffset);
+    }
+    
 
     // /////////////////////////////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by interface-specific S3Service classes

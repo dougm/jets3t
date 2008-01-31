@@ -302,14 +302,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         
                 // Check we received the expected result code.
                 if (responseCode != expectedResponseCode) {                
-                    log.debug("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
+                    log.warn("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
                         + responseCode + ", expected " + expectedResponseCode);
                                         
                     if (Mimetypes.MIMETYPE_XML.equals(contentType)
                         && httpMethod.getResponseBodyAsStream() != null
                         && httpMethod.getResponseContentLength() != 0) 
                     {
-                        log.debug("Response '" + httpMethod.getPath() 
+                        log.warn("Response '" + httpMethod.getPath() 
                             + "' - Received error response with XML message");
         
                         StringBuffer sb = new StringBuffer();
@@ -352,6 +352,12 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                                     + retryMaxCount);
                                 throw exception;
                             }
+                        } else if ("RequestTimeTooSkewed".equals(exception.getS3ErrorCode())) {
+                            long timeDifferenceMS = adjustTime();
+                            log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. " 
+                                + "Local machine and S3 server disagree on the time by approximately " 
+                                + (timeDifferenceMS / 1000) + " seconds. Retrying connection.");
+                            completedWithoutRecoverableError = false;
                         } else if (responseCode == 500) {
                             // Retrying after InternalError 500, don't throw exception.
                         } else if (responseCode == 307) {
@@ -698,7 +704,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         // Set mandatory Request headers.
         if (httpMethod.getRequestHeader("Date") == null) {
-            httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(new Date()));
+            httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(
+                getCurrentTimeWithOffset()));
         }
         if (httpMethod.getRequestHeader("Content-Type") == null) {
             httpMethod.setRequestHeader("Content-Type", "");
@@ -754,7 +761,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         // Set/update the date timestamp to the current time 
         // Note that this will be over-ridden if an "x-amz-date" header is present.
-        httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(new Date()));
+        httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(
+            getCurrentTimeWithOffset()));
         
         // Generate a canonical string representing the operation.
         String canonicalString = RestUtils.makeCanonicalString(

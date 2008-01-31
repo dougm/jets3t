@@ -80,6 +80,10 @@ TOOLKIT
 
   * REST S3 Service
 
+- The REST implementation can now automatically cope with RequestTimeTooSkewed
+  errors caused by the client computer's clock disagreeing with S3 about the
+  current time. If this happens, JetS3t will look up the time according to S3
+  and compensate for the difference between the S3 clock and the client's clock.
 - Rudimentary upload bandwidth throttling using the jets3t.properties setting
   httpclient.read-throttle, which is specified in KB/s.
 - Proxy settings are now configurable via the jets3t.properties settings:
