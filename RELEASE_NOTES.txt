@@ -4,14 +4,17 @@ Version 0.5.1
 
 COCKPIT
 
+- Added support for buckets located in Europe (EU location)
 - Generate signed GET URLs based on virtual host names.
 - Encryption algorithm can be changed in the preferences dialog.
-- Progress dialogs modified to fix display problems with JDK version 1.6.
+- Progress dialogs modified to fix display problems with JDK version 6.
 - Fixed bug causing encrypted files not to be automatically recognised
   and decrypted in some cases
 
 SYNCHRONIZE
 
+- Added --properties option that allows an explicit properties filename to
+  be specified on the command line.
 - Added --nodelete option that keeps items on the destination that have been
   removed from the source. This is similar to --keepfiles except that files
   may still be reverted with the --nodelete option.
@@ -51,6 +54,14 @@ TOOLKIT
   jets3t.properties: "s3service.default-bucket-location". If you do not
   use an explicit bucket location when you use the bucket creation API
   method, the bucket will be created in this default location.
+- The FileComparer class used by JetS3t applications can now be configured to
+  use pre-generated <filename>.md5 files as a source for MD5 hash values, 
+  removing the need for hash values to be calculated for every synchronization 
+  operation - and potentially saving a great deal of time when you are 
+  synchronizing large files whose content changes rarely. This feature is
+  controlled by a group of propery settings in jets3t.properties: 
+  filecomparer.use-md5-files, filecomparer.generate-md5-files, 
+  filecomparer.skip-upload-of-md5-files.
 - Fixed bugs that caused uploads greater than 2GB to fail 
   (Expect: 100-Continue is now supported)
 - File listings as built using the FileComparer.buildFileMap() methods can be
@@ -65,7 +76,7 @@ TOOLKIT
 
   * REST S3 Service
 
-- Rudimentary bandwidth throttling using the jets3t.properties setting
+- Rudimentary upload bandwidth throttling using the jets3t.properties setting
   httpclient.read-throttle, which is specified in KB/s.
 - Proxy settings are now configurable via the jets3t.properties settings:
   httpclient.proxy-autodetect, httpclient.proxy-host, httpclient.proxy-port
@@ -80,6 +91,10 @@ TOOLKIT
   number of available HTTP connections. Objects' data is now cached in temp
   files automatically.
 
+
+PATCH KUDOS:
+Alexis Agahi for a fix to BytesProgressWatcher.
+Pradyumna Lenka for an example bucket location (EU) update.
 
 -------------
 Version 0.5.0

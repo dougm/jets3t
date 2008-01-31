@@ -191,7 +191,7 @@ public class RepeatableRequestEntity implements RequestEntity {
     }
     
     /**
-     * Throttles the speed at which data is writting by this request entity to the 
+     * Throttles the speed at which data is written by this request entity to the 
      * maximum rate in KB/s specified by {@link #MAX_BYTES_PER_SECOND}. The method
      * works by repeatedly delaying its completion until writing the requested number
      * of bytes will not exceed the imposed limit for the current second. The delay

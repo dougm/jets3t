@@ -1,6 +1,8 @@
 Welcome to the JetS3t toolkit and application suite.
 
-Website: http://jets3t.s3.amazonaws.com/index.html
+For further information, documentation, and links to discussion lists and 
+other resources please visit the JetS3t web site: 
+http://jets3t.s3.amazonaws.com/index.html
 
 
 * Running Applications
@@ -20,8 +22,9 @@ bash cockpit.sh
 
 * Servlets
 
-The JetS3t application suite now includes a Gatekeeper servlet implementation.
-The deployable WAR file for this servlet is located in the "servlets/gatekeeper"
+The JetS3t application suite now includes a servlet implementation of a
+Gatekeeper to offer mediated third-party access to your S3 resources. The 
+deployable WAR file for this servlet is located in the "servlets/gatekeeper"
 directory.
 
 
@@ -36,15 +39,18 @@ directory in the classpath.
 
 The configuration files include:
 
+- jets3t.properties: Low-level toolkit configuration.
 - synchronize.properties: Properties for the Synchronize application
 - uploader.properties: Properties for the Uploader application
-- jets3t.properties: Low-level toolkit configuration.
+- cockpitlite.properties: Properties for the CockpitLite application
 - mime.types: Maps file extensions to the appropriate mime/content type.
   For example, the "txt" extension maps to "text/plain".
-- commons-logging.properties: Which logging implementation to use.
+- commons-logging.properties: Defines which logging implementation to use.
 - log4j.properties: When Log4J is the chosen logging implementation, these
   settings control how much logging information is displayed, and the way 
   it is displayed.
+- simplelog.properties: When SimpleLog is the chosen logging implementation, 
+  these settings control the logging information that is displayed.
 
 
 * JAR files
@@ -52,25 +58,47 @@ The configuration files include:
 The compiled JetS3t code jar files are available in the "jars" directory,
 and include the following:
 
-jets3t-0.5.1.jar      : The JetS3t toolkit. The toolkit including the JetS3t
-                      : service implementions of interest developers and 
-                      : which underlies all the other JetS3t applications.
-                      : http://jets3t.s3.amazonaws.com/toolkit/toolkit.html
-cockpit-0.5.1.jar     : Cockpit, a GUI application/applet for viewing and
-                      : managing the contents of an S3 account.
-                      : http://jets3t.s3.amazonaws.com/applications/cockpit.html
-synchronize-0.5.1.jar : Synchronize, a console application for synchronizing 
-                      : directories on a computer with an Amazon S3 account.
-                      : http://jets3t.s3.amazonaws.com/applications/synchronize.html
-uploader-0.5.1.jar    : a wizard-based GUI application/applet that S3 account 
-                      : holders (Service Providers) may provide to clients to 
-                      : allow them to upload files to S3 without requiring 
-                      : access to the Service Provider's S3 credentials
-                      : http://jets3t.s3.amazonaws.com/applications/uploader.html
+jets3t-0.5.1.jar
+  
+  The JetS3t toolkit. The toolkit including the JetS3t service implemention 
+  which underlies all the other JetS3t applications.
+  http://jets3t.s3.amazonaws.com/toolkit/toolkit.html
+  
+jets3t-gui-0.5.1.jar
 
-The class files in these jars are compiled with Sun's JDK version 1.4.2
-and have debugging turned on to provide more information if errors occur. 
+  Graphical user interface components used by JetS3t GUI applications such as
+  Cockpit. These components are not required by the command-line Synchronize
+  tool, nor by non-graphical programs you may build.
+
+cockpit-0.5.1.jar
+
+  Cockpit, a GUI application/applet for viewing and managing the contents of an 
+  S3 account.
+  http://jets3t.s3.amazonaws.com/applications/cockpit.html
+  
+synchronize-0.5.1.jar
+
+  Synchronize, a console application for synchronizing directories on a computer 
+  with an Amazon S3 account.
+  http://jets3t.s3.amazonaws.com/applications/synchronize.html
+  
+uploader-0.5.1.jar
+  A wizard-based GUI application/applet that S3 account holders (Service 
+  Providers) may provide to clients to allow them to upload files to S3 without 
+  requiring access to the Service Provider's S3 credentials
+  http://jets3t.s3.amazonaws.com/applications/uploader.html
+
+cockpitlite-0.5.1.jar
+
+  TODO
+  
+
+* Compatibility and Performance of Distributed Jar files
+
+The class files in these jars are compiled for compatibility with Sun's JDK 
+version 1.4 and later, and have debugging turned on to provide more information 
+if errors occur. 
 
 To use JetS3t in high-performance scenarios, the classes should be 
-recompiled using the latest practicable version of Java, and with 
+recompiled using the latest version of Java available to you, and with 
 debugging turned off.
