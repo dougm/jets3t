@@ -149,6 +149,16 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
         
+        // Connection properties to take advantage of S3 window scaling.
+        if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
+            connectionParams.setReceiveBufferSize(jets3tProperties.
+                getIntProperty("httpclient.socket-receive-buffer", 0));
+        }
+        if (jets3tProperties.containsKey("httpclient.socket-send-buffer")) {
+            connectionParams.setSendBufferSize(jets3tProperties.
+                getIntProperty("httpclient.socket-send-buffer", 0));
+        }
+        
         connectionParams.setTcpNoDelay(true);
         
         connectionManager = new MultiThreadedHttpConnectionManager();
@@ -744,7 +754,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
         if (!Constants.S3_HOSTNAME.equals(hostname)) {
-            int subdomainOffset = hostname.indexOf(".s3.amazonaws.com");
+            int subdomainOffset = hostname.indexOf("." + Constants.S3_HOSTNAME);
             if (subdomainOffset > 0) {
                 // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
                 fullUrl = "/" + hostname.substring(0, subdomainOffset) + httpMethod.getPath();                    

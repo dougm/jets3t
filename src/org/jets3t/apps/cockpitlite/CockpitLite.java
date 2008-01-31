@@ -1968,7 +1968,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
         try {
         	String url = "http://"
-        		+ (userVanityHost != null? userVanityHost + "/" : "s3.amazonaws.com/" + userBucketName + "/")
+        		+ (userVanityHost != null? userVanityHost + "/" : Constants.S3_HOSTNAME + "/" + userBucketName + "/")
         		+ userPath + currentObject.getKey();
         	
             // Display signed URL

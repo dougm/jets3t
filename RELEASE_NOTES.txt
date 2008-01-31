@@ -80,6 +80,10 @@ TOOLKIT
 
   * REST S3 Service
 
+- Added support for configuring TCP window sizes. In jets3t.properties, the
+  settings httpclient.socket-receive-buffer and httpclient.socket-send-buffer 
+  are applied to the Socket send and receive buffers used by the underlying
+  HttpClient library.
 - The REST implementation can now automatically cope with RequestTimeTooSkewed
   errors caused by the client computer's clock disagreeing with S3 about the
   current time. If this happens, JetS3t will look up the time according to S3
