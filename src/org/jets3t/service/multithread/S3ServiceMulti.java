@@ -26,6 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -630,6 +631,11 @@ public class S3ServiceMulti implements Serializable {
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
      * <tt>s3service.max-thread-count</tt>.
+     * <p>
+     * If the JetS3t configuration property <tt>downloads.restoreLastModifiedDate</tt> is set
+     * to true, any files created by this method will have their last modified date set according
+     * to the value of the S3 object's {@link Constants.METADATA_JETS3T_LOCAL_FILE_DATE} metadata
+     * item. 
      * 
      * @param bucket
      * the bucket containing the objects
@@ -640,7 +646,9 @@ public class S3ServiceMulti implements Serializable {
     public void downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) {
         final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
-        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.        
+        boolean restoreLastModifiedDate = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("downloads.restoreLastModifiedDate", false);                
 
         // Start all queries in the background.
         DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
@@ -653,7 +661,7 @@ public class S3ServiceMulti implements Serializable {
             progressWatchers.add(progressMonitor);
             
             runnables[i] = new DownloadObjectRunnable(bucket, objects[i].getKey(), 
-                downloadPackages[i], progressMonitor);    
+                downloadPackages[i], progressMonitor, restoreLastModifiedDate);    
         }
 
         int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -695,6 +703,11 @@ public class S3ServiceMulti implements Serializable {
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
      * <tt>s3service.max-thread-count</tt>.
+     * <p>
+     * If the JetS3t configuration property <tt>downloads.restoreLastModifiedDate</tt> is set
+     * to true, any files created by this method will have their last modified date set according
+     * to the value of the S3 object's {@link Constants.METADATA_JETS3T_LOCAL_FILE_DATE} metadata
+     * item. 
      * 
      * @param bucket
      * the bucket containing the objects
@@ -706,6 +719,8 @@ public class S3ServiceMulti implements Serializable {
         final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        boolean restoreLastModifiedDate = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("downloads.restoreLastModifiedDate", false);                
 
         // Start all queries in the background.
         DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
@@ -717,7 +732,7 @@ public class S3ServiceMulti implements Serializable {
             incompleteObjectDownloadList.add(objects[i]);
             progressWatchers.add(progressMonitor);
             
-            runnables[i] = new DownloadObjectRunnable(downloadPackages[i], progressMonitor);    
+            runnables[i] = new DownloadObjectRunnable(downloadPackages[i], progressMonitor, restoreLastModifiedDate);    
         }
 
         int maxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -1488,22 +1503,26 @@ public class S3ServiceMulti implements Serializable {
         private DownloadPackage downloadPackage = null;
         private InterruptableInputStream interruptableInputStream = null;
         private BytesProgressWatcher progressMonitor = null;
+        private boolean restoreLastModifiedDate = true;
         
         private Object result = null;
       
         public DownloadObjectRunnable(S3Bucket bucket, String objectKey, DownloadPackage downloadPackage, 
-            BytesProgressWatcher progressMonitor) 
+            BytesProgressWatcher progressMonitor, boolean restoreLastModifiedDate) 
         {
             this.bucket = bucket;
             this.objectKey = objectKey;
             this.downloadPackage = downloadPackage;
             this.progressMonitor = progressMonitor;
+            this.restoreLastModifiedDate = restoreLastModifiedDate;
         }
         
-        public DownloadObjectRunnable(DownloadPackage downloadPackage, BytesProgressWatcher progressMonitor) 
+        public DownloadObjectRunnable(DownloadPackage downloadPackage, BytesProgressWatcher progressMonitor, 
+            boolean restoreLastModifiedDate) 
         {
             this.downloadPackage = downloadPackage;
             this.progressMonitor = progressMonitor;
+            this.restoreLastModifiedDate = restoreLastModifiedDate;
         }
 
         public void run() {            
@@ -1545,6 +1564,28 @@ public class S3ServiceMulti implements Serializable {
 
                 object.setDataInputStream(null);
                 object.setDataInputFile(downloadPackage.getDataFile());
+                
+                // If data was downloaded to a file, set the file's Last Modified date
+                // to the original last modified date metadata stored with the object.                
+                if (restoreLastModifiedDate && downloadPackage.getDataFile() != null) {
+                    String metadataLocalFileDate = (String) object.getMetadata(
+                        Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
+                    
+                    // Try to retrieve the original date using the deprecated metadata name.
+                    if (metadataLocalFileDate == null) {
+                        metadataLocalFileDate = (String) object.getMetadata(
+                            Constants.METADATA_JETS3T_LOCAL_FILE_DATE_DEPRECATED);
+                    }
+                    
+                    if (metadataLocalFileDate != null) {
+                        log.debug("Restoring original Last Modified date for object '"
+                            + object.getKey() + "' to file '" + downloadPackage.getDataFile()
+                            + "': " + metadataLocalFileDate);
+                        downloadPackage.getDataFile().setLastModified(
+                            ServiceUtils.parseIso8601Date(metadataLocalFileDate).getTime());
+                    }
+                }
+                
                 result = object;
             } catch (Throwable t) {
                 result = t;

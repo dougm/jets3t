@@ -94,6 +94,13 @@ TOOLKIT
 - Fixed S3ServiceSimpleMulti class to work with download sets larger than the
   number of available HTTP connections. Objects' data is now cached in temp
   files automatically.
+- The S3ServiceMulti@downloadObjects methods will restore the original last 
+  modified date of downloaded objects if the downloads.restoreLastModifiedDate
+  configuration property is set to true. As these methods are used by the JetS3t
+  applications, setting this property to true will allow file dates to be 
+  retained across synchronizations performed by Cockpit and Synchronize. 
+  The original last modified date must be available in the object's metadata
+  item named "jets3t-original-file-date-iso8601".
 
 
 PATCH KUDOS:
