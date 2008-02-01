@@ -70,6 +70,10 @@ public abstract class S3Service implements Serializable {
      */
     public static final String VERSION_NO__JETS3T_TOOLKIT = "0.5.1";
     
+    protected static boolean disableDnsBuckets = 
+        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("s3service.disable-dns-buckets", false);        
+
     private AWSCredentials awsCredentials = null;
     private String invokingApplicationDescription = null;
     private boolean isHttpsOnly = true;
@@ -161,6 +165,10 @@ public abstract class S3Service implements Serializable {
      * path.
      */
     public static boolean isBucketNameValidDNSName(String bucketName) {
+        if (disableDnsBuckets) {
+            return false;
+        }
+        
         if (bucketName == null || bucketName.length() > 63 || bucketName.length() < 3) {
             return false;
         }
