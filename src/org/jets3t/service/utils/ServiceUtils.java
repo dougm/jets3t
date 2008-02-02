@@ -140,8 +140,13 @@ public class ServiceUtils {
         }
 
         // Compute the HMAC on the digest, and set it.
-        byte[] b64 = Base64.encodeBase64(mac.doFinal(canonicalString.getBytes())); 
-        return new String(b64);
+        try {
+            byte[] b64 = Base64.encodeBase64(mac.doFinal(
+                canonicalString.getBytes(Constants.DEFAULT_ENCODING))); 
+            return new String(b64);
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to get bytes from canonical string", e);
+        }
     }
 
     /**
