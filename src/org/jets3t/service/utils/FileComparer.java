@@ -179,8 +179,8 @@ public class FileComparer {
         List ignorePatternListForCurrentDir = null;
         
         for (int i = 0; i < files.length; i++) {
-            if (!files[i].isDirectory() && files[i].getParentFile() == null) {
-                // For direct references to a file, look for a .jets3t-ignore file
+            if (files[i].getParentFile() == null) {
+                // For direct references to a file or dir, look for a .jets3t-ignore file
                 // in the current directory - only do this once for the current dir.
                 if (ignorePatternListForCurrentDir == null) {
                     ignorePatternListForCurrentDir = buildIgnoreRegexpList(new File("."));
