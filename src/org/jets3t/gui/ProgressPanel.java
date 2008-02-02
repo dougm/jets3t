@@ -39,7 +39,8 @@ import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.multithread.CancelEventTrigger;
 
 /**
- * TODO
+ * A panel that displays the progress of a task in a progress bar, and allows 
+ * the task to be cancelled.
  * 
  * @author James Murty
  */
@@ -123,18 +124,11 @@ public class ProgressPanel extends JPanel implements ActionListener {
      * 
      * @param statusMessage
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
-     * @param detailsText
-     *        describes the status of a task in more detail, such as the current transfer rate and ETA.
      * @param minTaskValue  
      *        the minimum progress value for a task, generally 0
      * @param maxTaskValue  
      *        the maximum progress value for a task, such as the total number of threads or 100 if
      *        using percentage-complete as a metric.
-     * @param cancelEventListener
-     *        listener that is responsible for cancelling a long-lived task when the user clicks
-     *        the cancel button. If a task cannot be cancelled this must be null.
-     * @param cancelButtonText  
-     *        text displayed in the cancel button if a task can be cancelled
      */
     public void startProgress(String statusMessage, int minTaskValue, int maxTaskValue) 
     {

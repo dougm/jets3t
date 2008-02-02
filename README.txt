@@ -82,15 +82,19 @@ synchronize-0.5.1.jar
   with an Amazon S3 account.
   http://jets3t.s3.amazonaws.com/applications/synchronize.html
   
+cockpitlite-0.5.1.jar
+
+  CockpitLite, a GUI application/applet for viewing and managing the contents of
+  an S3 account, where the S3 account is not owned by the application's user 
+  directly but is made available via the Gatekeeper servlet.
+  http://jets3t.s3.amazonaws.com/applications/cockpitlite.html
+
 uploader-0.5.1.jar
+
   A wizard-based GUI application/applet that S3 account holders (Service 
   Providers) may provide to clients to allow them to upload files to S3 without 
   requiring access to the Service Provider's S3 credentials
   http://jets3t.s3.amazonaws.com/applications/uploader.html
-
-cockpitlite-0.5.1.jar
-
-  TODO
   
 
 * Compatibility and Performance of Distributed Jar files

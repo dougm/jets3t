@@ -24,7 +24,7 @@ import org.jets3t.service.utils.ServiceUtils;
 public class StorePassphraseBasedLogin {
     
     /*
-     * TODO: CHANGE THESE VALUES BEFORE TESTING, TO AVOID PUTTING YOUR CREDENTIALS 
+     * CHANGE THESE VALUES BEFORE TESTING, TO AVOID PUTTING YOUR CREDENTIALS 
      * IN S3 IN AN OBVIOUS PLACE! 
      */
     private static final String passphrase = "Example passphrase";

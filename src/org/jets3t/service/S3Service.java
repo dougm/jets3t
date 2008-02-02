@@ -83,8 +83,8 @@ public abstract class S3Service implements Serializable {
      * The approximate difference in the current time between your computer and
      * Amazon's S3 server, measured in milliseconds.
      * 
-     * This value is 0 by default. Use the {@link #currentTimeWithOffset()} to 
-     * obtain the current time with this offset factor included, and the 
+     * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()} 
+     * to obtain the current time with this offset factor included, and the 
      * {@link #adjustTime()} method to calculate an offset value for your
      * computer based on a response from an AWS server.
      */
@@ -1432,11 +1432,11 @@ public abstract class S3Service implements Serializable {
     /**
      * Returns the current date and time, adjusted according to the time
      * offset between your computer and an AWS server (as set by the
-     * {@link #adjustOffsetTime} method).
+     * {@link #adjustTime()} method).
      * 
      * @return
      * the current time, or the current time adjusted to match the AWS time 
-     * if the {@link #adjustOffsetTime} method has been invoked.
+     * if the {@link #adjustTime()} method has been invoked.
      */
     public Date getCurrentTimeWithOffset() {
         return new Date(System.currentTimeMillis() + timeOffset);

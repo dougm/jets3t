@@ -36,7 +36,7 @@ import org.jets3t.service.io.BytesProgressWatcher;
  * Further data tranfer information may be also available, such as the current transfer rate (via 
  * {@link #getBytesPerSecond()}) and an estimate of the time remaining until the transfer is
  * completed (via {@link #getTimeRemaining()}). The availability of this information is indicated
- * by the results of {@link #isBytesPerSecondAvailable()} and {@link #isTimeRemainingAvailable()}.  
+ * by the result of {@link #isTimeRemainingAvailable()}.  
  * <p>
  * It is possible to cancel some S3 operations. If an operation may be cancelled, this object will 
  * include a {@link CancelEventTrigger} (available from {@link #getCancelEventListener()}) which can 
@@ -65,8 +65,6 @@ public class ThreadWatcher {
      * 
      * @param completedThreads
      * the number of threads that have completed.
-     * @param threadCount
-     * the total number of threads.
      */
     protected void updateThreadsCompletedCount(long completedThreads) {
         updateThreadsCompletedCount(completedThreads, null);
@@ -78,8 +76,6 @@ public class ThreadWatcher {
      * 
      * @param completedThreads
      * the number of threads that have completed.
-     * @param threadCount
-     * the total number of threads.
      * @param cancelEventListener
      * the listener to notify of cancellation events.
      */
@@ -148,9 +144,6 @@ public class ThreadWatcher {
     /**
      * @return
      * an estimate of the recent rate of bytes/second transfer speed.
-     * @throws IllegalStateException
-     * if the per-second byte transfer rate estimate is not available - check this availability
-     * with the {@link #isBytesPerSecondAvailable()} method.
      */
     public long getBytesPerSecond() {
         return BytesProgressWatcher.calculateRecentByteRatePerSecond(progressWatchers);

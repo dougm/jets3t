@@ -426,7 +426,6 @@ public class SoapS3Service extends S3Service {
                 		// Use NextMarker as the marker for where subsequent listing should start
 	                    priorLastKey = result.getNextMarker();
                 	} else {
-                		// TODO: Why doesn't result.getNextMarker() actually return the marker value?
                 		// Use the prior last key instead of NextMarker if it isn't available.
                 	}
                     log.debug("Yet to receive complete listing of bucket contents, "

@@ -17,7 +17,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
 public class UrlSigningExample {
     
     /*
-     * TODO: Change the name of this bucket to a bucket of your own.
+     * Change the name of this bucket to a bucket of your own.
      */
     private static final String myBucketName = "Test";
 

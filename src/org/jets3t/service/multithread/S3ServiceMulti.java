@@ -634,7 +634,7 @@ public class S3ServiceMulti implements Serializable {
      * <p>
      * If the JetS3t configuration property <tt>downloads.restoreLastModifiedDate</tt> is set
      * to true, any files created by this method will have their last modified date set according
-     * to the value of the S3 object's {@link Constants.METADATA_JETS3T_LOCAL_FILE_DATE} metadata
+     * to the value of the S3 object's {@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE} metadata
      * item. 
      * 
      * @param bucket
@@ -695,9 +695,9 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
-     * A convenience method to download multiple objects from S3 to pre-existing output streams, which
-     * is particularly useful for downloading objects to files. 
-     * The S3 objects are represented as signed URLs.
+     * A convenience method to download multiple objects from S3 to pre-existing 
+     * output streams, which is particularly useful for downloading objects to 
+     * files. The S3 objects are represented as signed URLs.
      * <p>
      * This method sends {@link DownloadObjectsEvent} notification events.
      * <p>
@@ -706,11 +706,9 @@ public class S3ServiceMulti implements Serializable {
      * <p>
      * If the JetS3t configuration property <tt>downloads.restoreLastModifiedDate</tt> is set
      * to true, any files created by this method will have their last modified date set according
-     * to the value of the S3 object's {@link Constants.METADATA_JETS3T_LOCAL_FILE_DATE} metadata
+     * to the value of the S3 object's {@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE} metadata
      * item. 
      * 
-     * @param bucket
-     * the bucket containing the objects
      * @param downloadPackages
      * an array of download packages containing the object to be downloaded, and able to build
      * an output stream where the object's contents will be written to.
@@ -914,17 +912,18 @@ public class S3ServiceMulti implements Serializable {
     }
     
     /**
-     * Updates/sets Acess Control List (ACL) information for multiple objects in a bucket, and sends 
-     * {@link UpdateACLEvent} notification events.
+     * Updates/sets Acess Control List (ACL) information for multiple objects in 
+     * a bucket, and sends {@link UpdateACLEvent} notification events.
      * The S3 objects are represented as signed URLs.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
      * <tt>s3service.admin-max-thread-count</tt>.
      * 
-     * @param bucket
-     * the bucket containing the objects
-     * @param objects
-     * the objects to update/set ACL details for.
+     * @param signedURLs
+     * URL strings that are authenticated and signed to allow a PUT request to
+     * be performed for the referenced object.
+     * @param acl
+     * the access control list settings to apply to the objects.
      */
     public void putObjectsACLs(final String[] signedURLs, final AccessControlList acl) throws MalformedURLException, UnsupportedEncodingException {
         final List pendingObjectsList = new ArrayList();

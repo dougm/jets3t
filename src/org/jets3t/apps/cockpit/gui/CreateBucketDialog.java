@@ -46,9 +46,10 @@ import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.service.S3Service;
 
 /**
- * Dialog box to prompt for the name and location of an S3 bucket. This dialog should be created
- * and displayed with {@link #setVisible(true)}, and once control returns the user's responses 
- * are available via {@link #getOkClicked()}, {@link #getBucketName()} and {@link #getBucketLocation()}.
+ * Dialog box to prompt for the name and location of an S3 bucket. This dialog 
+ * should be created and displayed with {@link #setVisible(boolean)}, and once 
+ * control returns the user's responses are available via {@link #getOkClicked()}, 
+ * {@link #getBucketName()} and {@link #getBucketLocation()}.
  * <p>
  * The caller is responsible for disposing of this dialog.  
  * 

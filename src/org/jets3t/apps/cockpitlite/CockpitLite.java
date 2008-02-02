@@ -138,7 +138,17 @@ import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
- * TODO
+ * CockpitLite is a graphical Java application for viewing and managing the 
+ * contents of an Amazon S3 account, where the S3 account is not owned by the 
+ * application's user directly but is made available by a service provider. 
+ * The service provider uses the Gatekeeper application to mediate the user's 
+ * access to the S3 account, authorizing each of the user's interactions before 
+ * it can be executed. 
+ * <p> 
+ * <a href="http://jets3t.s3.amazonaws.com/applications/cockpitlite.html">CockpitLite Guide</a>.
+ * <p>
+ * This is the CockpitLite application class; it may be run as a stand-alone 
+ * application or as an Applet.
  * 
  * @author jmurty
  */

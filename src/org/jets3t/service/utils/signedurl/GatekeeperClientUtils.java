@@ -70,7 +70,6 @@ public class GatekeeperClientUtils {
     private CredentialsProvider credentialsProvider = null;
 
     /**
-     * TODO
      * @param gatekeeperUrl
      * @param userAgentDescription
      * @param maxRetryCount
@@ -129,13 +128,11 @@ public class GatekeeperClientUtils {
 
     /**
      * Request permission from the Gatekeeper for a particular operation.
-     * TODO
      * 
      * @param operationType
      * @param bucketName
      * @param objects
      * @param applicationPropertiesMap
-     * @return
      * @throws HttpException
      * @throws Exception
      */
@@ -258,7 +255,9 @@ public class GatekeeperClientUtils {
      * S3Objects represented by that data. 
      * 
      * @param srs
+     * signature requests that represent S3 objects.
      * @return
+     * objects reconstructed from the provided signature requests.
      */
     public S3Object[] buildS3ObjectsFromSignatureRequests(SignatureRequest[] srs) {
     	S3Object[] objects = new S3Object[srs.length];

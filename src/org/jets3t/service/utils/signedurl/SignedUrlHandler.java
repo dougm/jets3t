@@ -114,7 +114,7 @@ public interface SignedUrlHandler {
      * This method is an implementation of the interface {@link SignedUrlHandler}. 
      * 
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, boolean, java.util.Map, org.jets3t.service.security.AWSCredentials, long)}.
+     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, java.util.Map, org.jets3t.service.security.AWSCredentials, long, boolean)}.
      * 
      * @return
      * the AccessControlList settings of the object in S3.
@@ -128,12 +128,9 @@ public interface SignedUrlHandler {
      * This method is an implementation of the interface {@link SignedUrlHandler}. 
      * 
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, boolean, java.util.Map, org.jets3t.service.security.AWSCredentials, long)}.
+     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, java.util.Map, org.jets3t.service.security.AWSCredentials, long, boolean)}.
      * @param acl
      * the ACL settings to apply to the object represented by the signed URL.
-     * 
-     * @return
-     * the AccessControlList settings of the object in S3.
      * 
      * @throws S3ServiceException
      */
