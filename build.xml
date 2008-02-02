@@ -28,7 +28,8 @@
 			debug="${debug}"
 			source="1.4"
 			target="${build.target}">
-			<classpath refid="classpath"/>
+			<classpath refid="classpath"/>			
+            <exclude name="**/mir/**"/>
 		</javac>
 	</target>
 		
@@ -174,7 +175,8 @@
 		<!-- Zip source code to dist directory so it's included in distribution -->
 		<zip destfile="${dir.dist}/jets3t-${version}/src.zip"
 			basedir="${dir.src}/.."
-			includes="src/**/*.java"/>				
+			includes="src/**/*.java"
+			excludes="**/mir/**"/>				
 
 		<!-- Zip API documentation to dist directory so it's included in distribution -->
 		<zip destfile="${dir.dist}/jets3t-${version}/api-docs.zip"
@@ -451,7 +453,8 @@
 			<classpath refid="classpath"/>
 			<fileset 
 				dir="${dir.src}" 
-				includes="**/*.java"/>
+				includes="**/*.java"
+				excludes="**/mir/**"/>
 		</javadoc>
 	</target>
 	
