@@ -21,6 +21,9 @@ SYNCHRONIZE
 - Added --noprogress option that prevents progress messages from being 
   printed to the console, for cases where these messages pollute log files.
   This option is similar to --quiet, except the action report is printed.
+- Added the --acl option that allows Access Control List settings to be applied
+  on the command line. Value must be one of: PRIVATE, PUBLIC_READ, 
+  PUBLIC_READ_WRITE
 - Added property setting to ignore missing source directories when uploading.
 - Progress status messages shortened to fit into 80 character width consoles.
 

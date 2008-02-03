@@ -771,6 +771,11 @@ public class Synchronize {
         System.out.println("   Load the synchronizer app properties from the given file instead of from");
         System.out.println("   a synchronizer.properties file in the classpath.");
         System.out.println("");
+        System.out.println("--acl <ACL string>");
+        System.out.println("   Specifies the Access Control List setting to apply. This value must be one");
+        System.out.println("   of: PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE. This setting will override any");
+        System.out.println("   acl property specified in the synchronize.properties file");
+        System.out.println("");
         System.out.println("Report");
         System.out.println("------");
         System.out.println("Report items are printed on a single line with an action flag followed by");
@@ -815,6 +820,7 @@ public class Synchronize {
         boolean isNoDelete = false;
         boolean isGzipEnabled = false;
         boolean isEncryptionEnabled = false;
+        String aclString = null;
                 
         // Parse arguments.
         for (int i = 0; i < args.length; i++) {
@@ -853,6 +859,24 @@ public class Synchronize {
                             new FileInputStream(propertiesFileName), propertiesFile.getName());                        
                     } else {
                         System.err.println("ERROR: --properties option must be followed by a file path");
+                        printHelpAndExit(false);                        
+                    }
+                } else if (arg.equalsIgnoreCase("--acl")) {
+                    if (i + 1 < args.length) {
+                        // Read the acl setting string             
+                        i++;
+                        aclString = args[i];
+                        
+                        if (!"PUBLIC_READ".equalsIgnoreCase(aclString) 
+                            && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString) 
+                            && !"PRIVATE".equalsIgnoreCase(aclString)) 
+                        {
+                            System.err.println("ERROR: Acess Control List setting \"acl\" must have one of the values "
+                                + "PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE");
+                            printHelpAndExit(false);                        
+                        }                        
+                    } else {
+                        System.err.println("ERROR: --acl option must be followed by an ACL string");
                         printHelpAndExit(false);                        
                     }
                 } else {
@@ -942,7 +966,9 @@ public class Synchronize {
             properties.getStringProperty("accesskey", null), 
             properties.getStringProperty("secretkey", null));       
         
-        String aclString = properties.getStringProperty("acl", "PRIVATE");        
+        if (aclString == null) {
+            aclString = properties.getStringProperty("acl", "PRIVATE");
+        }
         if (!"PUBLIC_READ".equalsIgnoreCase(aclString) 
             && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString) 
             && !"PRIVATE".equalsIgnoreCase(aclString)) 
