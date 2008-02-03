@@ -123,10 +123,13 @@ public class S3ServiceMulti implements Serializable {
         int maxConnectionCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getIntProperty("httpclient.max-connections", 4);
         if (maxConnectionCount < maxThreadCount) {
-            log.warn("Insufficient connections available (httpclient.max-connections) to run " + maxThreadCount 
+            log.warn("Insufficient connections available (httpclient.max-connections="
+                + maxConnectionCount + ") to run " + maxThreadCount 
                 + " simultaneous threads (s3service.max-thread-count) - please adjust JetS3t settings");
-        } else if (maxConnectionCount < adminMaxThreadCount) {
-            log.warn("Insufficient connections available (httpclient.max-connections) to run " + adminMaxThreadCount 
+        } 
+        if (maxConnectionCount < adminMaxThreadCount) {
+            log.warn("Insufficient connections available (httpclient.max-connections="
+                + maxConnectionCount + ") to run " + adminMaxThreadCount 
                 + " simultaneous admin threads (s3service.admin-max-thread-count) - please adjust JetS3t settings");            
         }
     }    
