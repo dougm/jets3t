@@ -104,9 +104,9 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
      * 
      * @param owner
      * the frame within which this dialog will be displayed and centred.
-     * @param jets3tHomeDirectory
+     * @param hyperlinkListener
      */
-    private StartupDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) {
+    public StartupDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) {
         super(owner, "Cockpit Login", true);
         this.ownerFrame = owner;
         this.hyperlinkListener = hyperlinkListener;        
@@ -522,26 +522,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         }
     }
     
-    /**
-     * Displays the dialog box and waits until the user enters/selects the AWS login credentials to
-     * use, or cancells the dialog.
-     * <p>
-     * If the user has entered or selected credentials, these are returned by this method. If the
-     * user cancels the dialog, this method returns null.
-     * 
-     * @param owner
-     * the Frame within which this dialog will be displayed and centered
-     * @param hyperlinkListener
-     * a listener object that will handle any HTML link activation events that occur in the dialog.
-     * @return 
-     * the AWS credentials entered/selected by the user, or null if the dialog was cancelled
-     */
-    public static AWSCredentials showDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) throws Exception {
-        StartupDialog startupDialog = new StartupDialog(owner, hyperlinkListener);
-        startupDialog.awsCredentials = null;
-        startupDialog.setVisible(true);
-        
-        return startupDialog.awsCredentials;
+    public AWSCredentials getAWSCredentials() {
+        return this.awsCredentials;
     }
 
     /**
@@ -561,7 +543,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             }           
         };
         
-        AWSCredentials awsCredentials = StartupDialog.showDialog(f, listener);        
+        StartupDialog startupDialog = new StartupDialog(f, listener);
+        startupDialog.setVisible(true);
+        AWSCredentials awsCredentials = startupDialog.getAWSCredentials();
+        startupDialog.dispose();
         
         if (awsCredentials != null) {
             System.out.println("AWS Credentials: " + awsCredentials.getAccessKey() 
