@@ -148,15 +148,7 @@ public class SkinsFactory {
         if (instance != null) {
             return (LookAndFeel) instance;
         } else {
-            Object lfInstance = null;
-            try {
-                Class lfClass = Class.forName(UIManager.getSystemLookAndFeelClassName());
-                Constructor constructor = lfClass.getConstructor(new Class[] {});
-                lfInstance = constructor.newInstance(new Object[] {});
-            } catch (Exception e) {
-                log.error("Unable to instantiate default system LookAndFeel class", e);
-            }
-            return (LookAndFeel) lfInstance;
+            return UIManager.getLookAndFeel();
         }        
     }
     
