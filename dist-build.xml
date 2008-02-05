@@ -16,46 +16,52 @@
 		<echo>
 Welcome to the JetS3t ANT build script.
 			
-The build.xml script will allow you to rebuild the JetS3t suite from the
-source code included with the distribution. It should make it easier to 
-make your own additions to the library, to build your own versions of 
-applications or applets, and to make JetS3t work the way you want.
+The build.xml script will allow you to rebuild the JetS3t suite 
+from the source code included with the distribution. It should 
+make it easier to make your own additions to the library, to 
+build your own versions of applications or applets, and to make
+JetS3t work the way you want.
 			
-The first thing you may want to do is recompile JetS3t using the latest 
-version of Java. To do this, modify the debug and build.target 
-properties in the build.properties file and run the "rebuild-all" target.
+The first thing you may want to do is recompile JetS3t using 
+the latest version of Java. To do this, modify the debug and 
+build.target properties in the build.properties file and run 
+the "rebuild-all" target.
 			
 			
 ANT TARGET DESCRIPTIONS
 			
-rebuild-all : Rebuild the JetS3t Jar files for the library and all applications.
-compile     : Compiles the JetS3t source code, but does not produce Jar files.
-              This target is useful as a quick test to make sure any code 
-              changes you make will compile correctly.
+rebuild-all : Rebuild the JetS3t Jar files for the library and
+              all applications.
+compile     : Compiles the JetS3t source code, but does not 
+              produce Jar files. This target is useful as a 
+              quick test to make sure any code changes you make
+              will compile correctly.
 clean       : Removes all the temporary compile/build artifacts
 			  
 help        : Displays this help message
 
-rebuild-service     : Rebuild only the Jar library/toolkit files
-rebuild-cockpit     : Rebuild only the Cockpit application
-rebuild-synchronize : Rebuild only the Synchronize application
-rebuild-gatekeeper  : Rebuild only the Gatekeeper servlet Web Archive (WAR)
-rebuild-uploader    : Rebuild only the Uploader application
-rebuild-cockpitlite : Rebuild only the CockpitLite application
+rebuild-service     : Rebuild the library/toolkit files
+rebuild-cockpit     : Rebuild the Cockpit application
+rebuild-synchronize : Rebuild the Synchronize application
+rebuild-gatekeeper  : Rebuild the Gatekeeper servlet WAR
+rebuild-uploader    : Rebuild the Uploader application
+rebuild-cockpitlite : Rebuild the CockpitLite application
 			
-repackage-applets            : Repackages all the applet applications. This
-                               replaces the contents of the applets directory
-                               with applets built from the latest code, and 
-                               signed with the keystore configured in the
-                               build.properties file.
-repackage-applet-cockpit     : Repackage only the Cockpit applet
-repackage-applet-cockpitlite : Repackage only the CockpitLite applet
-repackage-applet-uploader    : Repackage only the Uploader applet
+repackage-applets   : Repackages all the applet applications. 
+                      This replaces the contents of the applets
+                      directory with applets built from the 
+                      latest code, and signed with the keystore 
+                      configured in the build.properties file.
+repackage-applet-cockpit     : Repackage the Cockpit applet
+repackage-applet-cockpitlite : Repackage the CockpitLite applet
+repackage-applet-uploader    : Repackage the Uploader applet
 			
-init              : Sets dynamic properties required by the build script.
-unzip-source-code : Unzips the JetS3t source code from src.zip. This target will
-                    be called automatically if necessary.
-		</echo>
+init              : Sets dynamic properties required by the 
+                    build script.
+unzip-source-code : Unzips the JetS3t source code from src.zip.
+                    This target will be called automatically if 
+                    necessary.
+</echo>
 	</target>
 
 	<!-- ================================= 
@@ -228,7 +234,7 @@ to refer to this official keystore.
 				<include name="**/commons-logging/*.jar"/>
 				<include name="**/commons-codec/*.jar"/>
 				<include name="**/commons-httpclient/*.jar"/>
-                <include name="**/logging-log4j/*.jar"/>
+				<include name="**/bouncycastle/*.jar"/>
 			</fileset>
 		</copy>
 
@@ -240,13 +246,7 @@ to refer to this official keystore.
             keypass="${keystore.keypass}"
             lazy="true"
             >
-            <fileset dir="${dir.applets}">
-                <include name="${dist.file.service}"/>
-                <include name="commons-codec-1.3.jar"/>
-                <include name="commons-httpclient-3.1.jar"/>
-                <include name="commons-logging-1.1.jar"/>
-                <include name="log4j-1.2.14.jar"/>
-            </fileset>
+            <fileset dir="${dir.applets}" includes="*.jar"/>
 		</signjar>
     </target>
 		

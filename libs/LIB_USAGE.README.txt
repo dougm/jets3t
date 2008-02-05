@@ -7,12 +7,12 @@ This document describes the third-party libraries used in JetS3t and gives
 guidelines as to when each library is required.
 
 Name        : Apache Commons Logging
-Version     : 1.1
+Version     : 1.1.1
 Required?   : YES
 Description : Logging implementation used in JetS3t and other underlying 
             : libraries. This library can also delegate to other logging
             : implementations such as Log4J.
-Files       : commons-logging/commons-logging-1.1.jar
+Files       : commons-logging/commons-logging-1.1.1.jar
 
 
 Name        : Apache Commons Codec  
@@ -44,21 +44,21 @@ Files       : apache-axis/*.jar
 
 
 Name        : Bouncy Castle Crypto APIs
-Version     : 1.35 (for Java 1.4)
+Version     : 1.38 (for Java 1.4)
 Required?   : NO. Only required if the standard crytographic options available
             : in Java are not sufficient.
 Description : Cryptography provider, offering a broader range of 
             : encryption algorithms than is provided in standard Java 
             : installations.
-Files       : bouncycastle/bcprov-jdk14-135.jar
+Files       : bouncycastle/bcprov-jdk14-138.jar
 
 
 Name        : Log4J
-Version     : 1.2.14
+Version     : 1.2.15
 Required?   : NO. Only required if the Commons Logging framework is configured
             : to delegate to Log4J.
 Description : Logging library.
-Files       : logging-log4j/log4j-1.2.14.jar
+Files       : logging-log4j/log4j-1.2.15.jar
 
 
 Name        : Bare Bones Browser Launcher
