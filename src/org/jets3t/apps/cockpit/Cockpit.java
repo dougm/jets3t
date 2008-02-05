@@ -675,6 +675,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         // Help menu.
         JMenu helpMenu = new JMenu("Help");
         cockpitHelpMenuItem = new JMenuItem("Cockpit Guide");
+        guiUtils.applyIcon(cockpitHelpMenuItem, "/images/nuvola/16x16/actions/help.png");
         cockpitHelpMenuItem.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
                try {
@@ -687,6 +688,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         });
         helpMenu.add(cockpitHelpMenuItem);
         amazonS3HelpMenuItem = new JMenuItem("Amazon S3");
+        guiUtils.applyIcon(amazonS3HelpMenuItem, "/images/nuvola/16x16/actions/gohome.png");
         amazonS3HelpMenuItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 try {
