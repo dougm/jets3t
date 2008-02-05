@@ -176,7 +176,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         JHtmlLabel encryptionPrefsLabel = new JHtmlLabel(
-            "<html>Encrypt files?<br><font size=\"-2\">If encryption is turned on you must " +
+            "<html>Encrypt Uploaded Files?<br><font size=\"-2\">If encryption is turned on you must " +
             "also set the Encryption password</html>", hyperlinkListener);
         uploadPrefsPanel.add(encryptionPrefsLabel, new GridBagConstraints(0, row++, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
@@ -208,15 +208,20 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         encryptionPrefsPanel.add(encryptPasswordField, new GridBagConstraints(0, 1, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        encryptionPrefsPanel.add(new JHtmlLabel("Algorithm", hyperlinkListener), new GridBagConstraints(0, 2, 
+        encryptionPrefsPanel.add(new JHtmlLabel("Algorithm for Encrypting Uploads", hyperlinkListener), new GridBagConstraints(0, 2, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         encryptAlgorithmComboBox = new JComboBox(algorithms);
         encryptAlgorithmComboBox.addActionListener(this);
         encryptAlgorithmComboBox.setSelectedItem(encryptAlgorithm.toUpperCase());
         encryptionPrefsPanel.add(encryptAlgorithmComboBox, new GridBagConstraints(0, 3, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        String algorithmExplanation = "<html>This list includes only the Password-Based (PBE) algorithms<br>available "
-            + "on your system.</html>";
+        String algorithmExplanation = 
+            "<html>This algorithm need not be set correctly to download<br>" +
+                   "encrypted objects, as Cockpit will detect and apply the<br>" +
+                   "appropriate algorithm.<br><br>" +
+                   "<font size=\"-2\">" +
+                   "The algorithm list only includes the Password-Based (PBE) algorithms<br>" +                   
+                   "available to Java programs on your system.</font></html>";
         encryptionPrefsPanel.add(new JHtmlLabel(algorithmExplanation, hyperlinkListener), new GridBagConstraints(0, 4, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         // Padding
