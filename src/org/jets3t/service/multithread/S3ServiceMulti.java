@@ -26,7 +26,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -37,8 +36,8 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.BytesProgressWatcher;
+import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -1747,7 +1746,19 @@ public class S3ServiceMulti implements Serializable {
                         Throwable throwable = (Throwable) runnables[i].getResult();
                         runnables[i] = null;
                         threads[i] = null;
-                        throw throwable;
+                        
+                        boolean ignoreExceptions = Jets3tProperties.getInstance(
+                            Constants.JETS3T_PROPERTIES_FILENAME)
+                            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);        
+                        
+                        if (ignoreExceptions) {
+                            // Ignore exceptions
+                            log.warn("Ignoring exception (property " +
+                                    "s3service.ignore-exceptions-in-multi is set to true)", 
+                                    throwable);
+                        } else {
+                            throw throwable;
+                        }                        
                     } else {
                         completedResults.add(runnables[i].getResult());
                         runnables[i] = null;

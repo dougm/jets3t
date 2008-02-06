@@ -870,7 +870,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         ArrayList objects = new ArrayList();  
         ArrayList commonPrefixes = new ArrayList();
         
-        boolean incompleteListing = true;            
+        boolean incompleteListing = true;
+        int ioErrorRetryCount = 0;
             
         while (incompleteListing) {
             if (priorLastKey != null) {
@@ -880,9 +881,22 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             }
             
             HttpMethodBase httpMethod = performRestGet(bucketName, null, parameters, null);
-            ListBucketHandler listBucketHandler = 
-                (new XmlResponsesSaxParser()).parseListBucketObjectsResponse(
-                    new HttpMethodReleaseInputStream(httpMethod));
+            ListBucketHandler listBucketHandler = null;
+            
+            try {
+                listBucketHandler = (new XmlResponsesSaxParser())
+                    .parseListBucketObjectsResponse(
+                        new HttpMethodReleaseInputStream(httpMethod));
+                ioErrorRetryCount = 0;
+            } catch (S3ServiceException e) {
+                if (e.getCause() instanceof IOException && ioErrorRetryCount < 5) {
+                    ioErrorRetryCount++;
+                    log.warn("Retrying bucket listing failure due to IO error", e);                    
+                    continue;
+                } else {
+                    throw e;
+                }
+            }
             
             S3Object[] partialObjects = listBucketHandler.getObjects();
             log.debug("Found " + partialObjects.length + " objects in one batch");
