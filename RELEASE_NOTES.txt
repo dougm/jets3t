@@ -8,7 +8,7 @@ COCKPIT
 - Generate signed GET URLs based on virtual host names.
 - Encryption algorithm can be changed in the preferences dialog.
 - Progress dialogs modified to fix display problems with JDK version 6.
-- Fixed bug causing encrypted files not to be automatically recognised
+- Fixed bug causing encrypted files not to be automatically recognized
   and decrypted in some cases
 
 SYNCHRONIZE
@@ -81,7 +81,6 @@ TOOLKIT
   set not to include place-holder objects to represent empty directories 
   (mimetype "application/x-directory") with the new configuration setting
   uploads.storeEmptyDirectories.
-- Upgraded HTTPClient library to version 3.1
 
   * REST S3 Service
 
@@ -97,6 +96,7 @@ TOOLKIT
   httpclient.read-throttle, which is specified in KB/s.
 - Proxy settings are now configurable via the jets3t.properties settings:
   httpclient.proxy-autodetect, httpclient.proxy-host, httpclient.proxy-port
+- Upgraded HTTPClient library to version 3.1
 
   * Multi-threaded Service
   
@@ -116,9 +116,20 @@ TOOLKIT
   item named "jets3t-original-file-date-iso8601".
 
 
-PATCH KUDOS:
+KUDOS TO:
+
 Alexis Agahi for a fix to BytesProgressWatcher.
-Pradyumna Lenka for an example bucket location (EU) update.
+
+Pradyumna Lenka for an example update to support the EU bucket location.
+
+Andrea Barbieri of Moving Image Research for suggestions, feedback and quality 
+control.
+
+
+SPONSORS:
+
+The JetS3t project has been generously supported with sponsorship from 
+Moving Image Research : http://www.movingimageresearch.com/
 
 -------------
 Version 0.5.0
