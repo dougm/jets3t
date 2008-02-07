@@ -9,7 +9,7 @@
 		<key>page13</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:25Z</date>
+			<date>2008-02-07T06:07:26Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -20,10 +20,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					JRYApVnAeLUzH3Urg5rmiA==
+					LgVefGVOTQ9ayuszb19lng==
 					</data>
 					<key>Size</key>
-					<integer>22515</integer>
+					<integer>26134</integer>
 				</dict>
 				<key>gatekeeper-concepts_assets/gatekeeper-uml.jpg</key>
 				<dict>
@@ -40,10 +40,62 @@
 			<key>Version</key>
 			<integer>3</integer>
 		</dict>
+		<key>page16</key>
+		<dict>
+			<key>CreationDate</key>
+			<date>2008-02-07T06:07:26Z</date>
+			<key>DigestAlgorithm</key>
+			<string>MD5</string>
+			<key>DocumentGUID</key>
+			<string>99C26C57-A186-485A-830C-81E26E3A1288</string>
+			<key>PageDigests</key>
+			<dict>
+				<key>cockpitlite.html</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					TY+xxDX1riri+TzJtR1sug==
+					</data>
+					<key>Size</key>
+					<integer>16678</integer>
+				</dict>
+				<key>cockpitlite_assets/CockpitLite.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					3XIKIAXg6XCmz/rklGMfkw==
+					</data>
+					<key>Size</key>
+					<integer>170629</integer>
+				</dict>
+				<key>cockpitlite_assets/CockpitLite_Login.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					Ap9oDTxWMK/UZpyB8vH+hg==
+					</data>
+					<key>Size</key>
+					<integer>43751</integer>
+				</dict>
+				<key>cockpitlite_assets/CockpitLite_ObjectMenu.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					GxsvTzWcvjdl7vu/XuZLwg==
+					</data>
+					<key>Size</key>
+					<integer>36081</integer>
+				</dict>
+			</dict>
+			<key>PageID</key>
+			<string>page16</string>
+			<key>Version</key>
+			<integer>3</integer>
+		</dict>
 		<key>page4</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:23Z</date>
+			<date>2008-02-07T06:07:25Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -54,10 +106,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					6yRDnEd5tx76CJDc+3WcLw==
+					zo0seQN7jc8OBSeVrPyVTA==
 					</data>
 					<key>Size</key>
-					<integer>8957</integer>
+					<integer>13770</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -68,7 +120,7 @@
 		<key>page5</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:23Z</date>
+			<date>2008-02-07T06:07:26Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -79,10 +131,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					/zZTwZOPyHaq/TgOmEznGA==
+					TulfU4YHbUJWCVrw7YB66g==
 					</data>
 					<key>Size</key>
-					<integer>31530</integer>
+					<integer>36856</integer>
 				</dict>
 				<key>cockpit_assets/ACLDialog.jpg</key>
 				<dict>
@@ -119,6 +171,15 @@
 					</data>
 					<key>Size</key>
 					<integer>33055</integer>
+				</dict>
+				<key>cockpit_assets/Cockpit_CreateBucket.jpg</key>
+				<dict>
+					<key>Digest</key>
+					<data>
+					CJKsg7/hODrPa8C2KBowmQ==
+					</data>
+					<key>Size</key>
+					<integer>66601</integer>
 				</dict>
 				<key>cockpit_assets/FileComparisonsDialog.jpg</key>
 				<dict>
@@ -169,10 +230,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					q8SUlSfEco1Qxjsev/0fwA==
+					xyGAVlbTzHRnz0EZt0bj5w==
 					</data>
 					<key>Size</key>
-					<integer>22171</integer>
+					<integer>52324</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -183,7 +244,7 @@
 		<key>page6</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:24Z</date>
+			<date>2008-02-07T06:40:41Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -194,10 +255,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					+n0ETNfnUnmTCc/yl6js4Q==
+					UsP9szcsihX9espfqjQSiw==
 					</data>
 					<key>Size</key>
-					<integer>19921</integer>
+					<integer>23783</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -208,7 +269,7 @@
 		<key>page7</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:24Z</date>
+			<date>2008-02-07T06:07:27Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -219,10 +280,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					453BWBmH4B37DOEbpCj9Fw==
+					icoc2C71pS0G22ktncacuQ==
 					</data>
 					<key>Size</key>
-					<integer>29957</integer>
+					<integer>33253</integer>
 				</dict>
 				<key>uploader_assets/Uploader.HtmlSkin.jpg</key>
 				<dict>
@@ -296,7 +357,7 @@
 		<key>page8</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:25Z</date>
+			<date>2008-02-07T06:07:26Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -307,10 +368,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					G7qgE2Cm+xLliwU/DGaUfA==
+					GAkzH+iIHzuHYgatNHHmjw==
 					</data>
 					<key>Size</key>
-					<integer>12814</integer>
+					<integer>17480</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>

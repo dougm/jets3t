@@ -1,4 +1,137 @@
 -------------
+Version 0.6.0
+-------------
+
+COCKPIT
+
+- Added support for buckets located in Europe (EU location)
+- Generate signed GET URLs based on virtual host names.
+- Encryption algorithm can be changed in the preferences dialog.
+- Progress dialogs modified to fix display problems with JDK version 6.
+- Fixed bug causing encrypted files not to be automatically recognized
+  and decrypted in some cases
+
+SYNCHRONIZE
+
+- Added --properties option that allows an explicit properties filename to
+  be specified on the command line.
+- Added --nodelete option that keeps items on the destination that have been
+  removed from the source. This is similar to --keepfiles except that files
+  may still be reverted with the --nodelete option.
+- Added --noprogress option that prevents progress messages from being 
+  printed to the console, for cases where these messages pollute log files.
+  This option is similar to --quiet, except the action report is printed.
+- Added the --acl option that allows Access Control List settings to be applied
+  on the command line. Value must be one of: PRIVATE, PUBLIC_READ, 
+  PUBLIC_READ_WRITE
+- Added property setting to ignore missing source directories when uploading.
+- Progress status messages shortened to fit into 80 character width consoles.
+
+
+UPLOADER
+
+- Improved skinning capabilities.
+
+
+COCKPIT LITE
+
+- New Gatekeeper-compatible client application that allows almost all S3 
+  operations to be performed by a client via Gatekeeper-provided 
+  signed URLs.
+  
+  
+GATEKEEPER
+
+- Extended interfaces and default implementations to provide URL signing
+  for all operations performed by the new Cockpit Lite application.
+- Improved support for web proxies.
+  
+
+TOOLKIT
+
+  * General
+
+- S3Service class can now generate POST forms to allow web browsers to upload
+  files or data directly to S3.
+- Added support for buckets located in the EU. Due to this change, the 
+  "s3service.end-point-host" property is now obsolete.
+- Added a default bucket location configuration setting in 
+  jets3t.properties: "s3service.default-bucket-location". If you do not
+  use an explicit bucket location when you use the bucket creation API
+  method, the bucket will be created in this default location.
+- Fixed bugs that caused uploads greater than 2GB to fail 
+  (Expect: 100-Continue is now supported)
+- Added the Bouncy Castle security provider to the suite, increasing the number
+  of cipher algorithms available for encrypting files.
+- The method S3Service.listObjectsChunked now includes Common Prefixes in the
+  result object returned.
+- Corrected the metadata name for the original date object metadata item, which
+  was originally mis-typed as "jets3t-original-file-date-iso860". This name is
+  now "jets3t-original-file-date-iso8601" (added "1" to the end). JetS3t
+  tools remain compatible with the original metadata name.
+- The FileComparer class used by JetS3t applications can now be configured to
+  use pre-generated <filename>.md5 files as a source for MD5 hash values, 
+  removing the need for hash values to be calculated for every synchronization 
+  operation - and potentially saving a great deal of time when you are 
+  synchronizing large files whose content changes rarely. This feature is
+  controlled by a group of propery settings in jets3t.properties: 
+  filecomparer.use-md5-files, filecomparer.generate-md5-files, 
+  filecomparer.skip-upload-of-md5-files.
+- File listings as built using the FileComparer.buildFileMap() methods can be
+  set not to include place-holder objects to represent empty directories 
+  (mimetype "application/x-directory") with the new configuration setting
+  uploads.storeEmptyDirectories.
+
+  * REST S3 Service
+
+- Added support for configuring TCP window sizes. In jets3t.properties, the
+  settings httpclient.socket-receive-buffer and httpclient.socket-send-buffer 
+  are applied to the Socket send and receive buffers used by the underlying
+  HttpClient library.
+- The REST implementation can now automatically cope with RequestTimeTooSkewed
+  errors caused by the client computer's clock disagreeing with S3 about the
+  current time. If this happens, JetS3t will look up the time according to S3
+  and compensate for the difference between the S3 clock and the client's clock.
+- Rudimentary upload bandwidth throttling using the jets3t.properties setting
+  httpclient.read-throttle, which is specified in KB/s.
+- Proxy settings are now configurable via the jets3t.properties settings:
+  httpclient.proxy-autodetect, httpclient.proxy-host, httpclient.proxy-port
+- Upgraded HTTPClient library to version 3.1
+
+  * Multi-threaded Service
+  
+- Administration actions can have more threads assigned than upload/download 
+  actions with the new configuration setting s3service.admin-max-thread-count.
+  These connections run much faster with more threads and as they are light 
+  weight they less likely to fail with higher thread counts.
+- Fixed S3ServiceSimpleMulti class to work with download sets larger than the
+  number of available HTTP connections. Objects' data is now cached in temp
+  files automatically.
+- The S3ServiceMulti@downloadObjects methods will restore the original last 
+  modified date of downloaded objects if the downloads.restoreLastModifiedDate
+  configuration property is set to true. As these methods are used by the JetS3t
+  applications, setting this property to true will allow file dates to be 
+  retained across synchronizations performed by Cockpit and Synchronize. 
+  The original last modified date must be available in the object's metadata
+  item named "jets3t-original-file-date-iso8601".
+
+
+KUDOS TO:
+
+Alexis Agahi for a fix to BytesProgressWatcher.
+
+Pradyumna Lenka for an example update to support the EU bucket location.
+
+Andrea Barbieri of Moving Image Research for suggestions, feedback and quality 
+control.
+
+
+SPONSORS:
+
+The JetS3t project has been generously supported with sponsorship from 
+Moving Image Research : http://www.movingimageresearch.com/
+
+-------------
 Version 0.5.0
 -------------
 

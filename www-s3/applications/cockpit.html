@@ -88,17 +88,19 @@ tt {
             <ul>
               <li><a href="cockpit.html"
                  rel="self"
-                 id="current"
-                 name="current">Cockpit</a></li>
+                 id="current">Cockpit</a></li>
 
               <li><a href="../applications/synchronize.html"
                  rel="self">Synchronize</a></li>
 
-              <li><a href="../applications/uploader.html"
-                 rel="self">Uploader</a></li>
-
               <li><a href="../applications/gatekeeper.html"
                  rel="self">Gatekeeper</a></li>
+
+              <li><a href="../applications/cockpitlite.html"
+                 rel="self">CockpitLite</a></li>
+
+              <li><a href="../applications/uploader.html"
+                 rel="self">Uploader</a></li>
             </ul>
           </li>
 
@@ -115,6 +117,30 @@ tt {
       <div id="sidebar">
         <!-- Start sidebar content -->
 
+        <br />
+
+        <p>Your donation will allow me to continue improving
+        JetS3t. Thanks very much, James.</p>
+
+        <form action="https://www.paypal.com/cgi-bin/webscr"
+              method="post">
+          <input type="hidden"
+                name="cmd"
+                value="_s-xclick" /><input type="image"
+                src=
+                "https://www.paypal.com/en_AU/i/btn/x-click-but04.gif"
+                border="0"
+                name="submit"
+                alt=
+                "Make payments with PayPal - it's fast, free and secure!" /><img alt=""
+                border="0"
+                src="https://www.paypal.com/en_AU/i/scr/pixel.gif"
+                width="1"
+                height="1" /><input type="hidden"
+                name="encrypted"
+                value=
+                "-----BEGIN PKCS7-----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-----END PKCS7----- " />
+        </form>
         <br />
         <!-- sidebar content you enter in the page inspector -->
          <!-- sidebar content such as the blog archive links -->
@@ -147,14 +173,23 @@ tt {
         <p>Cockpit is a graphical Java application for viewing and
         managing the contents of an <a href=
         "http://s3.amazonaws.com">Amazon S3</a> account. It is
-        freely available as part of the <a href=
-        "http://jets3t.dev.java.net">jets3t</a> project which
+        freely available as part of the JetS3t project, which
         provides applications and a Java toolkit for Amazon's
         S3.</p>
 
-        <p>Cockpit can also be run as an online applet, available
-        via the <a href="applications.html">Applications</a>
-        page.</p>
+        <p>To run Cockpit as a Java Applet in your web browser
+        visit the Cockpit Online page:
+        <br />
+        <a target="_blank"
+           href=
+           "../applets-jets3t-0.6.0/jets3t-cockpit.html"><font size=
+           "2">Cockpit Online</font></a>
+        <br />
+        <sup>Version 0.6.0, approximate download size 3 MB</sup>
+        <br />
+        Sun's JRE plugin version 1.4 or later is required, and you
+        will have to accept the certificate used to sign the
+        applet.</p>
 
         <p><img src="cockpit_assets/Cockpit.jpg"
              alt="Picture of the Cockpit application" /></p>
@@ -165,18 +200,24 @@ tt {
           <li>Manage <a href="#buckets">buckets</a> and <a href=
           "#objects">objects</a>in your Amazon S3 account</li>
 
+          <li>Specify where your buckets will be <a href=
+          "#location">located</a><font color="red">*</font>, in
+          Europe or the United States</li>
+
           <li><a href="#uploads">Upload</a> and <a href=
           "#downloads">download</a> files</li>
 
           <li>Manage <a href="#acls">Access Control List (ACL)
           permissions</a> for buckets and objects</li>
 
-          <li>Choose <a href="#ulprefs">default ACL</a><font color=
-          "red">*</font> permissions for uploaded files, to make
-          them publicly readable or writable</li>
+          <li>Choose <a href="#ulprefs">default ACL</a> permissions
+          for uploaded files, to make them publicly readable or
+          writable</li>
 
           <li>Automatically <a href="#ulprefs">compress (gzip)</a>
-          and/or <a href="#ulprefs">encrypt</a> uploaded files</li>
+          and/or <a href="#ulprefs">encrypt</a> uploaded files. The
+          encryption algorithm is configurable<font color=
+          "red">*</font> in Cockpit's preferences.</li>
 
           <li>Uses sophisticated <a href="#filecomparisions">file
           comparison</a> techniques to determine whether files have
@@ -185,37 +226,36 @@ tt {
 
           <li>Easily generate <a href="#signedurls">signed GET
           URLs</a> to make your private objects publicly available
-          to others for a limited time</li>
+          to others for a limited time. If your bucket is available
+          via a virutal host name, create a URL that references
+          this domain<font color="red">*</font></li>
 
           <li>Manage buckets owned by others (<a href=
           "#buckets">third-party buckets</a>)</li>
 
           <li><a href="#login">Store your login credentials</a> in
-          password-protected files on your computer, online in
-          S3<font color="red">*</font> or in any available
-          folder<font color="red">*</font></li>
+          password-protected files on your computer, online in S3
+          or in any available folder</li>
 
-          <li>Easily manage <a href="#logging">Bucket
-          logging</a><font color="red">*</font> settings</li>
+          <li>Easily manage <a href="#logging">Bucket logging</a>
+          settings</li>
 
-          <li><a href="#filtering">Filter</a><font color=
-          "red">*</font> which S3 objects are listed, to find
-          exactly what you are interested in</li>
+          <li><a href="#filtering">Filter</a> which S3 objects are
+          listed, to find exactly what you are interested in</li>
 
           <li><a href="#config">Advanced configuration</a>
-          options<font color="red">*</font></li>
+          options</li>
 
           <li>When uploading files, specific file/directory paths
           can be ignored using <a href=
           "../toolkit/configuration.html#ignore">.jets3t-ignore
-          settings files</a><font color="red">*</font></li>
+          settings files</a></li>
         </ul>
 
         <p><sup>Items with a red star (<font color="red">*</font>)
-        are new in JetS3t version 0.5.x</sup></p>
+        are new in JetS3t version 0.6.0</sup></p>
 
-        <h2><a name="manual"
-           id="manual">Cockpit Users Manual</a></h2>
+        <h2><a name="manual">Cockpit Users Manual</a></h2>
 
         <h3>Running Cockpit</h3>
 
@@ -231,8 +271,7 @@ tt {
         archive on your machine. Cockpit can then be run using the
         included cockpit start scripts.</p>
 
-        <h3><a name="login"
-           id="login">Log in</a></h3>
+        <h3><a name="login">Log in</a></h3>
 
         <p>When Cockpit starts, or when you select the <b>Service
         -&gt; Log in...</b> menu item, the login dialog will be
@@ -278,8 +317,7 @@ tt {
         prompted to enter your AWS Access Key and Secret Key which
         will be stored.</p>
 
-        <h3><a name="buckets"
-           id="buckets">Manage your buckets</a></h3>
+        <h3><a name="buckets">Manage your buckets</a></h3>
 
         <p>Once you have logged in to S3 you can manage your
         buckets. Upon log in all your buckets will automatically be
@@ -347,8 +385,32 @@ tt {
           some objects you will get an error message.</li>
         </ul>
 
-        <h3><a name="logging"
-           id="logging">Bucket Logging</a></h3>
+        <h3><a name="location">Bucket Location</a></h3>
+
+        <p>When you create a bucket, Cockpit allows you to specify
+        the bucket's name and the Amazon data centre location where
+        the bucket will be created. A bucket may be located in the
+        United States (the default location) or in Europe. Bucket's
+        located in Europe will incur additional storage and access
+        fees.</p>
+
+        <p>To create a bucket in the European (EU) location, the
+        bucket's name must be a valid component of a DNS host name.
+        Names which will not be valid as part of a host name cannot
+        be used for buckets in the EU location, or for buckets that
+        will be accessible via S3's virtual hosting feature. The
+        Create Bucket dialog box provides feedback on whether or
+        not the bucket name you have chosen is a valid DNS host
+        name component.</p>
+
+        <p><img src="cockpit_assets/Cockpit_CreateBucket.jpg"
+             alt="Picture of the Create Bucket dialog" /></p>
+
+        <p>As a general rule, DNS-compatible bucket names must be
+        longer than 3 characters and must contain only lower-case
+        letters, hyphens or full-stops.</p>
+
+        <h3><a name="logging">Bucket Logging</a></h3>
 
         <p>Cockpit includes support for the new (beta) <a target=
         "_blank"
@@ -392,8 +454,7 @@ tt {
         have to do this yourself using the standard Bucket ACL
         Permissions dialog.</p>
 
-        <h3><a name="objects"
-           id="objects">Manage your objects</a></h3>
+        <h3><a name="objects">Manage your objects</a></h3>
 
         <p>When you log in to S3 and select a bucket the objects
         contained in that bucket are listed in the right-hand pane
@@ -458,8 +519,7 @@ tt {
           confirmation.</li>
         </ul>
 
-        <h3><a name="filtering"
-           id="filtering">Object Filtering</a></h3>
+        <h3><a name="filtering">Object Filtering</a></h3>
 
         <p>Cockpit allows you to apply filtering to determine which
         objects are listed in the objects pane. This filtering
@@ -517,8 +577,7 @@ tt {
            "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/ListingKeysHierarchy.html">
         Listing Keys Hierarchically</a>.</p>
 
-        <h3><a name="uploads"
-           id="uploads">Upload files to S3</a></h3>
+        <h3><a name="uploads">Upload files to S3</a></h3>
 
         <p>You upload files to S3 by selecting a target bucket,
         then either dragging-and-dropping files onto the Objects
@@ -539,8 +598,7 @@ tt {
         each folder or sub-folder, and tagging the object with the
         content type <tt>application/x-directory</tt>.</p>
 
-        <h4><a name="ulprefs"
-           id="ulprefs">Upload Preferences</a></h4>
+        <h4><a name="ulprefs">Upload Preferences</a></h4>
 
         <p>Cockpit can be instructed to perform additional tasks
         when it uploads files by setting Upload options in the
@@ -589,8 +647,7 @@ tt {
         using the advanced configuration options available in
         JetS3t, but doing so is not easy.</p>
 
-        <h3><a name="downloads"
-           id="downloads">Download files from S3</a></h3>
+        <h3><a name="downloads">Download files from S3</a></h3>
 
         <p>Cockpit does not allow files to be downloaded using
         drag-and-drop - unfortunately the Java Swing library makes
@@ -611,8 +668,7 @@ tt {
         encryption password in the Cockpit Preferences dialog
         before you can download encrypted objects.</p>
 
-        <h3><a name="acls"
-           id="acls">Access Control Lists</a></h3>
+        <h3><a name="acls">Access Control Lists</a></h3>
 
         <p>Amazon S3 uses Access Control List (ACL) settings to
         control who may access or modify items stored in S3. By
@@ -663,9 +719,8 @@ tt {
         technical documentation for more information about the use
         of Access Control Lists.</p>
 
-        <h3><a name="filecomparisions"
-           id="filecomparisions">Automatic File
-           Comparisons</a></h3>
+        <h3><a name="filecomparisions">Automatic File
+        Comparisons</a></h3>
 
         <p>Cockpit automatically compares files that are being
         uploaded or downloaded with files in the destination to
@@ -718,8 +773,7 @@ tt {
         <p>File comparisons are performed using MD5 hashes of the
         file contents.</p>
 
-        <h3><a name="signedurls"
-           id="signedurls">Signed GET URLs</a></h3>
+        <h3><a name="signedurls">Signed GET URLs</a></h3>
 
         <p>A private object stored in S3 can be made publicy
         available for a limited time using a signed GET URL. The
@@ -731,8 +785,12 @@ tt {
         <b>Generate Public GET URL...</b>. A dialog is displayed
         prompting for the number of hours until the URL will
         expire. This number can be a fraction, for example the
-        value 0.5 will create a URL which works for half an
-        hour.</p>
+        value 0.5 will create a URL which works for half an hour.
+        If the object is stored in a bucket that is accessible via
+        a virtual host name, for example
+        <i>http://my.hostname.com</i>, you can create a signed URL
+        based on that host name by ticking the "Bucket is a virtual
+        host?" checkbox.</p>
 
         <p><img src="cockpit_assets/SignedGetURLDialog.jpg"
              alt=
@@ -743,8 +801,7 @@ tt {
         browser, but only for the length of time you specified.
         Send this URL to the person who needs the object.</p>
 
-        <h3><a name="config"
-           id="config">Advanced Configuration</a></h3>
+        <h3><a name="config">Advanced Configuration</a></h3>
 
         <p>Users can configure Cockpit using the advanced
         configuration files described in the <a href=
@@ -771,7 +828,7 @@ tt {
     <div id="footer">
       <!-- Start Footer -->
 
-      <p>© 2006 James Murty</p>
+      <p>© 2008 James Murty</p>
     </div><!-- End Footer -->
   </div><!-- End container -->
 </body>

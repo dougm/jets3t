@@ -9,7 +9,7 @@
 		<key>page1</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:21Z</date>
+			<date>2008-02-07T06:52:42Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -20,10 +20,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					opvCxDN/UuNjXOXo59ng5w==
+					h30l2fg6iZhqh5loVeRdhQ==
 					</data>
 					<key>Size</key>
-					<integer>8276</integer>
+					<integer>12064</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -34,7 +34,7 @@
 		<key>page10</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:22Z</date>
+			<date>2008-02-07T06:38:32Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -45,10 +45,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					CdPpZW3XXpmVq7zOYDersg==
+					QUoodQ0IyqddKuH3aFwRmw==
 					</data>
 					<key>Size</key>
-					<integer>27253</integer>
+					<integer>35963</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -84,7 +84,7 @@
 		<key>page12</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:23Z</date>
+			<date>2008-02-07T06:07:25Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -95,10 +95,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					IGTBfhBgqIMgWGysmu6EeA==
+					2QoJbRSSYpAxxLPjorRhew==
 					</data>
 					<key>Size</key>
-					<integer>15856</integer>
+					<integer>29714</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -109,7 +109,7 @@
 		<key>page2</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2007-04-25T00:30:22Z</date>
+			<date>2008-02-07T06:07:25Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -120,10 +120,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					y0qVCYlEaoPF908nAAAyTQ==
+					dVKQYhs0RQio+E72GMD5yQ==
 					</data>
 					<key>Size</key>
-					<integer>9000</integer>
+					<integer>12584</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
