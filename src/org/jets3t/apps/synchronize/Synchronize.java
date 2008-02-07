@@ -61,7 +61,7 @@ import org.jets3t.service.utils.TimeFormatter;
  * @author James Murty
  */
 public class Synchronize {
-    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.5.1";
+    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.6.0";
     
     private S3Service s3Service = null;
     

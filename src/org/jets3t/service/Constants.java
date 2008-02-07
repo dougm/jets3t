@@ -76,7 +76,7 @@ public class Constants {
      * MISTYPED metadata header for storing the original date of a local file uploaded to S3, 
      * so it can be used subsequently to compare files instead of relying on the S3 upload date.
      * 
-     * @deprecated 0.5.1 
+     * @deprecated 0.6.0 
      */
     public static final String METADATA_JETS3T_LOCAL_FILE_DATE_DEPRECATED = "jets3t-original-file-date-iso860";
 

@@ -122,7 +122,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.5.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.6.0</code> or <code>My App Name/1.0</code>
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
@@ -190,7 +190,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     log.debug("Deliberate interruption, will not retry");
                     return false;
                 }
-                log.warn("Retrying request - attempt " + executionCount + " of " + retryMaxCount);
+                log.warn("Retrying " + httpMethod.getName() + " request with path '" 
+                    + httpMethod.getPath() + "' - attempt " + executionCount 
+                    + " of " + retryMaxCount);
                 
                 // Build the authorization string for the method.
                 try {

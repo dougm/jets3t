@@ -51,9 +51,9 @@ CP=$JETS3T_HOME/configs
 CP=$CP:$JETS3T_HOME/resources
 
 # Include libraries in classpath
-CP=$CP:$JETS3T_HOME/jars/jets3t-0.5.1.jar
-CP=$CP:$JETS3T_HOME/jars/jets3t-gui-0.5.1.jar
-CP=$CP:$JETS3T_HOME/jars/cockpitlite-0.5.1.jar
+CP=$CP:$JETS3T_HOME/jars/jets3t-0.6.0.jar
+CP=$CP:$JETS3T_HOME/jars/jets3t-gui-0.6.0.jar
+CP=$CP:$JETS3T_HOME/jars/cockpitlite-0.6.0.jar
 CP=$CP:$JETS3T_HOME/libs/commons-logging/commons-logging-1.1.1.jar
 CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.3.jar
 CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.1.jar

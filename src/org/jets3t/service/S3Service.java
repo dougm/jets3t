@@ -66,9 +66,9 @@ public abstract class S3Service implements Serializable {
     private static final Log log = LogFactory.getLog(S3Service.class);
     
     /**
-     * The JetS3t suite version number implemented by this service: 0.5.1 
+     * The JetS3t suite version number implemented by this service: 0.6.0 
      */
-    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.5.1";
+    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.6.0";
     
     protected static boolean disableDnsBuckets = 
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -99,7 +99,7 @@ public abstract class S3Service implements Serializable {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.5.1</code> or <code>My App Name/1.0</code> 
+     * version number, for example: <code>Cockpit/0.6.0</code> or <code>My App Name/1.0</code> 
      * @throws S3ServiceException
      */
     protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) throws S3ServiceException {
@@ -736,6 +736,9 @@ public abstract class S3Service implements Serializable {
      * 
      * @param bucketName
      * the name of the bucket to create, if it does not already exist.
+     * @param location
+     * the location of the S3 data centre in which the bucket will be created. Valid values
+     * are {@link S3Bucket#LOCATION_EUROPE} or {@link S3Bucket#LOCATION_US}.
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.

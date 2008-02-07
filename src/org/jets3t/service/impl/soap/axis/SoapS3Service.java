@@ -111,7 +111,7 @@ public class SoapS3Service extends S3Service {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.5.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.6.0</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
     public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) 
