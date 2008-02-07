@@ -19,11 +19,15 @@
 package org.jets3t.service;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -621,6 +625,252 @@ public abstract class S3Service implements Serializable {
         return "http://" + generateS3HostnameForBucket(bucketName) + "/" +
             (isBucketNameValidDNSName(bucketName) ? "" : bucketName + "/") + objectKey + "?torrent"; 
     }
+
+    
+    /**
+     * Generates a policy document condition statement to represent an operation.
+     * 
+     * @param operation
+     * the name of the test operation this condition statement will apply.
+     * @param name
+     * the name of the data item the condition applies to.
+     * @param value
+     * the test value that will be used by the condition operation.
+     * @return
+     * a condition statement that can be included in the policy document 
+     * belonging to an S3 POST form.
+     */
+    public static String generatePostPolicyCondition(String operation, String name, String value) {
+        return "[\"" + operation + "\", \"$" + name + "\", \"" + value + "\"]";
+    }
+    
+    /**
+     * Generates a policy document condition statement that will allow the named
+     * data item in a POST request to take on any value.
+     * 
+     * @param name
+     * the name of the data item that will be allowed to take on any value.
+     * @return
+     * a condition statement that can be included in the policy document 
+     * belonging to an S3 POST form.
+     */
+    public static String generatePostPolicyCondition_AllowAnyValue(String name) {
+        return "[\"starts-with\", \"$" + name + "\", \"\"]";
+    }
+
+    /**
+     * Generates a policy document condition statement to represent an 
+     * equality test.
+     * 
+     * @param name
+     * the name of the data item that will be tested.
+     * @param value
+     * the value that the named data item must match.
+     * @return
+     * a condition statement that can be included in the policy document 
+     * belonging to an S3 POST form.
+     */
+    public static String generatePostPolicyCondition_Equality(String name, String value) {
+        return "{\"" + name + "\": \"" + value + "\"}";
+    }
+
+    /**
+     * Generates a policy document condition statement to represent an 
+     * equality test.
+     * 
+     * @param name
+     * the name of the data item that will be tested.
+     * @param values
+     * a list of values, one of which must match the named data item.
+     * @return
+     * a condition statement that can be included in the policy document 
+     * belonging to an S3 POST form.
+     */
+    public static String generatePostPolicyCondition_Equality(String name, String[] values) {
+        return "{\"" + name + "\": \"" + ServiceUtils.join(values, ",") + "\"}";
+    }
+
+    /**
+     * Generates a policy document condition statement to represent an 
+     * equality test.
+     * 
+     * @param name
+     * the name of the data item that will be tested.
+     * @param values
+     * a list of values, one of which must match the named data item.
+     * @return
+     * a condition statement that can be included in the policy document 
+     * belonging to an S3 POST form.
+     */
+    public static String generatePostPolicyCondition_Equality(String name, List values) {
+        return "{\"" + name + "\": \"" + ServiceUtils.join(values, ",") + "\"}";
+    }
+
+    /**
+     * Generates a policy document condition statement to represent a test that
+     * imposes a limit on the minimum and maximum amount of data the user can
+     * upload via a POST form.
+     * 
+     * @param min
+     * the minimum number of bytes the user must upload. This value should be
+     * greater than or equal to zero.
+     * @param max
+     * the maximum number of bytes the user can upload. This value must be 
+     * greater than or equal to the min value.
+     * @return
+     * a condition statement that can be included in the policy document 
+     * belonging to an S3 POST form.
+     */
+    public static String generatePostPolicyCondition_Range(int min, int max) {
+        return "[\"content-length-range\", " + min + ", " + max + "]";                
+    }
+
+    
+    /**
+     * Generates an <b>unauthenticated</b> HTML POST form that can be used to 
+     * upload files or data to S3 from a standard web browser.
+     * <p>
+     * Because the generated form is unauthenticated, it will not contain a
+     * policy document and will only allow uploads to be sent to S3 buckets
+     * that are publicly writable.
+     * 
+     * @param bucketName
+     * the name of the target bucket to which the data will be uploaded. 
+     * @param key
+     * the key name for the object that will store the data. The key name can
+     * include the special variable <tt>${filename}</tt> which expands to the
+     * name of the file the user uploaded in the form.
+     * @return
+     * A form document that can be included in a UTF-8 encoded HTML web page
+     * to allow uploads to a publicly-writable S3 bucket via a web browser.
+     * 
+     * @throws S3ServiceException
+     * @throws UnsupportedEncodingException
+     */
+    public static String buildPostForm(String bucketName, String key) 
+        throws S3ServiceException, UnsupportedEncodingException
+    {
+        return buildPostForm(bucketName, key, null, null, null, null, null, true);
+    }
+
+    
+    /**
+     * Generates an HTML POST form that can be used to upload files or data to
+     * S3 from a standard web browser.
+     * <p>
+     * Depending on the parameter values provided, this method will generate an
+     * authenticated or unauthenticated form. If the form is unauthenticated, it
+     * will not include a policy document and will therefore not have an 
+     * expiry date or any usage conditions. Unauthenticated forms may only be
+     * used to upload data to a publicly writable bucket.
+     * <p>
+     * If both the expiration and conditions parameters are non-null, the form
+     * will include a policy document and will be authenticated. In this case, 
+     * you must provide your AWS credentials to sign the authenticated form.
+     *  
+     * @param bucketName
+     * the name of the target bucket to which the data will be uploaded. 
+     * @param key
+     * the key name for the object that will store the data. The key name can
+     * include the special variable <tt>${filename}</tt> which expands to the
+     * name of the file the user uploaded in the form.
+     * @param awsCredentials
+     * your AWS credentials. Credentials are only required if the form includes
+     * policy document conditions, otherwise this can be null.
+     * @param expiration
+     * the expiration date beyond which the form will cease to work. If this
+     * parameter is null, the generated form will not include a policy document
+     * and will not have an expiry date.
+     * @param conditions
+     * the policy conditions applied to the form, specified as policy document
+     * condition statements. These statements can be generated with the 
+     * covenience method {@link #generatePostPolicyCondition(String, String, String)}
+     * and its siblings. If this parameter is null, the generated form will not 
+     * include a policy document and will not apply any usage conditions.
+     * @param inputFields
+     * optional input field strings that will be added to the form. Each string
+     * must be a valid HTML form input field definition, such as
+     * <tt>&lt;input type="hidden" name="acl" value="public-read"></tt> 
+     * @param textInput
+     * an optional input field definition that is used instead of the default
+     * file input field <tt>&lt;input name=\"file\" type=\"file\"></tt>. If this
+     * parameter is null, the default file input field will be used to allow 
+     * file uploads. If this parameter is non-null, the provided string must
+     * define an input field named "file" that allows the user to provide input, 
+     * such as <tt>&lt;textarea name="file" cols="60" rows="3">&lt;/textarea></tt>
+     * @param isSecureHttp
+     * if this parameter is true the form will upload data to S3 using HTTPS, 
+     * otherwise it will use HTTP.
+     * @return
+     * A form document that can be included in a UTF-8 encoded HTML web page
+     * to allow uploads to S3 via a web browser.
+     * 
+     * @throws S3ServiceException
+     * @throws UnsupportedEncodingException
+     */
+    public static String buildPostForm(String bucketName, String key, 
+        AWSCredentials awsCredentials, Date expiration, String[] conditions, 
+        String[] inputFields, String textInput, boolean isSecureHttp) 
+        throws S3ServiceException, UnsupportedEncodingException 
+    {
+        List myInputFields = new ArrayList();
+        
+        // Form is only authenticated if a policy is specified.
+        if (expiration != null || conditions != null) {
+            // Generate policy document
+            String policyDocument = 
+                "{\"expiration\": \"" + ServiceUtils.formatIso8601Date(expiration) 
+                + "\", \"conditions\": [" + ServiceUtils.join(conditions, ",") + "]}";
+            log.debug("Policy document for POST form:\n" + policyDocument);
+
+            // Add the base64-encoded policy document as the 'policy' form field
+            String policyB64 = ServiceUtils.toBase64(
+                policyDocument.getBytes(Constants.DEFAULT_ENCODING));
+            myInputFields.add("<input type=\"hidden\" name=\"policy\" value=\""
+                + policyB64 + "\">");
+
+            // Add the AWS access key as the 'AWSAccessKeyId' field
+            myInputFields.add("<input type=\"hidden\" name=\"AWSAccessKeyId\" " +
+                "value=\"" + awsCredentials.getAccessKey() + "\">");
+
+            // Add signature for encoded policy document as the 'AWSAccessKeyId' field
+            String signature = ServiceUtils.signWithHmacSha1(
+                awsCredentials.getSecretKey(), policyB64);
+            myInputFields.add("<input type=\"hidden\" name=\"signature\" " +
+                "value=\"" + signature + "\">");
+        }
+        
+        // Include any additional user-specified form fields
+        if (inputFields != null) {
+            myInputFields.addAll(Arrays.asList(inputFields));
+        }
+
+        // Add the vital 'file' input item, which may be a textarea or file.
+        if (textInput != null) {
+            // Use a caller-specified string as the input field.
+            myInputFields.add(textInput);
+        } else {
+            myInputFields.add("<input name=\"file\" type=\"file\">");            
+        }
+
+        // Construct a sub-domain URL to refer to the target bucket. The
+        // HTTPS protocol will be used if the secure HTTP option is enabled.
+        String url = "http" + (isSecureHttp? "s" : "") + 
+            "://" + bucketName + ".s3.amazonaws.com/";
+
+        // Construct the entire form.
+        String form = 
+          "<form action=\"" + url + "\" method=\"post\" " + 
+              "enctype=\"multipart/form-data\">\n" +
+            "<input type=\"hidden\" name=\"key\" value=\"" + key + "\">\n" +
+            ServiceUtils.join(myInputFields, "\n") +
+            "\n<br>\n" +
+            "<input type=\"submit\" value=\"Upload to Amazon S3\">\n" +
+          "</form>";
+        
+        log.debug("POST Form:\n" + form);        
+        return form;
+    }  
     
     /////////////////////////////////////////////////////////////////////////////
     // Assertion methods used to sanity-check parameters provided to this service

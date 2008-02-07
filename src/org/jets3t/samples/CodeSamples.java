@@ -85,22 +85,19 @@ public class CodeSamples {
         
         // To store data in S3 you must first create a bucket, a container for objects.
 
-        S3Bucket testBucket = s3Service.createBucket(awsCredentials.getAccessKey() + ".Test");
+        S3Bucket testBucket = s3Service.createBucket("test-bucket");
         System.out.println("Created test bucket: " + testBucket.getName());
 
-        // Notice how the code above used your AWS Access Key as a prefix to the bucket name? 
-        // It is a good idea to follow this approach as bucket names must be unique in S3. 
         // If you try using a common name, you will probably not be able to create the 
         // bucket as someone else will already have a bucket of that name.
+        
+        // To create a bucket in an S3 data center located somewhere other than 
+        // the United States, you can specify a location for your bucket as a 
+        // second parameter to the createBucket() method. Currently, the only 
+        // alternative S3 location is Europe (EU).
 
-        // This will probably fail, as someone else has already created a 'Test' bucket in S3.
-        try {
-            S3Bucket existingBucket = s3Service.createBucket("Test");
-            System.out.println("You have created a bucket called: " + existingBucket.getName());
-        } catch (S3ServiceException e) {
-            System.err.println("Error code and message from S3: " 
-                + e.getS3ErrorCode() + " - " + e.getS3ErrorMessage());
-        }
+        S3Bucket euBucket = s3Service.createBucket("eu-bucket", S3Bucket.LOCATION_EUROPE);
+
 
         /*
          * Uploading data objects 
@@ -505,6 +502,71 @@ public class CodeSamples {
         String url = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
             awsCredentials, expiryDate, false);
         System.out.println("Signed URL: " + url);
+        
+        
+        /*
+         * Create an S3 POST form   
+         */
+        
+        // When you create and S3 POST form, anyone who accesses that form in
+        // a web browser will be able to upload files to S3 directly from the
+        // browser, without needing S3-compatible client software.
+        // Refer to the S3 documentation for more information:
+        // http://docs.amazonwebservices.com/AmazonS3/2006-03-01/UsingHTTPPOST.html
+        
+        // We will start by creating a POST form with no policy document, 
+        // meaning that the form will have no expiration date or usage 
+        // conditions. This form will only work if the target bucket has 
+        // public write access enabled.
+        
+        String unrestrictedForm = 
+            S3Service.buildPostForm("public-bucket", "${filename}");
+        
+        // To use this form, save it in a UTF-8 encoded HTML page (ie with
+        // the meta tag 
+        // <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />)
+        // and load the page in a web browser.
+        
+        
+        // We will now create a POST form with a range of policy conditions, 
+        // that will allow users to upload image files to a protected bucket.
+        String bucketName = "test-bucket";
+        String key = "uploads/images/pic.jpg";
+        
+        // Specify input fields to set the access permissions and content type 
+        // of the object created by the form. We will also redirect the user to
+        // another web site after they have successfully uploaded a file.
+        String[] inputFields = new String[] {
+            "<input type=\"hidden\" name=\"acl\" value=\"public-read\">",
+            "<input type=\"hidden\" name=\"Content-Type\" value=\"image/jpeg\">",
+            "<input type=\"hidden\" name=\"success_action_redirect\" value=\"http://localhost/post_upload\">"
+        };
+
+        // We then specify policy conditions for at least the mandatory 
+        // 'bucket' and 'key' fields that will be included in the POST request.
+        // In addition to the mandatory fields, we will add a condition to 
+        // control the size of the file the user can upload. 
+        // Note that our list of conditions must include a condition 
+        // corresponding to each of the additional input fields we specified above.
+        String[] conditions = {
+            S3Service.generatePostPolicyCondition_Equality("bucket", bucketName),
+            S3Service.generatePostPolicyCondition_Equality("key", key),
+            S3Service.generatePostPolicyCondition_Range(10240, 204800),
+            // Conditions to allow the additional fields specified above
+            S3Service.generatePostPolicyCondition_Equality("acl", "public-read"),
+            S3Service.generatePostPolicyCondition_Equality("Content-Type", "image/jpeg"),
+            S3Service.generatePostPolicyCondition_Equality("success_action_redirect", "http://localhost/post_upload")
+        };
+
+        // Form will expire in 24 hours
+        cal = Calendar.getInstance();
+        cal.add(Calendar.HOUR, 24);
+        Date expiration = cal.getTime();
+        
+        // Generate the form.
+        String restrictedForm = S3Service.buildPostForm(
+            bucketName, key, awsCredentials, expiration, conditions, 
+            inputFields, null, true);       
     }
     
 }

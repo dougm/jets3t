@@ -51,12 +51,20 @@ TOOLKIT
 
   * General
 
+- S3Service class can now generate POST forms to allow web browsers to upload
+  files or data directly to S3.
 - Added support for buckets located in the EU. Due to this change, the 
   "s3service.end-point-host" property is now obsolete.
 - Added a default bucket location configuration setting in 
   jets3t.properties: "s3service.default-bucket-location". If you do not
   use an explicit bucket location when you use the bucket creation API
   method, the bucket will be created in this default location.
+- Fixed bugs that caused uploads greater than 2GB to fail 
+  (Expect: 100-Continue is now supported)
+- Added the Bouncy Castle security provider to the suite, increasing the number
+  of cipher algorithms available for encrypting files.
+- The method S3Service.listObjectsChunked now includes Common Prefixes in the
+  result object returned.
 - Corrected the metadata name for the original date object metadata item, which
   was originally mis-typed as "jets3t-original-file-date-iso860". This name is
   now "jets3t-original-file-date-iso8601" (added "1" to the end). JetS3t
@@ -69,16 +77,10 @@ TOOLKIT
   controlled by a group of propery settings in jets3t.properties: 
   filecomparer.use-md5-files, filecomparer.generate-md5-files, 
   filecomparer.skip-upload-of-md5-files.
-- Fixed bugs that caused uploads greater than 2GB to fail 
-  (Expect: 100-Continue is now supported)
 - File listings as built using the FileComparer.buildFileMap() methods can be
   set not to include place-holder objects to represent empty directories 
   (mimetype "application/x-directory") with the new configuration setting
   uploads.storeEmptyDirectories.
-- Added the Bouncy Castle security provider to the suite, increasing the number
-  of cipher algorithms available for encrypting files.
-- The method S3Service.listObjectsChunked now includes Common Prefixes in the
-  result object returned.
 - Upgraded HTTPClient library to version 3.1
 
   * REST S3 Service
