@@ -1001,7 +1001,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         HashMap metadata = new HashMap();
         RequestEntity requestEntity = null;
         
-        if (location != null) {
+        if (location != null && !"US".equalsIgnoreCase(location)) {
             metadata.put("Content-Type", "text/xml");
             try {
                 CreateBucketConfiguration config = new CreateBucketConfiguration(location);
