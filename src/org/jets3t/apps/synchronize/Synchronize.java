@@ -63,6 +63,11 @@ import org.jets3t.service.utils.TimeFormatter;
 public class Synchronize {
     public static final String APPLICATION_DESCRIPTION = "Synchronize/0.6.0";
     
+    protected static final int REPORT_LEVEL_NONE = 0;
+    protected static final int REPORT_LEVEL_ACTIONS = 1;
+    protected static final int REPORT_LEVEL_DIFFERENCES = 2;
+    protected static final int REPORT_LEVEL_ALL = 3;
+    
     private S3Service s3Service = null;
     
     private boolean doAction = false; // Files will only be transferred if true. 
@@ -73,6 +78,7 @@ public class Synchronize {
     private boolean isNoDelete = false; // Files will not be deleted if true, but may be replaced.
     private boolean isGzipEnabled = false; // Files will be gzipped prior to upload if true.
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
+    private int reportLevel = REPORT_LEVEL_ALL;
     private String cryptoPassword = null;
 
     private final ByteFormatter byteFormatter = new ByteFormatter();
@@ -99,9 +105,12 @@ public class Synchronize {
      * Files will be gzipped prior to upload if true.
      * @param isEncryptionEnabled   
      * Files will be encrypted prior to upload if true.
+     * @param reportLevel
+     * The level or amount of reporting to perform. The default value is 
+     * {@link #REPORT_LEVEL_ALL}.
      */
     public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, boolean isNoProgress, boolean isForce, 
-        boolean isKeepFiles, boolean isNoDelete, boolean isGzipEnabled, boolean isEncryptionEnabled) 
+        boolean isKeepFiles, boolean isNoDelete, boolean isGzipEnabled, boolean isEncryptionEnabled, int reportLevel) 
     {
         this.s3Service = s3Service;
         this.doAction = doAction;
@@ -112,6 +121,7 @@ public class Synchronize {
         this.isNoDelete = isNoDelete;
         this.isGzipEnabled = isGzipEnabled;
         this.isEncryptionEnabled = isEncryptionEnabled;
+        this.reportLevel = reportLevel;
     }
     
 
@@ -161,8 +171,8 @@ public class Synchronize {
         return detailsText;
     }
     
-    private void printOutputLine(String line, boolean forcePrint) {
-        if (isQuiet && !forcePrint) {
+    private void printOutputLine(String line, int level) {
+        if (isQuiet || reportLevel < level) {
             return;
         }
         
@@ -259,24 +269,24 @@ public class Synchronize {
             }
 
             if (disrepancyResults.onlyOnClientKeys.contains(keyPath)) {
-                printOutputLine("N " + keyPath, false);
+                printOutputLine("N " + keyPath, REPORT_LEVEL_ACTIONS);
                 objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
             } else if (disrepancyResults.updatedOnClientKeys.contains(keyPath)) {
-                printOutputLine("U " + keyPath, false);
+                printOutputLine("U " + keyPath, REPORT_LEVEL_ACTIONS);
                 objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
             } else if (disrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
                 if (isForce) {
-                    printOutputLine("F " + keyPath, false);
+                    printOutputLine("F " + keyPath, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                 } else {
-                    printOutputLine("- " + keyPath, false);
+                    printOutputLine("- " + keyPath, REPORT_LEVEL_ALL);
                 }
             } else if (disrepancyResults.updatedOnServerKeys.contains(keyPath)) {
                 // This file has been updated on the server-side.
                 if (isKeepFiles) {
-                    printOutputLine("r " + keyPath, false);                    
+                    printOutputLine("r " + keyPath, REPORT_LEVEL_DIFFERENCES);                    
                 } else {
-                    printOutputLine("R " + keyPath, false);
+                    printOutputLine("R " + keyPath, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                 }
             } else {
@@ -309,9 +319,9 @@ public class Synchronize {
             S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
 
             if (isKeepFiles || isNoDelete) {
-                printOutputLine("d " + keyPath, false);                
+                printOutputLine("d " + keyPath, REPORT_LEVEL_DIFFERENCES);                
             } else {
-                printOutputLine("D " + keyPath, false);
+                printOutputLine("D " + keyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
                     objectsToDelete.add(s3Object);
                 }
@@ -335,11 +345,11 @@ public class Synchronize {
             ", Updated: " + disrepancyResults.updatedOnClientKeys.size() +
             (isKeepFiles?
                 ", Kept: " + 
-                (disrepancyResults.updatedOnServerKeys.size() + disrepancyResults.onlyOnServerKeys.size())                    
+                (disrepancyResults.updatedOnServerKeys.size())                    
                 :                 
                 ", Reverted: " + disrepancyResults.updatedOnServerKeys.size()
                 ) +
-            (isNoDelete?
+            (isNoDelete || isKeepFiles?
                 ", Not Deleted: " + disrepancyResults.onlyOnServerKeys.size()
                 :
                 ", Deleted: " + disrepancyResults.onlyOnServerKeys.size()
@@ -347,7 +357,7 @@ public class Synchronize {
             (isForce ?
                 ", Forced updates: " + disrepancyResults.alreadySynchronisedKeys.size() :
                 ", Unchanged: " + disrepancyResults.alreadySynchronisedKeys.size()
-                ), true
+                ), REPORT_LEVEL_NONE
             );
     }
         
@@ -390,14 +400,14 @@ public class Synchronize {
             S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
             
             if (disrepancyResults.onlyOnServerKeys.contains(keyPath)) {
-                printOutputLine("N " + keyPath, false);
+                printOutputLine("N " + keyPath, REPORT_LEVEL_ACTIONS);
                 DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                     s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                 if (downloadPackage != null) {
                     downloadPackagesList.add(downloadPackage);
                 }
             } else if (disrepancyResults.updatedOnServerKeys.contains(keyPath)) {
-                printOutputLine("U " + keyPath, false);
+                printOutputLine("U " + keyPath, REPORT_LEVEL_ACTIONS);
                 DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                     s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                 if (downloadPackage != null) {
@@ -405,21 +415,21 @@ public class Synchronize {
                 }
             } else if (disrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
                 if (isForce) {
-                    printOutputLine("F " + keyPath, false);
+                    printOutputLine("F " + keyPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                         s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
                         downloadPackagesList.add(downloadPackage);
                     }
                 } else {
-                    printOutputLine("- " + keyPath, false);
+                    printOutputLine("- " + keyPath, REPORT_LEVEL_ALL);
                 }
             } else if (disrepancyResults.updatedOnClientKeys.contains(keyPath)) {
                 // This file has been updated on the client-side.
                 if (isKeepFiles) {
-                    printOutputLine("r " + keyPath, false);                    
+                    printOutputLine("r " + keyPath, REPORT_LEVEL_DIFFERENCES);                    
                 } else {
-                    printOutputLine("R " + keyPath, false);
+                    printOutputLine("R " + keyPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                         s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
@@ -457,9 +467,9 @@ public class Synchronize {
             File file = (File) filesMap.get(keyPath);
             
             if (isKeepFiles || isNoDelete) {
-                printOutputLine("d " + keyPath, false);                
+                printOutputLine("d " + keyPath, REPORT_LEVEL_DIFFERENCES);                
             } else {
-                printOutputLine("D " + keyPath, false);
+                printOutputLine("D " + keyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
                     if (file.isDirectory()) {
                         // Delete directories later, as they may still have files 
@@ -482,11 +492,11 @@ public class Synchronize {
             ", Updated: " + disrepancyResults.updatedOnServerKeys.size() +
             (isKeepFiles? 
                 ", Kept: " + 
-                (disrepancyResults.updatedOnClientKeys.size() + disrepancyResults.onlyOnClientKeys.size())                    
+                (disrepancyResults.updatedOnClientKeys.size())                    
                 : 
                 ", Reverted: " + disrepancyResults.updatedOnClientKeys.size()
                 ) +
-            (isNoDelete?
+            (isNoDelete || isKeepFiles?
                 ", Not Deleted: " + disrepancyResults.onlyOnClientKeys.size()
                 :
                 ", Deleted: " + disrepancyResults.onlyOnClientKeys.size()
@@ -494,7 +504,7 @@ public class Synchronize {
             (isForce ?
                 ", Forced updates: " + disrepancyResults.alreadySynchronisedKeys.size() :
                 ", Unchanged: " + disrepancyResults.alreadySynchronisedKeys.size()
-                ), true
+                ), REPORT_LEVEL_NONE
             );
     }
     
@@ -556,14 +566,14 @@ public class Synchronize {
             
             printOutputLine("UP "
                 + (doAction ? "" : "[No Action] ")
-                + "Local " + uploadPathSummary + " => S3[" + s3Path + "]", true);              
+                + "Local " + uploadPathSummary + " => S3[" + s3Path + "]", REPORT_LEVEL_NONE);              
         } else if ("DOWN".equals(actionCommand)) {
             if (fileList.size() != 1) {
                 throw new SynchronizeException("Only one target directory is allowed for downloads");
             }
             printOutputLine("DOWN "
                 + (doAction ? "" : "[No Action] ")
-                + "S3[" + s3Path + "] => Local" + fileList, true);              
+                + "S3[" + s3Path + "] => Local" + fileList, REPORT_LEVEL_NONE);
         } else {
             throw new SynchronizeException("Action string must be 'UP' or 'DOWN'");
         }        
@@ -776,6 +786,13 @@ public class Synchronize {
         System.out.println("   of: PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE. This setting will override any");
         System.out.println("   acl property specified in the synchronize.properties file");
         System.out.println("");
+        System.out.println("--reportlevel <Level>");
+        System.out.println("   A number that specifies how much report information will be printed:");
+        System.out.println("   0 - no report items will be printed (the summary will still be printed)");
+        System.out.println("   1 - only actions are reported             [Prefixes N, U, D, R, F]");
+        System.out.println("   2 - differences and actions are reported  [Prefixes N, U, D, R, F, d, r]");
+        System.out.println("   3 - DEFAULT: all items are reported       [Prefixes N, U, D, R, F, d, r, -]");
+        System.out.println("");
         System.out.println("Report");
         System.out.println("------");
         System.out.println("Report items are printed on a single line with an action flag followed by");
@@ -790,7 +807,7 @@ public class Synchronize {
         System.out.println("   source. The target version will be reverted to the older source version");
         System.out.println("r: An existing file/object has changed more recently on the target than on the");
         System.out.println("   source but because the --keepfiles option was set it was not reverted.");
-        System.out.println("-: The file identical locally and in S3, no action is necessary.");
+        System.out.println("-: A file is identical between the local system and S3, no action is necessary.");
         System.out.println("F: A file identical locally and in S3 was updated due to the Force option.");
         System.out.println();
         System.exit(1);        
@@ -821,6 +838,7 @@ public class Synchronize {
         boolean isGzipEnabled = false;
         boolean isEncryptionEnabled = false;
         String aclString = null;
+        int reportLevel = REPORT_LEVEL_ALL;
                 
         // Parse arguments.
         for (int i = 0; i < args.length; i++) {
@@ -878,6 +896,26 @@ public class Synchronize {
                     } else {
                         System.err.println("ERROR: --acl option must be followed by an ACL string");
                         printHelpAndExit(false);                        
+                    }
+                } else if (arg.equalsIgnoreCase("--reportlevel")) {
+                    if (i + 1 < args.length) {
+                        // Read the report level integer
+                        i++;
+                        try {
+                            reportLevel = Integer.parseInt(args[i]);
+                            
+                            if (reportLevel < 0 || reportLevel > 3) { 
+                                System.err.println("ERROR: Report Level setting \"reportlevel\" must have one of the values "
+                                    + "0 (no reporting), 1 (actions only), 2 (differences only), 3 (DEFAULT - all reporting)");
+                                printHelpAndExit(false);                        
+                            }                                                        
+                        } catch (NumberFormatException e) {
+                            System.err.println("ERROR: --reportlevel option must be followed by 0, 1, 2 or 3");
+                            printHelpAndExit(false);                                                        
+                        }
+                    } else {
+                        System.err.println("ERROR: --reportlevel option must be followed by 0, 1, 2 or 3");
+                        printHelpAndExit(false);
                     }
                 } else {
                     System.err.println("ERROR: Invalid option: " + arg);
@@ -981,7 +1019,8 @@ public class Synchronize {
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
-            doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, isGzipEnabled, isEncryptionEnabled);
+            doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, 
+            isGzipEnabled, isEncryptionEnabled, reportLevel);
         client.run(s3Path, fileList, actionCommand, 
             properties.getStringProperty("password", null), aclString);
     }

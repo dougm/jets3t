@@ -1,4 +1,21 @@
 -------------
+Version 0.6.1
+-------------
+
+SYNCHRONIZE
+- Added --reportlevel option that allows the user to control how much report
+  detail is printed, from 0 (no reporting) to 3 (all reporting).
+
+
+TOOLKIT
+
+  * General
+  
+- Fixed bug in RestS3Service that caused failures in some circumstances when 
+  buckets were created with the "US" location.
+
+
+-------------
 Version 0.6.0
 -------------
 
