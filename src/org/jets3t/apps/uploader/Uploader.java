@@ -117,6 +117,7 @@ import org.jets3t.service.multithread.DeleteObjectsEvent;
 import org.jets3t.service.multithread.DownloadObjectsEvent;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
 import org.jets3t.service.multithread.GetObjectsEvent;
+import org.jets3t.service.multithread.ListObjectsEvent;
 import org.jets3t.service.multithread.LookupACLEvent;
 import org.jets3t.service.multithread.S3ServiceEventListener;
 import org.jets3t.service.multithread.S3ServiceMulti;
@@ -152,11 +153,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
     
-    public static final String APPLICATION_DESCRIPTION = "Uploader/0.6.0"; 
+    public static final String APPLICATION_DESCRIPTION = "Uploader/0.6.1"; 
             
     public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
     
-    private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.6.0";
+    private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.6.1";
     
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
@@ -1669,6 +1670,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     
     // S3 Service events that are not used in this Uploader application.
+    public void s3ServiceEventPerformed(ListObjectsEvent event) {}
     public void s3ServiceEventPerformed(CreateBucketsEvent event) {}
     public void s3ServiceEventPerformed(DeleteObjectsEvent event) {}
     public void s3ServiceEventPerformed(GetObjectsEvent event) {}

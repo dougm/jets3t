@@ -119,6 +119,7 @@ import org.jets3t.service.multithread.DownloadObjectsEvent;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
 import org.jets3t.service.multithread.GetObjectsEvent;
+import org.jets3t.service.multithread.ListObjectsEvent;
 import org.jets3t.service.multithread.LookupACLEvent;
 import org.jets3t.service.multithread.S3ServiceEventListener;
 import org.jets3t.service.multithread.S3ServiceMulti;
@@ -128,6 +129,7 @@ import org.jets3t.service.multithread.UpdateACLEvent;
 import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
+import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.TimeFormatter;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
@@ -161,7 +163,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     
 	private static final String PROPERTIES_FILENAME = "cockpitlite.properties";
 	
-    public static final String APPLICATION_DESCRIPTION = "Cockpit Lite/0.6.0";
+    public static final String APPLICATION_DESCRIPTION = "Cockpit Lite/0.6.1";
     
     public static final String APPLICATION_TITLE = "JetS3t Cockpit Lite";
     
@@ -1066,6 +1068,19 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     }
             
     /**
+     * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
+     * application's <code>S3ServiceMulti</code> triggers a <code>ListObjectsEvent</code>.
+     * <p>
+     * This never happens in this application as it does not perform multi-threaded object
+     * listings. 
+     * 
+     * @param event
+     */
+    public void s3ServiceEventPerformed(ListObjectsEvent event) {
+        // Not used.
+    }
+    
+    /**
      * Actions performed when an object is selected in the objects list table.
      */
     private void objectSelectedAction() {
@@ -1618,7 +1633,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 	                        	S3Object object = signedRequests[i].buildObject();
 	                        	
 	                            File file = new File(downloadDirectory, object.getKey());
-		
+
+                                // Create local directories corresponding to objects flagged as dirs.
+                                if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(object.getContentType())) {
+                                    file.mkdirs();                    
+                                }                            
+
 								DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
 										object, file, true, false, null); 
 								if (downloadPackage == null) {

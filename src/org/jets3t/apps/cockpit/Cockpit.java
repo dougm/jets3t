@@ -125,6 +125,7 @@ import org.jets3t.service.multithread.DownloadObjectsEvent;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
 import org.jets3t.service.multithread.GetObjectsEvent;
+import org.jets3t.service.multithread.ListObjectsEvent;
 import org.jets3t.service.multithread.LookupACLEvent;
 import org.jets3t.service.multithread.S3ServiceEventListener;
 import org.jets3t.service.multithread.S3ServiceMulti;
@@ -161,7 +162,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.s3.amazonaws.com/applications/cockpit.html";
     public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
     
-    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.6.0";
+    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.6.1";
     
     public static final String APPLICATION_TITLE = "JetS3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
@@ -1202,6 +1203,19 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public void s3ServiceEventPerformed(GetObjectsEvent event) {
         // Not used.
     }
+    
+    /**
+     * This method is an {@link S3ServiceEventListener} action method that is invoked when this 
+     * application's <code>S3ServiceMulti</code> triggers a <code>ListObjectsEvent</code>.
+     * <p>
+     * This never happens in this application as it does not perform multi-threaded object
+     * listings. 
+     * 
+     * @param event
+     */
+    public void s3ServiceEventPerformed(ListObjectsEvent event) {
+        // Not used.
+    }
             
     /**
      * Actions performed when a bucket is selected in the bucket list table.
@@ -1975,6 +1989,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 if (cockpitPreferences.isEncryptionPasswordSet()) {
                     encryptionPassword = cockpitPreferences.getEncryptionPassword();
                 }
+                
+                // Create local directories corresponding to objects flagged as dirs.
+                if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(objects[i].getContentType())) {
+                    file.mkdirs();                    
+                }                            
                 
                 DownloadPackage downloadPackage = ObjectUtils
                     .createPackageForDownload(objects[i], file, true, true, encryptionPassword);
