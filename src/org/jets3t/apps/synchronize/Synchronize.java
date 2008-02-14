@@ -61,7 +61,7 @@ import org.jets3t.service.utils.TimeFormatter;
  * @author James Murty
  */
 public class Synchronize {
-    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.6.0";
+    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.6.1";
     
     protected static final int REPORT_LEVEL_NONE = 0;
     protected static final int REPORT_LEVEL_ACTIONS = 1;
@@ -393,23 +393,31 @@ public class Synchronize {
         ArrayList sortedS3ObjectKeys = new ArrayList(s3ObjectsMap.keySet());
         Collections.sort(sortedS3ObjectKeys);
         
-        // Upload/update files.
+        // Download objects to local files/directories.
         Iterator s3KeyIter = sortedS3ObjectKeys.iterator();
         while (s3KeyIter.hasNext()) {
             String keyPath = (String) s3KeyIter.next();
             S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
+            File fileTarget = new File(localDirectory, keyPath);
+            
+            // Create local directories corresponding to objects flagged as dirs.
+            if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(s3Object.getContentType())) {
+                if (doAction) {
+                    fileTarget.mkdirs();                    
+                }
+            }            
             
             if (disrepancyResults.onlyOnServerKeys.contains(keyPath)) {
                 printOutputLine("N " + keyPath, REPORT_LEVEL_ACTIONS);
                 DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
-                    s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
+                    s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                 if (downloadPackage != null) {
                     downloadPackagesList.add(downloadPackage);
                 }
             } else if (disrepancyResults.updatedOnServerKeys.contains(keyPath)) {
                 printOutputLine("U " + keyPath, REPORT_LEVEL_ACTIONS);
                 DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
-                    s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
+                    s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                 if (downloadPackage != null) {
                     downloadPackagesList.add(downloadPackage);
                 }
@@ -417,7 +425,7 @@ public class Synchronize {
                 if (isForce) {
                     printOutputLine("F " + keyPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
-                        s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
+                        s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
                         downloadPackagesList.add(downloadPackage);
                     }
@@ -431,7 +439,7 @@ public class Synchronize {
                 } else {
                     printOutputLine("R " + keyPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
-                        s3Object, new File(localDirectory, keyPath), isGzipEnabled, isEncryptionEnabled, cryptoPassword);
+                        s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
                         downloadPackagesList.add(downloadPackage);
                     }
@@ -591,31 +599,14 @@ public class Synchronize {
         } catch (Exception e) {
             throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
         }
-        
-        if (objectPath.length() > 0) {
-            // Create the S3Path.
-            try {
-                String targetDirs[] = objectPath.split(Constants.FILE_PATH_DELIM);
-                StringBuffer currentDirPathBuf = new StringBuffer();
-                for (int i = 0; i < targetDirs.length; i++) {
-                    currentDirPathBuf.append(targetDirs[i]);
-                    
-                    S3Object dirObject = new S3Object(currentDirPathBuf.toString());
-                    dirObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-                    s3Service.putObject(bucket, dirObject);
-                    currentDirPathBuf.append(Constants.FILE_PATH_DELIM);
-                }
-            } catch (Exception e) {
-                throw new SynchronizeException("Unable to create S3 path: " + objectPath, e);
-            }
-        }
-                
+                        
+        boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("uploads.storeEmptyDirectories", true);
+
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         printProgressLine("Listing files in local file system");
         Map filesMap = null;        
-        if ("UP".equals(actionCommand)) {
-            boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                .getBoolProperty("uploads.storeEmptyDirectories", true);
+        if ("UP".equals(actionCommand)) {            
             filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[fileList.size()]), storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
             filesMap = FileComparer.buildFileMap((File) fileList.get(0), null, true);
@@ -650,7 +641,25 @@ public class Synchronize {
             FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap, progressWatcher);
 
         // Perform the requested action on the set of disrepancies.
-        if ("UP".equals(actionCommand)) {
+        if ("UP".equals(actionCommand)) {  
+            if (objectPath.length() > 0 && doAction && storeEmptyDirectories) {
+                // Create the target path in S3.
+                try {
+                    String targetDirs[] = objectPath.split(Constants.FILE_PATH_DELIM);
+                    StringBuffer currentDirPathBuf = new StringBuffer();
+                    for (int i = 0; i < targetDirs.length; i++) {
+                        currentDirPathBuf.append(targetDirs[i]);
+                        
+                        S3Object dirObject = new S3Object(currentDirPathBuf.toString());
+                        dirObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
+                        s3Service.putObject(bucket, dirObject);
+                        currentDirPathBuf.append(Constants.FILE_PATH_DELIM);
+                    }
+                } catch (Exception e) {
+                    throw new SynchronizeException("Unable to create S3 path: " + objectPath, e);
+                }
+            }            
+            
             uploadLocalDirectoryToS3(discrepancyResults, filesMap, s3ObjectsMap, bucket, objectPath, aclString);
         } else if ("DOWN".equals(actionCommand)) {
             restoreFromS3ToLocalDirectory(discrepancyResults, filesMap, s3ObjectsMap, objectPath, (File) fileList.get(0), bucket);
