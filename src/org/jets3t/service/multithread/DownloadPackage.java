@@ -102,6 +102,11 @@ public class DownloadPackage {
      * @throws Exception
      */
     public OutputStream getOutputStream() throws Exception {
+        // Create parent directories for file, if necessary.
+        if (outputFile.getParentFile() != null) {
+            outputFile.getParentFile().mkdirs();
+        }                                    
+        
         OutputStream outputStream = new FileOutputStream(outputFile);
         if (isUnzipping) {
             log.debug("Inflating gzipped data for object: " + object.getKey());                    

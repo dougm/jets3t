@@ -288,13 +288,8 @@ public class ObjectUtils {
         boolean automaticUnzip, boolean automaticDecrypt, String encryptionPassword) throws Exception 
     {
         if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(object.getContentType())) {
-            fileTarget.mkdir();
             return null;
-        } else {
-            if (fileTarget.getParentFile() != null) {
-                fileTarget.getParentFile().mkdirs();
-            }            
-            
+        } else {            
             boolean isZipped = false;
             EncryptionUtil encryptionUtil = null;
                         

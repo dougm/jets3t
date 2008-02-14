@@ -374,12 +374,20 @@ public class FileComparer {
             if (targetPath.length() > 0) {
                 relativeKey = relativeKey.substring(targetPath.length());
                 int slashIndex = relativeKey.indexOf(Constants.FILE_PATH_DELIM);
-                if (slashIndex >= 0) {
+                if (slashIndex == 0) {
                     relativeKey = relativeKey.substring(slashIndex + 1, relativeKey.length());
                 } else {
-                    // This relative key is part of a prefix search, the key does not point to a
-                    // real S3 object.
-                    relativeKey = "";
+                    // This object is the result of a prefix search, not an explicit directory. 
+                    // Base the relative key on the last full subdirectory in the 
+                    // target path if available...
+                    slashIndex = targetPath.lastIndexOf(Constants.FILE_PATH_DELIM);
+                    if (slashIndex >= 0) {
+                        relativeKey = s3Objects[i].getKey().substring(slashIndex + 1);
+                    }
+                    // ...otherwise, use the full object key name.
+                    else {
+                        relativeKey = s3Objects[i].getKey();
+                    }
                 }
             }
             if (relativeKey.length() > 0) {
