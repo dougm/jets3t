@@ -3,6 +3,13 @@ Version 0.6.1
 -------------
 
 SYNCHRONIZE
+- Synchonize now recognizes when you have specified a partial S3 paths when 
+  synchronizing DOWN. A partial path is one that does not exactly match a
+  directory path. Partial paths can now act as a prefix test that identifies
+  objects in an S3 path, where only the objects in S3 that match the prefix are
+  downloaded. For example, in a bucket that has a Docs subdirectory containing
+  objects named with a timestamp prefix, the S3 path "my-bucket/Docs/2008" will 
+  identify the objects in the Docs subdirectory with names beginning with 2008.
 - Added --reportlevel option that allows the user to control how much report
   detail is printed, from 0 (no reporting) to 3 (all reporting).
 
@@ -14,6 +21,13 @@ TOOLKIT
 - Fixed bug in RestS3Service that caused failures in some circumstances when 
   buckets were created with the "US" location.
 
+  * Multi-threaded Service
+
+- Added a new listObjects method that performs a multi-threaded listing of a
+  bucket's contents. You provide an array of prefix strings which serve to 
+  divide your objects into a number of "partitions", and the service performs
+  these prefix-based listings in parallel. See ThreadedObjectListing.java for
+  an example of how this feature can be used.
 
 -------------
 Version 0.6.0

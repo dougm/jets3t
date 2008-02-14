@@ -57,9 +57,9 @@ REM Include resources directory in classpath
 set CP=%CP%;%MY_JETS3T_HOME%/resources
 
 REM Include libraries in classpath
-set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-0.6.0.jar
-set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-gui-0.6.0.jar
-set CP=%CP%;%MY_JETS3T_HOME%/jars/uploader-0.6.0.jar
+set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-0.6.1.jar
+set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-gui-0.6.1.jar
+set CP=%CP%;%MY_JETS3T_HOME%/jars/uploader-0.6.1.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-logging/commons-logging-1.1.1.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-codec/commons-codec-1.3.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-httpclient/commons-httpclient-3.1.jar

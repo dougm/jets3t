@@ -12,11 +12,11 @@ To run an application, such as Cockpit, run the appropriate script from
 the bin directory.
 
 Windows:
-cd jets3t-0.6.0\bin
+cd jets3t-0.6.1\bin
 cockpit.bat
 
 Unixy:
-cd jets3t-0.6.0/bin
+cd jets3t-0.6.1/bin
 bash cockpit.sh
 
 
@@ -58,38 +58,38 @@ The configuration files include:
 The compiled JetS3t code jar files are available in the "jars" directory,
 and include the following:
 
-jets3t-0.6.0.jar
+jets3t-0.6.1.jar
   
   The JetS3t toolkit. The toolkit including the JetS3t service implemention 
   which underlies all the other JetS3t applications.
   http://jets3t.s3.amazonaws.com/toolkit/toolkit.html
   
-jets3t-gui-0.6.0.jar
+jets3t-gui-0.6.1.jar
 
   Graphical user interface components used by JetS3t GUI applications such as
   Cockpit. These components are not required by the command-line Synchronize
   tool, nor by non-graphical programs you may build.
 
-cockpit-0.6.0.jar
+cockpit-0.6.1.jar
 
   Cockpit, a GUI application/applet for viewing and managing the contents of an 
   S3 account.
   http://jets3t.s3.amazonaws.com/applications/cockpit.html
   
-synchronize-0.6.0.jar
+synchronize-0.6.1.jar
 
   Synchronize, a console application for synchronizing directories on a computer 
   with an Amazon S3 account.
   http://jets3t.s3.amazonaws.com/applications/synchronize.html
   
-cockpitlite-0.6.0.jar
+cockpitlite-0.6.1.jar
 
   CockpitLite, a GUI application/applet for viewing and managing the contents of
   an S3 account, where the S3 account is not owned by the application's user 
   directly but is made available via the Gatekeeper servlet.
   http://jets3t.s3.amazonaws.com/applications/cockpitlite.html
 
-uploader-0.6.0.jar
+uploader-0.6.1.jar
 
   A wizard-based GUI application/applet that S3 account holders (Service 
   Providers) may provide to clients to allow them to upload files to S3 without 
