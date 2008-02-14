@@ -30,11 +30,17 @@ import org.jets3t.service.model.S3Object;
  * @author James Murty
  */
 public class S3ObjectsChunk {
+    private String prefix = null;
+    private String delimiter = null;
     private S3Object[] objects = null;
     private String[] commonPrefixes = null;
     private String priorLastKey = null;
     
-    public S3ObjectsChunk(S3Object[] objects, String[] commonPrefixes, String priorLastKey) {
+    public S3ObjectsChunk(String prefix, String delimiter, S3Object[] objects, 
+        String[] commonPrefixes, String priorLastKey) 
+    {
+        this.prefix = prefix;
+        this.delimiter = delimiter;
         this.objects = objects;
         this.commonPrefixes = commonPrefixes;
         this.priorLastKey = priorLastKey;
@@ -64,5 +70,23 @@ public class S3ObjectsChunk {
     public String getPriorLastKey() {
         return priorLastKey;
     }
-        
+
+    /**
+     * @return 
+     * the prefix applied when this object chunk was generated. If no prefix was
+     * applied, this method will return null.
+     */
+    public String getPrefix() {
+        return prefix;
+    }
+
+    /**
+     * @return 
+     * the delimiter applied when this object chunk was generated. If no 
+     * delimiter was applied, this method will return null.
+     */
+    public String getDelimiter() {
+        return delimiter;
+    }
+
 }

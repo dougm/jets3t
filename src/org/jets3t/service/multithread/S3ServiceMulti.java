@@ -26,6 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -33,6 +34,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -182,6 +184,8 @@ public class S3ServiceMulti implements Serializable {
                 listener.s3ServiceEventPerformed((CreateObjectsEvent) event);
             } else if (event instanceof CreateBucketsEvent) {
                 listener.s3ServiceEventPerformed((CreateBucketsEvent) event);
+            } else if (event instanceof ListObjectsEvent) {
+                listener.s3ServiceEventPerformed((ListObjectsEvent) event);
             } else if (event instanceof DeleteObjectsEvent) {
                 listener.s3ServiceEventPerformed((DeleteObjectsEvent) event);
             } else if (event instanceof GetObjectsEvent) {
@@ -217,6 +221,72 @@ public class S3ServiceMulti implements Serializable {
         return s3Service.getAWSCredentials();
     }
     
+    /**
+     * Lists the objects in a bucket based on an array of prefix strings, and 
+     * sends {@link ListObjectsEvent} notification events. 
+     * The objects that match each prefix are listed in a separate background 
+     * thread, potentially allowing you to list the contents of large buckets more 
+     * quickly than if you had to list all the objects in sequence.
+     * <p>
+     * Objects in the bucket that do not match one of the prefixes will not be
+     * listed.  
+     * 
+     * @param bucketName
+     * the name of the bucket in which the objects are stored.
+     * @param prefixes
+     * an array of prefix strings. A separate listing thread will be run for
+     * each of these prefix strings, and the method will only complete once
+     * the entire object listing for each prefix has been obtained (unless the
+     * operation is cancelled, or an error occurs)
+     * @param delimiter
+     * an optional delimiter string to apply to each listing operation. This
+     * parameter should be null if you do not wish to apply a delimiter. 
+     * @param maxListingLength
+     * the maximum object listing length that will be applied to each listing
+     * operation. This should be a value between 1 and 1000, and 1000 will
+     * generally be the best choice to minimize the number of listing requests
+     * that must be performed. 
+     * 
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
+     */
+    public void listObjects(final String bucketName, final String[] prefixes, 
+        final String delimiter, final int maxListingLength) 
+    {
+        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+                
+        int adminMaxThreadCount = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
+        // Start all queries in the background.
+        ListObjectsRunnable[] runnables = new ListObjectsRunnable[prefixes.length];
+        for (int i = 0; i < runnables.length; i++) {
+            runnables[i] = new ListObjectsRunnable(bucketName, prefixes[i], 
+                delimiter, maxListingLength, null);
+        }
+                                
+        // Wait for threads to finish, or be cancelled.        
+        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length)) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(ListObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List chunkList) {                                
+                fireServiceEvent(ListObjectsEvent.newInProgressEvent(threadWatcher, chunkList, 
+                    uniqueOperationId));
+            }
+            public void fireCancelEvent() {
+                fireServiceEvent(ListObjectsEvent.newCancelledEvent(uniqueOperationId));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(ListObjectsEvent.newCompletedEvent(uniqueOperationId));
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(ListObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+        }).run();
+    }
+        
     /**
      * Creates multiple buckets, and sends {@link CreateBucketsEvent} notification events.
      * <p>
@@ -1394,6 +1464,61 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
+     * Thread for listing the objects in a bucket.
+     */
+    private class ListObjectsRunnable extends AbstractRunnable {
+        private Object result = null;
+        private String bucketName = null;
+        private String prefix = null;
+        private String delimiter = null;
+        private int maxListingLength = 1000;
+        private String priorLastKey = null;
+        private boolean halted = false;
+        
+        public ListObjectsRunnable(String bucketName, String prefix, 
+            String delimiter, int maxListingLength, String priorLastKey) 
+        {
+            this.bucketName = bucketName;
+            this.prefix = prefix;
+            this.delimiter = delimiter;
+            this.maxListingLength = maxListingLength;
+            this.priorLastKey = priorLastKey;
+        }
+
+        public void run() {
+            try {   
+                List allObjects = new ArrayList();
+                List allCommonPrefixes = new ArrayList();
+                
+                do {                                
+                    S3ObjectsChunk chunk = s3Service.listObjectsChunked(
+                        bucketName, prefix, delimiter, maxListingLength, priorLastKey);                    
+                    priorLastKey = chunk.getPriorLastKey();                
+                    
+                    allObjects.addAll(Arrays.asList(chunk.getObjects()));
+                    allCommonPrefixes.addAll(Arrays.asList(chunk.getCommonPrefixes()));
+                } while (!halted && priorLastKey != null);
+                
+                result = new S3ObjectsChunk(
+                    prefix, delimiter,
+                    (S3Object[]) allObjects.toArray(new S3Object[allObjects.size()]),
+                    (String[]) allCommonPrefixes.toArray(new String[allCommonPrefixes.size()]),
+                    null);
+            } catch (S3ServiceException e) {
+                result = e;
+            }            
+        }
+        
+        public Object getResult() {
+            return result;
+        }        
+        
+        public void forceInterruptCalled() {
+            halted = true;
+        }
+    }
+
+    /**
      * Thread for creating/uploading an object. The upload of any object data is monitored with a
      * {@link ProgressMonitoredInputStream} and can be can cancelled as the input stream is wrapped in
      * an {@link InterruptableInputStream}.
@@ -1531,7 +1656,7 @@ public class S3ServiceMulti implements Serializable {
             BufferedOutputStream bufferedOutputStream = null;
             S3Object object = null;
 
-            try {
+            try {                
             	if (!downloadPackage.isSignedDownload()) {
             		object = s3Service.getObject(bucket, objectKey);
             	} else {

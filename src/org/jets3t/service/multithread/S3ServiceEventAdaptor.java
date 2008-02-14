@@ -38,6 +38,10 @@ public class S3ServiceEventAdaptor implements S3ServiceEventListener {
     
     private Throwable t[] = new Throwable[1];
 
+    public void s3ServiceEventPerformed(ListObjectsEvent event) {
+        storeThrowable(event);
+    }
+    
     public void s3ServiceEventPerformed(CreateObjectsEvent event) {
         storeThrowable(event);
     }

@@ -26,7 +26,9 @@ package org.jets3t.service.multithread;
  */
 public interface S3ServiceEventListener {
 
-	public void s3ServiceEventPerformed(CreateObjectsEvent event);
+    public void s3ServiceEventPerformed(ListObjectsEvent event);
+
+    public void s3ServiceEventPerformed(CreateObjectsEvent event);
 
 	public void s3ServiceEventPerformed(CreateBucketsEvent event);
 	
