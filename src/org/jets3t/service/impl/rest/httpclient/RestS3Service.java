@@ -122,7 +122,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.0</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
@@ -850,9 +850,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     }
     
     protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter, 
-        long maxListingLength, String priorLastKey) throws S3ServiceException 
+        long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException 
     {        
-        return listObjectsInternal(bucketName, prefix, delimiter, maxListingLength, false, priorLastKey);
+        return listObjectsInternal(bucketName, prefix, delimiter, maxListingLength, completeListing, priorLastKey);
     }
 
     protected S3ObjectsChunk listObjectsInternal(String bucketName, String prefix, String delimiter, 
@@ -923,11 +923,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         if (automaticallyMergeChunks) {
             log.debug("Found " + objects.size() + " objects in total");
             return new S3ObjectsChunk(
+                prefix, delimiter,
                 (S3Object[]) objects.toArray(new S3Object[objects.size()]),
                 (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
                 null);
         } else {
             return new S3ObjectsChunk(
+                prefix, delimiter,
                 (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
                 (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
                 priorLastKey);            

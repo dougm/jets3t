@@ -70,9 +70,9 @@ public abstract class S3Service implements Serializable {
     private static final Log log = LogFactory.getLog(S3Service.class);
     
     /**
-     * The JetS3t suite version number implemented by this service: 0.6.0 
+     * The JetS3t suite version number implemented by this service: 0.6.1 
      */
-    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.6.0";
+    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.6.1";
     
     protected static boolean disableDnsBuckets = 
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -103,7 +103,7 @@ public abstract class S3Service implements Serializable {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.0</code> or <code>My App Name/1.0</code> 
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code> 
      * @throws S3ServiceException
      */
     protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) throws S3ServiceException {
@@ -1160,8 +1160,42 @@ public abstract class S3Service implements Serializable {
     public S3ObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter, 
         long maxListingLength, String priorLastKey) throws S3ServiceException
     {
-        return listObjectsChunkedImpl(bucketName, prefix, delimiter, maxListingLength, priorLastKey);
+        return listObjectsChunkedImpl(bucketName, prefix, delimiter, maxListingLength, 
+            priorLastKey, false);
     }
+    
+    /**
+     * Lists the objects in a bucket matching a prefix and also returns the  
+     * common prefixes returned by S3. Depending on the value of the completeListing
+     * variable, this method can be set to automatically perform follow-up requests
+     * to build a complete object listing, or to return only a partial listing.
+     * <p>
+     * This method can be performed by anonymous services.
+     * 
+     * @param bucketName
+     * the name of the the bucket whose contents will be listed. 
+     * @param prefix
+     * only objects with a key that starts with this prefix will be listed
+     * @param maxListingLength
+     * the maximum number of objects to include in each result chunk
+     * @param priorLastKey
+     * the last object key received in a prior call to this method. The next chunk of objects
+     * listed will start with the next object in the bucket <b>after</b> this key name.
+     * This paramater may be null, in which case the listing will start at the beginning of the
+     * bucket's object contents.
+     * @param completeListing
+     * if true, the service class will automatically perform follow-up requests to 
+     * build a complete bucket object listing.
+     * @return
+     * the set of objects contained in a bucket whose keys start with the given prefix.
+     * @throws S3ServiceException
+     */
+    public S3ObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter, 
+        long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException
+    {
+        return listObjectsChunkedImpl(bucketName, prefix, delimiter, 
+            maxListingLength, priorLastKey, completeListing);
+    }    
 
     /**
      * Creates a bucket in S3 based on the provided bucket object.
@@ -1769,10 +1803,12 @@ public abstract class S3Service implements Serializable {
      * @param delimiter
      * @param maxListingLength
      * @param priorLastKey
+     * @param completeListing
      * @throws S3ServiceException
      */
     protected abstract S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, 
-        String delimiter, long maxListingLength, String priorLastKey) throws S3ServiceException;
+        String delimiter, long maxListingLength, String priorLastKey, boolean completeListing) 
+        throws S3ServiceException;
 
     /**
      * Creates a bucket.

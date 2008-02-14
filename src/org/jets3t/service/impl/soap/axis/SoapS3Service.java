@@ -111,7 +111,7 @@ public class SoapS3Service extends S3Service {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.0</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
     public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) 
@@ -367,8 +367,9 @@ public class SoapS3Service extends S3Service {
             .getObjects();            
     }
     
-    protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter, long maxListingLength, String priorLastKey) throws S3ServiceException {
-        return listObjectsInternalImpl(bucketName, prefix, delimiter, maxListingLength, false, priorLastKey);
+    protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter, 
+        long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException {
+        return listObjectsInternalImpl(bucketName, prefix, delimiter, maxListingLength, completeListing, priorLastKey);
     }    
 
     protected S3ObjectsChunk listObjectsInternalImpl(String bucketName, String prefix, 
@@ -444,11 +445,13 @@ public class SoapS3Service extends S3Service {
         if (automaticallyMergeChunks) {
             log.debug("Found " + objects.size() + " objects in total");
             return new S3ObjectsChunk(
+                prefix, delimiter, 
                 (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
                 (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
                 null);
         } else {
             return new S3ObjectsChunk(
+                prefix, delimiter, 
                 (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
                 (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
                 priorLastKey);            
