@@ -172,7 +172,7 @@ public class Synchronize {
     }
     
     private void printOutputLine(String line, int level) {
-        if (isQuiet || reportLevel < level) {
+        if ((isQuiet && level > REPORT_LEVEL_NONE) || reportLevel < level) {
             return;
         }
         
@@ -950,11 +950,9 @@ public class Synchronize {
                                 + " for " + actionCommand); 
                             printHelpAndExit(false);
                         }
-                        if (!file.canRead() || !file.isDirectory()) {
-                            if (!file.mkdirs()) {
-                                System.err.println("ERROR: Cannot create target download directory : " 
-                                    + file);                                
-                            }
+                        if (file.exists() && !file.isDirectory()) {
+                            System.err.println("ERROR: Target download location already exists but is not a directory: " 
+                                + file);                                
                         }         
                     } else {
                         if (!file.canRead()) {
