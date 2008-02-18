@@ -78,6 +78,7 @@ public class Synchronize {
     private boolean isNoDelete = false; // Files will not be deleted if true, but may be replaced.
     private boolean isGzipEnabled = false; // Files will be gzipped prior to upload if true.
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
+    private boolean isMoveEnabled = false;
     private int reportLevel = REPORT_LEVEL_ALL;
     private String cryptoPassword = null;
 
@@ -109,8 +110,10 @@ public class Synchronize {
      * The level or amount of reporting to perform. The default value is 
      * {@link #REPORT_LEVEL_ALL}.
      */
-    public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, boolean isNoProgress, boolean isForce, 
-        boolean isKeepFiles, boolean isNoDelete, boolean isGzipEnabled, boolean isEncryptionEnabled, int reportLevel) 
+    public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, 
+        boolean isNoProgress, boolean isForce, boolean isKeepFiles, 
+        boolean isNoDelete, boolean isMoveEnabled, boolean isGzipEnabled, 
+        boolean isEncryptionEnabled, int reportLevel) 
     {
         this.s3Service = s3Service;
         this.doAction = doAction;
@@ -119,6 +122,7 @@ public class Synchronize {
         this.isForce = isForce;
         this.isKeepFiles = isKeepFiles;
         this.isNoDelete = isNoDelete;
+        this.isMoveEnabled = isMoveEnabled;
         this.isGzipEnabled = isGzipEnabled;
         this.isEncryptionEnabled = isEncryptionEnabled;
         this.reportLevel = reportLevel;
@@ -340,6 +344,38 @@ public class Synchronize {
             }
         }
         
+        // Delete local files that have been moved to S3.
+        List filesMoved = new ArrayList();
+        if (isMoveEnabled) {
+            filesMoved.addAll(disrepancyResults.onlyOnClientKeys);
+            filesMoved.addAll(disrepancyResults.updatedOnClientKeys);
+            filesMoved.addAll(disrepancyResults.updatedOnServerKeys);
+            filesMoved.addAll(disrepancyResults.alreadySynchronisedKeys);
+            
+            ArrayList dirsToDelete = new ArrayList();
+            Iterator filesMovedIter = filesMoved.iterator();
+            while (filesMovedIter.hasNext()) {
+                String keyPath = (String) filesMovedIter.next();
+                File file = (File) filesMap.get(keyPath);
+                
+                printOutputLine("M " + keyPath, REPORT_LEVEL_ACTIONS);
+                if (doAction) {
+                    if (file.isDirectory()) {
+                        // Delete directories later, as they may still contain 
+                        // files until this loop completes.
+                        dirsToDelete.add(file);
+                    } else {
+                        file.delete();
+                    }
+                }
+            }
+            Iterator dirIter = dirsToDelete.iterator();
+            while (dirIter.hasNext()) {
+                File dir = (File) dirIter.next();
+                dir.delete();
+            }            
+        }
+        
         printOutputLine( 
             "New files: " + disrepancyResults.onlyOnClientKeys.size() +
             ", Updated: " + disrepancyResults.updatedOnClientKeys.size() +
@@ -357,6 +393,10 @@ public class Synchronize {
             (isForce ?
                 ", Forced updates: " + disrepancyResults.alreadySynchronisedKeys.size() :
                 ", Unchanged: " + disrepancyResults.alreadySynchronisedKeys.size()
+                ) +
+            (isMoveEnabled ?
+                ", Moved: " + filesMoved.size()
+                : ""
                 ), REPORT_LEVEL_NONE
             );
     }
@@ -495,6 +535,42 @@ public class Synchronize {
             dir.delete();
         }
         
+        // Delete objects in S3 that have been moved to the local computer.
+        List objectsMoved = new ArrayList();
+        if (isMoveEnabled) {
+            objectsMoved.addAll(disrepancyResults.onlyOnServerKeys);
+            objectsMoved.addAll(disrepancyResults.updatedOnServerKeys);
+            objectsMoved.addAll(disrepancyResults.updatedOnClientKeys);
+            objectsMoved.addAll(disrepancyResults.alreadySynchronisedKeys);
+            Collections.sort(objectsMoved);
+            
+            Iterator objectsMovedIter = objectsMoved.iterator();
+            
+            List objectsToDelete = new ArrayList();
+            while (objectsMovedIter.hasNext()) {
+                String keyPath = (String) objectsMovedIter.next();
+                S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
+
+                printOutputLine("M " + keyPath, REPORT_LEVEL_ACTIONS);
+                if (doAction) {
+                    objectsToDelete.add(s3Object);
+                }
+            }
+            
+            if (objectsToDelete.size() > 0) {
+                S3Object[] objects = (S3Object[]) objectsToDelete.toArray(new S3Object[objectsToDelete.size()]);
+                (new S3ServiceMulti(s3Service, serviceEventAdaptor)).deleteObjects(bucket, objects);
+                if (serviceEventAdaptor.wasErrorThrown()) {
+                    Throwable thrown = serviceEventAdaptor.getErrorThrown();
+                    if (thrown instanceof Exception) {
+                        throw (Exception) thrown;
+                    } else {
+                        throw new Exception(thrown);
+                    }
+                }
+            }
+        }        
+        
         printOutputLine( 
             "New files: " + disrepancyResults.onlyOnServerKeys.size() +
             ", Updated: " + disrepancyResults.updatedOnServerKeys.size() +
@@ -512,6 +588,10 @@ public class Synchronize {
             (isForce ?
                 ", Forced updates: " + disrepancyResults.alreadySynchronisedKeys.size() :
                 ", Unchanged: " + disrepancyResults.alreadySynchronisedKeys.size()
+                ) +
+            (isMoveEnabled ?
+                ", Moved: " + objectsMoved.size() :
+                ""
                 ), REPORT_LEVEL_NONE
             );
     }
@@ -778,6 +858,12 @@ public class Synchronize {
         System.out.println("   option is similar to --keepfiles except that files may be reverted.");
         System.out.println("   This option cannot be used with --keepfiles.");
         System.out.println("");
+        System.out.println("-m | --move");
+        System.out.println("   Move items rather than merely copying them. Files on the local computer will");
+        System.out.println("   be deleted after they have been uploaded to S3, or objects will be deleted");
+        System.out.println("   from S3 after they have been downloaded. Be *very* careful with this option.");
+        System.out.println("   This option cannot be used with --keepfiles.");
+        System.out.println("");
         System.out.println("-g | --gzip");
         System.out.println("   Compress (GZip) files when backing up and Decompress gzipped files");
         System.out.println("   when restoring.");
@@ -798,9 +884,9 @@ public class Synchronize {
         System.out.println("--reportlevel <Level>");
         System.out.println("   A number that specifies how much report information will be printed:");
         System.out.println("   0 - no report items will be printed (the summary will still be printed)");
-        System.out.println("   1 - only actions are reported             [Prefixes N, U, D, R, F]");
-        System.out.println("   2 - differences and actions are reported  [Prefixes N, U, D, R, F, d, r]");
-        System.out.println("   3 - DEFAULT: all items are reported       [Prefixes N, U, D, R, F, d, r, -]");
+        System.out.println("   1 - only actions are reported          [Prefixes N, U, D, R, F, M]");
+        System.out.println("   2 - differences & actions are reported [Prefixes N, U, D, R, F, M, d, r]");
+        System.out.println("   3 - DEFAULT: all items are reported    [Prefixes N, U, D, R, F, M, d, r, -]");
         System.out.println("");
         System.out.println("Report");
         System.out.println("------");
@@ -818,6 +904,7 @@ public class Synchronize {
         System.out.println("   source but because the --keepfiles option was set it was not reverted.");
         System.out.println("-: A file is identical between the local system and S3, no action is necessary.");
         System.out.println("F: A file identical locally and in S3 was updated due to the Force option.");
+        System.out.println("M: The file/object will be moved (deleted after it has been copied to/from S3).");
         System.out.println();
         System.exit(1);        
     }
@@ -846,6 +933,7 @@ public class Synchronize {
         boolean isNoDelete = false;
         boolean isGzipEnabled = false;
         boolean isEncryptionEnabled = false;
+        boolean isMoveEnabled = false;
         String aclString = null;
         int reportLevel = REPORT_LEVEL_ALL;
                 
@@ -872,6 +960,8 @@ public class Synchronize {
                     isGzipEnabled = true; 
                 } else if (arg.equalsIgnoreCase("-c") || arg.equalsIgnoreCase("--crypto")) {
                     isEncryptionEnabled = true; 
+                } else if (arg.equalsIgnoreCase("-m") || arg.equalsIgnoreCase("--move")) {
+                    isMoveEnabled = true; 
                 } else if (arg.equalsIgnoreCase("--properties")) {
                     if (i + 1 < args.length) {
                         // Read the Synchronize properties file from the specified file            
@@ -985,6 +1075,12 @@ public class Synchronize {
             printHelpAndExit(false);            
         }
         
+        if (isKeepFiles && isMoveEnabled) {
+            // Incompatible options.
+            System.err.println("ERROR: Options --keepfiles and --move cannot be used at the same time");
+            printHelpAndExit(false);            
+        }
+        
         if (properties == null) {        
             // Read the Synchronize properties file from the classpath            
             properties = Jets3tProperties.getInstance(propertiesFileName);
@@ -1027,7 +1123,7 @@ public class Synchronize {
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
             doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, 
-            isGzipEnabled, isEncryptionEnabled, reportLevel);
+            isMoveEnabled, isGzipEnabled, isEncryptionEnabled, reportLevel);
         client.run(s3Path, fileList, actionCommand, 
             properties.getStringProperty("password", null), aclString);
     }

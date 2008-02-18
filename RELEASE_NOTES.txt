@@ -12,6 +12,8 @@ SYNCHRONIZE
   identify the objects in the Docs subdirectory with names beginning with 2008.
 - Added --reportlevel option that allows the user to control how much report
   detail is printed, from 0 (no reporting) to 3 (all reporting).
+- Added --move option that deletes local files after they have been uploaded to
+  S3, or deletes objects from S3 after they have been downloaded.
 
 
 TOOLKIT
