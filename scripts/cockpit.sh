@@ -8,12 +8,15 @@
 #              Java Development Kit to use. 
 # -------------------------------------------------------------------
 
+: ${JETS3T_HOME:-""}
+: ${JAVA_HOME:-""}
+
 # Check the JETS3T_HOME directory
 
-if [ -z $JETS3T_HOME ]; then
+if [ -z "$JETS3T_HOME" ]; then
   # Try to find the home directory, assuming this script is in $JETS3T_HOME/bin
   SCPT_DIR=`dirname $0`
-  if [ "$SCPT_DIR" == "." ]; then
+  if [ "$SCPT_DIR" = "." ]; then
     JETS3T_HOME=..
   else    
     JETS3T_HOME=`dirname $SCPT_DIR`
@@ -26,7 +29,7 @@ if [ ! -d $JETS3T_HOME/jars ]; then
 fi
 
 # Check the JAVA_HOME directory
-if [ -z $JAVA_HOME ]; then
+if [ -z "$JAVA_HOME" ]; then
   # Test whether the 'java' program is available in the system path.
   java -version 2> /dev/null
   if [ $? -gt 0 ]; then
