@@ -100,6 +100,10 @@ public class Synchronize {
      * Files will be overwritten when unchanged if true.
      * @param isKeepFiles     
      * Files will not be replaced/deleted if true.
+     * @param isMoveEnabled
+     * If true, items will be moved rather than just copied. Files will be 
+     * deleted after they have been uploaded, and S3 objects will be deleted
+     * after they have been downloaded.
      * @param isNoDelete     
      * Files will not be deleted if true, but may be replaced.
      * @param isGzipEnabled 
