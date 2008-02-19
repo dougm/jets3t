@@ -158,7 +158,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) 
         throws S3ServiceException 
     {
-        super(awsCredentials, invokingApplicationDescription);
+        super(awsCredentials, invokingApplicationDescription, jets3tProperties);
         
         // Set HttpClient properties based on Jets3t Properties.
         HostConfiguration hostConfig = new HostConfiguration();
