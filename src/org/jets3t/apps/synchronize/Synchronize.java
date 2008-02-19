@@ -691,13 +691,16 @@ public class Synchronize {
         printProgressLine("Listing files in local file system");
         Map filesMap = null;        
         if ("UP".equals(actionCommand)) {            
-            filesMap = FileComparer.buildFileMap((File[]) fileList.toArray(new File[fileList.size()]), storeEmptyDirectories);
+            filesMap = FileComparer.getInstance()
+                .buildFileMap((File[]) fileList.toArray(new File[fileList.size()]), storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
-            filesMap = FileComparer.buildFileMap((File) fileList.get(0), null, true);
+            filesMap = FileComparer.getInstance()
+                .buildFileMap((File) fileList.get(0), null, true);
         }
 
         printProgressLine("Listing objects in S3");
-        Map s3ObjectsMap = FileComparer.buildS3ObjectMap(s3Service, bucket, objectPath, serviceEventAdaptor);
+        Map s3ObjectsMap = FileComparer.getInstance()
+            .buildS3ObjectMap(s3Service, bucket, objectPath, serviceEventAdaptor);
         if (serviceEventAdaptor.wasErrorThrown()) {
             throw new Exception("Unable to build map of S3 Objects", serviceEventAdaptor.getErrorThrown());
         }
@@ -721,8 +724,8 @@ public class Synchronize {
         };
 
         printProgressLine("Comparing S3 contents with local system");        
-        FileComparerResults discrepancyResults = 
-            FileComparer.buildDiscrepancyLists(filesMap, s3ObjectsMap, progressWatcher);
+        FileComparerResults discrepancyResults = FileComparer.getInstance()
+            .buildDiscrepancyLists(filesMap, s3ObjectsMap, progressWatcher);
 
         // Perform the requested action on the set of disrepancies.
         if ("UP".equals(actionCommand)) {  

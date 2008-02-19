@@ -40,6 +40,7 @@ import org.apache.axis.attachments.SourceDataSource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
@@ -112,12 +113,15 @@ public class SoapS3Service extends S3Service {
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
      * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * @param jets3tProperties
+     * JetS3t properties that will be applied within this service.
+     * 
      * @throws S3ServiceException
      */
-    public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) 
-        throws S3ServiceException 
+    public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
+        Jets3tProperties jets3tProperties) throws S3ServiceException 
     {
-        super(awsCredentials, invokingApplicationDescription);
+        super(awsCredentials, invokingApplicationDescription, jets3tProperties);
         
         locator = new AmazonS3_ServiceLocator();
         if (super.isHttpsOnly()) {
@@ -131,6 +135,24 @@ public class SoapS3Service extends S3Service {
         // Ensure we can get the stub.
         getSoapBinding();
     }
+    
+    /**
+     * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
+     * sets the SOAP endpoint to use HTTP or HTTPS protocols.
+     * 
+     * @param awsCredentials
+     * @param invokingApplicationDescription
+     * a short description of the application using the service, suitable for inclusion in a
+     * user agent string for REST/HTTP requests. Ideally this would include the application's
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * @throws S3ServiceException
+     */
+    public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) 
+        throws S3ServiceException 
+    {
+        this(awsCredentials, invokingApplicationDescription, 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
+    }    
     
     /**
      * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}

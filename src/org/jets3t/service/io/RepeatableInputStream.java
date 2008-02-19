@@ -58,24 +58,39 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
      * 
      * @param inputStream
      * an input stream to wrap. The data read from the wrapped input stream is buffered as it is
+     * read, up to the buffer limit specified.
+     * @param bufferSize
+     * the number of bytes buffered by this class. 
+     * 
+     * @throws FileNotFoundException
+     */
+    public RepeatableInputStream(InputStream inputStream, int bufferSize) {
+        if (inputStream == null) {
+            throw new IllegalArgumentException("InputStream cannot be null");
+        }
+        this.is = inputStream;        
+
+        this.bufferSize = bufferSize;
+        this.buffer = new byte[this.bufferSize];            
+        
+        log.debug("Underlying input stream will be repeatable up to " + this.buffer.length + " bytes");            
+    }
+
+    /**
+     * Creates a repeatable input stream based on another input stream.
+     * 
+     * @param inputStream
+     * an input stream to wrap. The data read from the wrapped input stream is buffered as it is
      * read, up to the buffer limit as set by the JetS3t property 
      * <tt>s3service.stream-retry-buffer-size</tt>.
      * 
      * @throws FileNotFoundException
      */
     public RepeatableInputStream(InputStream inputStream) {
-        if (inputStream == null) {
-            throw new IllegalArgumentException("InputStream cannot be null");
-        }
-        this.is = inputStream;        
-
-        this.bufferSize = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getIntProperty("s3service.stream-retry-buffer-size", 131072);
-        this.buffer = new byte[this.bufferSize];            
-        
-        log.debug("Underlying input stream will be repeatable up to " + this.buffer.length + " bytes");            
+        this(inputStream, Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getIntProperty("s3service.stream-retry-buffer-size", 131072));
     }
-    
+
     /**
      * Resets the input stream to the beginning by pointing the buffer offset to the beginning of the
      * available data buffer. 

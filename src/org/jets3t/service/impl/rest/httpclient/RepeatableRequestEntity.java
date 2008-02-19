@@ -81,6 +81,11 @@ public class RepeatableRequestEntity implements RequestEntity {
      * <p>
      * This constructor also detects when an underlying {@link ProgressMonitoredInputStream} is
      * present, and will notify this monitor if a repeat occurs.
+     * <p>
+     * If the JetS3t properties option <code>httpclient.read-throttle</code> is set to a 
+     * non-zero value, all simultaneous uploads performed by this class will be throttled
+     * to the specified speed. 
+     * 
      * 
      * @param is
      * @param contentType

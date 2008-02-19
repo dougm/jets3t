@@ -22,6 +22,8 @@ TOOLKIT
   
 - Fixed bug in RestS3Service that caused failures in some circumstances when 
   buckets were created with the "US" location.
+- S3Service instances can now be configured individually by providing a
+  JetS3tProperties object when constructing the service.
 
   * Multi-threaded Service
 

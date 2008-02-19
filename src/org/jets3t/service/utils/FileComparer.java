@@ -67,6 +67,38 @@ import org.jets3t.service.multithread.S3ServiceMulti;
  */
 public class FileComparer {
     private static final Log log = LogFactory.getLog(FileComparer.class);
+    
+    private Jets3tProperties jets3tProperties = null;
+    
+    /**
+     * Constructs the class.
+     * 
+     * @param jets3tProperties
+     * the object containing the properties that will be applied in this class.
+     */
+    public FileComparer(Jets3tProperties jets3tProperties) {
+        this.jets3tProperties = jets3tProperties;        
+    }
+    
+    /**
+     * @param jets3tProperties
+     * the object containing the properties that will be applied in the instance.
+     * @return
+     * a FileComparer instance. 
+     */
+    public static FileComparer getInstance(Jets3tProperties jets3tProperties) {
+        return new FileComparer(jets3tProperties);
+    }
+
+    /**
+     * @return
+     * a FileComparer instance initialized with the default JetS3tProperties
+     * object. 
+     */
+    public static FileComparer getInstance() {
+        return new FileComparer(
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
+    }
 
     /**
      * If a <code>.jets3t-ignore</code> file is present in the given directory, the file is read
@@ -80,7 +112,7 @@ public class FileComparer {
      * a list of Pattern objects representing the paths in the ignore file. If there is no ignore
      * file, or if it has no contents, the list returned will be empty. 
      */
-    protected static List buildIgnoreRegexpList(File directory) {
+    protected List buildIgnoreRegexpList(File directory) {
         ArrayList ignorePatternList = new ArrayList();
 
         if (directory == null || !directory.isDirectory()) {
@@ -114,8 +146,7 @@ public class FileComparer {
             }
         }
         
-        if (Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getBoolProperty("filecomparer.skip-upload-of-md5-files", false))
+        if (jets3tProperties.getBoolProperty("filecomparer.skip-upload-of-md5-files", false))
         {
             Pattern pattern = Pattern.compile(".*\\.md5");
             log.debug("Skipping upload of pre-computed MD5 files with path '*.md5' using the regexp: " 
@@ -138,7 +169,7 @@ public class FileComparer {
      * @return
      * true if the file should be ignored, false otherwise.
      */
-    protected static boolean isIgnored(List ignorePatternList, File file) {
+    protected boolean isIgnored(List ignorePatternList, File file) {
         Iterator patternIter = ignorePatternList.iterator();
         while (patternIter.hasNext()) {
             Pattern pattern = (Pattern) patternIter.next();
@@ -172,7 +203,7 @@ public class FileComparer {
      * @return
      * a Map of file path keys to File objects.
      */
-    public static Map buildFileMap(File[] files, boolean includeDirectories) {
+    public Map buildFileMap(File[] files, boolean includeDirectories) {
         // Build map of files proposed for upload.
         HashMap fileMap = new HashMap();
         List ignorePatternList = null;
@@ -229,7 +260,7 @@ public class FileComparer {
      * 
      * @return A Map of file path keys to File objects.
      */
-    public static Map buildFileMap(File rootDirectory, String fileKeyPrefix, boolean includeDirectories) {
+    public Map buildFileMap(File rootDirectory, String fileKeyPrefix, boolean includeDirectories) {
         HashMap fileMap = new HashMap();
         List ignorePatternList = buildIgnoreRegexpList(rootDirectory);
         
@@ -268,7 +299,7 @@ public class FileComparer {
      * If this variable is false directory objects will not be included in the Map, and it will not
      * be possible to store empty directories in S3.
      */
-    protected static void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap, boolean includeDirectories) {
+    protected void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap, boolean includeDirectories) {
         List ignorePatternList = buildIgnoreRegexpList(directory);
 
         File children[] = directory.listFiles();
@@ -299,7 +330,7 @@ public class FileComparer {
      * maping of keys/S3Objects
      * @throws S3ServiceException
      */
-    public static Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath,
+    public Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath,
         S3ServiceEventListener s3ServiceEventListener) throws S3ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
@@ -324,7 +355,7 @@ public class FileComparer {
      * mapping of keys/S3Objects
      * @throws S3ServiceException
      */
-    public static Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,  String targetPath, 
+    public Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,  String targetPath, 
         S3Object[] s3ObjectsIncomplete, S3ServiceEventListener s3ServiceEventListener) 
         throws S3ServiceException
     {
@@ -367,7 +398,7 @@ public class FileComparer {
      * @return
      * a map of key/S3Object pairs.
      */
-    public static Map populateS3ObjectMap(String targetPath, S3Object[] s3Objects) {
+    public Map populateS3ObjectMap(String targetPath, S3Object[] s3Objects) {
         HashMap map = new HashMap();
         for (int i = 0; i < s3Objects.length; i++) {
             String relativeKey = s3Objects[i].getKey();
@@ -415,7 +446,7 @@ public class FileComparer {
      * @throws IOException
      * @throws ParseException
      */
-    public static FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap) 
+    public FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap) 
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
         return buildDiscrepancyLists(filesMap, s3ObjectsMap, null);
@@ -441,7 +472,7 @@ public class FileComparer {
      * @throws IOException
      * @throws ParseException
      */
-    public static FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap, 
+    public FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap, 
         BytesProgressWatcher progressWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
@@ -467,8 +498,8 @@ public class FileComparer {
                 && "binary/octet-stream".equals(s3Object.getContentType()))
             {
                 boolean ignorePanicDirPlaceholders = 
-                    Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                    .getBoolProperty("filecomparer.ignore-panic-dir-placeholders", false);
+                    jets3tProperties.getBoolProperty(
+                        "filecomparer.ignore-panic-dir-placeholders", false);
                 
                 if (ignorePanicDirPlaceholders) {                                
                     log.debug("Ignoring object that looks like a directory " +
@@ -495,12 +526,10 @@ public class FileComparer {
                     alreadySynchronisedKeys.add(keyPath);
                 } else {
                     // Compare file hashes.
-                    boolean useMd5Files = 
-                        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                    boolean useMd5Files = jets3tProperties
                         .getBoolProperty("filecomparer.use-md5-files", false);
 
-                    boolean generateMd5Files = 
-                        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                    boolean generateMd5Files = jets3tProperties
                         .getBoolProperty("filecomparer.generate-md5-files", false);                                        
                     
                     byte[] computedHash = null;

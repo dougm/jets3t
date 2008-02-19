@@ -1352,7 +1352,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         // Build map of existing local files.
         Map filesInDownloadDirectoryMap = null;
         try {
-            filesInDownloadDirectoryMap = FileComparer.buildFileMap(downloadDirectory, null, true);
+            filesInDownloadDirectoryMap = FileComparer.getInstance()
+                .buildFileMap(downloadDirectory, null, true);
         } catch (Exception e) {
             String message = "Unable to review files in targetted download directory";
             log.error(message, e);
@@ -1364,7 +1365,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         filesAlreadyInDownloadDirectoryMap = new HashMap();
         
         // Build map of S3 Objects being downloaded. 
-        s3DownloadObjectsMap = FileComparer.populateS3ObjectMap("", getSelectedObjects());
+        s3DownloadObjectsMap = FileComparer.getInstance()
+            .populateS3ObjectMap("", getSelectedObjects());
 
         // Identify objects that may clash with existing files, or may be directories,
         // and retrieve details for these.
@@ -1405,7 +1407,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             // Build map of files proposed for upload.
             boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
                 .getBoolProperty("uploads.storeEmptyDirectories", true);
-            filesForUploadMap = FileComparer.buildFileMap(uploadFiles, storeEmptyDirectories);
+            filesForUploadMap = FileComparer.getInstance()
+                .buildFileMap(uploadFiles, storeEmptyDirectories);
                         
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.
@@ -1420,7 +1423,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             existingObjects = (S3Object[]) objectsWithExistingKeys
                 .toArray(new S3Object[objectsWithExistingKeys.size()]);
             
-            s3ExistingObjectsMap = FileComparer.populateS3ObjectMap("", existingObjects);
+            s3ExistingObjectsMap = FileComparer.getInstance()
+                .populateS3ObjectMap("", existingObjects);
             
             if (existingObjects.length > 0) {
                 // Retrieve details of potential clashes.
@@ -1470,8 +1474,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                         }
                     };
                                         
-                    FileComparerResults comparisonResults = 
-                        FileComparer.buildDiscrepancyLists(localFilesMap, s3ObjectsMap, progressWatcher);
+                    FileComparerResults comparisonResults = FileComparer.getInstance()
+                        .buildDiscrepancyLists(localFilesMap, s3ObjectsMap, progressWatcher);
                     
                     stopProgressDialog(); 
                     

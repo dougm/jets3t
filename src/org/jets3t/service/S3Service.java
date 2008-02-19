@@ -74,10 +74,8 @@ public abstract class S3Service implements Serializable {
      */
     public static final String VERSION_NO__JETS3T_TOOLKIT = "0.6.1";
     
-    protected static boolean disableDnsBuckets = 
-        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getBoolProperty("s3service.disable-dns-buckets", false);        
-
+    protected Jets3tProperties jets3tProperties = null;
+    
     private AWSCredentials awsCredentials = null;
     private String invokingApplicationDescription = null;
     private boolean isHttpsOnly = true;
@@ -103,16 +101,20 @@ public abstract class S3Service implements Serializable {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code> 
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * @param jets3tProperties
+     * JetS3t properties that will be applied within this service.
      * @throws S3ServiceException
      */
-    protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) throws S3ServiceException {
+    protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
+        Jets3tProperties jets3tProperties) throws S3ServiceException 
+    {
         this.awsCredentials = awsCredentials;
         this.invokingApplicationDescription = invokingApplicationDescription;
-        isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getBoolProperty("s3service.https-only", true);        
-        internalErrorRetryMax = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getIntProperty("s3service.internal-error-retry-max", 5);        
+        
+        this.jets3tProperties = jets3tProperties;                
+        this.isHttpsOnly = jets3tProperties.getBoolProperty("s3service.https-only", true);        
+        this.internalErrorRetryMax = jets3tProperties.getIntProperty("s3service.internal-error-retry-max", 5);                
         
         // Configure the InetAddress DNS caching times to work well with S3. The cached DNS will
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
@@ -120,6 +122,25 @@ public abstract class S3Service implements Serializable {
         System.setProperty("networkaddress.cache.negative.ttl", "1");
     }
 
+    /**
+     * Construct an <code>S3Service</code> identified by the given AWS Principal.
+     * 
+     * @param awsCredentials
+     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * communication is done as an anonymous user.
+     * @param invokingApplicationDescription
+     * a short description of the application using the service, suitable for inclusion in a
+     * user agent string for REST/HTTP requests. Ideally this would include the application's
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * @throws S3ServiceException
+     */
+    protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription)
+        throws S3ServiceException 
+    {
+        this(awsCredentials, invokingApplicationDescription, 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));        
+    }
+    
     /**
      * Construct an <code>S3Service</code> identified by the given AWS Principal.
      * 
@@ -154,6 +175,7 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
+     * @return
      * The maximum number of times to retry when S3 Internal Error (500) errors are encountered,   
      * as set by the JetS3t property: s3service.internal-error-retry-max 
      */
@@ -162,16 +184,36 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
+     * @return
+     * the JetS3t properties that will be used by this service. 
+     */
+    public Jets3tProperties getJetS3tProperties() {
+        return jets3tProperties;
+    }
+    
+    /**
      * Returns true if the given bucket name can be used as a component of a valid
      * DNS name. If so, the bucket can be accessed using requests with the bucket name
      * as part of an S3 sub-domain. If not, the old-style bucket reference URLs must be 
      * used, in which case the bucket name must be the first component of the resource 
      * path.
+     * <p>
+     * If the JetS3tProperties property <code>s3service.disable-dns-buckets</code> is 
+     * set to true in the default configuration file, this method will always 
+     * return false.
+     * 
+     * @param bucketName
+     * the name of the bucket to test for DNS compatibility.
+     * 
      */
-    public static boolean isBucketNameValidDNSName(String bucketName) {
+    public static boolean isBucketNameValidDNSName(String bucketName) 
+    {
+        boolean disableDnsBuckets = 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getBoolProperty("s3service.disable-dns-buckets", false);
         if (disableDnsBuckets) {
             return false;
-        }
+        }               
         
         if (bucketName == null || bucketName.length() > 63 || bucketName.length() < 3) {
             return false;
@@ -292,6 +334,9 @@ public abstract class S3Service implements Serializable {
      * @param isVirtualHost
      * if this parameter is true, the bucket name is treated as a virtual host name. To use
      * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     * @param isHttps
+     * if true, the signed URL will use the HTTPS protocol. If false, the signed URL will
+     * use the HTTP protocol.
      * 
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
@@ -300,7 +345,7 @@ public abstract class S3Service implements Serializable {
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey, 
         String specialParamName, Map headersMap, AWSCredentials awsCredentials, 
-        long secondsSinceEpoch, boolean isVirtualHost) 
+        long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps) 
         throws S3ServiceException
     {
         String uriPath = "";
@@ -340,16 +385,58 @@ public abstract class S3Service implements Serializable {
         String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
         uriPath += "&Signature=" + encodedCanonical;
 
-        // Append URL prefix (protocol and host end point) to signed string
-        boolean isHttpsOnly = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getBoolProperty("s3service.https-only", true);
-
-        if (isHttpsOnly) {
+        if (isHttps) {
             return "https://" + hostname + "/" + uriPath;
         } else {            
             return "http://" + hostname + "/" + uriPath;
-        }
-    }
+        }        
+    }    
+    
+    /**
+     * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
+     * to whoever uses the URL up until the time specified. The URL will use the HTTP or
+     * HTTPS protocol depending on the value of the <code>s3service.https-only</code> property
+     * in the default jets3t.properties file.
+     * 
+     * @param method
+     * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param specialParamName
+     * the name of a request parameter to add to the URL generated by this method. 'Special'
+     * parameters may include parameters that specify the kind of S3 resource that the URL
+     * will refer to, such as 'acl', 'torrent', 'logging' or 'location'.
+     * @param headersMap
+     * headers to add to the signed URL, may be null. 
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param awsCredentials
+     * the credentials of someone with sufficient privileges to grant access to the bucket/object 
+     * @param secondsSinceEpoch
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds. 
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     * 
+     * @return
+     * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
+     * 
+     * @throws S3ServiceException
+     */
+    public static String createSignedUrl(String method, String bucketName, String objectKey, 
+        String specialParamName, Map headersMap, AWSCredentials awsCredentials, 
+        long secondsSinceEpoch, boolean isVirtualHost) 
+        throws S3ServiceException
+    {
+        boolean isHttps = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("s3service.https-only", true);
+
+        return createSignedUrl(method, bucketName, objectKey, specialParamName, 
+            headersMap, awsCredentials, secondsSinceEpoch, isVirtualHost, isHttps);
+    }    
     
     /**
      * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
@@ -1021,8 +1108,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public S3Bucket createBucket(String bucketName) throws S3ServiceException {
-        String defaultBucketLocation = Jets3tProperties.getInstance(
-            Constants.JETS3T_PROPERTIES_FILENAME).getStringProperty(
+        String defaultBucketLocation = jets3tProperties.getStringProperty(
                 "s3service.default-bucket-location", S3Bucket.LOCATION_US);
         return createBucket(bucketName, defaultBucketLocation);        
     }
