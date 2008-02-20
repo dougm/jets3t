@@ -371,9 +371,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                                 + " failed for '" + httpMethod.getPath() + "'", sb.toString());
                         
                         if ("RequestTimeout".equals(exception.getS3ErrorCode())) {
-                            int retryMaxCount = Jets3tProperties
-                                .getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                                .getIntProperty("httpclient.retry-max", 5);                            
+                            int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);                            
                             
                             if (requestTimeoutErrorCount < retryMaxCount) {
                                 requestTimeoutErrorCount++;                                
