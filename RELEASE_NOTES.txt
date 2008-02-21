@@ -10,6 +10,11 @@ SYNCHRONIZE
   downloaded. For example, in a bucket that has a Docs subdirectory containing
   objects named with a timestamp prefix, the S3 path "my-bucket/Docs/2008" will 
   identify the objects in the Docs subdirectory with names beginning with 2008.
+- Added --batch option that causes Synchronize to compare and download/upload 
+  files in batches of 1000, rather than all at once. This option will reduce the 
+  memory required to synchronize buckets with many objects, and will allow file
+  transfers to commence as soon as possible rather than after the slow
+  comparison process.
 - Added --reportlevel option that allows the user to control how much report
   detail is printed, from 0 (no reporting) to 3 (all reporting).
 - Added --move option that deletes local files after they have been uploaded to

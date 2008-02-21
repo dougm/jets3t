@@ -32,9 +32,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
@@ -42,6 +44,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.io.BytesProgressWatcher;
@@ -327,7 +330,7 @@ public class FileComparer {
      * @param bucket
      * @param targetPath
      * @return
-     * maping of keys/S3Objects
+     * mapping of keys/S3Objects
      * @throws S3ServiceException
      */
     public Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath,
@@ -338,6 +341,42 @@ public class FileComparer {
         return buildS3ObjectMap(s3Service, bucket, targetPath, s3ObjectsIncomplete, s3ServiceEventListener);
     }
 
+
+    /**
+     * Builds an S3 Object Map containing a partial set of objects within the given target path,
+     * where the map's key for each object is the relative path to the object.
+     * 
+     * @see #buildDiscrepancyLists(Map, Map)
+     * @see #buildFileMap(File, String, boolean)
+     * 
+     * @param s3Service
+     * @param bucket
+     * @param targetPath
+     * @param priorLastKey 
+     * the prior last key value returned by a prior invocation of this method, if any.
+     * @param completeListing
+     * if true, this method will perform a complete listing of an S3 target. 
+     * If false, the method will list a partial set of objects commencing from the
+     * given prior last key.
+     * 
+     * @return
+     * an object containing a mapping of key names to S3Objects, and the prior last
+     * key (if any) that should be used to perform follow-up method calls.
+     * @throws S3ServiceException
+     */
+    public PartialObjectListing buildS3ObjectMapPartial(S3Service s3Service, S3Bucket bucket, 
+        String targetPath, String priorLastKey, boolean completeListing, 
+        S3ServiceEventListener s3ServiceEventListener) throws S3ServiceException
+    {
+        String prefix = (targetPath.length() > 0 ? targetPath : null);
+        S3ObjectsChunk chunk = s3Service.listObjectsChunked(
+            bucket.getName(), prefix, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE, 
+            priorLastKey, completeListing);
+
+        Map objectsMap = buildS3ObjectMap(s3Service, bucket, targetPath, 
+            chunk.getObjects(), s3ServiceEventListener);
+        return new PartialObjectListing(objectsMap, chunk.getPriorLastKey());
+    }
 
     /**
      * Builds an S3 Object Map containing all the given objects, by retrieving HEAD details about
@@ -476,11 +515,11 @@ public class FileComparer {
         BytesProgressWatcher progressWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
-        List onlyOnServerKeys = new ArrayList();
-        List updatedOnServerKeys = new ArrayList();
-        List updatedOnClientKeys = new ArrayList();
-        List alreadySynchronisedKeys = new ArrayList();
-        List onlyOnClientKeys = new ArrayList();
+        Set onlyOnServerKeys = new HashSet();
+        Set updatedOnServerKeys = new HashSet();
+        Set updatedOnClientKeys = new HashSet();
+        Set alreadySynchronisedKeys = new HashSet();
+        Set onlyOnClientKeys = new HashSet();
 
         // Check files on server against local client files.
         Iterator s3ObjectsMapIter = s3ObjectsMap.entrySet().iterator();
@@ -646,6 +685,24 @@ public class FileComparer {
 
         return new FileComparerResults(onlyOnServerKeys, updatedOnServerKeys, updatedOnClientKeys,
             onlyOnClientKeys, alreadySynchronisedKeys);
+    }
+    
+    public class PartialObjectListing {
+        private Map objectsMap = null;
+        private String priorLastKey = null;
+        
+        public PartialObjectListing(Map objectsMap, String priorLastKey) {
+            this.objectsMap = objectsMap;
+            this.priorLastKey = priorLastKey;
+        }
+
+        public Map getObjectsMap() {
+            return objectsMap;
+        }
+
+        public String getPriorLastKey() {
+            return priorLastKey;
+        }        
     }
 
 }
