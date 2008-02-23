@@ -46,7 +46,7 @@ public class BucketTableModel extends DefaultTableModel {
                 public int compare(Object o1, Object o2) {
                     String b1Name = ((S3Bucket)o1).getName();
                     String b2Name = ((S3Bucket)o2).getName();
-                    int result =  b1Name.compareToIgnoreCase(b2Name);
+                    int result =  b1Name.compareTo(b2Name);
                     return result;
                 }
             });
