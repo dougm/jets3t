@@ -252,7 +252,7 @@ public class S3ServiceMulti implements Serializable {
      * <tt>s3service.admin-max-thread-count</tt>.
      */
     public void listObjects(final String bucketName, final String[] prefixes, 
-        final String delimiter, final int maxListingLength) 
+        final String delimiter, final long maxListingLength) 
     {
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
                 
@@ -1543,12 +1543,12 @@ public class S3ServiceMulti implements Serializable {
         private String bucketName = null;
         private String prefix = null;
         private String delimiter = null;
-        private int maxListingLength = 1000;
+        private long maxListingLength = 1000;
         private String priorLastKey = null;
         private boolean halted = false;
         
         public ListObjectsRunnable(String bucketName, String prefix, 
-            String delimiter, int maxListingLength, String priorLastKey) 
+            String delimiter, long maxListingLength, String priorLastKey) 
         {
             this.bucketName = bucketName;
             this.prefix = prefix;

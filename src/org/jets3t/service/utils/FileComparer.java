@@ -30,6 +30,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +53,7 @@ import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
+import org.jets3t.service.multithread.ListObjectsEvent;
 import org.jets3t.service.multithread.S3ServiceEventAdaptor;
 import org.jets3t.service.multithread.S3ServiceEventListener;
 import org.jets3t.service.multithread.S3ServiceMulti;
@@ -318,6 +320,177 @@ public class FileComparer {
             }
         }
     }
+        
+    /**
+     * Lists the objects in a bucket using a partitioning technique to divide
+     * the object namespace into separate partitions that can be listed by
+     * multiple simultaneous threads. This method divides the object namespace
+     * using the given delimiter, traverses this space up to the specified
+     * depth to identify prefix names for multiple "partitions", and 
+     * then lists the objects in each partition. It returns the complete list 
+     * of objects in the bucket path.
+     * <p>
+     * This partitioning technique will work best for buckets with many objects
+     * that are divided into a number of virtual subdirectories of roughly equal
+     * size.
+     *  
+     * @param s3Service
+     * the service object that will be used to perform listing requests.
+     * @param bucketName
+     * the name of the bucket whose contents will be listed.
+     * @param targetPath
+     * a root path within the bucket to be listed. If this parameter is null, all
+     * the bucket's objects will be listed. Otherwise, only the objects below the
+     * virtual path specified will be listed.
+     * @param delimiter
+     * the delimiter string used to identify virtual subdirectory partitions 
+     * in a bucket. If this parameter is null, or it has a value that is not
+     * present in your object names, no partitioning will take place.
+     * @param toDepth
+     * the number of delimiter levels this method will traverse to identify
+     * subdirectory partions. If this value is zero, no partitioning will take
+     * place.  
+     * 
+     * @return
+     * the list of objects under the target path in the bucket.
+     * 
+     * @throws S3ServiceException
+     */
+    public S3Object[] listObjectsThreaded(S3Service s3Service, 
+        final String bucketName, String targetPath, final String delimiter, int toDepth) 
+        throws S3ServiceException
+    {
+        final List allObjects = Collections.synchronizedList(new ArrayList());
+        final List lastCommonPrefixes = Collections.synchronizedList(new ArrayList());
+        final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1]; 
+        
+        /*
+         * Create a S3ServiceMulti object with an event listener that responds to
+         * ListObjectsEvent notifications and populates a complete object listing. 
+         */
+        final S3ServiceMulti s3Multi = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
+            public void s3ServiceEventPerformed(ListObjectsEvent event) {
+                if (ListObjectsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                    Iterator chunkIter = event.getChunkList().iterator();
+                    while (chunkIter.hasNext()) {
+                        S3ObjectsChunk chunk = (S3ObjectsChunk) chunkIter.next();
+                        
+                        log.debug("Listed " + chunk.getObjects().length
+                            + " objects and " + chunk.getCommonPrefixes().length 
+                            + " common prefixes in bucket '" + bucketName 
+                            + "' using prefix=" + chunk.getPrefix() 
+                            + ", delimiter=" + chunk.getDelimiter());
+
+                        allObjects.addAll(Arrays.asList(chunk.getObjects()));
+                        lastCommonPrefixes.addAll(Arrays.asList(chunk.getCommonPrefixes()));
+                    }
+                } else if (ListObjectsEvent.EVENT_ERROR == event.getEventCode()) {
+                    s3ServiceExceptions[0] = new S3ServiceException(
+                        "Failed to list all objects in S3 bucket", 
+                        event.getErrorCause());                    
+                }
+            }
+        });  
+
+        // The first listing partition we use as a starting point is the target path.
+        String[] prefixesToList = new String[] {targetPath};
+        int currentDepth = 0;        
+        
+        while (currentDepth <= toDepth && prefixesToList.length > 0) {
+            log.debug("Listing objects in '" + bucketName + "' using " 
+                + prefixesToList.length + " prefixes: " 
+                + Arrays.asList(prefixesToList));
+
+            // Initialize the variables that will be used, or populated, by the
+            // multi-threaded listing.
+            lastCommonPrefixes.clear();
+            final String[] finalPrefixes = prefixesToList; 
+            final String finalDelimiter = (currentDepth < toDepth ? delimiter : null);
+
+            /*
+             * Perform a multi-threaded listing, where each prefix string
+             * will be used as a unique partition to be listed in a separate thread.
+             */ 
+            (new Thread() {
+                public void run() {
+                    s3Multi.listObjects(bucketName, finalPrefixes, 
+                        finalDelimiter, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+                };
+            }).run();
+            // Throw any exceptions that occur inside the threads.
+            if (s3ServiceExceptions[0] != null) {
+                throw s3ServiceExceptions[0];
+            }
+            
+            // We use the common prefix paths identified in the last listing 
+            // iteration, if any, to identify partitions for follow-up listings.
+            prefixesToList = (String[]) lastCommonPrefixes
+                .toArray(new String[lastCommonPrefixes.size()]);                        
+
+            currentDepth++;
+        }
+        
+        return (S3Object[]) allObjects.toArray(new S3Object[allObjects.size()]);
+    }
+    
+    
+    /**
+     * Lists the objects in a bucket using a partitioning technique to divide
+     * the object namespace into separate partitions that can be listed by
+     * multiple simultaneous threads. This method divides the object namespace
+     * using the given delimiter, traverses this space up to the specified
+     * depth to identify prefix names for multiple "partitions", and 
+     * then lists the objects in each partition. It returns the complete list 
+     * of objects in the bucket path.
+     * <p>
+     * This partitioning technique will work best for buckets with many objects
+     * that are divided into a number of virtual subdirectories of roughly equal
+     * size.
+     * <p>
+     * The delimiter and depth properties that define how this method will 
+     * partition the bucket's namespace are set in the jets3t.properties file
+     * with the setting: 
+     * filecomparer.bucket-listing.&lt;bucketname>=&lt;delim>,&lt;depth><br>
+     * For example: <code>filecomparer.bucket-listing.my-bucket=/,2</code>
+     *  
+     * @param s3Service
+     * the service object that will be used to perform listing requests.
+     * @param bucketName
+     * the name of the bucket whose contents will be listed.
+     * @param targetPath
+     * a root path within the bucket to be listed. If this parameter is null, all
+     * the bucket's objects will be listed. Otherwise, only the objects below the
+     * virtual path specified will be listed.
+     * 
+     * @return
+     * the list of objects under the target path in the bucket.
+     * 
+     * @throws S3ServiceException
+     */
+    public S3Object[] listObjectsThreaded(S3Service s3Service, 
+        final String bucketName, String targetPath) throws S3ServiceException    
+    {
+        String delimiter = null;
+        int toDepth = 0;
+        
+        // Find bucket-specific listing properties, if any.
+        String bucketListingProperties = jets3tProperties.getStringProperty(
+            "filecomparer.bucket-listing." + bucketName, null);
+        if (bucketListingProperties != null) {
+            String splits[] = bucketListingProperties.split(",");
+            if (splits.length != 2) {
+                throw new S3ServiceException(
+                    "Invalid setting for bucket listing property "
+                    + "filecomparer.bucket-listing." + bucketName + ": '" +
+                    bucketListingProperties + "'");
+            }            
+            delimiter = splits[0].trim();
+            toDepth = Integer.parseInt(splits[1]);
+        }
+        
+        return listObjectsThreaded(s3Service, bucketName, targetPath, 
+            delimiter, toDepth);
+    }
 
     /**
      * Builds an S3 Object Map containing all the objects within the given target path,
@@ -329,22 +502,35 @@ public class FileComparer {
      * @param s3Service
      * @param bucket
      * @param targetPath
+     * @param skipMetadata
+     * @param s3ServiceEventListener
      * @return
      * mapping of keys/S3Objects
      * @throws S3ServiceException
      */
     public Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath,
-        S3ServiceEventListener s3ServiceEventListener) throws S3ServiceException
+        boolean skipMetadata, S3ServiceEventListener s3ServiceEventListener) 
+        throws S3ServiceException
     {
-        String prefix = (targetPath.length() > 0 ? targetPath : null);
-        S3Object[] s3ObjectsIncomplete = s3Service.listObjects(bucket, prefix, null);
-        return buildS3ObjectMap(s3Service, bucket, targetPath, s3ObjectsIncomplete, s3ServiceEventListener);
+        String prefix = (targetPath.length() > 0 ? targetPath : null);        
+        S3Object[] s3ObjectsIncomplete = this.listObjectsThreaded(
+            s3Service, bucket.getName(), prefix);
+        return buildS3ObjectMap(s3Service, bucket, targetPath, s3ObjectsIncomplete, 
+            skipMetadata, s3ServiceEventListener);
     }
 
 
     /**
      * Builds an S3 Object Map containing a partial set of objects within the given target path,
      * where the map's key for each object is the relative path to the object.
+     * <p>
+     * If the method is asked to perform a complete listing, it will use the
+     * {@link #listObjectsThreaded(S3Service, String, String)} method to list the objects
+     * in the bucket, potentially taking advantage of any bucket name partitioning
+     * settings you have applied.
+     * <p>
+     * If the method is asked to perform only a partial listing, no bucket name
+     * partitioning will be applied. 
      * 
      * @see #buildDiscrepancyLists(Map, Map)
      * @see #buildFileMap(File, String, boolean)
@@ -366,16 +552,25 @@ public class FileComparer {
      */
     public PartialObjectListing buildS3ObjectMapPartial(S3Service s3Service, S3Bucket bucket, 
         String targetPath, String priorLastKey, boolean completeListing, 
-        S3ServiceEventListener s3ServiceEventListener) throws S3ServiceException
+        boolean skipMetadata, S3ServiceEventListener s3ServiceEventListener) 
+        throws S3ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
-        S3ObjectsChunk chunk = s3Service.listObjectsChunked(
-            bucket.getName(), prefix, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE, 
-            priorLastKey, completeListing);
+        S3Object[] objects = null;
+        String resultPriorLastKey = null;
+        if (completeListing) {
+            objects = listObjectsThreaded(s3Service, bucket.getName(), prefix);
+        } else {
+            S3ObjectsChunk chunk = s3Service.listObjectsChunked(bucket.getName(), 
+                prefix, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE, 
+                priorLastKey, completeListing);
+            objects = chunk.getObjects();
+            resultPriorLastKey = chunk.getPriorLastKey();
+        }
 
         Map objectsMap = buildS3ObjectMap(s3Service, bucket, targetPath, 
-            chunk.getObjects(), s3ServiceEventListener);
-        return new PartialObjectListing(objectsMap, chunk.getPriorLastKey());
+            objects, skipMetadata, s3ServiceEventListener);
+        return new PartialObjectListing(objectsMap, resultPriorLastKey);
     }
 
     /**
@@ -389,42 +584,50 @@ public class FileComparer {
      * @param s3Service
      * @param bucket
      * @param targetPath
+     * @param skipMetadata
      * @param s3ObjectsIncomplete
      * @return
      * mapping of keys/S3Objects
      * @throws S3ServiceException
      */
     public Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,  String targetPath, 
-        S3Object[] s3ObjectsIncomplete, S3ServiceEventListener s3ServiceEventListener) 
+        S3Object[] s3ObjectsIncomplete, boolean skipMetadata,
+        S3ServiceEventListener s3ServiceEventListener) 
         throws S3ServiceException
     {
-        // Retrieve the complete information about all objects listed via GetObjectsHeads.
-        final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
-        final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
-        S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
-            public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
-                if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                    S3Object[] finishedObjects = event.getCompletedObjects();
-                    if (finishedObjects.length > 0) {
-                        s3ObjectsCompleteList.addAll(Arrays.asList(finishedObjects));
-                    }
-                } else if (GetObjectHeadsEvent.EVENT_ERROR == event.getEventCode()) {
-                    s3ServiceExceptions[0] = new S3ServiceException(
-                        "Failed to retrieve detailed information about all S3 objects", 
-                        event.getErrorCause());                    
-                }
-            }
-        });
-        if (s3ServiceEventListener != null) {
-            s3ServiceMulti.addServiceEventListener(s3ServiceEventListener);
-        }
-        s3ServiceMulti.getObjectsHeads(bucket, s3ObjectsIncomplete);
-        if (s3ServiceExceptions[0] != null) {
-            throw s3ServiceExceptions[0];
-        }        
-        S3Object[] s3Objects = (S3Object[]) s3ObjectsCompleteList
-            .toArray(new S3Object[s3ObjectsCompleteList.size()]);
+        S3Object[] s3Objects = null;
         
+        if (skipMetadata) {
+            s3Objects = s3ObjectsIncomplete;            
+        } else {
+            // Retrieve the complete information about all objects listed via GetObjectsHeads.
+            final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
+            final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
+            S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
+                public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
+                    if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                        S3Object[] finishedObjects = event.getCompletedObjects();
+                        if (finishedObjects.length > 0) {
+                            s3ObjectsCompleteList.addAll(Arrays.asList(finishedObjects));
+                        }
+                    } else if (GetObjectHeadsEvent.EVENT_ERROR == event.getEventCode()) {
+                        s3ServiceExceptions[0] = new S3ServiceException(
+                            "Failed to retrieve detailed information about all S3 objects", 
+                            event.getErrorCause());                    
+                    }
+                }
+            });
+            if (s3ServiceEventListener != null) {
+                s3ServiceMulti.addServiceEventListener(s3ServiceEventListener);
+            }
+            s3ServiceMulti.getObjectsHeads(bucket, s3ObjectsIncomplete);
+            if (s3ServiceExceptions[0] != null) {
+                throw s3ServiceExceptions[0];
+            }        
+            s3Objects = (S3Object[]) s3ObjectsCompleteList
+                .toArray(new S3Object[s3ObjectsCompleteList.size()]);
+        }
+
         return populateS3ObjectMap(targetPath, s3Objects);
     }
 
@@ -704,5 +907,5 @@ public class FileComparer {
             return priorLastKey;
         }        
     }
-
+    
 }

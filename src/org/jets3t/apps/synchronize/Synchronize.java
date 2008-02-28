@@ -83,6 +83,7 @@ public class Synchronize {
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
     private boolean isMoveEnabled = false;
     private boolean isBatchMode = false;
+    private boolean isSkipMetadata = false;
     private int reportLevel = REPORT_LEVEL_ALL;
     private String cryptoPassword = null;
 
@@ -114,6 +115,10 @@ public class Synchronize {
      * once. This mode is useful for large buckets where listing all the 
      * objects and their details at once may consume a large amount of time
      * and memory.
+     * @param isSkipMetadata
+     * If true, no metadata information about objects will be downloaded from 
+     * S3. This will make the synchronize process faster, but it will also
+     * reduce the amount of information Synchronize will have to make decisions.
      * @param isNoDelete     
      * Files will not be deleted if true, but may be replaced.
      * @param isGzipEnabled 
@@ -126,8 +131,9 @@ public class Synchronize {
      */
     public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, 
         boolean isNoProgress, boolean isForce, boolean isKeepFiles, 
-        boolean isNoDelete, boolean isMoveEnabled, boolean isBatchMode, 
-        boolean isGzipEnabled, boolean isEncryptionEnabled, int reportLevel) 
+        boolean isNoDelete, boolean isMoveEnabled, boolean isBatchMode,
+        boolean isSkipMetadata, boolean isGzipEnabled, boolean isEncryptionEnabled, 
+        int reportLevel) 
     {
         this.s3Service = s3Service;
         this.doAction = doAction;
@@ -138,6 +144,7 @@ public class Synchronize {
         this.isNoDelete = isNoDelete;
         this.isMoveEnabled = isMoveEnabled;
         this.isBatchMode = isBatchMode;
+        this.isSkipMetadata = isSkipMetadata;
         this.isGzipEnabled = isGzipEnabled;
         this.isEncryptionEnabled = isEncryptionEnabled;
         this.reportLevel = reportLevel;
@@ -283,7 +290,7 @@ public class Synchronize {
             
             PartialObjectListing partialListing = fileComparer.buildS3ObjectMapPartial(
                 s3Service, bucket, rootObjectPath, priorLastKey, !isBatchMode,
-                serviceEventAdaptor);        
+                isSkipMetadata, serviceEventAdaptor);            
             if (serviceEventAdaptor.wasErrorThrown()) {
                 throw new Exception("Unable to build map of S3 Objects", 
                     serviceEventAdaptor.getErrorThrown());
@@ -508,7 +515,7 @@ public class Synchronize {
             
             PartialObjectListing partialListing = fileComparer.buildS3ObjectMapPartial(
                 s3Service, bucket, rootObjectPath, priorLastKey, !isBatchMode,
-                serviceEventAdaptor);        
+                isSkipMetadata, serviceEventAdaptor);        
             if (serviceEventAdaptor.wasErrorThrown()) {
                 throw new Exception("Unable to build map of S3 Objects", 
                     serviceEventAdaptor.getErrorThrown());
@@ -536,6 +543,14 @@ public class Synchronize {
             while (s3KeyIter.hasNext()) {
                 String keyPath = (String) s3KeyIter.next();
                 S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
+
+                // If object metadata is not available, skip zero-byte objects as
+                // we cannot tell whether they are directory placeholders or normal
+                // files.
+                if (!s3Object.isMetadataComplete() && s3Object.getContentLength() == 0) {
+                    continue;
+                }
+                
                 File fileTarget = new File(localDirectory, keyPath);
                 
                 // Create local directories corresponding to objects flagged as dirs.
@@ -543,8 +558,8 @@ public class Synchronize {
                     if (doAction) {
                         fileTarget.mkdirs();                    
                     }
-                }            
-                
+                }           
+                                
                 if (discrepancyResults.onlyOnServerKeys.contains(keyPath)) {
                     printOutputLine("N " + keyPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
@@ -812,24 +827,6 @@ public class Synchronize {
 
         // Perform the requested action on the set of disrepancies.
         if ("UP".equals(actionCommand)) {  
-            if (objectPath.length() > 0 && doAction && storeEmptyDirectories) {
-                // Create the target path in S3.
-                try {
-                    String targetDirs[] = objectPath.split(Constants.FILE_PATH_DELIM);
-                    StringBuffer currentDirPathBuf = new StringBuffer();
-                    for (int i = 0; i < targetDirs.length; i++) {
-                        currentDirPathBuf.append(targetDirs[i]);
-                        
-                        S3Object dirObject = new S3Object(currentDirPathBuf.toString());
-                        dirObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-                        s3Service.putObject(bucket, dirObject);
-                        currentDirPathBuf.append(Constants.FILE_PATH_DELIM);
-                    }
-                } catch (Exception e) {
-                    throw new SynchronizeException("Unable to create S3 path: " + objectPath, e);
-                }
-            }            
-            
             uploadLocalDirectoryToS3(filesMap, bucket, objectPath, 
                 aclString, progressWatcher);
         } else if ("DOWN".equals(actionCommand)) {
@@ -962,6 +959,13 @@ public class Synchronize {
         System.out.println("   ensure file transfers commence as soon as possible. When this option is");
         System.out.println("   enabled, the progress status lines refer only to the progress of a single batch.");
         System.out.println("");
+        System.out.println("-s | --skipmetadata");
+        System.out.println("   Skip the retrieval of object metadata information from S3. This will make the");
+        System.out.println("   synch process much faster for large buckets, but it will leave Synchronize");
+        System.out.println("   with less information to make decisions. If this option is enabled, empty");
+        System.out.println("   files or directories will not be synchronized reliably.");
+        System.out.println("   This option cannot be used with the --gzip or --crypto options.");
+        System.out.println("");
         System.out.println("-g | --gzip");
         System.out.println("   Compress (GZip) files when backing up and Decompress gzipped files");
         System.out.println("   when restoring.");
@@ -1033,6 +1037,7 @@ public class Synchronize {
         boolean isEncryptionEnabled = false;
         boolean isMoveEnabled = false;
         boolean isBatchMode = false;
+        boolean isSkipMetadata = false;
         String aclString = null;
         int reportLevel = REPORT_LEVEL_ALL;
                 
@@ -1061,6 +1066,8 @@ public class Synchronize {
                     isEncryptionEnabled = true; 
                 } else if (arg.equalsIgnoreCase("-m") || arg.equalsIgnoreCase("--move")) {
                     isMoveEnabled = true; 
+                } else if (arg.equalsIgnoreCase("-s") || arg.equalsIgnoreCase("--skipmetadata")) {
+                    isSkipMetadata = true; 
                 } else if (arg.equalsIgnoreCase("-b") || arg.equalsIgnoreCase("--batch")) {
                     isBatchMode = true; 
                 } else if (arg.equalsIgnoreCase("--properties")) {
@@ -1182,6 +1189,12 @@ public class Synchronize {
             printHelpAndExit(false);            
         }
         
+        if (isSkipMetadata && (isGzipEnabled || isEncryptionEnabled)) {
+            // Incompatible options.
+            System.err.println("ERROR: The --skipmetadata option cannot be used with the --gzip or --crypto options");
+            printHelpAndExit(false);                        
+        }
+        
         if (properties == null) {        
             // Read the Synchronize properties file from the classpath            
             properties = Jets3tProperties.getInstance(propertiesFileName);
@@ -1224,7 +1237,8 @@ public class Synchronize {
         Synchronize client = new Synchronize(
             new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
             doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, 
-            isMoveEnabled, isBatchMode, isGzipEnabled, isEncryptionEnabled, reportLevel);
+            isMoveEnabled, isBatchMode, isSkipMetadata, isGzipEnabled, 
+            isEncryptionEnabled, reportLevel);
         client.run(s3Path, fileList, actionCommand, 
             properties.getStringProperty("password", null), aclString);
     }

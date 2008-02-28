@@ -15,6 +15,9 @@ SYNCHRONIZE
   memory required to synchronize buckets with many objects, and will allow file
   transfers to commence as soon as possible rather than after the slow
   comparison process.
+- Added --skipmetadata option that causes Synchronize to skip the retrieval of 
+  object metadata information from S3. This makes synchs much faster for large 
+  buckets, but leave the app with less info to make decisions.
 - Added --reportlevel option that allows the user to control how much report
   detail is printed, from 0 (no reporting) to 3 (all reporting).
 - Added --move option that deletes local files after they have been uploaded to
@@ -29,6 +32,16 @@ TOOLKIT
   buckets were created with the "US" location.
 - S3Service instances can now be configured individually by providing a
   JetS3tProperties object when constructing the service.
+- Added support to FileComparer for listing objects based on prefix "partitions"
+  that allow a bucket to be listed by multiple simultaneous threads. This can
+  speed up listings for large buckets containing many virtual subdirectories.
+  To use multiple partitions when building S3 object maps, configure the
+  jets3t.properties item "filecomparer.bucket-listing.<bucketname>" to specify
+  a delimiter string and a traversal depth value separated by a comma, eg:
+  filecomparer.bucket-listing.my-bucket=/,2
+  to partition the bucket my-bucket based on the '/' delimiter to a depth of
+  2 virtual subdirectories.
+  
 
   * Multi-threaded Service
 
