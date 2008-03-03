@@ -86,10 +86,11 @@ public class Synchronize {
     private boolean isSkipMetadata = false;
     private int reportLevel = REPORT_LEVEL_ALL;
     private String cryptoPassword = null;
+    private Jets3tProperties properties = null;
 
     private final ByteFormatter byteFormatter = new ByteFormatter();
     private final TimeFormatter timeFormatter = new TimeFormatter();
-    private FileComparer fileComparer = FileComparer.getInstance();
+    private FileComparer fileComparer = null;
     private int maxTemporaryStringLength = 0;
 
     
@@ -126,14 +127,16 @@ public class Synchronize {
      * @param isEncryptionEnabled   
      * Files will be encrypted prior to upload if true.
      * @param reportLevel
-     * The level or amount of reporting to perform. The default value is 
+     * The level or amount of reporting to perform. The default value is
      * {@link #REPORT_LEVEL_ALL}.
+     * @param properties
+     * The configuration properties that will be used by this instance. 
      */
     public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, 
         boolean isNoProgress, boolean isForce, boolean isKeepFiles, 
         boolean isNoDelete, boolean isMoveEnabled, boolean isBatchMode,
         boolean isSkipMetadata, boolean isGzipEnabled, boolean isEncryptionEnabled, 
-        int reportLevel) 
+        int reportLevel, Jets3tProperties properties) 
     {
         this.s3Service = s3Service;
         this.doAction = doAction;
@@ -148,6 +151,8 @@ public class Synchronize {
         this.isGzipEnabled = isGzipEnabled;
         this.isEncryptionEnabled = isEncryptionEnabled;
         this.reportLevel = reportLevel;
+        this.properties = properties;
+        this.fileComparer = FileComparer.getInstance(properties);
     }
     
 
@@ -276,7 +281,7 @@ public class Synchronize {
 
         EncryptionUtil encryptionUtil = null;
         if (isEncryptionEnabled) {
-            String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            String algorithm = properties
                 .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
             encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm, EncryptionUtil.DEFAULT_VERSION);
         }
@@ -794,7 +799,7 @@ public class Synchronize {
             throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
         }
                         
-        boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+        boolean storeEmptyDirectories = properties
             .getBoolProperty("uploads.storeEmptyDirectories", true);
 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
@@ -904,12 +909,14 @@ public class Synchronize {
         System.out.println("DownloadDirectory : A directory on your computer where downloaded files");
         System.out.println("          will be stored");
         System.out.println();
-        System.out.println("A property file with the name 'synchronize.properties' must be available in the");
-        System.out.println("classpath and contains the following properties:");
+        System.out.println("A property file must be available to the application, either as a file named");
+        System.out.println("'synchronize.properties' in the classpath or via the --properties option. It must");
+        System.out.println("contain the following properties:");
         System.out.println("          accesskey : Your AWS Access Key (Required)");
         System.out.println("          secretkey : Your AWS Secret Key (Required)");
         System.out.println("          password  : Encryption password (only required when using crypto)");
         System.out.println("          acl       : ACL permissions for uploads (optional)");
+        System.out.println("Properties specified in this file will override those in jets3t.properties.");
         System.out.println("");
         System.out.println("For more help : Synchronize --help");
         if (!fullHelp)
@@ -1017,8 +1024,11 @@ public class Synchronize {
      * @throws Exception
      */
     public static void main(String args[]) throws Exception {
+        // Load default JetS3t properties
+        Jets3tProperties myProperties = 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);        
         String propertiesFileName = "synchronize.properties";
-        Jets3tProperties properties = null;
+        boolean synchronizePropertiesLoaded = false;
 
         // Required arguments
         String actionCommand = null;
@@ -1080,8 +1090,9 @@ public class Synchronize {
                             System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found");
                             System.exit(2);                        
                         }
-                        properties = Jets3tProperties.getInstance(
-                            new FileInputStream(propertiesFileName), propertiesFile.getName());                        
+                        myProperties.loadAndReplaceProperties(
+                            new FileInputStream(propertiesFileName), propertiesFile.getName());
+                        synchronizePropertiesLoaded = true;
                     } else {
                         System.err.println("ERROR: --properties option must be followed by a file path");
                         printHelpAndExit(false);                        
@@ -1154,7 +1165,7 @@ public class Synchronize {
                         }         
                     } else {
                         if (!file.canRead()) {
-                            if (properties != null && properties.getBoolProperty("upload.ignoreMissingPaths", false)) {
+                            if (myProperties != null && myProperties.getBoolProperty("upload.ignoreMissingPaths", false)) {
                                 System.err.println("WARN: Ignoring missing upload path: " + file);
                                 continue;
                             } else {
@@ -1195,34 +1206,38 @@ public class Synchronize {
             printHelpAndExit(false);                        
         }
         
-        if (properties == null) {        
-            // Read the Synchronize properties file from the classpath            
-            properties = Jets3tProperties.getInstance(propertiesFileName);
-            if (!properties.isLoaded()) {
+        if (!synchronizePropertiesLoaded) {        
+            // Read the Synchronize properties file from the classpath
+            Jets3tProperties synchronizeProperties = 
+                Jets3tProperties.getInstance(propertiesFileName);
+            if (!synchronizeProperties.isLoaded()) {
                 System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found in the classpath");
                 System.exit(2);                        
+            } else {
+                myProperties.loadAndReplaceProperties(synchronizeProperties, 
+                    propertiesFileName + " in classpath");                
             }
         }
                 
         // Ensure the Synchronize properties file contains everything we need.
-        if (!properties.containsKey("accesskey")) {
+        if (!myProperties.containsKey("accesskey")) {
             System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: accesskey");
             System.exit(2);            
-        } else if (!properties.containsKey("secretkey")) {
+        } else if (!myProperties.containsKey("secretkey")) {
             System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: secretkey");
             System.exit(2);                        
-        } else if (isEncryptionEnabled && !properties.containsKey("password")) {
+        } else if (isEncryptionEnabled && !myProperties.containsKey("password")) {
             System.err.println("ERROR: You are using encryption, so the properties file " + propertiesFileName + " must contain the property: password");
             System.exit(2);                        
         }
         
         // Load the AWS credentials from encrypted file.
         AWSCredentials awsCredentials = new AWSCredentials(
-            properties.getStringProperty("accesskey", null), 
-            properties.getStringProperty("secretkey", null));       
+            myProperties.getStringProperty("accesskey", null), 
+            myProperties.getStringProperty("secretkey", null));       
         
         if (aclString == null) {
-            aclString = properties.getStringProperty("acl", "PRIVATE");
+            aclString = myProperties.getStringProperty("acl", "PRIVATE");
         }
         if (!"PUBLIC_READ".equalsIgnoreCase(aclString) 
             && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString) 
@@ -1235,12 +1250,12 @@ public class Synchronize {
          
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
-            new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null),
+            new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null, myProperties),
             doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, 
             isMoveEnabled, isBatchMode, isSkipMetadata, isGzipEnabled, 
-            isEncryptionEnabled, reportLevel);
+            isEncryptionEnabled, reportLevel, myProperties);
         client.run(s3Path, fileList, actionCommand, 
-            properties.getStringProperty("password", null), aclString);
+            myProperties.getStringProperty("password", null), aclString);
     }
         
 }

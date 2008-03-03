@@ -155,7 +155,41 @@ public class Jets3tProperties implements Serializable {
     {
         Properties newProperties = new Properties();
         newProperties.load(inputStream);
-        
+        loadAndReplaceProperties(newProperties, propertiesSource);
+    }
+
+    /**
+     * Merges properties from another JetS3tProperties object into this instance. 
+     * If a new property already exists, the property value is replaced.
+     *  
+     * @param properties
+     * the object containing properties that will be merged into this set of properties.
+     * @param propertiesSource
+     * a name for the source of the properties, such as a properties file name or identifer. This
+     * is only used to generate meaningful debug messages when properties are updated, so it is
+     * possible to tell where the updated property value came from.
+     * 
+     * @throws IOException
+     */
+    public void loadAndReplaceProperties(Jets3tProperties properties, String propertiesSource) {
+        Properties newProperties = properties.getProperties();
+        loadAndReplaceProperties(newProperties, propertiesSource);
+    }    
+    
+    /**
+     * Merges properties from another Properties object into this instance. 
+     * If a new property already exists, the property value is replaced.
+     *  
+     * @param newProperties
+     * the object containing properties that will be merged into this set of properties.
+     * @param propertiesSource
+     * a name for the source of the properties, such as a properties file name or identifer. This
+     * is only used to generate meaningful debug messages when properties are updated, so it is
+     * possible to tell where the updated property value came from.
+     * 
+     * @throws IOException
+     */
+    public void loadAndReplaceProperties(Properties newProperties, String propertiesSource) {        
         Iterator propsIter = newProperties.entrySet().iterator();
         while (propsIter.hasNext()) {
             Map.Entry entry = (Map.Entry) propsIter.next();
@@ -171,7 +205,7 @@ public class Jets3tProperties implements Serializable {
         
         loaded = true;
     }
-    
+
     /**
      * @return
      * a properties object containing all this object's properties, but cloned so changes to the
