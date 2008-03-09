@@ -172,7 +172,7 @@ public class Synchronize {
     {        
         S3Object newObject = ObjectUtils
             .createObjectForUpload(targetKey, file, encryptionUtil, isGzipEnabled, null);
-        
+
         if ("PUBLIC_READ".equalsIgnoreCase(aclString)) {
             newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);                        
         } else if ("PUBLIC_READ_WRITE".equalsIgnoreCase(aclString)) {
@@ -300,7 +300,7 @@ public class Synchronize {
                 throw new Exception("Unable to build map of S3 Objects", 
                     serviceEventAdaptor.getErrorThrown());
             }
-            
+
             // Retrieve details from listing.
             priorLastKey = partialListing.getPriorLastKey();
             Map s3ObjectsMap = partialListing.getObjectsMap();
@@ -313,7 +313,7 @@ public class Synchronize {
             printProgressLine("Comparing S3 contents with local system");        
             FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
                 filesMap, s3ObjectsMap, progressWatcher);
-            
+
             // Merge S3 objects and discrepancies to track overall changes.
             mergedDiscrepancyResults.merge(discrepancyResults);
                        
@@ -326,48 +326,52 @@ public class Synchronize {
             // Iterate through local files and perform the necessary action to synchronise them with S3.
             Iterator fileKeyIter = sortedFilesKeys.iterator();
             while (fileKeyIter.hasNext()) {
-                String keyPath = (String) fileKeyIter.next();
+                String relativeKeyPath = (String) fileKeyIter.next();
                 
                 if (isBatchMode) {
-                    if (priorLastKey != null && keyPath.compareTo(priorLastKey) > 0) {
+                    if (priorLastKey != null && relativeKeyPath.compareTo(priorLastKey) > 0) {
                         // We do not yet have the S3 object listing to compare this file.
                         continue;
                     }
                     
-                    if (keyPath.compareTo(lastFileKeypathChecked) <= 0) {
+                    if (relativeKeyPath.compareTo(lastFileKeypathChecked) <= 0) {
                         // We have already handled this file in a prior batch.
                         continue;
                     } else {
-                        lastFileKeypathChecked = keyPath;
+                        lastFileKeypathChecked = relativeKeyPath;
                     }
                 }
                 
-                File file = (File) filesMap.get(keyPath);
+                File file = (File) filesMap.get(relativeKeyPath);
                 
-                String targetKey = keyPath;
+                String targetKey = relativeKeyPath;
                 if (rootObjectPath.length() > 0) {
-                    targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey; 
+                    if (rootObjectPath.endsWith(Constants.FILE_PATH_DELIM)) {
+                        targetKey = rootObjectPath + targetKey;                         
+                    } else {
+                        targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;                         
+                    }
                 }
     
-                if (discrepancyResults.onlyOnClientKeys.contains(keyPath)) {
-                    printOutputLine("N " + keyPath, REPORT_LEVEL_ACTIONS);
+                if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
+                    printOutputLine("N " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
-                } else if (discrepancyResults.updatedOnClientKeys.contains(keyPath)) {
-                    printOutputLine("U " + keyPath, REPORT_LEVEL_ACTIONS);
+                } else if (discrepancyResults.updatedOnClientKeys.contains(relativeKeyPath)) {
+                    printOutputLine("U " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
-                } else if (discrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
+                } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)) {
                     if (isForce) {
-                        printOutputLine("F " + keyPath, REPORT_LEVEL_ACTIONS);
+                        printOutputLine("F " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
                         objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                     } else {
-                        printOutputLine("- " + keyPath, REPORT_LEVEL_ALL);
+                        printOutputLine("- " + relativeKeyPath, REPORT_LEVEL_ALL);
                     }
-                } else if (discrepancyResults.updatedOnServerKeys.contains(keyPath)) {
+                } else if (discrepancyResults.updatedOnServerKeys.contains(relativeKeyPath)) {
                     // This file has been updated on the server-side.
                     if (isKeepFiles) {
-                        printOutputLine("r " + keyPath, REPORT_LEVEL_DIFFERENCES);                    
+                        printOutputLine("r " + relativeKeyPath, REPORT_LEVEL_DIFFERENCES);                    
                     } else {
-                        printOutputLine("R " + keyPath, REPORT_LEVEL_ACTIONS);
+                        printOutputLine("R " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
                         objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                     }
                 } else {
@@ -397,13 +401,24 @@ public class Synchronize {
         List objectsToDelete = new ArrayList();
         Iterator serverOnlyIter = mergedDiscrepancyResults.onlyOnServerKeys.iterator();
         while (serverOnlyIter.hasNext()) {
-            String keyPath = (String) serverOnlyIter.next();
-            S3Object s3Object = new S3Object(keyPath);
+            // Relative key
+            String relativeKeyPath = (String) serverOnlyIter.next();
 
+            // Build absolute key path for object.
+            String targetKey = relativeKeyPath;
+            if (rootObjectPath.length() > 0) {
+                if (rootObjectPath.endsWith(Constants.FILE_PATH_DELIM)) {
+                    targetKey = rootObjectPath + targetKey;                         
+                } else {
+                    targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;                         
+                }
+            }
+            S3Object s3Object = new S3Object(targetKey);
+                        
             if (isKeepFiles || isNoDelete) {
-                printOutputLine("d " + keyPath, REPORT_LEVEL_DIFFERENCES);                
+                printOutputLine("d " + relativeKeyPath, REPORT_LEVEL_DIFFERENCES);                
             } else {
-                printOutputLine("D " + keyPath, REPORT_LEVEL_ACTIONS);
+                printOutputLine("D " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
                     objectsToDelete.add(s3Object);
                 }
