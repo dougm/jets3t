@@ -50,7 +50,7 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
     private InputStream is = null;
     private int bufferOffset = 0;
     private int bufferSize = 0;    
-    private int bytesReadTotal = 0;
+    private long bytesReadTotal = 0;
     private byte[] buffer = null;
     
     /**
@@ -128,7 +128,7 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
             // little as a time as the output stream actually pushes through data.
             int bytesFromBuffer = tmp.length;
             if (bufferOffset + bytesFromBuffer > bytesReadTotal) {
-                bytesFromBuffer = bytesReadTotal - bufferOffset;
+                bytesFromBuffer = (int) bytesReadTotal - bufferOffset;
             }
 
             // Write to output.
@@ -145,16 +145,16 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
         }
         
         // Fill the buffer with data until it is full.
-        int length = (bytesReadTotal + count < bufferSize
+        long length = (bytesReadTotal + count < bufferSize
             ? count
             : bufferSize - bytesReadTotal);
         if (length > 0) {
-            System.arraycopy(tmp, 0, buffer, bytesReadTotal, length);
+            System.arraycopy(tmp, 0, buffer, (int) bytesReadTotal, (int) length);
             bufferOffset += length;
         } else if (length < 0 && buffer != null) {
             // We have exceeded the buffer size, after which point it is of no use. Free the memory.
             log.debug("Buffer size " + bufferSize + 
-                " has been exceed and input stream is no longer repeatable, freeing buffer memory");
+                " has been exceeded and the input stream is no longer repeatable, freeing buffer memory");
             buffer = null;
         }
         
