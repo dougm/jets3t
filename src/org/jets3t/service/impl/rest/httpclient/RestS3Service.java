@@ -135,7 +135,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         this(awsCredentials, invokingApplicationDescription, credentialsProvider, 
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
     }
-    
+
     /**
      * Constructs the service and initialises the properties.
      * 
@@ -158,11 +158,37 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) 
         throws S3ServiceException 
     {
+        this(awsCredentials, invokingApplicationDescription, credentialsProvider, 
+            jets3tProperties, new HostConfiguration());        
+    }
+    
+    /**
+     * Constructs the service and initialises the properties.
+     * 
+     * @param awsCredentials
+     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * communication is done as an anonymous user.
+     * @param invokingApplicationDescription
+     * a short description of the application using the service, suitable for inclusion in a
+     * user agent string for REST/HTTP requests. Ideally this would include the application's
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * @param credentialsProvider
+     * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
+     * prompting for credentials when necessary.
+     * @param jets3tProperties
+     * JetS3t properties that will be applied within this service.
+     * @param hostConfig
+     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory
+     *   
+     * @throws S3ServiceException
+     */
+    public RestS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription, 
+        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
+        HostConfiguration hostConfig) throws S3ServiceException 
+    {
         super(awsCredentials, invokingApplicationDescription, jets3tProperties);
         
-        // Set HttpClient properties based on Jets3t Properties.
-        HostConfiguration hostConfig = new HostConfiguration();
-                        
+        // Configure HttpClient properties based on Jets3t Properties.
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
         connectionParams.setConnectionTimeout(jets3tProperties.
             getIntProperty("httpclient.connection-timeout-ms", 60000));
