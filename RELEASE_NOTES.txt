@@ -45,6 +45,14 @@ TOOLKIT
   filecomparer.bucket-listing.my-bucket=/,2
   to partition the bucket my-bucket based on the '/' delimiter to a depth of
   2 virtual subdirectories.
+
+
+  * REST Implementation
+  
+- The XML parsing code now copes better when object names contain a carriage 
+  return character. A work-around is applied to prevent the Java XML parser
+  from misinterpreting these characters, a fault which could cause some objects
+  to become un-deletable.
   
 
   * Multi-threaded Service

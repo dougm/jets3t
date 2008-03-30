@@ -19,6 +19,7 @@
 package org.jets3t.service.impl.rest;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,6 +31,7 @@ import java.util.Locale;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.CanonicalGrantee;
@@ -59,12 +61,19 @@ public class XmlResponsesSaxParser {
     private static final Log log = LogFactory.getLog(XmlResponsesSaxParser.class);
 
     private XMLReader xr = null;
+    private Jets3tProperties properties = null;
 
     /**
      * Constructs the XML SAX parser.  
+     * 
+     * @param properties
+     * the JetS3t properties that will be applied when parsing XML documents.
+     * 
      * @throws S3ServiceException
      */
-    public XmlResponsesSaxParser() throws S3ServiceException {
+    public XmlResponsesSaxParser(Jets3tProperties properties) throws S3ServiceException {
+        this.properties = properties;
+        
         // Ensure we can load the XML Reader.
         try {
             xr = XMLReaderFactory.createXMLReader();
@@ -79,6 +88,14 @@ public class XmlResponsesSaxParser {
             }
         }
     }
+    
+    /**
+     * Constructs the XML SAX parser.  
+     * @throws S3ServiceException
+     */
+    public XmlResponsesSaxParser() throws S3ServiceException {
+        this(Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
+    }    
 
     /**
      * Parses an XML document from an input stream using a document handler.
@@ -109,6 +126,53 @@ public class XmlResponsesSaxParser {
                 + handler.getClass(), t);
         }
     }
+    
+    protected InputStream sanitizeXmlDocument(DefaultHandler handler, InputStream inputStream) 
+        throws S3ServiceException 
+    {
+        if (!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
+            // No sanitizing will be performed, return the original input stream unchanged.
+            return inputStream;
+        } else {
+            log.debug("Sanitizing XML document destined for handler " + handler.getClass());
+            
+            InputStream sanitizedInputStream = null;
+
+            try {
+                /* Read object listing XML document from input stream provided into a 
+                 * string buffer, so we can replace troublesome characters before 
+                 * sending the document to the XML parser.
+                 */
+                StringBuffer listingDocBuffer = new StringBuffer();
+                BufferedReader br = new BufferedReader(
+                    new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
+                
+                char[] buf = new char[8192];
+                int read = -1;            
+                while ((read = br.read(buf)) != -1) {
+                    listingDocBuffer.append(buf, 0, read);
+                }  
+                br.close();
+    
+                // Replace any carriage return (\r) characters with explicit XML 
+                // character entities, to prevent the SAX parser from 
+                // misinterpreting 0x0D characters as 0x0A.
+                String listingDoc = listingDocBuffer.toString().replaceAll("\r", "&#013;");      
+
+                sanitizedInputStream = new ByteArrayInputStream(
+                    listingDoc.getBytes(Constants.DEFAULT_ENCODING));                
+            } catch (Throwable t) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    log.error("Unable to close response InputStream after failure sanitizing XML document", e);
+                }
+                throw new S3ServiceException("Failed to sanitize XML document destined for handler "
+                    + handler.getClass(), t);            
+            }   
+            return sanitizedInputStream;
+        }
+    }
 
     /**
      * Parses a ListBucket response XML document from an input stream.
@@ -122,7 +186,7 @@ public class XmlResponsesSaxParser {
         throws S3ServiceException
     {
         ListBucketHandler handler = new ListBucketHandler();
-        parseXmlInputStream(handler, inputStream);
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
     }
 
@@ -138,7 +202,7 @@ public class XmlResponsesSaxParser {
         throws S3ServiceException
     {
         ListAllMyBucketsHandler handler = new ListAllMyBucketsHandler();
-        parseXmlInputStream(handler, inputStream);
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
     }
 
@@ -322,7 +386,7 @@ public class XmlResponsesSaxParser {
             // Object details.
             else if (name.equals("Contents")) {
                 objects.add(currentObject);
-                log.debug("=== Created new S3Object from listing: " + currentObject);
+                log.debug("Created new S3Object from listing: " + currentObject);
             } else if (name.equals("Key")) {
                 currentObject.setKey(elementText);
                 lastKey = elementText;                
@@ -412,7 +476,7 @@ public class XmlResponsesSaxParser {
             }
             // Bucket item details.
             else if (name.equals("Bucket")) {
-                log.debug("=== Created new bucket from listing: " + currentBucket);
+                log.debug("Created new bucket from listing: " + currentBucket);
                 currentBucket.setOwner(bucketsOwner);
                 buckets.add(currentBucket);
             } else if (name.equals("Name")) {
