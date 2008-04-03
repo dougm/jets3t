@@ -804,12 +804,7 @@ public class Synchronize {
                 
         S3Bucket bucket = null;
         try {
-            if (!s3Service.isBucketAccessible(bucketName)) {
-                // Create/connect to the S3 bucket.
-                bucket = s3Service.createBucket(bucketName);
-            } else {
-                bucket = new S3Bucket(bucketName);
-            }
+            bucket = s3Service.createBucket(new S3Bucket(bucketName));
         } catch (Exception e) {
             throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
         }
