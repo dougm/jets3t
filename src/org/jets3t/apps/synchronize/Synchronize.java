@@ -802,13 +802,30 @@ public class Synchronize {
         
         this.cryptoPassword = cryptoPassword;
                 
-        S3Bucket bucket = null;
-        try {
-            bucket = s3Service.createBucket(new S3Bucket(bucketName));
-        } catch (Exception e) {
-            throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
+        // List existing buckets to test whether the target bucket
+        // already exists.
+        S3Bucket[] existingBuckets = s3Service.listAllBuckets();
+        boolean bucketExists = false;
+        for (int i = 0; i < existingBuckets.length; i++) {
+            if (existingBuckets[i].getName().equals(bucketName)) {
+                bucketExists = true;
+                break;
+            }
         }
-                        
+        
+        S3Bucket bucket = null;
+        if (bucketExists) {
+            // Use existing bucket.
+            bucket = new S3Bucket(bucketName);
+        } else {
+            // Create new bucket.
+            try {
+                bucket = s3Service.createBucket(new S3Bucket(bucketName));
+            } catch (Exception e) {
+                throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
+            }
+        }
+                            
         boolean storeEmptyDirectories = properties
             .getBoolProperty("uploads.storeEmptyDirectories", true);
 
