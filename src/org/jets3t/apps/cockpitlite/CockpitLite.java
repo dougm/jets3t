@@ -102,6 +102,7 @@ import org.jets3t.gui.UserInputFields;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
@@ -2007,9 +2008,20 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         S3Object currentObject = objects[0];
 
         try {
-        	String url = "http://"
-        		+ (userVanityHost != null? userVanityHost + "/" : Constants.S3_HOSTNAME + "/" + userBucketName + "/")
-        		+ userPath + currentObject.getKey();
+            String hostAndBucket = null;
+            if (userVanityHost != null) {
+                hostAndBucket = userVanityHost;
+            } else {
+                hostAndBucket = S3Service.generateS3HostnameForBucket(userBucketName);
+                
+                if (!S3Service.isBucketNameValidDNSName(userBucketName)) {
+                    // If bucket name isn't DNS compatible, we must include the bucket
+                    // name as a URL path item.
+                    hostAndBucket += "/" + userBucketName;
+                }
+            }
+            
+        	String url = "http://" + hostAndBucket + "/" + userPath + currentObject.getKey();
         	
             // Display signed URL
             String dialogText = "Public URL for '" + currentObject.getKey() + "'.";
