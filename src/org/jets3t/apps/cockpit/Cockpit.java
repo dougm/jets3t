@@ -1761,11 +1761,20 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
     
     private void prepareForObjectsDownload() {
-        // Build map of existing local files.
+        // Build array of target Files from S3 object paths.
+        S3Object[] objectsForDownload = getSelectedObjects();
+        File[] targetFiles = new File[objectsForDownload.length];
+        for (int i = 0; i < objectsForDownload.length; i++) {
+            targetFiles[i] = new File(
+                downloadDirectory, objectsForDownload[i].getKey());
+        }
+        
+        // Build map of existing local files that have the same name as the
+        // S3 objects being downloaded.
         Map filesInDownloadDirectoryMap = null;
         try {
-            filesInDownloadDirectoryMap = FileComparer.getInstance()
-                .buildFileMap(downloadDirectory, null, true);
+            filesInDownloadDirectoryMap = 
+                FileComparer.getInstance().buildFileMap(targetFiles, true);
         } catch (Exception e) {
             String message = "Unable to review files in targetted download directory";
             log.error(message, e);
@@ -1778,7 +1787,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         // Build map of S3 Objects being downloaded. 
         s3DownloadObjectsMap = FileComparer.getInstance()
-            .populateS3ObjectMap("", getSelectedObjects());
+            .populateS3ObjectMap("", objectsForDownload);
 
         // Identify objects that may clash with existing files.
         Set existingFilesObjectKeys = filesInDownloadDirectoryMap.keySet();

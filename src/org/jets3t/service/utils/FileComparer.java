@@ -209,7 +209,7 @@ public class FileComparer {
      * a Map of file path keys to File objects.
      */
     public Map buildFileMap(File[] files, boolean includeDirectories) {
-        // Build map of files proposed for upload.
+        // Build map of files proposed for upload or download.
         HashMap fileMap = new HashMap();
         List ignorePatternList = null;
         List ignorePatternListForCurrentDir = null;
@@ -227,6 +227,9 @@ public class FileComparer {
             }
             
             if (!isIgnored(ignorePatternList, files[i])) {
+                if (!files[i].exists()) {
+                    continue;
+                }
                 if (!files[i].isDirectory() || includeDirectories) {
                     fileMap.put(files[i].getName(), files[i]);
                 }

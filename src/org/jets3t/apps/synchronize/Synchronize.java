@@ -20,6 +20,7 @@ package org.jets3t.apps.synchronize;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -832,9 +833,15 @@ public class Synchronize {
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         printProgressLine("Listing files in local file system");
         Map filesMap = null;        
-        if ("UP".equals(actionCommand)) {            
-            filesMap = fileComparer.buildFileMap(
-                (File[]) fileList.toArray(new File[fileList.size()]), storeEmptyDirectories);
+        if ("UP".equals(actionCommand)) {
+            File[] files = (File[]) fileList.toArray(new File[fileList.size()]);
+            for (int i = 0; i < files.length; i++) {
+                if (!files[i].exists()) {
+                    throw new IOException("File '" + files[i].getPath() + "' does not exist");
+                }
+            }
+            
+            filesMap = fileComparer.buildFileMap(files, storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
             filesMap = fileComparer.buildFileMap((File) fileList.get(0), null, true);
         }
