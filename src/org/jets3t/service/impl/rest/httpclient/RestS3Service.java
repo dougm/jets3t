@@ -286,7 +286,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         if (credentialsProvider != null) {
             log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
             httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
-            httpClient.getParams().setAuthenticationPreemptive(true);
+            if (jets3tProperties.getBoolProperty("httpclient.authentication-preemptive", false)) {
+                httpClient.getParams().setAuthenticationPreemptive(true);
+            }
         }                          
     }
     

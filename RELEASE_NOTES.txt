@@ -2,6 +2,11 @@
 Version 0.6.1
 -------------
 
+COCKPIT
+- Fixed issue where downloading items to a directory containing many files and 
+  directories (eg 250K+) would cause Cockpit to fail with OutOfMemory errors.
+  
+
 SYNCHRONIZE
 - Synchonize now recognizes when you have specified a partial S3 paths when 
   synchronizing DOWN. A partial path is one that does not exactly match a
@@ -53,7 +58,11 @@ TOOLKIT
   return character. A work-around is applied to prevent the Java XML parser
   from misinterpreting these characters, a fault which could cause some objects
   to become un-deletable.
-  
+- Changed default AuthenticationPreemptive setting for HttpClient connections 
+  from true to false, to improve compatibility with NTLM proxies. Preemptive
+  auth can be turned on by setting "httpclient.authentication-preemptive" to 
+  true in jets3t.properties.
+
 
   * Multi-threaded Service
 
