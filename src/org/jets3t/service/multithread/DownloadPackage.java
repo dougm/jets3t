@@ -47,6 +47,8 @@ public class DownloadPackage {
     private boolean isUnzipping = false;
     private EncryptionUtil encryptionUtil = null;
     
+    private boolean appendToFile = false;
+    
     public DownloadPackage(S3Object object, File outputFile) {
         this(object, outputFile, false, null);
     }
@@ -60,15 +62,15 @@ public class DownloadPackage {
         this.encryptionUtil = encryptionUtil;
     }
     
-    public DownloadPackage(String signedUrl, S3Object object, File outputFile, boolean isUnzipping, 
-            EncryptionUtil encryptionUtil) 
-        {
-            this.signedUrl = signedUrl;        
-    		this.object = object;        
-            this.outputFile = outputFile;
-            this.isUnzipping = isUnzipping;
-            this.encryptionUtil = encryptionUtil;
-        }
+    public DownloadPackage(String signedUrl, S3Object object, File outputFile, 
+        boolean isUnzipping, EncryptionUtil encryptionUtil) 
+    {
+        this.signedUrl = signedUrl;        
+		this.object = object;        
+        this.outputFile = outputFile;
+        this.isUnzipping = isUnzipping;
+        this.encryptionUtil = encryptionUtil;
+    }
 
     public S3Object getObject() {
         return object;
@@ -90,6 +92,14 @@ public class DownloadPackage {
     	return signedUrl != null;
     }
     
+    public boolean isAppendToFile() {
+        return appendToFile;
+    }
+    
+    public void setAppendToFile(boolean appendToFile) {
+        this.appendToFile = appendToFile;
+    }
+    
     /**
      * Creates an output stream to receive the object's data. The output stream is based on a 
      * FileOutputStream, but will also be wrapped in a GZipInflatingOutputStream if
@@ -107,7 +117,7 @@ public class DownloadPackage {
             outputFile.getParentFile().mkdirs();
         }                                    
         
-        OutputStream outputStream = new FileOutputStream(outputFile);
+        OutputStream outputStream = new FileOutputStream(outputFile, appendToFile);
         if (isUnzipping) {
             log.debug("Inflating gzipped data for object: " + object.getKey());                    
             outputStream = new GZipInflatingOutputStream(outputStream);            
