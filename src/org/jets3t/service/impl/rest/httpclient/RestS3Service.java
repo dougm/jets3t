@@ -1186,7 +1186,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             + " to " + destinationBucketName + ":" + destinationObjectKey);
         
         Map metadata = new HashMap();
-        metadata.put("x-amz-copy-source", sourceBucketName + "/" + sourceObjectKey);
+        metadata.put("x-amz-copy-source",
+            RestUtils.encodeUrlString(sourceBucketName + "/" + sourceObjectKey));
         
         if (destinationMetadata != null) {
             metadata.put("x-amz-metadata-directive", "REPLACE");
