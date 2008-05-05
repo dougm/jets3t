@@ -640,6 +640,15 @@ public class SoapS3Service extends S3Service {
             throw new S3ServiceException("Unable to Delete Object: " + objectKey, e);   
         } 
     }
+    
+    protected Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
+        String destinationBucketName, String destinationObjectKey,
+        AccessControlList acl, Map destinationMetadata) 
+        throws S3ServiceException 
+    {
+        // TODO Implement the CopyObject operation.
+        throw new S3ServiceException("The CopyObject operation is not yet implemented");
+    }
 
     protected S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 

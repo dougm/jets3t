@@ -1351,6 +1351,165 @@ public abstract class S3Service implements Serializable {
         assertValidObject(object, "Create Object in bucket " + bucketName);        
         return putObjectImpl(bucketName, object);
     }
+    
+    /**
+     * Copy an object within your S3 account. You can copy an object within a 
+     * single bucket, or between buckets, and can optionally update the object's 
+     * metadata at the same time. 
+     * <p>
+     * An object can be copied over itself, in which case you can update its 
+     * metadata without making any other changes.
+     * 
+     * @param sourceBucketName
+     * the name of the bucket that contains the original object. 
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param destinationBucketName
+     * the name of the destination bucket to which the object will be copied.
+     * @param destinationObject
+     * the object that will be created by the copy operation. If this item 
+     * includes an AccessControlList setting the copied object will be assigned
+     * that ACL, otherwise the copied object will be assigned the default private
+     * ACL setting. 
+     * @param replaceMetadata
+     * If this parameter is true, the copied object will be assigned the metadata
+     * values present in the destinationObject. Otherwise, the copied object will
+     * have the same metadata as the original object.
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified).    
+     * 
+     * @throws S3ServiceException
+     */    
+    public Map copyObject(String sourceBucketName, String sourceObjectKey, 
+        String destinationBucketName, S3Object destinationObject,
+        boolean replaceMetadata) throws S3ServiceException 
+    {
+        Map destinationMetadata =
+            replaceMetadata ? destinationObject.getMetadataMap() : null;
+        
+        return copyObjectImpl(sourceBucketName, sourceObjectKey, 
+            destinationBucketName, destinationObject.getKey(), 
+            destinationObject.getAcl(), destinationMetadata);
+    }
+    
+    /**
+     * Move an object within your S3 account. This method works by invoking the
+     * {@link #copyObject(String, String, String, S3Object, boolean)} method to 
+     * copy the original object, then deletes the original object once the 
+     * copy has succeeded.
+     * <p>
+     * If the copy operation succeeds but the delete operation fails, this 
+     * method will not throw an exception but the result map object will contain
+     * an item named "DeleteException" with the exception thrown by the delete
+     * operation.
+     * 
+     * @param sourceBucketName
+     * the name of the bucket that contains the original object. 
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param destinationBucketName
+     * the name of the destination bucket to which the object will be copied.
+     * @param destinationObject
+     * the object that will be created by the move operation. If this item 
+     * includes an AccessControlList setting the copied object will be assigned
+     * that ACL, otherwise the copied object will be assigned the default private
+     * ACL setting. 
+     * @param replaceMetadata
+     * If this parameter is true, the copied object will be assigned the metadata
+     * values present in the destinationObject. Otherwise, the copied object will
+     * have the same metadata as the original object.
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified). If the object was
+     * successfully copied but the original could not be deleted, the map will 
+     * also include an item named "DeleteException" with the exception thrown by 
+     * the delete operation.
+     * 
+     * @throws S3ServiceException
+     */    
+    public Map moveObject(String sourceBucketName, String sourceObjectKey, 
+        String destinationBucketName, S3Object destinationObject,
+        boolean replaceMetadata) throws S3ServiceException 
+    {
+        Map copyResult = copyObject(sourceBucketName, sourceObjectKey, 
+            destinationBucketName, destinationObject, replaceMetadata);
+        
+        try {
+            deleteObject(sourceBucketName, sourceObjectKey);
+        } catch (Exception e) {
+            copyResult.put("DeleteException", e);
+        }
+        return copyResult;
+    }    
+
+    /**
+     * Rename an object in your S3 account. This method works by invoking the
+     * {@link #moveObject(String, String, String, S3Object, boolean)} method to
+     * move the original object to a new key name.
+     * <p>
+     * The original object's metadata is retained, but to apply an access
+     * control setting other than private you must specify an ACL in the 
+     * destination object.
+     *  
+     * @param bucketName
+     * the name of the bucket containing the original object that will be copied. 
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param destinationObject
+     * the object that will be created by the rename operation. If this item 
+     * includes an AccessControlList setting the copied object will be assigned
+     * that ACL, otherwise the copied object will be assigned the default private
+     * ACL setting. 
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified). If the object was
+     * successfully copied but the original could not be deleted, the map will 
+     * also include an item named "DeleteException" with the exception thrown by 
+     * the delete operation.
+     * 
+     * @throws S3ServiceException
+     */    
+    public Map renameObject(String bucketName, String sourceObjectKey, 
+        S3Object destinationObject) throws S3ServiceException 
+    {
+        return moveObject(bucketName, sourceObjectKey, 
+            bucketName, destinationObject, false);
+    }
+
+    /**
+     * Update an object's metadata. This method works by invoking the
+     * {@link #copyObject(String, String, String, S3Object, boolean)} method to
+     * copy the original object over itself, applying the new metadata in the
+     * process.
+     *  
+     * @param bucketName
+     * the name of the bucket containing the object that will be updated. 
+     * @param object
+     * the object that will be updated. If this item includes an 
+     * AccessControlList setting the copied object will be assigned
+     * that ACL, otherwise the copied object will be assigned the default private
+     * ACL setting. 
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified). 
+     * 
+     * @throws S3ServiceException
+     */    
+    public Map updateObjectMetadata(String bucketName, S3Object object) 
+        throws S3ServiceException 
+    {
+        return copyObject(bucketName, object.getKey(), 
+            bucketName, object, true);
+    }
 
     /**
      * Puts an object inside an existing bucket in S3, creating a new object or overwriting
@@ -1376,7 +1535,7 @@ public abstract class S3Service implements Serializable {
         assertValidBucket(bucket, "Create Object in bucket");
         return putObject(bucket.getName(), object);
     }
-    
+        
     /**
      * Deletes an object from a bucket in S3.
      * <p>
@@ -1922,6 +2081,41 @@ public abstract class S3Service implements Serializable {
     protected abstract void deleteBucketImpl(String bucketName) throws S3ServiceException;
 
     protected abstract S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException;
+    
+    /**
+     * Copy an object within your S3 account. Copies within a single bucket or between
+     * buckets, and optionally updates the object's metadata at the same time. An 
+     * object can be copied over itself, allowing you to update the metadata without
+     * making any other changes.
+     * 
+     * @param sourceBucketName
+     * the name of the bucket that contains the original object. 
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param destinationBucketName
+     * the name of the destination bucket to which the object will be copied.
+     * @param destinationObjectKey
+     * the key name for the copied object.
+     * @param acl
+     * the access control settings that will be applied to the copied object.
+     * If this parameter is null, the default (private) ACL setting will be 
+     * applied to the copied object.
+     * @param destinationMetadata
+     * metadata items to apply to the copied object. If this parameter is null,
+     * the metadata will be copied unchanged from the original object. If this 
+     * parameter is not null, the copied object will have only the supplied 
+     * metadata.   
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified).    
+     * 
+     * @throws S3ServiceException
+     */
+    protected abstract Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
+        String destinationBucketName, String destinationObjectKey,
+        AccessControlList acl, Map destinationMetadata) throws S3ServiceException;     
 
     protected abstract void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException;
     

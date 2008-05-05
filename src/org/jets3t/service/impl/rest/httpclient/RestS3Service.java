@@ -64,6 +64,7 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
 import org.jets3t.service.io.UnrecoverableIOException;
 import org.jets3t.service.model.CreateBucketConfiguration;
@@ -649,6 +650,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * @param requestEntity
      *        an HttpClient object that encapsulates the object and data contents that will be
      *        uploaded. This object supports the resending of object data, when possible.
+     * @param autoRelease
+     *        if true, the HTTP Method object will be released after the request has 
+     *        completed and the connection will be closed. If false, the object will
+     *        not be released and the caller must take responsibility for doing this.
      * @return
      *        a package including the HTTP method object used to perform the request, and the 
      *        content length (in bytes) of the object that was PUT to S3.
@@ -656,7 +661,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * @throws S3ServiceException
      */
     protected HttpMethodAndByteCount performRestPut(String bucketName, String objectKey, 
-        Map metadata, Map requestParameters, RequestEntity requestEntity) throws S3ServiceException 
+        Map metadata, Map requestParameters, RequestEntity requestEntity, boolean autoRelease) 
+        throws S3ServiceException 
     {        
         // Add any request parameters.
         HttpMethodBase httpMethod = setupConnection("PUT", bucketName, objectKey, requestParameters);
@@ -680,8 +686,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             contentLength = ((PutMethod)httpMethod).getRequestEntity().getContentLength();
         }
                 
-        // Release connection after PUT (there ought to be no response content)
-        httpMethod.releaseConnection();
+        if (autoRelease) {
+            httpMethod.releaseConnection();
+        }
         
         return new HttpMethodAndByteCount(httpMethod, contentLength);
     }
@@ -1039,7 +1046,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             String aclAsXml = acl.toXml();
             metadata.put("Content-Length", String.valueOf(aclAsXml.length()));
             performRestPut(bucketName, objectKey, metadata, requestParameters, 
-                new StringRequestEntity(aclAsXml, "text/plain", Constants.DEFAULT_ENCODING));
+                new StringRequestEntity(aclAsXml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode ACL XML document", e);
         }
@@ -1110,7 +1118,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
         object.replaceAllMetadata(map);
         return object;
-    }
+    }    
     
     protected Map createObjectImpl(String bucketName, String objectKey, String contentType, 
         RequestEntity requestEntity, Map metadata, AccessControlList acl) 
@@ -1150,7 +1158,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             );
         
         HttpMethodAndByteCount methodAndByteCount = performRestPut(
-            bucketName, objectKey, metadata, null, requestEntity);
+            bucketName, objectKey, metadata, null, requestEntity, true);
             
         // Consume response content.
         HttpMethodBase httpMethod = methodAndByteCount.getHttpMethod();
@@ -1168,6 +1176,80 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         return map;
     }
+    
+    protected Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
+        String destinationBucketName, String destinationObjectKey,
+        AccessControlList acl, Map destinationMetadata) 
+        throws S3ServiceException 
+    {
+        log.debug("Copying Object from " + sourceBucketName + ":" + sourceObjectKey 
+            + " to " + destinationBucketName + ":" + destinationObjectKey);
+        
+        Map metadata = new HashMap();
+        metadata.put("x-amz-copy-source", sourceBucketName + "/" + sourceObjectKey);
+        
+        if (destinationMetadata != null) {
+            metadata.put("x-amz-metadata-directive", "REPLACE");
+            // Include any metadata provided with S3 object.
+            metadata.putAll(destinationMetadata);
+            // Set default content type.
+            if (!metadata.containsKey("Content-Type")) {
+                metadata.put("Content-Type", Mimetypes.MIMETYPE_OCTET_STREAM);            
+            }            
+        } else {
+            metadata.put("x-amz-metadata-directive", "COPY");
+        }
+        
+        boolean putNonStandardAcl = false;
+        if (acl != null) {
+            if (AccessControlList.REST_CANNED_PRIVATE.equals(acl)) {
+                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "private");
+            } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) { 
+                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "public-read");
+            } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(acl)) { 
+                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "public-read-write");
+            } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(acl)) {
+                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "authenticated-read");
+            } else {
+                putNonStandardAcl = true;
+            }
+        }
+        
+        HttpMethodAndByteCount methodAndByteCount = performRestPut(
+            destinationBucketName, destinationObjectKey, metadata, null, null, false);
+        
+        CopyObjectResultHandler handler = (new XmlResponsesSaxParser()).parseCopyObjectResponse(
+                new HttpMethodReleaseInputStream(methodAndByteCount.getHttpMethod()));
+        
+        // Release HTTP connection manually. This should already have been done by the
+        // HttpMethodReleaseInputStream class, but you can never be too sure...
+        methodAndByteCount.getHttpMethod().releaseConnection();
+        
+        if (handler.isErrorResponse()) {
+            throw new S3ServiceException(
+                "Copy failed: Code=" + handler.getErrorCode() +
+                ", Message=" + handler.getErrorMessage() +
+                ", RequestId=" + handler.getErrorRequestId() +
+                ", HostId=" + handler.getErrorHostId());
+        }            
+
+        Map map = new HashMap();
+
+        // Result fields returned when copy is successful.
+        map.put("Last-Modified", handler.getLastModified());
+        map.put("ETag", handler.getETag());
+
+        // Include response headers in result map. 
+        map.putAll(convertHeadersToMap(methodAndByteCount.getHttpMethod().getResponseHeaders()));
+        map = ServiceUtils.cleanRestMetadataMap(map);
+
+        if (putNonStandardAcl) {
+            log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
+            putAclImpl(destinationBucketName, destinationObjectKey, acl);
+        }
+
+        return map;
+    }    
     
     protected S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
@@ -1302,7 +1384,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             String statusAsXml = status.toXml();
             metadata.put("Content-Length", String.valueOf(statusAsXml.length()));
             performRestPut(bucketName, null, metadata, requestParameters, 
-                new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING));                
+                new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);                
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }    

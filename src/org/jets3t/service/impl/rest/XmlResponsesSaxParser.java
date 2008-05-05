@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -250,6 +251,14 @@ public class XmlResponsesSaxParser {
         return handler.getLocation();
     }
 
+    public CopyObjectResultHandler parseCopyObjectResponse(InputStream inputStream)
+        throws S3ServiceException
+    {
+        CopyObjectResultHandler handler = new CopyObjectResultHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler;
+    }
+    
     // ////////////
     // Handlers //
     // ////////////
@@ -694,5 +703,98 @@ public class XmlResponsesSaxParser {
             this.currText.append(ch, start, length);
         }
     }
+
     
+    public class CopyObjectResultHandler extends DefaultHandler {
+        // Data items for successful copy
+        private String etag = null;
+        private Date lastModified = null;
+        
+        // Data items for failed copy
+        private String errorCode = null;
+        private String errorMessage = null;
+        private String errorRequestId = null;
+        private String errorHostId = null;
+        private boolean receivedErrorResponse = false;
+        
+
+        private StringBuffer currText = null;
+
+        public CopyObjectResultHandler() {
+            super();
+            this.currText = new StringBuffer();
+        }
+
+        public Date getLastModified() {
+            return lastModified;
+        }
+
+        public String getETag() {
+            return etag;
+        }
+        
+        public String getErrorCode() {
+            return errorCode;
+        }
+
+        public String getErrorHostId() {
+            return errorHostId;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+
+        public String getErrorRequestId() {
+            return errorRequestId;
+        }
+        
+        public boolean isErrorResponse() {
+            return receivedErrorResponse;
+        }
+        
+
+        public void startDocument() {
+        }
+
+        public void endDocument() {
+        }
+
+        public void startElement(String uri, String name, String qName, Attributes attrs) {
+            if (name.equals("CopyObjectResult")) {
+                receivedErrorResponse = false;
+            } else if (name.equals("Error")) {
+                receivedErrorResponse = true;
+            }
+        }
+
+        public void endElement(String uri, String name, String qName) {
+            String elementText = this.currText.toString();
+
+            if (name.equals("LastModified")) {
+                try {
+                    lastModified = ServiceUtils.parseIso8601Date(elementText);
+                } catch (ParseException e) {
+                    throw new RuntimeException("Unexpected date format in copy object output", e);
+                }                
+            } else if (name.equals("ETag")) {
+                etag = elementText;
+            } else if (name.equals("Code")) {
+                errorCode = elementText;
+            } else if (name.equals("Message")) {
+                errorMessage = elementText;
+            } else if (name.equals("RequestId")) {
+                errorRequestId = elementText;
+            } else if (name.equals("HostId")) {
+                errorHostId = elementText;
+            }
+            
+            this.currText = new StringBuffer();
+        }
+
+        public void characters(char ch[], int start, int length) {
+            this.currText.append(ch, start, length);
+        }
+    }
+
 }

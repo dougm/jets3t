@@ -36,7 +36,11 @@ SYNCHRONIZE
 TOOLKIT
 
   * General
-  
+
+- Added support for the new Copy Object functionality that allows you to copy,
+  move, rename and update objects in your S3 account. These operations are
+  available through the S3Service as the methods copyObject, moveObject,
+  renameObject and updateObjectMetadata.
 - Fixed bug in RestS3Service that caused failures in some circumstances when 
   buckets were created with the "US" location.
 - S3Service instances can now be configured individually by providing a
@@ -53,7 +57,8 @@ TOOLKIT
 
 
   * REST Implementation
-  
+
+- Added support for the new Copy Object functionality.
 - The XML parsing code now copes better when object names contain a carriage 
   return character. A work-around is applied to prevent the Java XML parser
   from misinterpreting these characters, a fault which could cause some objects
