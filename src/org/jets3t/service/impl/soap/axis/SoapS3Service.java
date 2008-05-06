@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -57,6 +58,7 @@ import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonS3SoapBindingStub;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonS3_ServiceLocator;
 import org.jets3t.service.impl.soap.axis._2006_03_01.BucketLoggingStatus;
 import org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser;
+import org.jets3t.service.impl.soap.axis._2006_03_01.CopyObjectResult;
 import org.jets3t.service.impl.soap.axis._2006_03_01.GetObjectResult;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Grant;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Grantee;
@@ -66,6 +68,7 @@ import org.jets3t.service.impl.soap.axis._2006_03_01.ListAllMyBucketsResult;
 import org.jets3t.service.impl.soap.axis._2006_03_01.ListBucketResult;
 import org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry;
 import org.jets3t.service.impl.soap.axis._2006_03_01.LoggingSettings;
+import org.jets3t.service.impl.soap.axis._2006_03_01.MetadataDirective;
 import org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Permission;
 import org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry;
@@ -646,8 +649,43 @@ public class SoapS3Service extends S3Service {
         AccessControlList acl, Map destinationMetadata) 
         throws S3ServiceException 
     {
-        // TODO Implement the CopyObject operation.
-        throw new S3ServiceException("The CopyObject operation is not yet implemented");
+        try {
+            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "CopyObject" + convertDateToString(timestamp));
+            
+            MetadataDirective metadataDirective = null;
+            MetadataEntry[] metadata = null;
+            
+            if (destinationMetadata != null) {
+                metadataDirective = MetadataDirective.REPLACE;
+                metadata = convertMetadata(destinationMetadata);
+            } else {
+                metadataDirective = MetadataDirective.COPY;
+            }                        
+            
+            Grant[] grants = null;
+            if (acl != null) {
+                grants = convertACLtoGrants(acl);
+            }
+            
+            CopyObjectResult result = s3SoapBinding.copyObject(
+                sourceBucketName, sourceObjectKey, destinationBucketName, 
+                destinationObjectKey, metadataDirective, metadata, grants, null, 
+                getAWSAccessKey(), timestamp, signature, null);
+            
+            Map resultMap = new HashMap();
+            resultMap.put("ETag", result.getETag());
+            resultMap.put("Last-Modified", result.getLastModified().getTime());
+            return resultMap;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to Copy Object from '" + 
+                sourceBucketName + ":" + sourceObjectKey + "' to '" +
+                destinationBucketName + ":" + destinationObjectKey + "'", e);   
+        } 
     }
 
     protected S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
@@ -855,7 +893,8 @@ public class SoapS3Service extends S3Service {
             
             LoggingSettings loggingSettings = null;
             if (status.isLoggingEnabled()) {
-                loggingSettings = new LoggingSettings(status.getTargetBucketName(), status.getLogfilePrefix());                
+                loggingSettings = new LoggingSettings(
+                    status.getTargetBucketName(), status.getLogfilePrefix(), new Grant[] {});                
             }
             
             s3SoapBinding.setBucketLoggingStatus(

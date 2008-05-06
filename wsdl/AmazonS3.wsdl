@@ -106,6 +106,13 @@
     <wsdl:part element="tns:DeleteBucketResponse" name="parameters"/>
   </wsdl:message>
 
+  <wsdl:message name="CopyObjectRequest">
+    <wsdl:part element="tns:CopyObject" name="parameters"/>
+  </wsdl:message>
+  <wsdl:message name="CopyObjectResponse">
+    <wsdl:part element="tns:CopyObjectResponse" name="parameters"/>
+  </wsdl:message>
+
 
   <wsdl:portType name="AmazonS3">
     <wsdl:operation name="CreateBucket">
@@ -181,6 +188,11 @@
     <wsdl:operation name="SetBucketLoggingStatus">
       <wsdl:input message="tns:SetBucketLoggingStatusRequest" name="SetBucketLoggingStatusRequest"/>
       <wsdl:output message="tns:SetBucketLoggingStatusResponse" name="SetBucketLoggingStatusResponse"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CopyObject">
+      <wsdl:input message="tns:CopyObjectRequest" name="CopyObjectRequest"/>
+      <wsdl:output message="tns:CopyObjectResponse" name="CopyObjectResponse"/>
     </wsdl:operation>
 
   </wsdl:portType>
@@ -335,6 +347,16 @@
         <wsdlsoap:body use="literal"/>
       </wsdl:input>
       <wsdl:output name="GetBucketLoggingStatusResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CopyObject">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="CopyObjectRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="CopyObjectResponse">
         <wsdlsoap:body use="literal"/>
       </wsdl:output>
     </wsdl:operation>

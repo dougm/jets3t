@@ -81,6 +81,7 @@
     <xsd:sequence>
       <xsd:element name="TargetBucket" type="xsd:string"/>
       <xsd:element name="TargetPrefix" type="xsd:string"/>
+      <xsd:element name="TargetGrants" type="tns:AccessControlList" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -215,7 +216,6 @@
 
   <xsd:simpleType name="StorageClass">
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value="TEMP"/>
       <xsd:enumeration value="STANDARD"/>
       <xsd:enumeration value="UNKNOWN"/>
     </xsd:restriction>
@@ -232,6 +232,18 @@
     <xsd:sequence>
       <xsd:element name="Grant" type="tns:Grant" minOccurs="0" maxOccurs="100"/>
     </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="CreateBucketConfiguration">
+    <xsd:sequence>
+      <xsd:element name="LocationConstraint" type="tns:LocationConstraint"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="LocationConstraint">
+    <xsd:simpleContent>
+      <xsd:extension base="xsd:string"/>
+    </xsd:simpleContent>
   </xsd:complexType>
 
   <xsd:complexType name="AccessControlPolicy">
@@ -522,5 +534,56 @@
     </xsd:sequence>
   </xsd:complexType>
 
+  <xsd:element name="PostResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="Location" type="xsd:anyURI"/>
+        <xsd:element name="Bucket" type="xsd:string"/>
+        <xsd:element name="Key" type="xsd:string"/>
+        <xsd:element name="ETag" type="xsd:string"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:simpleType name="MetadataDirective">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="COPY"/>
+      <xsd:enumeration value="REPLACE"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:element name="CopyObject">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="SourceBucket" type="xsd:string"/>
+        <xsd:element name="SourceKey" type="xsd:string"/>
+        <xsd:element name="DestinationBucket" type="xsd:string"/>
+        <xsd:element name="DestinationKey" type="xsd:string"/>
+        <xsd:element name="MetadataDirective" type="tns:MetadataDirective" minOccurs="0"/>
+        <xsd:element name="Metadata" type="tns:MetadataEntry" minOccurs="0" maxOccurs="100"/>
+        <xsd:element name="AccessControlList" type="tns:AccessControlList" minOccurs="0"/>
+        <xsd:element name="StorageClass" type="tns:StorageClass" minOccurs="0"/>
+        <xsd:element name="AWSAccessKeyId" type="xsd:string" minOccurs="0"/>
+        <xsd:element name="Timestamp" type="xsd:dateTime" minOccurs="0"/>
+        <xsd:element name="Signature" type="xsd:string" minOccurs="0"/>
+        <xsd:element name="Credential" type="xsd:string" minOccurs="0"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="CopyObjectResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="CopyObjectResult" type="tns:CopyObjectResult" />
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:complexType name="CopyObjectResult">
+    <xsd:sequence>
+      <xsd:element name="LastModified" type="xsd:dateTime"/>
+      <xsd:element name="ETag" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
 
 </xsd:schema>

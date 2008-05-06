@@ -1,5 +1,5 @@
 /**
- * StorageClass.java
+ * MetadataDirective.java
  *
  * This file was auto-generated from WSDL
  * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
@@ -7,29 +7,29 @@
 
 package org.jets3t.service.impl.soap.axis._2006_03_01;
 
-public class StorageClass implements java.io.Serializable {
+public class MetadataDirective implements java.io.Serializable {
     private java.lang.String _value_;
     private static java.util.HashMap _table_ = new java.util.HashMap();
 
     // Constructor
-    protected StorageClass(java.lang.String value) {
+    protected MetadataDirective(java.lang.String value) {
         _value_ = value;
         _table_.put(_value_,this);
     }
 
-    public static final java.lang.String _STANDARD = "STANDARD";
-    public static final java.lang.String _UNKNOWN = "UNKNOWN";
-    public static final StorageClass STANDARD = new StorageClass(_STANDARD);
-    public static final StorageClass UNKNOWN = new StorageClass(_UNKNOWN);
+    public static final java.lang.String _COPY = "COPY";
+    public static final java.lang.String _REPLACE = "REPLACE";
+    public static final MetadataDirective COPY = new MetadataDirective(_COPY);
+    public static final MetadataDirective REPLACE = new MetadataDirective(_REPLACE);
     public java.lang.String getValue() { return _value_;}
-    public static StorageClass fromValue(java.lang.String value)
+    public static MetadataDirective fromValue(java.lang.String value)
           throws java.lang.IllegalArgumentException {
-        StorageClass enumeration = (StorageClass)
+        MetadataDirective enumeration = (MetadataDirective)
             _table_.get(value);
         if (enumeration==null) throw new java.lang.IllegalArgumentException();
         return enumeration;
     }
-    public static StorageClass fromString(java.lang.String value)
+    public static MetadataDirective fromString(java.lang.String value)
           throws java.lang.IllegalArgumentException {
         return fromValue(value);
     }
@@ -55,10 +55,10 @@ public class StorageClass implements java.io.Serializable {
     }
     // Type metadata
     private static org.apache.axis.description.TypeDesc typeDesc =
-        new org.apache.axis.description.TypeDesc(StorageClass.class);
+        new org.apache.axis.description.TypeDesc(MetadataDirective.class);
 
     static {
-        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "StorageClass"));
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "MetadataDirective"));
     }
     /**
      * Return type metadata object
