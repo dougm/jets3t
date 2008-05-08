@@ -1388,7 +1388,7 @@ public abstract class S3Service implements Serializable {
         boolean replaceMetadata) throws S3ServiceException 
     {
         Map destinationMetadata =
-            replaceMetadata ? destinationObject.getMetadataMap() : null;
+            replaceMetadata ? destinationObject.getModifiableMetadata() : null;
         
         return copyObjectImpl(sourceBucketName, sourceObjectKey, 
             destinationBucketName, destinationObject.getKey(), 
