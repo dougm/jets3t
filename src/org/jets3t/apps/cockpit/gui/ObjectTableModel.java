@@ -71,8 +71,10 @@ public class ObjectTableModel extends DefaultTableModel {
     
     public void removeObject(S3Object object) {
         int index = objectList.indexOf(object);
-        this.removeRow(index);
-        objectList.remove(object);
+        if (index >= 0) {
+            this.removeRow(index);
+            objectList.remove(object);
+        }
     }
     
     public void removeAllObjects() {
