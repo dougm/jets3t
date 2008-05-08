@@ -201,7 +201,7 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
         renamePatternTextField.setEnabled(false);
         renamePatternTextField.setText(
             (destinationObjects.length == 1 ? destinationObjects[0].getKey() : "{key}"));
-        renamePatternTextField.setToolTipText("Use variables to rename your objects: {key}  {path}  {filename}  {count}");
+        renamePatternTextField.setToolTipText("Use variables to rename your objects: {key}  {path}  {filename}  {basename}  {ext}  {count}");
         
         renamePatternTextField.getDocument().addDocumentListener(new DocumentListener() {
            public void changedUpdate(DocumentEvent e) {
@@ -360,9 +360,9 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
     
     /**
      * Return the renamed key for an object based on the current renaming pattern.
-     * This method calculates values for the {key}, {count}, {path} and {filename}
-     * variables from the original key name, and returns the destination key name
-     * when these values are substituted into the current pattern.
+     * This method calculates values for the {key}, {count}, {path}, {filename},
+     * {basename} and {ext} variables from the original key name, and returns the 
+     * destination key name when these values are substituted into the current pattern.
      * <p>
      * The substitution variables supported by this method are:
      * <ul>
@@ -375,6 +375,8 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
      * <li>{filename} - the filename portion of the key name, everything after the 
      * last slash (/) character. If the key contains no slash characters, this variable
      * will be the original key name.</li>
+     * <li>{ext} - the extension portion of a filename, if any.</li>
+     * <li>{basename} - the file's base name, excluding the extension.</li> 
      * </ul>
      * 
      * @param key
@@ -394,8 +396,16 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
         
         int lastSlash = key.lastIndexOf('/');
         if (lastSlash >= 0) {
-            path = key.substring(0, lastSlash);
+            path = key.substring(0, lastSlash + 1);
             filename = key.substring(lastSlash + 1);
+        }
+
+        String basename = filename;
+        String ext = "";
+        int lastPeriod = filename.lastIndexOf('.');
+        if (lastPeriod >= 0) {
+            basename = filename.substring(0, lastPeriod);
+            ext = filename.substring(lastPeriod + 1);
         }
         
         // Perform substitutions to generate new names.
@@ -404,6 +414,8 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
         newName = newName.replaceAll("\\{count\\}", count);
         newName = newName.replaceAll("\\{path\\}", path);
         newName = newName.replaceAll("\\{filename\\}", filename);
+        newName = newName.replaceAll("\\{ext\\}", ext);
+        newName = newName.replaceAll("\\{basename\\}", basename);
         
         return newName;
     }
