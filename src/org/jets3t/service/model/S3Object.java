@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -43,7 +44,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * 
  * @author James Murty
  */
-public class S3Object extends BaseS3Object {
+public class S3Object extends BaseS3Object implements Cloneable {
     private final Log log = LogFactory.getLog(S3Object.class);
 
     private static final long serialVersionUID = -2883501141593631181L;
@@ -486,6 +487,38 @@ public class S3Object extends BaseS3Object {
     		Map.Entry entry = (Map.Entry) iter.next();
     		addMetadata(entry.getKey().toString(), entry.getValue());
     	}
+    }
+    
+    /**
+     * Returns only those object metadata items that can be modified in
+     * S3. This list excludes those that are set by the S3 service, and
+     * those that are specific to a particular HTTP request/response
+     * session (such as request identifiers). 
+     * 
+     * @return
+     */
+    public Map getModifiableMetadata() {
+        Map objectMetadata = new HashMap(getMetadataMap());
+        objectMetadata.remove(S3Object.METADATA_HEADER_CONTENT_LENGTH);
+        objectMetadata.remove(S3Object.METADATA_HEADER_DATE);
+        objectMetadata.remove(S3Object.METADATA_HEADER_ETAG);
+        objectMetadata.remove(S3Object.METADATA_HEADER_LAST_MODIFIED_DATE);
+        objectMetadata.remove(S3Object.METADATA_HEADER_OWNER);
+        objectMetadata.remove("id-2"); // HTTP request-specific information
+        objectMetadata.remove("request-id"); // HTTP request-specific information
+        return objectMetadata;
+    }
+
+    
+    public Object clone() {
+        S3Object clone = new S3Object(key);
+        clone.bucketName = bucketName;
+        clone.dataInputStream = dataInputStream;
+        clone.acl = acl;
+        clone.isMetadataComplete = isMetadataComplete;
+        clone.dataInputFile = dataInputFile;
+        clone.addAllMetadata(getMetadataMap());
+        return clone;
     }
     
 }
