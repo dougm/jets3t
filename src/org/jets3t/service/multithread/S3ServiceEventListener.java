@@ -30,7 +30,9 @@ public interface S3ServiceEventListener {
 
     public void s3ServiceEventPerformed(CreateObjectsEvent event);
 
-	public void s3ServiceEventPerformed(CreateBucketsEvent event);
+    public void s3ServiceEventPerformed(CopyObjectsEvent event);
+
+    public void s3ServiceEventPerformed(CreateBucketsEvent event);
 	
 	public void s3ServiceEventPerformed(DeleteObjectsEvent event);
 

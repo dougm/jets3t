@@ -113,6 +113,7 @@ import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.CancelEventTrigger;
+import org.jets3t.service.multithread.CopyObjectsEvent;
 import org.jets3t.service.multithread.CreateBucketsEvent;
 import org.jets3t.service.multithread.CreateObjectsEvent;
 import org.jets3t.service.multithread.DeleteObjectsEvent;
@@ -2347,6 +2348,11 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 	public void s3ServiceEventPerformed(CreateBucketsEvent event) {
 		// Not applicable in this app.		
 	}
+    
+    public void s3ServiceEventPerformed(CopyObjectsEvent event) {
+        // Not applicable in this app.
+    }
+    
     
     public static String getAclDescription(AccessControlList acl) {
         if (acl == null) { 

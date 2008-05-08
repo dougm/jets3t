@@ -46,6 +46,10 @@ public class S3ServiceEventAdaptor implements S3ServiceEventListener {
         storeThrowable(event);
     }
 
+    public void s3ServiceEventPerformed(CopyObjectsEvent event) {
+        storeThrowable(event);
+    }
+
     public void s3ServiceEventPerformed(CreateBucketsEvent event) {
         storeThrowable(event);
     }

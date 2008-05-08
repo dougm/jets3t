@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
@@ -122,6 +123,47 @@ public class S3ServiceSimpleMulti {
         (new S3ServiceMulti(s3Service, adaptor)).putObjects(bucket, objects);
         throwError(adaptor);
         return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
+    }
+
+    /**
+     * Copies multiple objects within or between buckets.
+     * 
+     * @param sourceBucketName
+     * the name of the bucket containing the objects that will be copied.
+     * @param destinationBucketName        
+     * the name of the bucket to which the objects will be copied. The destination
+     * bucket may be the same as the source bucket.
+     * @param sourceObjectKeys
+     * the key names of the objects that will be copied.
+     * @param S3Object[] destinationObjects
+     * objects that will be created by the copy operation. The AccessControlList
+     * setting of each object will determine the access permissions of the 
+     * resultant object, and if the replaceMetadata flag is true the metadata 
+     * items in each object will also be applied to the resultant object. 
+     * @param replaceMetadata
+     * if true, the metadata items in the destiniation objects will be stored 
+     * in S3 by using the REPLACE metadata copying option. If false, the metadata
+     * items will be copied unchanged from the original objects using the COPY
+     * metadata copying option.s
+     */
+    
+    public Map[] copyObjects(final String sourceBucketName, final String destinationBucketName,
+        final String[] sourceObjectKeys, final S3Object[] destinationObjects, boolean replaceMetadata) 
+        throws S3ServiceException 
+    {    
+        final List resultsList = new ArrayList();
+        S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            public void s3ServiceEventPerformed(CopyObjectsEvent event) {
+                super.s3ServiceEventPerformed(event);
+                if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                    resultsList.addAll(Arrays.asList(event.getCopyResults()));
+                }
+            };
+        };
+        (new S3ServiceMulti(s3Service, adaptor)).copyObjects(sourceBucketName, destinationBucketName, 
+            sourceObjectKeys, destinationObjects, replaceMetadata);
+        throwError(adaptor);
+        return (Map[]) resultsList.toArray(new Map[resultsList.size()]);
     }
     
     /**

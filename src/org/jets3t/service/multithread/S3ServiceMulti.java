@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -182,6 +183,8 @@ public class S3ServiceMulti implements Serializable {
             
             if (event instanceof CreateObjectsEvent) {
                 listener.s3ServiceEventPerformed((CreateObjectsEvent) event);
+            } else if (event instanceof CopyObjectsEvent) {
+                listener.s3ServiceEventPerformed((CopyObjectsEvent) event);
             } else if (event instanceof CreateBucketsEvent) {
                 listener.s3ServiceEventPerformed((CreateBucketsEvent) event);
             } else if (event instanceof ListObjectsEvent) {
@@ -347,10 +350,83 @@ public class S3ServiceMulti implements Serializable {
     }
     
     /**
-     * Creates multiple objects in a bucket, and sends {@link CreateObjectsEvent} notification events.
+     * Copies multiple objects within or between buckets, while sending 
+     * {@link CopyObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
-     * <tt>s3service.max-thread-count</tt>.
+     * <tt>s3service.admin-max-thread-count</tt>.
+     * 
+     * @param sourceBucketName
+     * the name of the bucket containing the objects that will be copied.
+     * @param destinationBucketName        
+     * the name of the bucket to which the objects will be copied. The destination
+     * bucket may be the same as the source bucket.
+     * @param sourceObjectKeys
+     * the key names of the objects that will be copied.
+     * @param S3Object[] destinationObjects
+     * objects that will be created by the copy operation. The AccessControlList
+     * setting of each object will determine the access permissions of the 
+     * resultant object, and if the replaceMetadata flag is true the metadata 
+     * items in each object will also be applied to the resultant object. 
+     * @param replaceMetadata
+     * if true, the metadata items in the destiniation objects will be stored 
+     * in S3 by using the REPLACE metadata copying option. If false, the metadata
+     * items will be copied unchanged from the original objects using the COPY
+     * metadata copying option.s
+     */
+    public void copyObjects(final String sourceBucketName, final String destinationBucketName,        
+        final String[] sourceObjectKeys, final S3Object[] destinationObjects, boolean replaceMetadata) 
+    {            
+        final List incompletedObjectsList = new ArrayList();
+        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+                
+        // Start all queries in the background.
+        CopyObjectRunnable[] runnables = new CopyObjectRunnable[sourceObjectKeys.length];
+        for (int i = 0; i < runnables.length; i++) {
+            incompletedObjectsList.add(destinationObjects[i]);
+            runnables[i] = new CopyObjectRunnable(sourceBucketName, destinationBucketName, 
+                sourceObjectKeys[i], destinationObjects[i], replaceMetadata);
+        }        
+        
+        int maxThreadCount = this.s3Service.getJetS3tProperties()
+            .getIntProperty("s3service.admin-max-thread-count", 4);
+        
+        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
+            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
+                            
+        // Wait for threads to finish, or be cancelled.
+        ThreadWatcher threadWatcher = new ThreadWatcher(runnables.length);
+        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher, ignoreExceptions) {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(CopyObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                incompletedObjectsList.removeAll(completedResults);
+                Map[] copyResults = (Map[]) completedResults
+                    .toArray(new Map[completedResults.size()]);
+                fireServiceEvent(CopyObjectsEvent.newInProgressEvent(threadWatcher, 
+                    copyResults, uniqueOperationId));
+            }
+            public void fireCancelEvent() {
+                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
+                    .toArray(new S3Object[incompletedObjectsList.size()]);
+                fireServiceEvent(CopyObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(CopyObjectsEvent.newCompletedEvent(uniqueOperationId, 
+                    sourceObjectKeys, destinationObjects));
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                fireServiceEvent(CopyObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+        }).run();
+    }
+
+    /**
+     * Copies multiple objects within or between buckets, and sends {@link CopyObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.max-admin-thread-count</tt>.
      * 
      * @param bucket
      * the bucket to create the objects in 
@@ -1631,6 +1707,46 @@ public class S3ServiceMulti implements Serializable {
             if (interruptableInputStream != null) {
                 interruptableInputStream.interrupt();
             }
+        }
+    }
+
+    /**
+     * Thread for copying an object.
+     */
+    private class CopyObjectRunnable extends AbstractRunnable {
+        private String sourceBucketName = null;
+        private String destinationBucketName = null;
+        private String sourceObjectKey = null;
+        private S3Object destinationObject = null;
+        private boolean replaceMetadata = false;
+        
+        private Object result = null;
+        
+        public CopyObjectRunnable(String sourceBucketName, String destinationBucketName,
+            String sourceObjectKey, S3Object destinationObject, boolean replaceMetadata) 
+        {
+            this.sourceBucketName = sourceBucketName;
+            this.destinationBucketName = destinationBucketName;
+            this.sourceObjectKey = sourceObjectKey;
+            this.destinationObject = destinationObject;
+            this.replaceMetadata = replaceMetadata;
+        }
+
+        public void run() {
+            try {
+                result = s3Service.copyObject(sourceBucketName, sourceObjectKey, 
+                    destinationBucketName, destinationObject, replaceMetadata);
+            } catch (S3ServiceException e) {
+                result = e;
+            }
+        }
+        
+        public Object getResult() {
+            return result;
+        }        
+        
+        public void forceInterruptCalled() {        
+            // This is an atomic operation, cannot interrupt. Ignore.
         }
     }
 
