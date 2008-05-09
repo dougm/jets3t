@@ -1881,8 +1881,6 @@ public abstract class S3Service implements Serializable {
         boolean updateTargetACLifRequired) 
         throws S3ServiceException
     {
-        setBucketLoggingStatusImpl(bucketName, status);
-        
         if (status.isLoggingEnabled() && updateTargetACLifRequired) {            
             // Check whether the target bucket has the ACL permissions necessary for logging.
             log.debug("Checking whether the target logging bucket '" + 
@@ -1926,6 +1924,8 @@ public abstract class S3Service implements Serializable {
                     + "' has the necessary ACL settings");                
             }
         }
+
+        setBucketLoggingStatusImpl(bucketName, status);        
     }
     
 
