@@ -92,6 +92,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
     private JTextField objectETagTextField = null;
     private JTextField bucketLocationTextField = null;
     private DefaultTableModel objectMetadataTableModel = null;
+    private TableSorter metadataTableSorter = null;
     private JLabel ownerNameLabel = null;
     private JLabel ownerIdLabel = null;
     private JLabel currentObjectLabel = null;
@@ -244,7 +245,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
             }
         };
         
-        TableSorter metadataTableSorter = new TableSorter(objectMetadataTableModel);            
+        metadataTableSorter = new TableSorter(objectMetadataTableModel);            
         metadataTable = skinsFactory.createSkinnedJTable("MetadataTable");
         metadataTable.setModel(metadataTableSorter);        
         metadataTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
@@ -533,7 +534,8 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         } else if ("removeMetadataItem".equals(e.getActionCommand())) {
             int[] rows = metadataTable.getSelectedRows();
             for (int i = rows.length - 1; i >= 0; i--) {
-                objectMetadataTableModel.removeRow(rows[i]);
+                int modelIndex = metadataTableSorter.modelIndex(rows[i]);
+                objectMetadataTableModel.removeRow(modelIndex);
             }
         }
     }

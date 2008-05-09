@@ -440,10 +440,12 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 	 */
 	private class GranteeTable extends JTable {
         private static final long serialVersionUID = -5339684196750695854L;
+        
+        private TableSorter sorter = null;
 
         public GranteeTable(GranteeTableModel granteeTableModel) {
 			super();
-            TableSorter sorter = new TableSorter(granteeTableModel);
+            sorter = new TableSorter(granteeTableModel);
             this.setModel(sorter);
             sorter.setTableHeader(this.getTableHeader());
 			
@@ -464,6 +466,11 @@ public class AccessControlDialog extends JDialog implements ActionListener {
             permissionCellEditor.setClickCountToStart(2);
 			setDefaultEditor(Permission.class, permissionCellEditor);
 		}
+        
+        public int getSelectedRow() {
+            int tableIndex = super.getSelectedRow();
+            return sorter.modelIndex(tableIndex);
+        }
 	}
 
     /**
@@ -521,8 +528,9 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		}
 		
 		public void removeGrantAndPermission(int index) {
+            Object grantee = this.getGrantee(index);            
 			this.removeRow(index);
-			currentGrantees.remove(index);
+			currentGrantees.remove(grantee);
 		}
 		
 		public void removeAllGrantAndPermissions() {
