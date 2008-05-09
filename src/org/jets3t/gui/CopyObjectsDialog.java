@@ -90,6 +90,7 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
     private JCheckBox moveObjectsCheckBox = null;
     
     private boolean copyActionApproved = false;
+    private boolean copyOriginalAccessControlLists = false;
 
     /**
      * Construct a modal dialog for controlling copy opeations.
@@ -152,10 +153,11 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
 
         // Destination Access Control List setting.
         destinationAclComboBox = skinsFactory.createSkinnedJComboBox("DestinationAclComboBox");
+        destinationAclComboBox.addItem("Unchanged");
         destinationAclComboBox.addItem("Private");
         destinationAclComboBox.addItem("Publically Accessible");
         JLabel destinationAclLabel = skinsFactory.createSkinnedJHtmlLabel("DestinationAclLabel");
-        destinationAclLabel.setText("All copied objects will be:");
+        destinationAclLabel.setText("Access permissions for copied objects: ");
         JPanel aclPanel = skinsFactory.createSkinnedJPanel("CopyObjectsDialogAclPanel");
         aclPanel.setLayout(new GridBagLayout());                
         aclPanel.add(destinationAclLabel, new GridBagConstraints(0, 1,
@@ -434,6 +436,8 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
                     renameObjectKey(destinationObjects[i].getKey(), i));
                 if ("Publically Accessible".equals(destinationAclComboBox.getSelectedItem())) { 
                     destinationObjects[i].setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
+                } else if ("Unchanged".equals(destinationAclComboBox.getSelectedItem())) {
+                    copyOriginalAccessControlLists = true;
                 }
             }
             
@@ -460,6 +464,15 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
      */
     public boolean isMoveOptionSelected() {
         return moveObjectsCheckBox.isSelected();
+    }
+    
+    /**
+     * @return
+     * true if the use wishes to have the ACL settings of their source objects
+     * retained after the copy. 
+     */
+    public boolean isCopyOriginalAccessControlLists() {
+        return copyOriginalAccessControlLists;
     }
     
     /**

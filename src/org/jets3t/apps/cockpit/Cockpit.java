@@ -274,6 +274,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private boolean isModifyingCurrentBucket = false;
     private boolean isModifyingObjects = false;
     private boolean isDeleteAfterCopy = false;
+    private boolean isAclRetrievalOnly = false;
     
     private EncryptionUtil encryptionUtil = null;
     private Jets3tProperties cockpitProperties = null;
@@ -1634,6 +1635,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      *
      */
     private void lookupObjectsAccessControlLists() {
+        isAclRetrievalOnly = false;
         (new Thread() {
             public void run() {
                 s3ServiceMulti.getObjectACLs(getCurrentSelectedBucket(), getSelectedObjects());
@@ -1665,6 +1667,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
         else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             stopProgressDialog();                
+            
+            if (isAclRetrievalOnly) {
+                // We only need to retrieve the ACLs, not display them in a dialog.
+                return;
+            }
             
             final S3Object[] objectsWithACL = getSelectedObjects();            
             final HyperlinkActivatedListener hyperlinkListener = this;
@@ -2351,13 +2358,39 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
     }
     
-    private void modifyObjects(final String[] sourceObjectKeys, final S3Object[] destinationObjects) {
+    private void modifyObjects() {
         try {
+            if (objectsAttributesDialog == null) {
+                objectsAttributesDialog = new ObjectsAttributesDialog(
+                    ownerFrame, "Object Attributes", skinsFactory);
+            }
+            
+            final S3Object[] sourceObjects = getSelectedObjects();
+            objectsAttributesDialog.displayDialog(sourceObjects, true);
+            
+            boolean isModifyActionApproved = objectsAttributesDialog.isModifyActionApproved();
+            final String[] sourceObjectKeys = objectsAttributesDialog.getSourceObjectKeys();
+            final S3Object[] destinationObjects = objectsAttributesDialog.getDestinationObjects();
+            isViewingOrModifyingObjectProperties = false;                    
+            
+            if (!isModifyActionApproved) {
+                // Do nothing.
+                return;
+            }                                                                    
+            
             isModifyingObjects = true;
             isDeleteAfterCopy = false;
             isModifyingCurrentBucket = true;
             new Thread() {
-                public void run() {   
+                public void run() {  
+                    // Retain ACL settings from original objects.
+                    isAclRetrievalOnly = true;
+                    s3ServiceMulti.getObjectACLs(getCurrentSelectedBucket(), sourceObjects);
+                    for (int i = 0; i < sourceObjects.length; i++) {
+                        destinationObjects[i].setAcl(
+                            sourceObjects[i].getAcl());
+                    }                    
+                    
                     s3ServiceMulti.copyObjects(
                         getCurrentSelectedBucket().getName(), getCurrentSelectedBucket().getName(),
                         sourceObjectKeys, destinationObjects, true);
@@ -2375,13 +2408,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
     private void copyObjects() {
         try {
+            final S3Object[] sourceObjects = getSelectedObjects();
+            
             CopyObjectsDialog dialog = new CopyObjectsDialog(ownerFrame, 
                 "Copy or Move Objects", skinsFactory, 
-                getSelectedObjects(), bucketTableModel.getBuckets());
+                sourceObjects, bucketTableModel.getBuckets());
             
             dialog.setVisible(true);                                        
             if (dialog.isCopyActionApproved()) {
                 isDeleteAfterCopy = dialog.isMoveOptionSelected();
+                isAclRetrievalOnly = dialog.isCopyOriginalAccessControlLists();
                 final String currentBucketName = getCurrentSelectedBucket().getName();
                 final String destinationBucketName = dialog.getDestinationBucketName();
                 final String[] sourceObjectKeys = dialog.getSourceObjectKeys();
@@ -2396,13 +2432,21 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 }
                 
                 new Thread() {
-                    public void run() {   
+                    public void run() {                           
+                        if (isAclRetrievalOnly) {
+                            // Retain ACL settings from original objects.
+                            s3ServiceMulti.getObjectACLs(getCurrentSelectedBucket(), 
+                                sourceObjects);
+                            for (int i = 0; i < sourceObjects.length; i++) {
+                                destinationObjects[i].setAcl(
+                                    sourceObjects[i].getAcl());
+                            }
+                        }
+                        
                         s3ServiceMulti.copyObjects(currentBucketName, destinationBucketName,
                             sourceObjectKeys, destinationObjects, false);
                     }
                 }.start();                            
-                
-                // TODO: Handle deletes
             } else {
                 dialog.dispose();                
             }
@@ -2741,20 +2785,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 } else if (isViewingOrModifyingObjectProperties) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            if (objectsAttributesDialog == null) {
-                                objectsAttributesDialog = new ObjectsAttributesDialog(
-                                    ownerFrame, "Object Attributes", skinsFactory);
-                            }
-                            objectsAttributesDialog.displayDialog(getSelectedObjects(), true);
-                            
-                            boolean isModifyActionApproved = objectsAttributesDialog.isModifyActionApproved();
-                            final String[] sourceObjectKeys = objectsAttributesDialog.getSourceObjectKeys();
-                            final S3Object[] destinationObjects = objectsAttributesDialog.getDestinationObjects();
-                            isViewingOrModifyingObjectProperties = false;                    
-                            
-                            if (isModifyActionApproved) {
-                                modifyObjects(sourceObjectKeys, destinationObjects);
-                            }                                                        
+                            modifyObjects();
                         }
                     });
                 }

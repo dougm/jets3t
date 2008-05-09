@@ -31,7 +31,6 @@ import java.util.Set;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -47,7 +46,6 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.skins.SkinsFactory;
-import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.model.S3Object;
 
 /**
@@ -97,8 +95,6 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
     private JTextField ownerNameTextField = null;
     private JTextField ownerIdTextField = null;
 
-    private JComboBox destinationAclComboBox = null;
-    
     private boolean modifyMode = false;
     private boolean modifyActionApproved = false;
 
@@ -379,20 +375,6 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         destinationPanel = skinsFactory.createSkinnedJPanel("DestinationPanel");
         destinationPanel.setLayout(new GridBagLayout());
 
-        destinationAclComboBox = skinsFactory.createSkinnedJComboBox("DestinationAclComboBox");
-        destinationAclComboBox.addItem("Private");
-        destinationAclComboBox.addItem("Publically Accessible");
-        JLabel destinationAclLabel = skinsFactory.createSkinnedJHtmlLabel("DestinationAclLabel");
-        destinationAclLabel.setText("All modified objects will become: ");
-        destinationPanel.add(destinationAclLabel, new GridBagConstraints(0, 1,
-            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));        
-        destinationPanel.add(destinationAclComboBox, new GridBagConstraints(1, 1,
-            1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
-        container.add(destinationPanel, new GridBagConstraints(0, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        destinationPanel.setVisible(false);
-        row++;
-
         JPanel actionButtonsPanel = skinsFactory.createSkinnedJPanel("ObjectPropertiesActionButtonsPanel");
         actionButtonsPanel.setLayout(new GridBagLayout());
         actionButtonsPanel.add(cancelButton, new GridBagConstraints(0, 0, 1, 1, 1, 0,
@@ -494,14 +476,6 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
             displayObjectProperties();
         } else if ("OK".equals(e.getActionCommand())) {
             modifyActionApproved = isModifyMode();
-            if (isModifyMode() 
-                && "Publically Accessible".equals(destinationAclComboBox.getSelectedItem())) 
-            {
-                for (int i = 0; i < destinationObjects.length; i++) {
-                    destinationObjects[i].setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
-                }
-            }
-            
             this.setVisible(false);
         } else if ("Cancel".equals(e.getActionCommand())) {
             modifyActionApproved = false;
