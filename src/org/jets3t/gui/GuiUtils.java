@@ -20,6 +20,8 @@ package org.jets3t.gui;
 
 import java.awt.Frame;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -38,6 +40,8 @@ import org.jets3t.service.utils.RestUtils;
 public class GuiUtils {
     private static final Log log = LogFactory.getLog(GuiUtils.class);
 
+    private Map cachedImageIcons = new HashMap();
+
     /**
      * Loads an icon image from the classpath and sets the icon of the component.
      * 
@@ -50,24 +54,33 @@ public class GuiUtils {
      * true if the icon was found and applied to the component
      */
     public boolean applyIcon(Object component, String iconResourcePath) {
-        URL iconUrl = this.getClass().getResource(iconResourcePath);        
-        if (iconUrl == null) {
-            // Try loading icon using an encoded URL, which can help if the path uses characters
-            // that should be URL-encoded (eg '+')
-            try {
-                int firstSlashIndex = iconResourcePath.indexOf('/', 1);
-                String firstPathComponent = iconResourcePath.substring(0, firstSlashIndex);
-                String pathRemainder = iconResourcePath.substring(firstSlashIndex);
-                URL baseUrl = this.getClass().getResource(firstPathComponent);
-                iconUrl = new URL(baseUrl.toString() + RestUtils.encodeUrlPath(pathRemainder, "/"));                
-                iconUrl.getContent(); // Check whether there is data availabel at the built path.
-            } catch (Exception e) {
-                log.warn("Unable to load icon with resource path: " + iconResourcePath);
-                return false;
+        ImageIcon icon = (ImageIcon) cachedImageIcons.get(iconResourcePath);
+        
+        if (icon == null) {
+            // Icon is not yet cached, load it as a resource.
+            URL iconUrl = this.getClass().getResource(iconResourcePath);                    
+            if (iconUrl == null) {
+                // Try loading icon using an encoded URL, which can help if the path uses characters
+                // that should be URL-encoded (eg '+')
+                try {
+                    int firstSlashIndex = iconResourcePath.indexOf('/', 1);
+                    String firstPathComponent = iconResourcePath.substring(0, firstSlashIndex);
+                    String pathRemainder = iconResourcePath.substring(firstSlashIndex);
+                    URL baseUrl = this.getClass().getResource(firstPathComponent);
+                    iconUrl = new URL(baseUrl.toString() + RestUtils.encodeUrlPath(pathRemainder, "/"));                
+                    iconUrl.getContent(); // Check whether there is data availabel at the built path.
+                } catch (Exception e) {
+                    log.warn("Unable to load icon with resource path: " + iconResourcePath);
+                    return false;
+                }
+            }        
+            if (iconUrl != null) {
+                icon = new ImageIcon(iconUrl);
+                cachedImageIcons.put(iconResourcePath, icon);
             }
-        }        
-        if (iconUrl != null) {
-            ImageIcon icon = new ImageIcon(iconUrl);
+        }
+        
+        if (icon != null) {
             if (component instanceof JMenuItem) {
                 ((JMenuItem)component).setIcon(icon);
             } else if (component instanceof JButton) {

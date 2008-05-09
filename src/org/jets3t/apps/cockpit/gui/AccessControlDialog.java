@@ -50,6 +50,7 @@ import javax.swing.table.DefaultTableModel;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.gui.GuiUtils;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.TableSorter;
@@ -91,6 +92,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 
     private static final Log log = LogFactory.getLog(AccessControlDialog.class);
     
+    private GuiUtils guiUtils = new GuiUtils();    
 	private static AccessControlDialog accessControlDialog = null;
     
     private HyperlinkActivatedListener hyperlinkListener = null;
@@ -207,12 +209,12 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		canonicalGranteeTable = new GranteeTable(canonicalGranteeTableModel);        
 		JButton removeCanonical = new JButton();
         removeCanonical.setToolTipText("Remove the selected Canonical User grantee");
-        applyIcon(removeCanonical, "/images/nuvola/16x16/actions/viewmag-.png");
+        guiUtils.applyIcon(removeCanonical, "/images/nuvola/16x16/actions/viewmag-.png");
 		removeCanonical.addActionListener(this);
 		removeCanonical.setActionCommand("removeCanonicalGrantee");
 		JButton addCanonical = new JButton();
         addCanonical.setToolTipText("Add a new Canonical User grantee");
-        applyIcon(addCanonical, "/images/nuvola/16x16/actions/viewmag+.png");
+        guiUtils.applyIcon(addCanonical, "/images/nuvola/16x16/actions/viewmag+.png");
 		addCanonical.setActionCommand("addCanonicalGrantee");
 		addCanonical.addActionListener(this);
 
@@ -221,12 +223,12 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		emailGranteeTable = new GranteeTable(emailGranteeTableModel);
 		JButton removeEmail = new JButton();
         removeEmail.setToolTipText("Remove the selected Email Address grantee");
-        applyIcon(removeEmail, "/images/nuvola/16x16/actions/viewmag-.png");        
+        guiUtils.applyIcon(removeEmail, "/images/nuvola/16x16/actions/viewmag-.png");        
 		removeEmail.setActionCommand("removeEmailGrantee");
 		removeEmail.addActionListener(this);
 		JButton addEmail = new JButton();
         addEmail.setToolTipText("Add a new Email Address grantee");
-        applyIcon(addEmail, "/images/nuvola/16x16/actions/viewmag+.png");
+        guiUtils.applyIcon(addEmail, "/images/nuvola/16x16/actions/viewmag+.png");
 		addEmail.setActionCommand("addEmailGrantee");
 		addEmail.addActionListener(this);
 
@@ -235,12 +237,12 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 		groupGranteeTable = new GranteeTable(groupGranteeTableModel);
 		JButton removeGroup = new JButton();
         removeGroup.setToolTipText("Remove the selected Group grantee");
-        applyIcon(removeGroup, "/images/nuvola/16x16/actions/viewmag-.png");        
+        guiUtils.applyIcon(removeGroup, "/images/nuvola/16x16/actions/viewmag-.png");        
 		removeGroup.setActionCommand("removeGroupGrantee");
 		removeGroup.addActionListener(this);
 		JButton addGroup = new JButton();
         addGroup.setToolTipText("Add a new Group grantee");
-        applyIcon(addGroup, "/images/nuvola/16x16/actions/viewmag+.png");
+        guiUtils.applyIcon(addGroup, "/images/nuvola/16x16/actions/viewmag+.png");
 		addGroup.setActionCommand("addGroupGrantee");
 		addGroup.addActionListener(this);
 
@@ -330,16 +332,6 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 			(groupGranteeTable.getParent().getBounds().getWidth() * 0.9));
 	}
     
-    private void applyIcon(JButton button, String iconResourcePath) {
-        URL iconUrl = this.getClass().getResource(iconResourcePath);
-        if (iconUrl != null) {
-            ImageIcon icon = new ImageIcon(iconUrl);
-            button.setIcon(icon);
-        } else {
-            log.warn("Unable to load button icon with resource path: " + iconResourcePath);
-        }
-    }
-	
     /**
      * @return the ACL settings as set by the user in the dialog.
      */

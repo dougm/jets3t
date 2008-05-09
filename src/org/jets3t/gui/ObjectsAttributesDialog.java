@@ -25,14 +25,12 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import javax.swing.AbstractAction;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -74,6 +72,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
 
     private static final Log log = LogFactory.getLog(ObjectsAttributesDialog.class);
     
+    private GuiUtils guiUtils = new GuiUtils();    
     private Properties applicationProperties = null;
     private SkinsFactory skinsFactory = null;
 
@@ -267,12 +266,12 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
             removeMetadataItemButton = skinsFactory.createSkinnedJButton("ObjectPropertiesAddMetadataButton");
             removeMetadataItemButton.setEnabled(false);
             removeMetadataItemButton.setToolTipText("Remove the selected metadata item(s)");
-            applyIcon(removeMetadataItemButton, "/images/nuvola/16x16/actions/viewmag-.png");
+            guiUtils.applyIcon(removeMetadataItemButton, "/images/nuvola/16x16/actions/viewmag-.png");
             removeMetadataItemButton.addActionListener(this);
             removeMetadataItemButton.setActionCommand("removeMetadataItem");
             addMetadataItemButton = skinsFactory.createSkinnedJButton("ObjectPropertiesAddMetadataButton");
             addMetadataItemButton.setToolTipText("Add a new metadata item");
-            applyIcon(addMetadataItemButton, "/images/nuvola/16x16/actions/viewmag+.png");
+            guiUtils.applyIcon(addMetadataItemButton, "/images/nuvola/16x16/actions/viewmag+.png");
             addMetadataItemButton.setActionCommand("addMetadataItem");
             addMetadataItemButton.addActionListener(this);        
             metadataButtonsContainer.add(removeMetadataItemButton, new GridBagConstraints(0, 0,
@@ -341,11 +340,11 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
                             
         // Object previous and next buttons, if we have multiple objects.
         previousObjectButton = skinsFactory.createSkinnedJButton("ObjectPropertiesPreviousButton");
-        applyIcon(previousObjectButton, "/images/nuvola/16x16/actions/1leftarrow.png");
+        guiUtils.applyIcon(previousObjectButton, "/images/nuvola/16x16/actions/1leftarrow.png");
         previousObjectButton.addActionListener(this);
         previousObjectButton.setEnabled(false);
         nextObjectButton = skinsFactory.createSkinnedJButton("ObjectPropertiesNextButton");
-        applyIcon(nextObjectButton, "/images/nuvola/16x16/actions/1rightarrow.png");
+        guiUtils.applyIcon(nextObjectButton, "/images/nuvola/16x16/actions/1rightarrow.png");
         nextObjectButton.addActionListener(this);
         nextObjectButton.setEnabled(false);
         currentObjectLabel = skinsFactory.createSkinnedJHtmlLabel("ObjectPropertiesCurrentObjectLabel"); 
@@ -413,22 +412,6 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         this.setPreferredSize(new Dimension(450, height));
         this.pack();
         this.setLocationRelativeTo(this.getOwner());
-    }    
-    
-    /**
-     * Apply an icon image to a button.
-     *  
-     * @param button
-     * @param iconResourcePath
-     */
-    private void applyIcon(JButton button, String iconResourcePath) {
-        URL iconUrl = this.getClass().getResource(iconResourcePath);
-        if (iconUrl != null) {
-            ImageIcon icon = new ImageIcon(iconUrl);
-            button.setIcon(icon);
-        } else {
-            log.warn("Unable to load button icon with resource path: " + iconResourcePath);
-        }
     }    
     
     /**
