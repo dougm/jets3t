@@ -27,7 +27,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import javax.swing.AbstractAction;
@@ -35,16 +34,12 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
-import javax.swing.LookAndFeel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -52,14 +47,8 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.skins.SkinsFactory;
-import org.jets3t.samples.SamplesUtils;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.multithread.S3ServiceSimpleMulti;
-import org.jets3t.service.security.AWSCredentials;
 
 /**
  * Dialog to display detailed information about one or more {@link S3Object}s,
@@ -73,7 +62,6 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
     private static final Log log = LogFactory.getLog(ObjectsAttributesDialog.class);
     
     private GuiUtils guiUtils = new GuiUtils();    
-    private Properties applicationProperties = null;
     private SkinsFactory skinsFactory = null;
 
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
@@ -100,7 +88,12 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
     private JButton addMetadataItemButton = null;
     private JButton previousObjectButton = null;
     private JButton nextObjectButton = null;
-
+    private JButton okButton = null;
+    private JButton cancelButton = null;
+    private JPanel metadataButtonsContainer = null;
+    private JPanel destinationPanel = null;
+    private JPanel nextPreviousPanel = null;
+    
     private JTextField ownerNameTextField = null;
     private JTextField ownerIdTextField = null;
 
@@ -116,9 +109,19 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
      * the Frame over which the dialog will be displayed and centred.
      * @param title
      * a title for the dialog.
-     * @param applicationProperties
-     * application properties that may be applied by the dialog, such as
-     * skinning settings.
+     * @param skinsFactory
+     * factory for producing skinned GUI components.
+     */
+    public ObjectsAttributesDialog(Frame owner, String title, SkinsFactory skinsFactory) 
+    {
+        super(owner, title, true);
+        this.skinsFactory = skinsFactory;    
+        this.initGui();
+    }
+    
+    /**
+     * Display the dialog with data - always use this method instead of setVisible.
+     * 
      * @param objects
      * the S3 objects whose attributes will be displayed, and that may be modified.
      * @param modifyMode
@@ -126,37 +129,44 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
      * items. If false, the user will only be able to view object attributes and
      * will not be able to change the metadata. 
      */
-    public ObjectsAttributesDialog(Frame owner, String title, Properties applicationProperties, 
-        S3Object[] objects, boolean modifyMode) 
-    {
-        super(owner, title, true);
-        this.modifyMode = modifyMode;
-        this.applicationProperties = applicationProperties;    
+    public void displayDialog(S3Object[] objects, boolean modifyMode) {
         this.currentObjectIndex = 0;
         // Clone the objects provided.
+        this.modifyMode = modifyMode;
         this.destinationObjects = new S3Object[objects.length];        
         for (int i = 0; i < objects.length; i++) {
             this.destinationObjects[i] = (S3Object) objects[i].clone();
-        }                      
-        this.initGui();
+        }      
+        
+        if (modifyMode) {
+            okButton.setText("Modify Object" + (destinationObjects.length > 0 ? "s" : ""));
+            cancelButton.setVisible(true);
+            metadataButtonsContainer.setVisible(true);
+            destinationPanel.setVisible(true);
+        } else {
+            okButton.setText("OK");
+            cancelButton.setVisible(false);
+            metadataButtonsContainer.setVisible(false);
+            destinationPanel.setVisible(false);
+        }
+        if (destinationObjects.length > 1) {
+            nextPreviousPanel.setVisible(true);
+        } else {
+            nextPreviousPanel.setVisible(false);                
+        }        
         displayObjectProperties();        
-    }
 
+        int height = (isModifyMode() ? 500 : 450);
+        this.pack();
+        this.setSize(new Dimension(450, height));
+        this.setLocationRelativeTo(this.getOwner());
+        this.setVisible(true);
+    }
+    
     /**
      * Initialise the GUI elements to display the given item.
      */
     private void initGui() {
-        // Initialise skins factory. 
-        skinsFactory = SkinsFactory.getInstance(applicationProperties); 
-        
-        // Set Skinned Look and Feel.
-        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");        
-        try {
-            UIManager.setLookAndFeel(lookAndFeel);
-        } catch (UnsupportedLookAndFeelException e) {
-            log.error("Unable to set skinned LookAndFeel", e);
-        }       
-        
         this.setResizable(true);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
@@ -164,7 +174,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         unmodifiableAttributesPanel.setLayout(new GridBagLayout());
         JPanel metadataContainer = skinsFactory.createSkinnedJPanel("ObjectPropertiesMetadataPanel");
         metadataContainer.setLayout(new GridBagLayout());
-        JPanel metadataButtonsContainer = skinsFactory.createSkinnedJPanel("ObjectPropertiesMetadataButtonsPanel");
+        metadataButtonsContainer = skinsFactory.createSkinnedJPanel("ObjectPropertiesMetadataButtonsPanel");
         metadataButtonsContainer.setLayout(new GridBagLayout());
 
         // Fields to display unmodifiable object details.
@@ -196,7 +206,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         ownerIdLabel.setText("Owner ID:");
         ownerIdTextField = skinsFactory.createSkinnedJTextField("OwnerIdTextField");
         ownerIdTextField.setEditable(false);
-        
+
         int row = 0;
 
         unmodifiableAttributesPanel.add(objectKeyLabel, new GridBagConstraints(0, row,
@@ -240,7 +250,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
             private static final long serialVersionUID = -3762866886166776851L;
 
             public boolean isCellEditable(int row, int column) {
-                return modifyMode;
+                return isModifyMode();
             }
         };
         
@@ -261,45 +271,39 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         metadataContainer.add(new JScrollPane(metadataTable), new GridBagConstraints(0, 0,
             1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsHorizontalSpace, 0, 0));
         
-        if (modifyMode) {
-            // Add/remove buttons for metadata table.
-            removeMetadataItemButton = skinsFactory.createSkinnedJButton("ObjectPropertiesAddMetadataButton");
-            removeMetadataItemButton.setEnabled(false);
-            removeMetadataItemButton.setToolTipText("Remove the selected metadata item(s)");
-            guiUtils.applyIcon(removeMetadataItemButton, "/images/nuvola/16x16/actions/viewmag-.png");
-            removeMetadataItemButton.addActionListener(this);
-            removeMetadataItemButton.setActionCommand("removeMetadataItem");
-            addMetadataItemButton = skinsFactory.createSkinnedJButton("ObjectPropertiesAddMetadataButton");
-            addMetadataItemButton.setToolTipText("Add a new metadata item");
-            guiUtils.applyIcon(addMetadataItemButton, "/images/nuvola/16x16/actions/viewmag+.png");
-            addMetadataItemButton.setActionCommand("addMetadataItem");
-            addMetadataItemButton.addActionListener(this);        
-            metadataButtonsContainer.add(removeMetadataItemButton, new GridBagConstraints(0, 0,
-                1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsZero, 0, 0));        
-            metadataButtonsContainer.add(addMetadataItemButton, new GridBagConstraints(1, 0,
-                1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsZero, 0, 0));
-            metadataContainer.add(metadataButtonsContainer, new GridBagConstraints(0, 1,
-                1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalSpace, 0, 0));
-        }
-        
+        // Add/remove buttons for metadata table.
+        removeMetadataItemButton = skinsFactory.createSkinnedJButton("ObjectPropertiesAddMetadataButton");
+        removeMetadataItemButton.setEnabled(false);
+        removeMetadataItemButton.setToolTipText("Remove the selected metadata item(s)");
+        guiUtils.applyIcon(removeMetadataItemButton, "/images/nuvola/16x16/actions/viewmag-.png");
+        removeMetadataItemButton.addActionListener(this);
+        removeMetadataItemButton.setActionCommand("removeMetadataItem");
+        addMetadataItemButton = skinsFactory.createSkinnedJButton("ObjectPropertiesAddMetadataButton");
+        addMetadataItemButton.setToolTipText("Add a new metadata item");
+        guiUtils.applyIcon(addMetadataItemButton, "/images/nuvola/16x16/actions/viewmag+.png");
+        addMetadataItemButton.setActionCommand("addMetadataItem");
+        addMetadataItemButton.addActionListener(this);        
+        metadataButtonsContainer.add(removeMetadataItemButton, new GridBagConstraints(0, 0,
+            1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsZero, 0, 0));        
+        metadataButtonsContainer.add(addMetadataItemButton, new GridBagConstraints(1, 0,
+            1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsZero, 0, 0));
+        metadataContainer.add(metadataButtonsContainer, new GridBagConstraints(0, 1,
+            1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalSpace, 0, 0));
+        metadataButtonsContainer.setVisible(false);
+
         // OK Button.
-        final JButton okButton = skinsFactory.createSkinnedJButton("ObjectPropertiesOKButton");
-        String okButtonText = "OK";
-        if (modifyMode) {
-            okButtonText = "Modify Object" + (destinationObjects.length > 0 ? "s" : "");
-        }
-        okButton.setText(okButtonText);
+        okButton = skinsFactory.createSkinnedJButton("ObjectPropertiesOKButton");
+        okButton.setText("OK");
         okButton.setActionCommand("OK");
         okButton.addActionListener(this);
 
         // Cancel Button.
-        JButton cancelButton = null;
-        if (modifyMode) {
-            cancelButton = skinsFactory.createSkinnedJButton("ObjectPropertiesCancelButton");
-            cancelButton.setText("Cancel");
-            cancelButton.setActionCommand("Cancel");
-            cancelButton.addActionListener(this);
-        }
+        cancelButton = null;
+        cancelButton = skinsFactory.createSkinnedJButton("ObjectPropertiesCancelButton");
+        cancelButton.setText("Cancel");
+        cancelButton.setActionCommand("Cancel");
+        cancelButton.addActionListener(this);
+        cancelButton.setVisible(false);
 
         // Recognize and handle ENTER, ESCAPE, PAGE_UP, and PAGE_DOWN key presses.
         this.getRootPane().setDefaultButton(okButton);        
@@ -350,19 +354,18 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         currentObjectLabel = skinsFactory.createSkinnedJHtmlLabel("ObjectPropertiesCurrentObjectLabel"); 
         currentObjectLabel.setHorizontalAlignment(JLabel.CENTER);
         
-        if (destinationObjects.length > 1) {
-            JPanel nextPreviousPanel = skinsFactory.createSkinnedJPanel("ObjectPropertiesNextPreviousPanel");
-            nextPreviousPanel.setLayout(new GridBagLayout());
-            nextPreviousPanel.add(previousObjectButton, new GridBagConstraints(0, 0, 1, 1, 1, 0,
-                GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
-            nextPreviousPanel.add(currentObjectLabel, new GridBagConstraints(1, 0, 1, 1, 0, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalSpace, 0, 0));
-            nextPreviousPanel.add(nextObjectButton, new GridBagConstraints(2, 0, 1, 1, 1, 0,
-                GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
-            container.add(nextPreviousPanel, new GridBagConstraints(0, row, 1, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
-            row++;
-        }
+        nextPreviousPanel = skinsFactory.createSkinnedJPanel("ObjectPropertiesNextPreviousPanel");
+        nextPreviousPanel.setLayout(new GridBagLayout());
+        nextPreviousPanel.add(previousObjectButton, new GridBagConstraints(0, 0, 1, 1, 1, 0,
+            GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
+        nextPreviousPanel.add(currentObjectLabel, new GridBagConstraints(1, 0, 1, 1, 0, 0,
+            GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalSpace, 0, 0));
+        nextPreviousPanel.add(nextObjectButton, new GridBagConstraints(2, 0, 1, 1, 1, 0,
+            GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
+        container.add(nextPreviousPanel, new GridBagConstraints(0, row, 1, 1, 1, 0,
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+        nextPreviousPanel.setVisible(false);
+        row++;
         
         JHtmlLabel metadataLabel = skinsFactory.createSkinnedJHtmlLabel("MetadataLabel");
         metadataLabel.setText("<html><b>Metadata Attributes</b></html>");
@@ -371,47 +374,40 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
             GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsVerticalSpace, 0, 0));
         container.add(metadataContainer, new GridBagConstraints(0, row++, 1, 1, 1, 1,
             GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
-                
-        if (modifyMode) {
-            // Destination Access Control List setting.
-            JPanel destinationPanel = skinsFactory.createSkinnedJPanel("DestinationPanel");
-            destinationPanel.setLayout(new GridBagLayout());
+   
+        // Destination Access Control List setting.
+        destinationPanel = skinsFactory.createSkinnedJPanel("DestinationPanel");
+        destinationPanel.setLayout(new GridBagLayout());
 
-            destinationAclComboBox = skinsFactory.createSkinnedJComboBox("DestinationAclComboBox");
-            destinationAclComboBox.addItem("Private");
-            destinationAclComboBox.addItem("Publically Accessible");
-            JLabel destinationAclLabel = skinsFactory.createSkinnedJHtmlLabel("DestinationAclLabel");
-            destinationAclLabel.setText("All modified objects will become: ");
-            destinationPanel.add(destinationAclLabel, new GridBagConstraints(0, 1,
-                1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));        
-            destinationPanel.add(destinationAclComboBox, new GridBagConstraints(1, 1,
-                1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
-
-            container.add(destinationPanel, new GridBagConstraints(0, row, 1, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-            row++;
-        }        
+        destinationAclComboBox = skinsFactory.createSkinnedJComboBox("DestinationAclComboBox");
+        destinationAclComboBox.addItem("Private");
+        destinationAclComboBox.addItem("Publically Accessible");
+        JLabel destinationAclLabel = skinsFactory.createSkinnedJHtmlLabel("DestinationAclLabel");
+        destinationAclLabel.setText("All modified objects will become: ");
+        destinationPanel.add(destinationAclLabel, new GridBagConstraints(0, 1,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));        
+        destinationPanel.add(destinationAclComboBox, new GridBagConstraints(1, 1,
+            1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+        container.add(destinationPanel, new GridBagConstraints(0, row, 1, 1, 1, 0,
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        destinationPanel.setVisible(false);
+        row++;
 
         JPanel actionButtonsPanel = skinsFactory.createSkinnedJPanel("ObjectPropertiesActionButtonsPanel");
         actionButtonsPanel.setLayout(new GridBagLayout());
-        if (modifyMode) {
-            actionButtonsPanel.add(cancelButton, new GridBagConstraints(0, 0, 1, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));            
-            actionButtonsPanel.add(okButton, new GridBagConstraints(1, 0, 1, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));                        
-        } else {
-            actionButtonsPanel.add(okButton, new GridBagConstraints(0, 0, 1, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));            
-        }
+        actionButtonsPanel.add(cancelButton, new GridBagConstraints(0, 0, 1, 1, 1, 0,
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));            
+        actionButtonsPanel.add(okButton, new GridBagConstraints(1, 0, 1, 1, 1, 0,
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+        cancelButton.setVisible(false);
         
         container.add(actionButtonsPanel, new GridBagConstraints(0, row++, 3, 1, 0, 0, GridBagConstraints.CENTER,
             GridBagConstraints.NONE, insetsDefault, 0, 0));
         this.getContentPane().add(container);
         
-        int height = (isModifyMode() ? 500 : 450);
-        this.setPreferredSize(new Dimension(450, height));
         this.pack();
-        this.setLocationRelativeTo(this.getOwner());
+        this.setSize(new Dimension(450, 500));
+        this.setLocationRelativeTo(this.getOwner());        
     }    
     
     /**
@@ -563,47 +559,10 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
      * version from this list.
      */
     public S3Object[] getDestinationObjects() {
-        if (!modifyMode) {
+        if (!isModifyMode()) {
             return null;
         }
         return destinationObjects;
     }
     
-
-    
-    /**
-     * TODO - Remove this bootstrap code after testing is completed.
-     */
-    public static void main(String[] args) throws Exception {
-        String sourceBucketName = "jm-testing-copies";
-        
-        AWSCredentials awsCredentials = SamplesUtils.loadAWSCredentials();
-        S3Service s3Service = new RestS3Service(awsCredentials);
-        S3Object[] objects = s3Service.listObjects(new S3Bucket(sourceBucketName));
-        for (int i = 0; i < objects.length; i++) {
-            objects[i] = s3Service.getObjectDetails(new S3Bucket(sourceBucketName), objects[i].getKey());
-        }
-        
-        // objects = new S3Object[] {objects[0]};                
-        boolean isModifyMode = true;
-        
-        JFrame f = new JFrame("Testing");
-        ObjectsAttributesDialog dialog = new ObjectsAttributesDialog(f, "Modify Object Attributes", 
-            null, objects, isModifyMode);
-        dialog.setVisible(true);
-        
-        if (dialog.isModifyActionApproved()) {
-            System.out.println("Destination objects: " + dialog.getDestinationObjects()[0]);
-            System.out.println("Original objects: " + objects[0]);
-            System.err.println("Copying objects");
-            
-            S3ServiceSimpleMulti multiService = new S3ServiceSimpleMulti(s3Service);
-            multiService.copyObjects(sourceBucketName, sourceBucketName, 
-                dialog.getSourceObjectKeys(), dialog.getDestinationObjects(), true);
-        }
-        
-        dialog.dispose();
-        f.dispose();                
-    }
-
 }

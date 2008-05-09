@@ -26,7 +26,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Properties;
 import java.util.Set;
 
 import javax.swing.AbstractAction;
@@ -36,7 +35,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -44,9 +42,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
-import javax.swing.LookAndFeel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
@@ -56,14 +51,9 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.skins.SkinsFactory;
-import org.jets3t.samples.SamplesUtils;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.multithread.S3ServiceSimpleMulti;
-import org.jets3t.service.security.AWSCredentials;
 
 /**
  * Dialog for choosing the destination bucket for an Object copy operation, and
@@ -79,7 +69,6 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
 
     private static final Log log = LogFactory.getLog(CopyObjectsDialog.class);
     
-    private Properties applicationProperties = null;
     private SkinsFactory skinsFactory = null;
 
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
@@ -109,19 +98,18 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
      * the Frame over which the dialog will be displayed and centred.
      * @param title
      * a title for the dialog.
-     * @param applicationProperties
-     * application properties that may be applied by the dialog, such as
-     * skinning settings.
+     * @param skinsFactory
+     * factory for producing skinned GUI components.
      * @param objects
      * the S3 objects that will be copied if the user confirms the dialog.
      * @param buckets
      * a list of S3 buckets to which the user can copy objects.
      */
     public CopyObjectsDialog(Frame owner, String title, 
-        Properties applicationProperties, S3Object[] objects, S3Bucket[] buckets) 
+        SkinsFactory skinsFactory, S3Object[] objects, S3Bucket[] buckets) 
     {
         super(owner, title, true);
-        this.applicationProperties = applicationProperties;    
+        this.skinsFactory = skinsFactory;    
         this.buckets = buckets;
         // Clone the objects provided.
         this.destinationObjects = new S3Object[objects.length];        
@@ -141,17 +129,6 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
      * Initialise the GUI elements to display the dialog.
      */
     private void initGui() {
-        // Initialise skins factory. 
-        skinsFactory = SkinsFactory.getInstance(applicationProperties); 
-        
-        // Set Skinned Look and Feel.
-        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");        
-        try {
-            UIManager.setLookAndFeel(lookAndFeel);
-        } catch (UnsupportedLookAndFeelException e) {
-            log.error("Unable to set skinned LookAndFeel", e);
-        }       
-        
         this.setResizable(true);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
@@ -521,48 +498,5 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
         }
         return (String) destinationBucketComboBox.getSelectedItem();
     }
-    
-    
-
-    /**
-     * TODO - Remove this bootstrap code after testing is completed.
-     */
-    public static void main(String[] args) throws Exception {
-        String sourceBucketName = "jm-testing-copies";
-        JFrame f = new JFrame("Testing");
-
-        try {            
-            AWSCredentials awsCredentials = SamplesUtils.loadAWSCredentials();
-            S3Service s3Service = new RestS3Service(awsCredentials); // new SoapS3Service(awsCredentials);
-            S3Object[] objects = s3Service.listObjects(new S3Bucket(sourceBucketName));
-            for (int i = 0; i < objects.length; i++) {
-                objects[i] = s3Service.getObjectDetails(new S3Bucket(sourceBucketName), objects[i].getKey());
-            }
-            S3Bucket[] buckets = s3Service.listAllBuckets();
-            
-            CopyObjectsDialog dialog = new CopyObjectsDialog(f, "Copy Objects", null, objects, buckets);
-            dialog.setVisible(true);
-                            
-            if (dialog.isCopyActionApproved()) {
-                if (dialog.isMoveOptionSelected()) {
-                    System.err.println("Moving objects");                
-                } else {
-                    System.err.println("Copying objects");                
-                }
-                System.out.println("Destination objects: " + dialog.getDestinationObjects()[0]);
-                System.out.println("Original objects: " + objects[0]);
-                
-                S3ServiceSimpleMulti multiService = new S3ServiceSimpleMulti(s3Service);
-                multiService.copyObjects(sourceBucketName, dialog.getDestinationBucketName(), 
-                    dialog.getSourceObjectKeys(), dialog.getDestinationObjects(), false);
-            }
-            
-            dialog.dispose();
-        } catch (Exception e) {
-            throw e;
-        } finally {
-            f.dispose();
-        }
-    }
-    
+        
 }

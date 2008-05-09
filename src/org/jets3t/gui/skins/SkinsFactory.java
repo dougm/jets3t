@@ -19,6 +19,7 @@
 package org.jets3t.gui.skins;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -75,7 +76,7 @@ import org.jets3t.gui.JHtmlLabel;
 public class SkinsFactory {
     private static final Log log = LogFactory.getLog(SkinsFactory.class);
 
-    public static final String DEFAULT_SKIN_NAME = "default";
+    public static final String NO_SKIN = "noskin";
     
     /**
      * The name of the chosen skin.
@@ -86,6 +87,11 @@ public class SkinsFactory {
      * Properties that apply specifically to the chosen skin.
      */
     private Properties skinProperties = new Properties();
+    
+    /**
+     * Track component class names that are not available.
+     */
+    private static Map unavailableClassMap = new HashMap();    
     
     /**
      * Construct the factory and find skin-specific properties in the provided properties set.
@@ -101,7 +107,7 @@ public class SkinsFactory {
         
         this.skinName = properties.getProperty("skin.name");
         if (this.skinName == null) {
-            this.skinName = DEFAULT_SKIN_NAME;
+            this.skinName = NO_SKIN;
         }
         
         // Find skin-specific properties.
@@ -132,8 +138,8 @@ public class SkinsFactory {
      */
     public static SkinsFactory getInstance(Properties properties) {
         return new SkinsFactory(properties);
-    }
-
+        }
+    
     /**
      * @param itemName
      * the name of this specific item in the GUI, which may be used to determine how the skinned
@@ -406,12 +412,24 @@ public class SkinsFactory {
     }
     
     private String buildSkinnedClassName(String className) {
-        String skinnedClassName = 
-            this.getClass().getPackage().getName() + "." + this.skinName + "." + className;
-        return skinnedClassName;
+        if (NO_SKIN.equals(skinName)) {
+            return null;
+        } else {
+            String skinnedClassName = 
+                this.getClass().getPackage().getName() + "." + this.skinName + "." + className;
+            return skinnedClassName;
+        }
     }
-    
+        
     private Object instantiateClass(String className, String itemName) {
+        if (className == null) {
+            return null;
+        }
+        if (unavailableClassMap.get(className) != null) {
+            // This class name is not available, don't waste time trying to load it.
+            return null; 
+        }
+        
         try {
             Class myClass = Class.forName(className);
             Constructor constructor = myClass.getConstructor(
@@ -423,6 +441,7 @@ public class SkinsFactory {
         } catch (Exception e) {
             log.warn("Unable to instantiate skinned class '" + className + "'", e);
         }
+        unavailableClassMap.put(className, Boolean.TRUE);
         return null;
     }
     

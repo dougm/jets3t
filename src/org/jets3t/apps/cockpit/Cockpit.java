@@ -109,6 +109,7 @@ import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.ObjectsAttributesDialog;
 import org.jets3t.gui.ProgressDialog;
 import org.jets3t.gui.TableSorter;
+import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
@@ -238,6 +239,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
     private HashMap cachedBuckets = new HashMap();
     private ProgressDialog progressDialog = null;
+    private ObjectsAttributesDialog objectsAttributesDialog = null;
         
     // Class variables used for uploading or downloading files.
     private File downloadDirectory = null;
@@ -274,7 +276,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private boolean isDeleteAfterCopy = false;
     
     private EncryptionUtil encryptionUtil = null;
-
+    private Jets3tProperties cockpitProperties = null;
+    private SkinsFactory skinsFactory = null;
     
     /**
      * Constructor to run this application as an Applet.
@@ -317,7 +320,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 this.ownerFrame = (Frame) c;                    
             }
         }
-                
+                        
         // Initialise the GUI.
         initGui();      
 
@@ -361,7 +364,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 log.error(message, e);
                 ErrorDialog.showDialog(ownerFrame, this, message, e);
             }
-        }        
+        }
+        
+        cockpitProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);        
+        skinsFactory = SkinsFactory.getInstance(cockpitProperties.getProperties());         
         
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
@@ -2370,8 +2376,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private void copyObjects() {
         try {
             CopyObjectsDialog dialog = new CopyObjectsDialog(ownerFrame, 
-                "Copy or Move Objects", 
-                null, getSelectedObjects(), bucketTableModel.getBuckets());
+                "Copy or Move Objects", skinsFactory, 
+                getSelectedObjects(), bucketTableModel.getBuckets());
             
             dialog.setVisible(true);                                        
             if (dialog.isCopyActionApproved()) {
@@ -2735,14 +2741,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 } else if (isViewingOrModifyingObjectProperties) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            final ObjectsAttributesDialog dialog = new ObjectsAttributesDialog(
-                                ownerFrame, "Object Attributes", null, getSelectedObjects(), true);
-                            dialog.setVisible(true);
+                            if (objectsAttributesDialog == null) {
+                                objectsAttributesDialog = new ObjectsAttributesDialog(
+                                    ownerFrame, "Object Attributes", skinsFactory);
+                            }
+                            objectsAttributesDialog.displayDialog(getSelectedObjects(), true);
                             
-                            boolean isModifyActionApproved = dialog.isModifyActionApproved();
-                            final String[] sourceObjectKeys = dialog.getSourceObjectKeys();
-                            final S3Object[] destinationObjects = dialog.getDestinationObjects();
-                            dialog.dispose();
+                            boolean isModifyActionApproved = objectsAttributesDialog.isModifyActionApproved();
+                            final String[] sourceObjectKeys = objectsAttributesDialog.getSourceObjectKeys();
+                            final S3Object[] destinationObjects = objectsAttributesDialog.getDestinationObjects();
                             isViewingOrModifyingObjectProperties = false;                    
                             
                             if (isModifyActionApproved) {
