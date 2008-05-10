@@ -3,6 +3,8 @@ Version 0.6.1
 -------------
 
 COCKPIT
+- Added support for copying or moving objects within and between buckets.
+- Added support for updating objects with new metadata values.
 - Fixed issue where downloading items to a directory containing many files and 
   directories (eg 250K+) would cause Cockpit to fail with OutOfMemory errors.
   
@@ -41,6 +43,8 @@ TOOLKIT
   move, rename and update objects in your S3 account. These operations are
   available through the S3Service as the methods copyObject, moveObject,
   renameObject and updateObjectMetadata.
+- Modified Bucket Logging Status changing behaviour to update ACL settings of
+  the target bucket before (re)directing log files to the bucket.
 - Fixed bug in RestS3Service that caused failures in some circumstances when 
   buckets were created with the "US" location.
 - S3Service instances can now be configured individually by providing a
