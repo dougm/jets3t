@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 
 import javax.swing.table.DefaultTableModel;
 
@@ -90,7 +91,20 @@ public class ObjectTableModel extends DefaultTableModel {
             return (S3Object) objectList.get(row);
         }
     }
-    
+
+    public S3Object getObjectByKey(String key) {
+        synchronized (objectList) {
+            Iterator objectIter = objectList.iterator();
+            while (objectIter.hasNext()) {
+                S3Object object = (S3Object) objectIter.next();
+                if (object.getKey().equals(key)) {
+                    return object;
+                }
+            }
+            return null;
+        }
+    }
+
     public S3Object[] getObjects() {
         synchronized (objectList) {
             return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
