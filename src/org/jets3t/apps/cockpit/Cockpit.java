@@ -2303,7 +2303,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {            
                     for (int i = 0; i < event.getCreatedObjects().length; i++) {
-                        objectTableModel.addObject(event.getCreatedObjects()[i]);
+                        S3Object object = event.getCreatedObjects()[i];
+                        object.setBucketName(getCurrentSelectedBucket().getName());
+                        objectTableModel.addObject(object);
                     }
                     if (event.getCreatedObjects().length > 0) {
                         updateObjectsSummary(true);
