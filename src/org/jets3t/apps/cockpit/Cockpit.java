@@ -2689,17 +2689,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Store detail-complete objects in table.
             runInDispatcherThreadImmediately(new Runnable() {
                 public void run() {
-                    // Retain selection status of objects in object table.
+                    // Update object in table with the retrieved details.
                     for (int i = 0; i < event.getCompletedObjects().length; i++) {
-                        S3Object object = event.getCompletedObjects()[i];
-                        object.setOwner(getCurrentSelectedBucket().getOwner());
-                                                    
-                        int modelIndex = objectTableModel.addObject(object);
-                        int viewIndex = objectTableModelSorter.viewIndex(modelIndex);
-                        objectsTable.addRowSelectionInterval(viewIndex, viewIndex);                                
+                        S3Object objectWithDetails = event.getCompletedObjects()[i];
+                        S3Object originalObject = objectTableModel.getObjectByKey(
+                            objectWithDetails.getKey());
                         
-                        log.debug("Updated table with " + object.getKey() 
-                            + ", content-type=" + object.getContentType());
+                        originalObject.replaceAllMetadata(objectWithDetails.getMetadataMap());
+                        originalObject.setMetadataComplete(true);
+                        log.debug("Updated table with " + originalObject.getKey() 
+                            + ", content-type=" + originalObject.getContentType());
                     }
                 }
             });
