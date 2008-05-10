@@ -253,11 +253,15 @@ public class S3ServiceMulti implements Serializable {
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
      * <tt>s3service.admin-max-thread-count</tt>.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void listObjects(final String bucketName, final String[] prefixes, 
+    public boolean listObjects(final String bucketName, final String[] prefixes, 
         final String delimiter, final long maxListingLength) 
     {
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
                 
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
             .getIntProperty("s3service.admin-max-thread-count", 4);
@@ -287,12 +291,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(ListObjectsEvent.newCancelledEvent(uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(ListObjectsEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(ListObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
         
     /**
@@ -303,10 +310,14 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @param buckets
      * the buckets to create.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void createBuckets(final S3Bucket[] buckets) {
+    public boolean createBuckets(final S3Bucket[] buckets) {
         final List incompletedBucketList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
         
         // Start all queries in the background.
         CreateBucketRunnable[] runnables = new CreateBucketRunnable[buckets.length];
@@ -341,12 +352,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(CreateBucketsEvent.newCancelledEvent(incompletedBuckets, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(CreateBucketsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(CreateBucketsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
     
     /**
@@ -373,12 +387,16 @@ public class S3ServiceMulti implements Serializable {
      * in S3 by using the REPLACE metadata copying option. If false, the metadata
      * items will be copied unchanged from the original objects using the COPY
      * metadata copying option.s
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void copyObjects(final String sourceBucketName, final String destinationBucketName,        
+    public boolean copyObjects(final String sourceBucketName, final String destinationBucketName,        
         final String[] sourceObjectKeys, final S3Object[] destinationObjects, boolean replaceMetadata) 
     {            
         final List incompletedObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
                 
         // Start all queries in the background.
         CopyObjectRunnable[] runnables = new CopyObjectRunnable[sourceObjectKeys.length];
@@ -413,6 +431,7 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(CopyObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(CopyObjectsEvent.newCompletedEvent(uniqueOperationId, 
                     sourceObjectKeys, destinationObjects));
             }
@@ -420,6 +439,8 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(CopyObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -432,11 +453,15 @@ public class S3ServiceMulti implements Serializable {
      * the bucket to create the objects in 
      * @param objects
      * the objects to create/upload.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void putObjects(final S3Bucket bucket, final S3Object[] objects) {    
+    public boolean putObjects(final S3Bucket bucket, final S3Object[] objects) {    
         final List incompletedObjectsList = new ArrayList();
         final List progressWatchers = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
         
         // Start all queries in the background.
         CreateObjectRunnable[] runnables = new CreateObjectRunnable[objects.length];
@@ -473,12 +498,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(CreateObjectsEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(CreateObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
     
     /**
@@ -491,10 +519,14 @@ public class S3ServiceMulti implements Serializable {
      * the bucket containing the objects to be deleted
      * @param objects
      * the objects to delete
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void deleteObjects(final S3Bucket bucket, final S3Object[] objects) {
+    public boolean deleteObjects(final S3Bucket bucket, final S3Object[] objects) {
         final List objectsToDeleteList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[objects.length];
@@ -528,12 +560,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(DeleteObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
     
     /**
@@ -544,13 +579,16 @@ public class S3ServiceMulti implements Serializable {
      * the bucket containing the objects to retrieve.
      * @param objects
      * the objects to retrieve.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjects(S3Bucket bucket, S3Object[] objects) {
+    public boolean getObjects(S3Bucket bucket, S3Object[] objects) {
         String[] objectKeys = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
             objectKeys[i] = objects[i].getKey();
         }
-        getObjects(bucket, objectKeys);
+        return getObjects(bucket, objectKeys);
     }
     
     /**
@@ -564,10 +602,14 @@ public class S3ServiceMulti implements Serializable {
      * the bucket containing the objects to retrieve.
      * @param objectKeys
      * the key names of the objects to retrieve.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjects(final S3Bucket bucket, final String[] objectKeys) {
+    public boolean getObjects(final S3Bucket bucket, final String[] objectKeys) {
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
@@ -609,12 +651,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(GetObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
     
     /**
@@ -625,13 +670,16 @@ public class S3ServiceMulti implements Serializable {
      * the bucket containing the objects whose details will be retrieved.
      * @param objects
      * the objects with details to retrieve.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjectsHeads(S3Bucket bucket, S3Object[] objects) {
+    public boolean getObjectsHeads(S3Bucket bucket, S3Object[] objects) {
         String[] objectKeys = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
             objectKeys[i] = objects[i].getKey();
         }
-        getObjectsHeads(bucket, objectKeys);
+        return getObjectsHeads(bucket, objectKeys);
     }
 
     /**
@@ -645,10 +693,14 @@ public class S3ServiceMulti implements Serializable {
      * the bucket containing the objects whose details will be retrieved.
      * @param objectKeys
      * the key names of the objects with details to retrieve.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjectsHeads(final S3Bucket bucket, final String[] objectKeys) {
+    public boolean getObjectsHeads(final S3Bucket bucket, final String[] objectKeys) {
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
@@ -690,12 +742,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(GetObjectHeadsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
     
     /**
@@ -709,10 +764,14 @@ public class S3ServiceMulti implements Serializable {
      * the bucket containing the objects
      * @param objects
      * the objects to retrieve ACL details for.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjectACLs(final S3Bucket bucket, final S3Object[] objects) {
+    public boolean getObjectACLs(final S3Bucket bucket, final S3Object[] objects) {
         final List pendingObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         GetACLRunnable[] runnables = new GetACLRunnable[objects.length];
@@ -746,12 +805,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(LookupACLEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(LookupACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -765,10 +827,14 @@ public class S3ServiceMulti implements Serializable {
      * the bucket containing the objects
      * @param objects
      * the objects to update/set ACL details for.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void putACLs(final S3Bucket bucket, final S3Object[] objects) {
+    public boolean putACLs(final S3Bucket bucket, final S3Object[] objects) {
         final List pendingObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         PutACLRunnable[] runnables = new PutACLRunnable[objects.length];
@@ -802,12 +868,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(UpdateACLEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -828,11 +897,16 @@ public class S3ServiceMulti implements Serializable {
      * @param downloadPackages
      * an array of download packages containing the object to be downloaded, and able to build
      * an output stream where the object's contents will be written to.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) {
+    public boolean downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) {
         final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.        
+        final boolean[] success = new boolean[] {false};
+
         boolean restoreLastModifiedDate = this.s3Service.getJetS3tProperties()
             .getBoolProperty("downloads.restoreLastModifiedDate", false);                
 
@@ -875,12 +949,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(DownloadObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -901,11 +978,16 @@ public class S3ServiceMulti implements Serializable {
      * @param downloadPackages
      * an array of download packages containing the object to be downloaded, and able to build
      * an output stream where the object's contents will be written to.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void downloadObjectsWithSignedURLs(final DownloadPackage[] downloadPackages) {
+    public boolean downloadObjectsWithSignedURLs(final DownloadPackage[] downloadPackages) {
         final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
+
         boolean restoreLastModifiedDate = this.s3Service.getJetS3tProperties()
             .getBoolProperty("downloads.restoreLastModifiedDate", false);                
 
@@ -947,12 +1029,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(DownloadObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -973,8 +1058,11 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjects(final String[] signedGetURLs) throws MalformedURLException, UnsupportedEncodingException {
+    public boolean getObjects(final String[] signedGetURLs) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method getObjects(String[] signedGetURLs) available");
@@ -982,6 +1070,7 @@ public class S3ServiceMulti implements Serializable {
         
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedGetURLs.length];
@@ -1026,12 +1115,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(GetObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
     
     /**
@@ -1052,8 +1144,11 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjectsHeads(final String[] signedHeadURLs) throws MalformedURLException, UnsupportedEncodingException {
+    public boolean getObjectsHeads(final String[] signedHeadURLs) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method getObjectsHeads(String[] signedHeadURLs) available");
@@ -1061,6 +1156,7 @@ public class S3ServiceMulti implements Serializable {
         
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedHeadURLs.length];
@@ -1105,12 +1201,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(GetObjectHeadsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
     
     /**
@@ -1126,10 +1225,16 @@ public class S3ServiceMulti implements Serializable {
      * be performed for the referenced object.
      * @param acl
      * the access control list settings to apply to the objects.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void putObjectsACLs(final String[] signedURLs, final AccessControlList acl) throws MalformedURLException, UnsupportedEncodingException {
+    public boolean putObjectsACLs(final String[] signedURLs, final AccessControlList acl) 
+        throws MalformedURLException, UnsupportedEncodingException 
+    {
         final List pendingObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         PutACLRunnable[] runnables = new PutACLRunnable[signedURLs.length];
@@ -1165,12 +1270,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(UpdateACLEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -1190,8 +1298,11 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void deleteObjects(final String[] signedDeleteUrls) throws MalformedURLException, UnsupportedEncodingException {
+    public boolean deleteObjects(final String[] signedDeleteUrls) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method deleteObjects(String[] signedDeleteURLs) available");
@@ -1199,6 +1310,7 @@ public class S3ServiceMulti implements Serializable {
 
         final List objectsToDeleteList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[signedDeleteUrls.length];
@@ -1235,12 +1347,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(DeleteObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -1260,8 +1375,11 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void putObjects(final SignedUrlAndObject[] signedPutUrlAndObjects) {
+    public boolean putObjects(final SignedUrlAndObject[] signedPutUrlAndObjects) {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method putObjects(SignedUrlAndObject[] signedPutUrlAndObjects) available");
@@ -1270,6 +1388,7 @@ public class S3ServiceMulti implements Serializable {
         final List progressWatchers = new ArrayList();
         final List incompletedObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Calculate total byte count being transferred.
         S3Object objects[] = new S3Object[signedPutUrlAndObjects.length];
@@ -1311,12 +1430,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(CreateObjectsEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(CreateObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     /**
@@ -1338,8 +1460,11 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @throws IllegalStateException
      * if the underlying S3Service does not implement {@link SignedUrlHandler}
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public void getObjectsACLs(final String[] signedAclURLs) throws MalformedURLException, UnsupportedEncodingException {
+    public boolean getObjectsACLs(final String[] signedAclURLs) throws MalformedURLException, UnsupportedEncodingException {
         if (!(s3Service instanceof SignedUrlHandler)) {
             throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
                 + "SignedUrlHandler interface to make the method getObjects(String[] signedGetURLs) available");
@@ -1347,6 +1472,7 @@ public class S3ServiceMulti implements Serializable {
         
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {false};
 
         // Start all queries in the background.
         GetACLRunnable[] runnables = new GetACLRunnable[signedAclURLs.length];
@@ -1390,12 +1516,15 @@ public class S3ServiceMulti implements Serializable {
                 fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
+                success[0] = true;
                 fireServiceEvent(LookupACLEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(LookupACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
         }).run();
+        
+        return success[0];
     }
 
     ///////////////////////////////////////////////
