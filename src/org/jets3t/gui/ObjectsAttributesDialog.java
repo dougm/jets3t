@@ -127,6 +127,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
      */
     public void displayDialog(S3Object[] objects, boolean modifyMode) {
         this.currentObjectIndex = 0;
+        this.modifyActionApproved = false;
         // Clone the objects provided.
         this.modifyMode = modifyMode;
         this.destinationObjects = new S3Object[objects.length];        
@@ -152,7 +153,10 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         }        
         displayObjectProperties();        
 
-        int height = (isModifyMode() ? 500 : 450);
+        int height = (isModifyMode() ? 450 : 400);
+        if (objects.length > 1) {
+            height += 30;
+        }
         this.pack();
         this.setSize(new Dimension(450, height));
         this.setLocationRelativeTo(this.getOwner());
