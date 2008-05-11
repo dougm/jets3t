@@ -37,6 +37,7 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
@@ -73,6 +74,10 @@ public abstract class S3Service implements Serializable {
      * The JetS3t suite version number implemented by this service: 0.6.1 
      */
     public static final String VERSION_NO__JETS3T_TOOLKIT = "0.6.1";
+    
+    public static final int BUCKET_STATUS__MY_BUCKET = 0;
+    public static final int BUCKET_STATUS__DOES_NOT_EXIST = 1;
+    public static final int BUCKET_STATUS__ALREADY_CLAIMED = 2;    
     
     protected Jets3tProperties jets3tProperties = null;
     
@@ -1066,13 +1071,12 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Creates a bucket in a specific location, after first checking to ensure the bucket doesn't 
-     * already exist (using {@link #isBucketAccessible(String)}). 
+     * Creates a bucket in a specific location. 
      * <p>
      * This method cannot be performed by anonymous services.
      * 
      * @param bucketName
-     * the name of the bucket to create, if it does not already exist.
+     * the name of the bucket to create.
      * @param location
      * the location of the S3 data centre in which the bucket will be created. Valid values
      * are {@link S3Bucket#LOCATION_EUROPE} or {@link S3Bucket#LOCATION_US}.
@@ -1083,25 +1087,18 @@ public abstract class S3Service implements Serializable {
      */
     public S3Bucket createBucket(String bucketName, String location) throws S3ServiceException {
         assertAuthenticatedConnection("createBucket");
-
-        if (isBucketAccessible(bucketName)) {
-            log.debug("Bucket with name '" + bucketName + "' already exists, it will not be created");
-            return new S3Bucket(bucketName);
-        } 
-        
         S3Bucket bucket = new S3Bucket(bucketName, location);
         return createBucket(bucket);
     }
 
     /**
-     * Creates a bucket, after first checking to ensure the bucket doesn't already exist (using
-     * {@link #isBucketAccessible(String)}). The bucket is created in the default location as
+     * Creates a bucket. The bucket is created in the default location as
      * specified in the properties setting <tt>s3service.default-bucket-location</tt>.
      * <p>
      * This method cannot be performed by anonymous services.
      * 
      * @param bucketName
-     * the name of the bucket to create, if it does not already exist.
+     * the name of the bucket to create.
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
@@ -1296,8 +1293,32 @@ public abstract class S3Service implements Serializable {
      */
     public S3Bucket createBucket(S3Bucket bucket) throws S3ServiceException {
         assertAuthenticatedConnection("Create Bucket");
-        assertValidBucket(bucket, "Create Bucket");
+        assertValidBucket(bucket, "Create Bucket");        
         return createBucketImpl(bucket.getName(), bucket.getLocation(), bucket.getAcl());
+    }
+
+    /**
+     * Returns a bucket in your S3 account by listing all your buckets
+     * (using {@link #listAllBuckets()}), and looking for the named bucket in
+     * this list.
+     *  
+     * @param bucketName
+     * @return
+     * the bucket in your account, or null if you do not own the named bucket.
+     * 
+     * @throws S3ServiceException
+     */
+    public S3Bucket getBucket(String bucketName) throws S3ServiceException {
+        assertAuthenticatedConnection("Create Bucket");
+
+        // List existing buckets and return the named bucket if it exists.
+        S3Bucket[] existingBuckets = listAllBuckets();
+        for (int i = 0; i < existingBuckets.length; i++) {
+            if (existingBuckets[i].getName().equals(bucketName)) {
+                return existingBuckets[i];
+            }
+        }
+        return null;
     }
 
     /**
@@ -1993,7 +2014,31 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public abstract boolean isBucketAccessible(String bucketName) throws S3ServiceException;
-    
+
+    /**
+     * Find out the status of an S3 bucket with the given name. This method is only implemented
+     * in the {@link RestS3Service} client.  
+     * <p>
+     * <b>Warning!</b> S3 can act strangely when you use this method in some circumstances.
+     * If you check the status of a bucket and find that it does not exist, then create 
+     * the bucket, S3 will continue to tell you the bucket does not exists for up to 30 
+     * seconds. This problem has something to do with connection caching (I think). 
+     * <p>
+     * This S3 quirk makes it a bad idea to use this method to check for a bucket's 
+     * existence before creating that bucket. Use the {@link #getBucket(String)} method
+     * for this purpose instead.  
+     * 
+     * @param bucketName
+     * @return
+     * {@link #BUCKET_STATUS__MY_BUCKET} if you already own the bucket,
+     * {@link #BUCKET_STATUS__DOES_NOT_EXIST} if the bucket does not yet exist 
+     * in S3, or {@link #BUCKET_STATUS__ALREADY_CLAIMED} if someone else has
+     * already created a bucket with the given name.
+     *  
+     * @throws S3ServiceException
+     */
+    public abstract int checkBucketStatus(String bucketName) throws S3ServiceException;
+
     protected abstract String getBucketLocationImpl(String bucketName) 
         throws S3ServiceException;
 
@@ -2077,7 +2122,7 @@ public abstract class S3Service implements Serializable {
      */
     protected abstract S3Bucket createBucketImpl(String bucketName, String location, 
         AccessControlList acl) throws S3ServiceException;
-
+    
     protected abstract void deleteBucketImpl(String bucketName) throws S3ServiceException;
 
     protected abstract S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException;

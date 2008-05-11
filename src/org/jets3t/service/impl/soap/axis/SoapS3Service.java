@@ -385,6 +385,11 @@ public class SoapS3Service extends S3Service {
         }
     }
     
+    public int checkBucketStatus(String bucketName) throws S3ServiceException {
+        throw new S3ServiceException("The method checkBucketStatus(String bucketName) "
+            + "is not implemented in " + this.getClass().getName());
+    }    
+    
     protected S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, long maxListingLength)
         throws S3ServiceException
     {

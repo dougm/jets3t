@@ -38,6 +38,9 @@ public class S3ServiceException extends Exception {
     private String s3ErrorMessage = null;
     private String s3ErrorRequestId = null;
     private String s3ErrorHostId = null;
+    
+    private int responseCode = -1;
+    private String responseStatus = null;
 
     /**
      * Constructor that includes the XML error document returned by S3.      
@@ -127,6 +130,22 @@ public class S3ServiceException extends Exception {
      */
     public String getXmlMessage() {
         return xmlMessage;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public void setResponseCode(int responseCode) {
+        this.responseCode = responseCode;
+    }
+
+    public String getResponseStatus() {
+        return responseStatus;
+    }
+
+    public void setResponseStatus(String responseStatus) {
+        this.responseStatus = responseStatus;
     }
     
 }

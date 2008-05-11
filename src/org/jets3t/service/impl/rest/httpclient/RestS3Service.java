@@ -92,7 +92,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     private static final long serialVersionUID = 3838005476674207543L;
 
     private final Log log = LogFactory.getLog(RestS3Service.class);
-
+    
     private static final String PROTOCOL_SECURE = "https";
     private static final String PROTOCOL_INSECURE = "http";
     private static final int PORT_SECURE = 443;
@@ -446,12 +446,15 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             // Throw exception containing the HTTP error fields.
                         	HttpException httpException = new HttpException(
                         			httpMethod.getStatusCode(), httpMethod.getStatusText());
-                            throw new S3ServiceException("S3 " + httpMethod.getName() 
+                            S3ServiceException exception = new S3ServiceException("S3 " + httpMethod.getName() 
                                 + " request failed for '" + httpMethod.getPath() + "' - " 
                                 + "ResponseCode=" + httpMethod.getStatusCode()
                                 + ", ResponseMessage=" + httpMethod.getStatusText()
                                 + (responseText != null ? "\n" + responseText : ""),
                                 httpException);
+                            exception.setResponseCode(httpMethod.getStatusCode());
+                            exception.setResponseStatus(httpMethod.getStatusText());
+                            throw exception;
                         }
                     }
                 }
@@ -880,6 +883,44 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         // If we get this far, the bucket exists.
         return true;
+    }
+    
+    public int checkBucketStatus(String bucketName) throws S3ServiceException {
+        log.debug("Checking availability of bucket name: " + bucketName);
+        
+        HttpMethodBase httpMethod = null;
+        
+        // This request may return an XML document that we're not interested in. Clean this up.
+        try {
+            // Test bucket's status by performing a HEAD request against it.
+            HashMap params = new HashMap();
+            params.put("max-keys", "0");
+            httpMethod = performRestHead(bucketName, null, params, null);
+
+            if (httpMethod.getResponseBodyAsStream() != null) {
+                httpMethod.getResponseBodyAsStream().close();
+            }
+        } catch (S3ServiceException e) {
+            if (e.getResponseCode() == 403) {
+                log.debug("Bucket named '" + bucketName + "' already belongs to another S3 user");
+                return BUCKET_STATUS__ALREADY_CLAIMED;
+            } else if (e.getResponseCode() == 404) {
+                log.debug("Bucket does not exist: " + bucketName, e);
+                return BUCKET_STATUS__DOES_NOT_EXIST;
+            } else {
+                throw e;
+            }
+        } catch (IOException e) {
+            log.warn("Unable to close response body input stream", e);
+        } finally {
+            log.debug("Releasing un-wanted bucket HEAD response");
+            if (httpMethod != null) {
+                httpMethod.releaseConnection();
+            }
+        }
+        
+        // If we get this far, the bucket exists and you own it.
+        return BUCKET_STATUS__MY_BUCKET;        
     }    
 
     protected S3Bucket[] listAllBucketsImpl() throws S3ServiceException {

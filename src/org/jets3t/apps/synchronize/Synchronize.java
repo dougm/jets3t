@@ -803,23 +803,9 @@ public class Synchronize {
         
         this.cryptoPassword = cryptoPassword;
                 
-        // List existing buckets to test whether the target bucket
-        // already exists.
-        S3Bucket[] existingBuckets = s3Service.listAllBuckets();
-        boolean bucketExists = false;
-        for (int i = 0; i < existingBuckets.length; i++) {
-            if (existingBuckets[i].getName().equals(bucketName)) {
-                bucketExists = true;
-                break;
-            }
-        }
-        
-        S3Bucket bucket = null;
-        if (bucketExists) {
-            // Use existing bucket.
-            bucket = new S3Bucket(bucketName);
-        } else {
-            // Create new bucket.
+        S3Bucket bucket = s3Service.getBucket(bucketName);
+        if (bucket == null) {
+            // Bucket does not exist in this user's account, try creating it.
             try {
                 bucket = s3Service.createBucket(new S3Bucket(bucketName));
             } catch (Exception e) {
