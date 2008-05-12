@@ -21,10 +21,12 @@ package org.jets3t.apps.cockpit.gui;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 
 import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3Object;
 
 /**
  * A table model to store {@link S3Bucket}s.
@@ -84,6 +86,19 @@ public class BucketTableModel extends DefaultTableModel {
     public S3Bucket[] getBuckets() {
         return (S3Bucket[]) bucketList.toArray(new S3Bucket[bucketList.size()]);
     }
+    
+    public int getBucketIndexByName(String name) {
+        synchronized (bucketList) {
+            Iterator bucketIter = bucketList.iterator();
+            while (bucketIter.hasNext()) {
+                S3Bucket bucket = (S3Bucket) bucketIter.next();
+                if (bucket.getName().equals(name)) {
+                    return bucketList.indexOf(bucket);
+                }
+            }
+            return -1;
+        }
+    }    
     
     public boolean isCellEditable(int row, int column) {
         return false;

@@ -1511,13 +1511,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             return;
         }
         
-        final S3Bucket newBucket = new S3Bucket(dialog.getBucketName(),
-            dialog.getBucketLocation());
+        final S3Bucket newBucket = new S3Bucket(dialog.getBucketName(), dialog.getBucketLocation());
         dialog.dispose();
-        
+                
         runInBackgroundThread(new Runnable() {
            public void run() {
-               s3ServiceMulti.createBuckets(new S3Bucket[] { newBucket });
+               if (s3ServiceMulti.createBuckets(new S3Bucket[] { newBucket })) {
+                   int modelIndex = bucketTableModel.getBucketIndexByName(newBucket.getName());
+                   int viewIndex = bucketTableModelSorter.viewIndex(modelIndex);
+                   bucketsTable.setRowSelectionInterval(viewIndex, viewIndex);
+               }
            } 
         });            
     }
@@ -1538,17 +1541,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 "Cancel bucket creation", event.getThreadWatcher().getCancelEventListener());
         } 
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-            SwingUtilities.invokeLater(new Runnable() {
+            runInDispatcherThreadImmediately(new Runnable() {
                 public void run() {
-                    for (int i = 0; i < event.getCreatedBuckets().length; i++) {                
-                        int insertRow = bucketTableModel.addBucket(
-                            event.getCreatedBuckets()[i]);
-                        int viewRow = bucketTableModelSorter.viewIndex(insertRow);
-                        bucketsTable.setRowSelectionInterval(viewRow, viewRow);                
+                    for (int i = 0; i < event.getCreatedBuckets().length; i++) {
+                        bucketTableModel.addBucket(event.getCreatedBuckets()[i]);
                     }
                 }
             });
-            
+
             ThreadWatcher progressStatus = event.getThreadWatcher();
             String statusText = "Created " + progressStatus.getCompletedThreads() + " buckets of " + progressStatus.getThreadCount();
             updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());                
