@@ -883,8 +883,18 @@ public class Synchronize {
             printProgressLine(progressMessage);                
         }
         
+        private void displayIgnoredErrors(ServiceEvent event) {
+            if (ServiceEvent.EVENT_IGNORED_ERRORS == event.getEventCode()) {
+                Throwable[] throwables = event.getIgnoredErrors();
+                for (int i = 0; i < throwables.length; i++) {
+                    printOutputLine("Ignoring error: " + throwables[i].getMessage(), REPORT_LEVEL_ALL);
+                }
+            }            
+        }
+        
         public void s3ServiceEventPerformed(CreateObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
+            displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                 displayProgressStatus("Upload: ", event.getThreadWatcher());                    
             }
@@ -892,6 +902,7 @@ public class Synchronize {
         
         public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
+            displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                 displayProgressStatus("Download: ", event.getThreadWatcher());                    
             }
@@ -899,6 +910,7 @@ public class Synchronize {
         
         public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
             super.s3ServiceEventPerformed(event);
+            displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
                 displayProgressStatus("Retrieving object details from S3: ", event.getThreadWatcher());
             }
@@ -906,6 +918,7 @@ public class Synchronize {
         
         public void s3ServiceEventPerformed(DeleteObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
+            displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
                 displayProgressStatus("Deleting objects in S3: ", event.getThreadWatcher());
             }
