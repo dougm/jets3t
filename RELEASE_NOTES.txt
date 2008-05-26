@@ -82,6 +82,10 @@ TOOLKIT
   divide your objects into a number of "partitions", and the service performs
   these prefix-based listings in parallel. See ThreadedObjectListing.java for
   an example of how this feature can be used.
+- Added a new notification event ServiceEvent#EVENT_IGNORED_ERRORS that provides
+  information about exceptions that were ignored during a multi-threaded S3 
+  operation. Exceptions are only ignored if the JetS3t property
+  "s3service.ignore-exceptions-in-multi" is set to true.
 
 -------------
 Version 0.6.0

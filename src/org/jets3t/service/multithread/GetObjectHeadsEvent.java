@@ -73,6 +73,15 @@ public class GetObjectHeadsEvent extends ServiceEvent {
         return event;
     }
 
+    public static GetObjectHeadsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        GetObjectHeadsEvent event = new GetObjectHeadsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
+    
     private void setObjects(S3Object[] objects) {
         this.objects = objects;
     }

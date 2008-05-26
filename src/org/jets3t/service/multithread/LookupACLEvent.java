@@ -75,6 +75,15 @@ public class LookupACLEvent extends ServiceEvent {
         return event;
     }
 
+    public static LookupACLEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        LookupACLEvent event = new LookupACLEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
+    
     private void setObjects(S3Object[] objects) {
         this.objects = objects;
     }

@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.multithread;
 
+
 /**
  * Base class of all events produced by {@link S3ServiceMulti}.
  * <p>
@@ -35,6 +36,10 @@ package org.jets3t.service.multithread;
  *     If an operation is cancelled, this event will be fired instead of the EVENT_COMPLETED.</li>
  * <li>EVENT_ERROR: An S3 operation has failed and an exception has been thrown. The error 
  *     will be availble from {@link #getErrorCause()}</li>
+ * <li>EVENT_IGNORED_ERRORS: One or more operations have failed but ,because the 
+ *     "s3service.ignore-exceptions-in-multi" JetS3t property value is set to true,
+ *     the overall operation has continued. The errors will be available from 
+ *     {@link getIgnoredErrors()}</li>
  * </ul>
  * <p>
  * EVENT_STARTED and EVENT_IN_PROGRESS events may include a {@link ThreadWatcher} object containing
@@ -53,11 +58,13 @@ public abstract class ServiceEvent {
     public static final int EVENT_COMPLETED = 2;
     public static final int EVENT_IN_PROGRESS = 3;
     public static final int EVENT_CANCELLED = 4;
+    public static final int EVENT_IGNORED_ERRORS = 5;
 
     private int eventCode = 0;
     private Object uniqueOperationId = null;
     private Throwable t = null;
     private ThreadWatcher threadWatcher = null;
+    private Throwable[] ignoredErrors = null;
 
     protected ServiceEvent(int eventCode, Object uniqueOperationId) {
         this.eventCode = eventCode;
@@ -72,6 +79,10 @@ public abstract class ServiceEvent {
         this.t = t;
     }
     
+    protected void setIgnoredErrors(Throwable[] ignoredErrors) {
+        this.ignoredErrors = ignoredErrors;
+    }
+
     public Object getUniqueOperationId() {
         return uniqueOperationId;
     }
@@ -96,6 +107,20 @@ public abstract class ServiceEvent {
         }        
         return t;
     }
+    
+    /**
+     * @return
+     * a list of one or more errors that occurred during an S3 operation, but which were
+     * ignored at the time (so the overall operation continued).
+     * @throws IllegalStateException
+     * ignored errors can only be retrieved from an EVENT_IGNORED_ERRORS event.
+     */
+    public Throwable[] getIgnoredErrors() throws IllegalStateException {
+        if (eventCode != EVENT_IGNORED_ERRORS) {
+            throw new IllegalStateException("Ignored errors are only available from EVENT_IGNORED_ERRORS events");
+        }        
+        return ignoredErrors;        
+    }
 
     /**
      * @return
@@ -117,7 +142,8 @@ public abstract class ServiceEvent {
                 : eventCode == EVENT_COMPLETED ? "EVENT_COMPLETED"
                     : eventCode == EVENT_IN_PROGRESS ? "EVENT_IN_PROGRESS"
                         : eventCode == EVENT_CANCELLED ? "EVENT_CANCELLED"
-                            : "Unrecognised event status code: " + eventCode;
+                            : eventCode == EVENT_IGNORED_ERRORS ? "EVENT_IGNORED_ERRORS"
+                                : "Unrecognised event status code: " + eventCode;
 
         if (getErrorCause() != null) {
             return eventText + " " + getErrorCause();
@@ -125,5 +151,6 @@ public abstract class ServiceEvent {
             return eventText;
         }
     }
-
+    
+    
 }

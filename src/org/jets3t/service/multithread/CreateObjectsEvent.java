@@ -73,6 +73,15 @@ public class CreateObjectsEvent extends ServiceEvent {
         return event;
     }
 
+    public static CreateObjectsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        CreateObjectsEvent event = new CreateObjectsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
+    
     private void setObjects(S3Object[] objects) {
         this.objects = objects;
     }

@@ -296,6 +296,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(ListObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }            
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(ListObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -357,6 +360,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(CreateBucketsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(CreateBucketsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -438,6 +444,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(CopyObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(CopyObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -504,6 +513,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(CreateObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(CreateObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -565,6 +577,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(DeleteObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -657,6 +672,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(GetObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -748,6 +766,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(GetObjectHeadsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -811,6 +832,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(LookupACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(LookupACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -873,6 +897,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(UpdateACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -955,6 +982,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(DownloadObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -1034,6 +1064,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(DownloadObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -1121,6 +1154,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(GetObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -1207,6 +1243,9 @@ public class S3ServiceMulti implements Serializable {
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(GetObjectHeadsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
         }).run();
         
         return success[0];
@@ -1275,6 +1314,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(UpdateACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -1352,6 +1394,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(DeleteObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -1435,6 +1480,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(CreateObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(CreateObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -1521,6 +1569,9 @@ public class S3ServiceMulti implements Serializable {
             }
             public void fireErrorEvent(Throwable throwable) {
                 fireServiceEvent(LookupACLEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                fireServiceEvent(LookupACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
         
@@ -2179,9 +2230,10 @@ public class S3ServiceMulti implements Serializable {
          * 
          * @throws Throwable
          */
-        private List getNewlyCompletedResults() throws Throwable 
+        private ResultsTuple getNewlyCompletedResults() throws Throwable 
         {
             ArrayList completedResults = new ArrayList();
+            ArrayList errorResults = new ArrayList();
             
             for (int i = 0; i < threads.length; i++) {
                 if (!alreadyFired[i] && started[i] && !threads[i].isAlive()) {
@@ -2199,6 +2251,7 @@ public class S3ServiceMulti implements Serializable {
                             log.warn("Ignoring exception (property " +
                                     "s3service.ignore-exceptions-in-multi is set to true)", 
                                     throwable);
+                            errorResults.add(throwable);
                         } else {
                             throw throwable;
                         }                        
@@ -2209,7 +2262,13 @@ public class S3ServiceMulti implements Serializable {
                     }                    
                 }
             }
-            return completedResults;
+            
+            Throwable[] ignoredErrors = new Throwable[] {};
+            if (errorResults.size() > 0) {
+                ignoredErrors = (Throwable[]) errorResults.toArray(new Throwable[errorResults.size()]);
+            }
+            
+            return new ResultsTuple(completedResults, ignoredErrors);
         }
         
         /**
@@ -2316,10 +2375,14 @@ public class S3ServiceMulti implements Serializable {
                                 // Fire progress event.
                                 int completedThreads = runnables.length - getPendingThreadCount();                    
                                 threadWatcher.updateThreadsCompletedCount(completedThreads, cancelEventTrigger);
-                                List completedResults = getNewlyCompletedResults();
+                                ResultsTuple results = getNewlyCompletedResults();
                                 
                                 lastProgressEventFiredTime = System.currentTimeMillis();
-                                fireProgressEvent(threadWatcher, completedResults);                                
+                                fireProgressEvent(threadWatcher, results.completedResults);
+                                
+                                if (results.errorResults.length > 0) {
+                                    fireIgnoredErrorsEvent(threadWatcher, results.errorResults);
+                                }
                             }
                             
                             // Start more threads.
@@ -2336,11 +2399,17 @@ public class S3ServiceMulti implements Serializable {
                 } else {
                     int completedThreads = runnables.length - getPendingThreadCount();                    
                     threadWatcher.updateThreadsCompletedCount(completedThreads, cancelEventTrigger);
-                    List completedResults = getNewlyCompletedResults();                    
-                    fireProgressEvent(threadWatcher, completedResults);
-                    if (completedResults.size() > 0) {
-                        log.debug(completedResults.size() + " threads have recently completed");
+                    ResultsTuple results = getNewlyCompletedResults();
+
+                    fireProgressEvent(threadWatcher, results.completedResults);
+                    if (results.completedResults.size() > 0) {
+                        log.debug(results.completedResults.size() + " threads have recently completed");
                     }                    
+                    
+                    if (results.errorResults.length > 0) {
+                        fireIgnoredErrorsEvent(threadWatcher, results.errorResults);
+                    }
+                    
                     fireCompletedEvent();
                 }
             } catch (Throwable t) {
@@ -2361,6 +2430,18 @@ public class S3ServiceMulti implements Serializable {
         public abstract void fireCancelEvent();
 
         public abstract void fireErrorEvent(Throwable t);
+        
+        public abstract void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors);
+        
+        private class ResultsTuple {
+            public List completedResults = null;
+            public Throwable[] errorResults = null;
+            
+            public ResultsTuple(List completedResults, Throwable[] errorResults) {
+                this.completedResults = completedResults;
+                this.errorResults = errorResults;
+            }
+        }
     }
     
 }

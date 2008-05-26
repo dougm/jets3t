@@ -73,6 +73,15 @@ public class CreateBucketsEvent extends ServiceEvent {
         return event;
     }
     
+    public static CreateBucketsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        CreateBucketsEvent event = new CreateBucketsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
+    
     private void setBuckets(S3Bucket[] buckets) {
         this.buckets = buckets;
     }

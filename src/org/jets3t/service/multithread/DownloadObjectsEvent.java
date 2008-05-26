@@ -74,6 +74,15 @@ public class DownloadObjectsEvent extends ServiceEvent {
         return event;
     }
 
+    public static DownloadObjectsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        DownloadObjectsEvent event = new DownloadObjectsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
+    
     private void setObjects(S3Object[] objects) {
         this.objects = objects;
     }

@@ -72,6 +72,15 @@ public class DeleteObjectsEvent extends ServiceEvent {
         return event;
     }
 
+    public static DeleteObjectsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
+    
     private void setObjects(S3Object[] objects) {
         this.objects = objects;
     }

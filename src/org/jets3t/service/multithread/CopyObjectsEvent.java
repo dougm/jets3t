@@ -85,6 +85,14 @@ public class CopyObjectsEvent extends ServiceEvent {
         return event;
     }
 
+    public static CopyObjectsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        CopyObjectsEvent event = new CopyObjectsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
     private void setResults(Map[] results) {
         this.results = results;
     }

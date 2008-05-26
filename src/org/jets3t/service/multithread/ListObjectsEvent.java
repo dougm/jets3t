@@ -72,6 +72,15 @@ public class ListObjectsEvent extends ServiceEvent {
         ListObjectsEvent event = new ListObjectsEvent(EVENT_CANCELLED, uniqueOperationId);
         return event;
     }
+
+    public static ListObjectsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        ListObjectsEvent event = new ListObjectsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+    
     
     private void setChunkList(List chunkList) {
         this.chunkList = chunkList;

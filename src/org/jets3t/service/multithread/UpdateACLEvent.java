@@ -73,6 +73,15 @@ public class UpdateACLEvent extends ServiceEvent {
         return event;
     }
 
+    public static UpdateACLEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher, 
+        Throwable[] ignoredErrors, Object uniqueOperationId) 
+    {
+        UpdateACLEvent event = new UpdateACLEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setIgnoredErrors(ignoredErrors);
+        return event;
+    }
+
+    
     private void setObjects(S3Object[] objects) {
         this.objects = objects;
     }
