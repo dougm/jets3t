@@ -7,7 +7,9 @@ COCKPIT
 - Added support for updating objects with new metadata values.
 - Fixed issue where downloading items to a directory containing many files and 
   directories (eg 250K+) would cause Cockpit to fail with OutOfMemory errors.
-  
+- Added a Confirm Password field to the encryption settings, to help prevent 
+  problems where a password is mistyped.
+    
 
 SYNCHRONIZE
 - Synchonize now recognizes when you have specified a partial S3 paths when 

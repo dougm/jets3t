@@ -67,6 +67,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
     private ButtonGroup compressButtonGroup = null;
     private ButtonGroup encryptButtonGroup = null;
     private JPasswordField encryptPasswordField = null;
+    private JPasswordField confirmPasswordField = null;
     private JComboBox encryptAlgorithmComboBox = null;
     private JButton okButton = null;
     private JButton cancelButton = null;
@@ -189,6 +190,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         encryptButtonGroup.add(encryptNoButton);
         encryptButtonGroup.add(encryptYesButton);
         encryptPasswordField = new JPasswordField();
+        confirmPasswordField = new JPasswordField();
         JPanel encryptPrefsRadioPanel = new JPanel(new GridBagLayout());
         encryptPrefsRadioPanel.add(encryptNoButton, new GridBagConstraints(0, 0, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
@@ -208,12 +210,16 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         encryptionPrefsPanel.add(encryptPasswordField, new GridBagConstraints(0, 1, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        encryptionPrefsPanel.add(new JHtmlLabel("Algorithm for Encrypting Uploads", hyperlinkListener), new GridBagConstraints(0, 2, 
+        encryptionPrefsPanel.add(new JHtmlLabel("Confirm Password", hyperlinkListener), new GridBagConstraints(0, 2, 
+            1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
+        encryptionPrefsPanel.add(confirmPasswordField, new GridBagConstraints(0, 3, 
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        encryptionPrefsPanel.add(new JHtmlLabel("Algorithm for Encrypting Uploads", hyperlinkListener), new GridBagConstraints(0, 4, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         encryptAlgorithmComboBox = new JComboBox(algorithms);
         encryptAlgorithmComboBox.addActionListener(this);
         encryptAlgorithmComboBox.setSelectedItem(encryptAlgorithm.toUpperCase());
-        encryptionPrefsPanel.add(encryptAlgorithmComboBox, new GridBagConstraints(0, 3, 
+        encryptionPrefsPanel.add(encryptAlgorithmComboBox, new GridBagConstraints(0, 5, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         String algorithmExplanation = 
             "<html>This algorithm need not be set correctly to download<br>" +
@@ -222,10 +228,10 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
                    "<font size=\"-2\">" +
                    "The algorithm list only includes the Password-Based (PBE) algorithms<br>" +                   
                    "available to Java programs on your system.</font></html>";
-        encryptionPrefsPanel.add(new JHtmlLabel(algorithmExplanation, hyperlinkListener), new GridBagConstraints(0, 4, 
+        encryptionPrefsPanel.add(new JHtmlLabel(algorithmExplanation, hyperlinkListener), new GridBagConstraints(0, 6, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         // Padding
-        encryptionPrefsPanel.add(new JLabel(), new GridBagConstraints(0, 5,  
+        encryptionPrefsPanel.add(new JLabel(), new GridBagConstraints(0, 7,  
             1, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         
         
@@ -259,6 +265,17 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
                 ErrorDialog.showDialog(ownerFrame, hyperlinkListener, 
                     "If encryption is set for Uploads the Encryption password cannot be empty", null);
                 return;
+            }
+
+            if (encryptPasswordField.getPassword().length > 0 || confirmPasswordField.getPassword().length > 0) {
+                String password = new String(encryptPasswordField.getPassword());
+                String confirmedPassword = new String(confirmPasswordField.getPassword());
+                
+                if (!password.equals(confirmedPassword)) { 
+                    ErrorDialog.showDialog(ownerFrame, hyperlinkListener, 
+                        "You entered an encryption password that does not match the password in the Confirm Password field", null);
+                    return;
+                }
             }
             
             // Save preferences to CockpitPreferences object.
