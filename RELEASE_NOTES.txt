@@ -9,6 +9,7 @@ COCKPIT
   directories (eg 250K+) would cause Cockpit to fail with OutOfMemory errors.
 - Added a Confirm Password field to the encryption settings, to help prevent 
   problems where a password is mistyped.
+- Cockpit can now generate valid signed GET URLs for DevPay S3 accounts.
     
 
 SYNCHRONIZE
@@ -45,6 +46,11 @@ TOOLKIT
   move, rename and update objects in your S3 account. These operations are
   available through the S3Service as the methods copyObject, moveObject,
   renameObject and updateObjectMetadata.
+- Added basic support for accessing DevPay S3 accounts. DevPay user and product
+  tokens can be provided to the S3Service class directly using the 
+  #setDevPayUserToken and #setDevPayProductToken methods, and default token
+  values can be specified in the jets3t.properties file using the settings
+  "devpay.user-token" and "devpay.product-token".
 - Modified Bucket Logging Status changing behaviour to update ACL settings of
   the target bucket before (re)directing log files to the bucket.
 - Fixed bug in RestS3Service that caused failures in some circumstances when 

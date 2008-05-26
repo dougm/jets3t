@@ -89,7 +89,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * @author James Murty
  */
 public class RestS3Service extends S3Service implements SignedUrlHandler {
-    private static final long serialVersionUID = 3838005476674207543L;
+    private static final long serialVersionUID = 3515978495790107357L;
 
     private final Log log = LogFactory.getLog(RestS3Service.class);
     
@@ -257,7 +257,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         });
         
         httpClient = new HttpClient(clientParams, connectionManager);
-        httpClient.setHostConfiguration(hostConfig);
+        httpClient.setHostConfiguration(hostConfig);        
 
         // Retrieve Proxy settings.
         boolean proxyAutodetect = jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true);        
@@ -315,7 +315,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             log.debug("Performing " + httpMethod.getName() 
                     + " request for '" + httpMethod.getURI().toString() 
                     + "', expecting response code " + expectedResponseCode);
-
+            
             // Variables to manage S3 Internal Server 500 errors.
             boolean completedWithoutRecoverableError = true;
             int internalErrorCount = 0;
@@ -538,7 +538,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 httpMethod.setRequestHeader(key, value);
                 log.debug("Added request header to connection: " + key + "=" + value);
             }
-        }                        
+        }               
     }
     
     /**
@@ -782,7 +782,22 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         if (httpMethod.getRequestHeader("Content-Type") == null) {
             httpMethod.setRequestHeader("Content-Type", "");
         }        
-                                
+                             
+        // Set DevPay request headers.
+        if (getDevPayUserToken() != null || getDevPayProductToken() != null) {
+            // DevPay tokens have been provided, include these with the request.
+            if (getDevPayProductToken() != null) {
+                String securityToken = getDevPayUserToken() + "," + getDevPayProductToken();
+                httpMethod.setRequestHeader("x-amz-security-token", securityToken);
+                log.debug("Including DevPay user and product tokens in request: " 
+                    + "x-amz-security-token=" + securityToken);
+            } else {
+                httpMethod.setRequestHeader("x-amz-security-token", getDevPayUserToken());                
+                log.debug("Including DevPay user token in request: x-amz-security-token=" 
+                    + getDevPayUserToken());
+            }
+        }
+
         return httpMethod;
     }
     

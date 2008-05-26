@@ -82,6 +82,10 @@ public abstract class S3Service implements Serializable {
     protected Jets3tProperties jets3tProperties = null;
     
     private AWSCredentials awsCredentials = null;
+    
+    private String awsDevPayUserToken = null;
+    private String awsDevPayProductToken = null;
+    
     private String invokingApplicationDescription = null;
     private boolean isHttpsOnly = true;
     private int internalErrorRetryMax = 5;
@@ -119,7 +123,10 @@ public abstract class S3Service implements Serializable {
         
         this.jets3tProperties = jets3tProperties;                
         this.isHttpsOnly = jets3tProperties.getBoolProperty("s3service.https-only", true);        
-        this.internalErrorRetryMax = jets3tProperties.getIntProperty("s3service.internal-error-retry-max", 5);                
+        this.internalErrorRetryMax = jets3tProperties.getIntProperty("s3service.internal-error-retry-max", 5);
+        
+        this.awsDevPayUserToken = jets3tProperties.getStringProperty("devpay.user-token", null);
+        this.awsDevPayProductToken = jets3tProperties.getStringProperty("devpay.product-token", null);
         
         // Configure the InetAddress DNS caching times to work well with S3. The cached DNS will
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
@@ -157,7 +164,47 @@ public abstract class S3Service implements Serializable {
     protected S3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         this(awsCredentials, null);
     }
-        
+    
+    /**
+     * Set the User Token value to use for requests to a DevPay S3 account.
+     * The user token is not required for DevPay web products for which the 
+     * user token was created after 15th May 2008.
+     * 
+     * @param userToken
+     * the user token value provided by the AWS DevPay activation service.
+     */
+    public void setDevPayUserToken(String userToken) {
+        this.awsDevPayUserToken = userToken;
+    }
+    
+    /**
+     * @return
+     * the user token value to use in requests to a DevPay S3 account, or null
+     * if no such token value has been set.
+     */
+    public String getDevPayUserToken() {
+        return this.awsDevPayUserToken;
+    }
+
+    /**
+     * Set the Product Token value to use for requests to a DevPay S3 account.
+     * 
+     * @param productToken
+     * the token that identifies your DevPay product.
+     */
+    public void setDevPayProductToken(String productToken) {
+        this.awsDevPayProductToken = productToken;
+    }
+
+    /**
+     * @return
+     * the product token value to use in requests to a DevPay S3 account, or 
+     * null if no such token value has been set.
+     */
+    public String getDevPayProductToken() {
+        return this.awsDevPayProductToken;
+    }
+
     /**
      * @return 
      * true if this service has <code>AWSCredentials</code> identifying an S3 user, false

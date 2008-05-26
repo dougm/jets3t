@@ -141,6 +141,7 @@ import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ObjectUtils;
+import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.TimeFormatter;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
@@ -2508,11 +2509,28 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
             boolean isHttps = s3ServiceMulti.getS3Service().getJetS3tProperties()
                 .getBoolProperty("s3service.https-only", true);
+                        
+            // Include DevPay tokens in signed request if there are any available.
+            Map headersMap = new HashMap();
+            String specialParamName = null;
+            String devPayUserToken = s3ServiceMulti.getS3Service().getDevPayUserToken();
+            String devPayProductToken = s3ServiceMulti.getS3Service().getDevPayProductToken();            
+            if (devPayUserToken != null || devPayProductToken != null) {
+                // DevPay tokens have been provided, include these in the signed URL.
+                if (devPayProductToken != null) {
+                    String securityToken = devPayUserToken + "," + devPayProductToken;
+                    headersMap.put("x-amz-security-token", securityToken);
+                } else {
+                    headersMap.put("x-amz-security-token", devPayUserToken);                
+                }
+                specialParamName = "x-amz-security-token=" 
+                    + RestUtils.encodeUrlString((String) headersMap.get("x-amz-security-token"));
+            }
             
             // Generate URL
             String signedUrl = S3Service.createSignedUrl("GET",
-                getCurrentSelectedBucket().getName(), currentObject.getKey(), null,
-                null, s3ServiceMulti.getAWSCredentials(), secondsSinceEpoch, 
+                getCurrentSelectedBucket().getName(), currentObject.getKey(), specialParamName,
+                headersMap, s3ServiceMulti.getAWSCredentials(), secondsSinceEpoch, 
                 isVirtualHost, isHttps);
             
             // Display signed URL
