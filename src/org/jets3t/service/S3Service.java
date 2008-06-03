@@ -1078,7 +1078,12 @@ public abstract class S3Service implements Serializable {
     /////////////////////////////////////////////////
 
     /**
-     * Lists the objects in a bucket.
+     * Lists the objects in a bucket. 
+     * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
      * <p>
      * This method can be performed by anonymous services.
      * 
@@ -1096,6 +1101,11 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Lists the objects in a bucket matching a prefix.
+     * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
      * <p>
      * This method can be performed by anonymous services.
      * 
@@ -1223,6 +1233,11 @@ public abstract class S3Service implements Serializable {
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
      * a given size. 
      * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
+     * <p>
      * This method can be performed by anonymous services.
      * 
      * @param bucket
@@ -1247,6 +1262,11 @@ public abstract class S3Service implements Serializable {
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
      * a given size. 
      * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
+     * <p>
      * This method can be performed by anonymous services.
      * 
      * @param bucketName
@@ -1269,6 +1289,11 @@ public abstract class S3Service implements Serializable {
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
      * a given size, and returning each chunk separately. It is the responsility of the caller 
      * to building a complete bucket object listing by performing follow-up requests if necessary.
+     * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
      * <p>
      * This method can be performed by anonymous services.
      * 
@@ -1299,6 +1324,11 @@ public abstract class S3Service implements Serializable {
      * common prefixes returned by S3. Depending on the value of the completeListing
      * variable, this method can be set to automatically perform follow-up requests
      * to build a complete object listing, or to return only a partial listing.
+     * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
      * <p>
      * This method can be performed by anonymous services.
      * 
