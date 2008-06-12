@@ -145,7 +145,7 @@ public abstract class ServiceEvent {
                             : eventCode == EVENT_IGNORED_ERRORS ? "EVENT_IGNORED_ERRORS"
                                 : "Unrecognised event status code: " + eventCode;
 
-        if (getErrorCause() != null) {
+        if (eventCode == EVENT_ERROR && getErrorCause() != null) {
             return eventText + " " + getErrorCause();
         } else {
             return eventText;
