@@ -20,10 +20,11 @@ package org.jets3t.service.model;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
@@ -84,15 +85,18 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * Create an object representing a file. The object is initialised with the file's name
      * as its key, the file's content as its data, a content type based on the file's extension
      * (see {@link Mimetypes}), and a content length matching the file's size.
+     * The file's MD5 hash value is also calculated and provided to S3, so the service
+     * can verify that no data are corrupted in transit.
      * 
      * @param bucket
      * the bucket the object belongs to, or will be placed in.
      * @param file
      * the file the object will represent. This file must exist and be readable.
      * 
-     * @throws FileNotFoundException
+     * @throws IOException 
+     * @throws NoSuchAlgorithmException 
      */
-    public S3Object(S3Bucket bucket, File file) throws FileNotFoundException {
+    public S3Object(S3Bucket bucket, File file) throws NoSuchAlgorithmException, IOException {
         this(bucket, file.getName());
         setContentLength(file.length());
         setContentType(Mimetypes.getInstance().getMimetype(file));
@@ -100,6 +104,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
             throw new FileNotFoundException("Cannot read from file: " + file.getAbsolutePath());
         }
         setDataInputFile(file);
+        setMd5Hash(ServiceUtils.computeMD5Hash(new FileInputStream(file)));
     }
     
     /**
@@ -107,6 +112,8 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * key, the given string as its data content (encoded as UTF-8), a content type of 
      * <code>text/plain; charset=utf-8</code>, and a content length matching the 
      * string's length.
+     * The file's MD5 hash value is also calculated and provided to S3, so the service
+     * can verify that no data are corrupted in transit.
      * 
      * @param bucket
      * the bucket the object belongs to, or will be placed in.
@@ -115,8 +122,11 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * @param dataString
      * the text data the object will contain. Text data will be encoded as UTF-8. 
      * This string cannot be null.
+     * 
+     * @throws IOException 
+     * @throws NoSuchAlgorithmException 
      */
-    public S3Object(S3Bucket bucket, String key, String dataString) throws UnsupportedEncodingException 
+    public S3Object(S3Bucket bucket, String key, String dataString) throws NoSuchAlgorithmException, IOException 
     {
         this(bucket, key);
         ByteArrayInputStream bais = new ByteArrayInputStream(
@@ -124,6 +134,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
         setDataInputStream(bais);
         setContentLength(bais.available());
         setContentType("text/plain; charset=utf-8");
+        setMd5Hash(ServiceUtils.computeMD5Hash(dataString.getBytes(Constants.DEFAULT_ENCODING)));        
     }
 
     /**
@@ -158,9 +169,12 @@ public class S3Object extends BaseS3Object implements Cloneable {
 	}
 	
     /**
-     * @return
-     * an input stream containing this object's data, or null if there is no data associated
-     * with the object.
+     * Returns an input stream containing this object's data, or null if there is 
+     * no data associated with the object.
+     * <p>
+     * If you are downloading data from S3, you should consider verifying the
+     * integrity of the data you read from this stream using one of the  
+     * {@link #verifyData(InputStream)} methods.  
      * 
      * @throws S3ServiceException 
      */
@@ -183,6 +197,11 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * {@link #setDataInputFile(File)} which allows object's to lazily open files and avoid any
      * Operating System limits on the number of files that may be opened simultaneously. 
      * <p>
+     * <b>Note 2</b>: This method does not calculate an MD5 hash of the input data, 
+     * which means S3 will not be able to recognize if data are corrupted in transit. 
+     * To allow S3 to verify data you upload, you should set the MD5 hash value of
+     * your data using {@link #setMd5Hash(byte[])}.
+     * <p>
      * This method will set the object's file data reference to null.
      * 
      * @param dataInputStream
@@ -197,6 +216,11 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * Sets the file containing the data content to associate with this object. This file will
      * be automatically opened as an input stream only when absolutely necessary, that is when
      * {@link #getDataInputStream()} is called.
+     * <p>
+     * <b>Note 2</b>: This method does not calculate an MD5 hash of the input data, 
+     * which means S3 will not be able to recognize if data are corrupted in transit. 
+     * To allow S3 to verify data you upload, you should set the MD5 hash value of
+     * your data using {@link #setMd5Hash(byte[])}.
      * <p>
      * This method will set the object's input stream data reference to null.
      * 
@@ -444,7 +468,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
 	
     /**
      * @return
-     * true if the object's metadata is considered complete, such as when the object's metadata
+     * true if the object's metadata are considered complete, such as when the object's metadata
      * has been retrieved from S3 by a HEAD request. If this value is not true, the metadata
      * information in this object should not be considered authoritive.
      */
@@ -453,7 +477,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
     }
 
     /**
-     * S3 Object metadata is only complete when it is populated with all values following
+     * S3 Object metadata are only complete when it is populated with all values following
      * a HEAD or GET request.
      * 
      * @param isMetadataComplete
@@ -521,4 +545,71 @@ public class S3Object extends BaseS3Object implements Cloneable {
         return clone;
     }
     
+    
+    /**
+     * Calculates the MD5 hash value of the given data object, and compares it
+     * against this object's hash (as stored in the Content-MD5 header for 
+     * uploads, or the ETag header for downloads). 
+     * 
+     * @param downloadedFile
+     * @return
+     * true if the calculated MD5 hash value of the file matches this object's 
+     * hash value, false otherwise.
+     * 
+     * @throws NoSuchAlgorithmException
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public boolean verifyData(File downloadedFile) 
+        throws NoSuchAlgorithmException, FileNotFoundException, IOException 
+    {
+        return getMd5HashAsBase64().equals(
+            ServiceUtils.toBase64(
+                ServiceUtils.computeMD5Hash(
+                    new FileInputStream(downloadedFile))));
+    }
+    
+    /**
+     * Calculates the MD5 hash value of the given data object, and compares it
+     * against this object's hash (as stored in the Content-MD5 header for 
+     * uploads, or the ETag header for downloads). 
+     * 
+     * @param downloadedData
+     * @return
+     * true if the calculated MD5 hash value of the bytes matche this object's 
+     * hash value, false otherwise.
+     * 
+     * @throws NoSuchAlgorithmException
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public boolean verifyData(byte[] downloadedData) 
+        throws NoSuchAlgorithmException, FileNotFoundException, IOException 
+    {
+        return getMd5HashAsBase64().equals(
+            ServiceUtils.toBase64(
+                ServiceUtils.computeMD5Hash(downloadedData)));
+    }
+
+    /**
+     * Calculates the MD5 hash value of the given data object, and compares it
+     * against this object's hash (as stored in the Content-MD5 header for 
+     * uploads, or the ETag header for downloads). 
+     * 
+     * @param downloadedData
+     * @return
+     * true if the calculated MD5 hash value of the input stream matches this 
+     * object's hash value, false otherwise.
+     * 
+     * @throws NoSuchAlgorithmException
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public boolean verifyData(InputStream downloadedDataStream) 
+        throws NoSuchAlgorithmException, FileNotFoundException, IOException 
+    {
+        return getMd5HashAsBase64().equals(
+            ServiceUtils.toBase64(
+                ServiceUtils.computeMD5Hash(downloadedDataStream)));
+    }
 }

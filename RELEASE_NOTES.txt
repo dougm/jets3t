@@ -46,6 +46,10 @@ TOOLKIT
   move, rename and update objects in your S3 account. These operations are
   available through the S3Service as the methods copyObject, moveObject,
   renameObject and updateObjectMetadata.
+- S3Objects contructed from a file or text string now automatically calculate
+  MD5 hash values to ensure data integrity for uploads to S3, and new
+  S3Object#verifyData methods make it easy to confirm that data downloaded 
+  from S3 has not been corrupted in transit.
 - Added basic support for accessing DevPay S3 accounts. DevPay user and product
   tokens can be provided to the S3Service class directly using the 
   #setDevPayUserToken and #setDevPayProductToken methods, and default token
