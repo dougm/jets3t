@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2008 James Murty
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,12 +33,13 @@ import org.apache.commons.logging.LogFactory;
  * 
  * @author James Murty
  */
-public class RepeatableFileInputStream extends InputStream implements IRepeatableInputStream, InputStreamWrapper {
+public class RepeatableFileInputStream extends InputStream implements InputStreamWrapper {
     private final Log log = LogFactory.getLog(RepeatableFileInputStream.class);
 
     private File file = null;
     private FileInputStream fis = null;
-    private long bytesReadTotal = 0;
+    private long bytesReadPastMarkPoint = 0;
+    private long markPoint = 0;
 
     /**
      * Creates a repeatable input stream based on a file.
@@ -55,21 +56,33 @@ public class RepeatableFileInputStream extends InputStream implements IRepeatabl
     }
     
     /**
-     * Resets the input stream to the beginning by creating a new FileInputStream based on the 
+     * Resets the input stream to the last mark point, or the beginning of the stream if 
+     * there is no mark point, by creating a new FileInputStream based on the 
      * underlying file. 
      * 
      * @throws UnrecoverableIOException
      * when the FileInputStream cannot be re-created.
      */
-    public void repeatInputStream() throws IOException {
+    public void reset() throws IOException {
         try {
             this.fis.close();
             this.fis = new FileInputStream(file);
-            log.debug("Reset after returning " + bytesReadTotal + " bytes");
-            bytesReadTotal = 0;
+            this.fis.skip(markPoint);
+            log.debug("Reset to mark point " + markPoint + " after returning " + bytesReadPastMarkPoint + " bytes");
+            this.bytesReadPastMarkPoint = 0;
         } catch (IOException e) {
             throw new UnrecoverableIOException("Input stream is not repeatable: " + e.getMessage());
         }
+    }
+    
+    public boolean markSupported() {
+    	return true;
+    }
+    
+    public synchronized void mark(int readlimit) {
+    	this.markPoint += bytesReadPastMarkPoint;
+    	this.bytesReadPastMarkPoint = 0;
+        log.debug("Input stream marked at " + this.markPoint + " bytes");
     }
     
     public int available() throws IOException {
@@ -83,7 +96,7 @@ public class RepeatableFileInputStream extends InputStream implements IRepeatabl
     public int read() throws IOException {
         int byteRead = fis.read();
         if (byteRead != -1) {
-            bytesReadTotal++;
+            bytesReadPastMarkPoint++;
             return byteRead;
         } else {
             return -1;
@@ -92,7 +105,7 @@ public class RepeatableFileInputStream extends InputStream implements IRepeatabl
 
     public int read(byte[] arg0, int arg1, int arg2) throws IOException {
         int count = fis.read(arg0, arg1, arg2);
-        bytesReadTotal += count;
+        bytesReadPastMarkPoint += count;
         return count;
     }
 

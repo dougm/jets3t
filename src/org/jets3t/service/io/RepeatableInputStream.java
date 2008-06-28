@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2008 James Murty
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,13 +44,13 @@ import org.jets3t.service.Jets3tProperties;
  * 
  * @author James Murty
  */
-public class RepeatableInputStream extends InputStream implements IRepeatableInputStream, InputStreamWrapper {
+public class RepeatableInputStream extends InputStream implements InputStreamWrapper {
     private final Log log = LogFactory.getLog(RepeatableInputStream.class);
 
     private InputStream is = null;
-    private int bufferOffset = 0;
     private int bufferSize = 0;    
-    private long bytesReadTotal = 0;
+    private int bufferOffset = 0;
+    private long bytesReadPastMark = 0;
     private byte[] buffer = null;
     
     /**
@@ -99,15 +99,41 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
      * when the available buffer size has been exceeded, in which case the input stream data cannot
      * be repeated.
      */
-    public void repeatInputStream() throws IOException {
-        if (bytesReadTotal <= bufferSize) {
-            log.debug("Reset after reading " + bytesReadTotal + " bytes.");            
+    public void reset() throws IOException {
+        if (bytesReadPastMark <= bufferSize) {
+            log.debug("Reset after reading " + bytesReadPastMark + " bytes.");            
             bufferOffset = 0;
         } else {
             throw new UnrecoverableIOException(
-                "Input stream is not repeatable as " + this.bytesReadTotal 
+                "Input stream cannot be reset as " + this.bytesReadPastMark 
                 + " bytes have been written, exceeding the available buffer size of " + this.bufferSize);
         }
+    }
+    
+    public boolean markSupported() {
+    	return true;
+    }
+
+    /**
+     * This method can only be used while less data has been read from the input
+     * stream than fits into the buffer. The readLimit parameter is ignored entirely.
+     */
+    public synchronized void mark(int readlimit) {
+        log.debug("Input stream marked at " + bytesReadPastMark + " bytes");
+    	if (bytesReadPastMark <= bufferSize && buffer != null) {
+            // Clear buffer of already-read data to make more space.
+    		// it is safe to cast bytesReadPastMark to an int because it is known to be less than bufferSize, which is an int
+            byte[] newBuffer = new byte[this.bufferSize];
+    		System.arraycopy(buffer, bufferOffset, newBuffer, 0, (int)(bytesReadPastMark - bufferOffset));
+            this.buffer = newBuffer;
+            this.bytesReadPastMark -= bufferOffset;
+    		this.bufferOffset = 0;
+    	} else {
+            // If mark is called after the buffer was already exceeded, create a new buffer.
+    		this.bufferOffset = 0;
+            this.bytesReadPastMark = 0;
+            this.buffer = new byte[this.bufferSize];
+    	}
     }
 
     public int available() throws IOException {
@@ -122,13 +148,11 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
         byte[] tmp = new byte[outLength];
 
         // Check whether we already have buffered data.
-        if (bufferOffset < bytesReadTotal && bufferOffset < bufferSize) {
-            // Data is being repeated, read from buffer instead of wrapped input stream.            
-            // Write the buffered data in chunks so the progress monitor is only updated a
-            // little as a time as the output stream actually pushes through data.
+        if (bufferOffset < bytesReadPastMark && buffer != null) {
+            // Data is being repeated, so read from buffer instead of wrapped input stream.            
             int bytesFromBuffer = tmp.length;
-            if (bufferOffset + bytesFromBuffer > bytesReadTotal) {
-                bytesFromBuffer = (int) bytesReadTotal - bufferOffset;
+            if (bufferOffset + bytesFromBuffer > bytesReadPastMark) {
+                bytesFromBuffer = (int) bytesReadPastMark - bufferOffset;
             }
 
             // Write to output.
@@ -144,23 +168,20 @@ public class RepeatableInputStream extends InputStream implements IRepeatableInp
             return count;
         }
         
-        // Fill the buffer with data until it is full.
-        long length = (bytesReadTotal + count < bufferSize
-            ? count
-            : bufferSize - bytesReadTotal);
-        if (length > 0) {
-            System.arraycopy(tmp, 0, buffer, (int) bytesReadTotal, (int) length);
-            bufferOffset += length;
-        } else if (length < 0 && buffer != null) {
-            // We have exceeded the buffer size, after which point it is of no use. Free the memory.
-            log.debug("Buffer size " + bufferSize + 
-                " has been exceeded and the input stream is no longer repeatable, freeing buffer memory");
+        // Fill the buffer with data, as long as we won't exceed its capacity.
+        if (bytesReadPastMark + count <= bufferSize) {
+            System.arraycopy(tmp, 0, buffer, (int) bytesReadPastMark, count);
+            bufferOffset += count;
+        } else if (buffer != null) {
+            // We have exceeded the buffer capacity, after which point it is of no use. Free the memory.
+            log.debug("Buffer size " + bufferSize + " has been exceeded and the input stream " 
+                + "will not be repeatable until the next mark. Freeing buffer memory");
             buffer = null;
         }
         
-        // Write to output.
+        // Write to output byte array.
         System.arraycopy(tmp, 0, out, outOffset, count);
-        bytesReadTotal += count;
+        bytesReadPastMark += count;
 
         return count;
     }

@@ -1172,7 +1172,29 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
         }
 
+        // Populate object with result metadata.
         object.replaceAllMetadata(map);
+
+        // Confirm that the data was not corrupted in transit by checking S3's calculated 
+        // hash value with the locally computed value. This is only necessary if the user
+        // did not provide a Content-MD5 header with the original object.
+        // Note that we can only confirm the data if we used a RepeatableRequestEntity to
+        // upload it, if the user did not provide a content length with the original
+        // object we are SOL.
+        if (object.getMetadata(S3Object.METADATA_HEADER_CONTENT_MD5) == null) {
+            if (requestEntity instanceof RepeatableRequestEntity) {
+                // Obtain locally-calculated MD5 hash from request entity.
+                String hexMD5OfUploadedData = ServiceUtils.toHex(
+                    ((RepeatableRequestEntity)requestEntity).getMD5DigestOfData());
+                
+                // Compare our locally-calculated hash with the ETag returned by S3.
+                if (!object.getETag().equals(hexMD5OfUploadedData)) {
+                    throw new S3ServiceException("Mismatch between MD5 hash of uploaded data ("
+                        + hexMD5OfUploadedData + ") and ETag returned by S3 (" + object.getETag() + ")");
+                }
+            }            
+        }        
+
         return object;
     }    
     

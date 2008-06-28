@@ -30,7 +30,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.io.IRepeatableInputStream;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.RepeatableInputStream;
@@ -44,8 +43,9 @@ import org.jets3t.service.utils.ServiceUtils;
  * for this class the MD5 hash values (Base64 and Hex) are logged after all data has 
  * been written to the output stream.
  * <p>
- * This class works by using an underlying {@link IRepeatableInputStream} input stream to wrap
- * the real data input stream.
+ * This class works by taking advantage of the reset capability of the original
+ * data input stream, or by wrapping the input stream in a reset-able class if
+ * it is not so capable. 
  * <p>
  * When data is repeated, any attached {@link ProgressMonitoredInputStream} is notified
  * that a repeat transmission is occurring.
@@ -61,7 +61,7 @@ public class RepeatableRequestEntity implements RequestEntity {
     private long contentLength = 0;
     
     private long bytesWritten = 0;    
-    private IRepeatableInputStream repeatableInputStream = null;
+    private InputStream repeatableInputStream = null;
     private ProgressMonitoredInputStream progressMonitoredIS = null;
     
     protected static long MAX_BYTES_PER_SECOND = 0; 
@@ -69,15 +69,15 @@ public class RepeatableRequestEntity implements RequestEntity {
     private static volatile long currentSecondMonitored = 0;
     private static final Random random = new Random();    
     
-    private MessageDigest messageDigest = null;
+    private byte[] dataMD5Hash = null;
 
     /**
      * Creates a repeatable request entity for the input stream provided.
      * <p>
-     * If the input stream provided, or any underlying wrapped input streams, implements the 
-     * {@link IRepeatableInputStream} interface then this repeatable input stream will be used to
-     * enable repeating.  If no underlying {@link IRepeatableInputStream} input stream is available 
-     * this constructor will wrap the provided input stream in a {@link RepeatableInputStream}.
+     * If the input stream provided, or any underlying wrapped input streams, supports the 
+     * {@link InputStream#reset()} method then it will be capable of repeating data
+     * transmission. If the input stream provided does not supports this method, it will
+     * automatically be wrapped in a {@link RepeatableInputStream}.
      * <p>
      * This constructor also detects when an underlying {@link ProgressMonitoredInputStream} is
      * present, and will notify this monitor if a repeat occurs.
@@ -101,31 +101,29 @@ public class RepeatableRequestEntity implements RequestEntity {
         this.contentType = contentType;
         
         InputStream inputStream = is;
-        while (inputStream instanceof InputStreamWrapper) {
+        while (true) {
             if (inputStream instanceof ProgressMonitoredInputStream) {
                 progressMonitoredIS = (ProgressMonitoredInputStream) inputStream;
-            } 
-            if (inputStream instanceof IRepeatableInputStream) {
-                repeatableInputStream = (IRepeatableInputStream) inputStream;
             }
-            inputStream = ((InputStreamWrapper) inputStream).getWrappedInputStream();
+            if (inputStream.markSupported()) {
+            	repeatableInputStream = inputStream;
+            }
+            
+            if (inputStream instanceof InputStreamWrapper) {
+                inputStream = ((InputStreamWrapper) inputStream).getWrappedInputStream();
+            } else {
+            	break;
+            }
         }
 
         if (this.repeatableInputStream == null) {
             log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
             this.is = new RepeatableInputStream(is);
-            this.repeatableInputStream = (IRepeatableInputStream) this.is;
-        }         
-        
+            this.repeatableInputStream = this.is;
+        }
+
         MAX_BYTES_PER_SECOND = 1024 * Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getLongProperty("httpclient.read-throttle", 0);
-        if (log.isDebugEnabled()) {            
-            try {
-                messageDigest = MessageDigest.getInstance("MD5");
-            } catch (NoSuchAlgorithmException e) {
-                log.warn("Unable to calculate MD5 hash of data sent as algorithm is not available");
-            }
-        }
     }
     
     public long getContentLength() {
@@ -145,11 +143,10 @@ public class RepeatableRequestEntity implements RequestEntity {
     public boolean isRepeatable() {
         return true;
     }
-    
+
     /**
      * Writes the request to the output stream. If the request is being repeated, the underlying 
-     * repeatable input stream will be reset with a call to 
-     * {@link IRepeatableInputStream#repeatInputStream()}. 
+     * repeatable input stream will be reset with a call to {@link InputStream#reset()}. 
      * <p>
      * If a {@link ProgressMonitoredInputStream} is attached, this monitor will be notified that 
      * data is being repeated by being reset with 
@@ -158,7 +155,7 @@ public class RepeatableRequestEntity implements RequestEntity {
     public void writeRequest(OutputStream out) throws IOException {        
         if (bytesWritten > 0) {
             // This entity is being repeated.           
-            repeatableInputStream.repeatInputStream();
+            repeatableInputStream.reset();
             log.warn("Repeating transmission of " + bytesWritten + " bytes");
 
             // Notify progress monitored input stream that we've gone backwards (if one is attached) 
@@ -169,8 +166,11 @@ public class RepeatableRequestEntity implements RequestEntity {
             bytesWritten = 0;
         }
         
-        if (messageDigest != null) {
-            messageDigest.reset();
+        MessageDigest messageDigest = null;
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            log.warn("Unable to calculate MD5 hash of data sent as algorithm is not available", e);
         }
         
         byte[] tmp = new byte[1024];
@@ -185,13 +185,25 @@ public class RepeatableRequestEntity implements RequestEntity {
             
             if (messageDigest != null) {
                 messageDigest.update(tmp, 0, count);
-            }
+            }            
         }                
         
         if (messageDigest != null) {
-            byte[] hash = messageDigest.digest();
+            dataMD5Hash = messageDigest.digest();
             log.debug("MD5 digest of data sent for '" + name + "' - B64:" 
-                + ServiceUtils.toBase64(hash) + " Hex:" + ServiceUtils.toHex(hash));
+                + ServiceUtils.toBase64(dataMD5Hash) + " Hex:" + ServiceUtils.toHex(dataMD5Hash));
+        }
+    }
+    
+    /**
+     * @return
+     * The MD5 digest of the data transmitted by this RequestEntity.
+     */
+    public byte[] getMD5DigestOfData() {
+        if (dataMD5Hash != null) {
+            return dataMD5Hash;
+        } else {
+            return new byte[0];
         }
     }
     
