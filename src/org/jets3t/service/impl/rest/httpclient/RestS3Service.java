@@ -473,13 +473,16 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 httpMethod.releaseConnection();
             }
             
-        } catch (S3ServiceException e) {
-            throw e;
         } catch (Throwable t) {
-            log.debug("Releasing method after error: " + t.getMessage());            
+            log.debug("Releasing HttpClient connection after error: " + t.getMessage());            
             httpMethod.releaseConnection();
-            throw new S3ServiceException("S3 " + httpMethod.getName() 
-                + " connection failed for '" + httpMethod.getPath() + "'", t);
+
+            if (t instanceof S3ServiceException) {
+                throw (S3ServiceException) t;                
+            } else {
+                throw new S3ServiceException("S3 " + httpMethod.getName() 
+                    + " connection failed for '" + httpMethod.getPath() + "'", t);                
+            }            
         } 
     }
     
