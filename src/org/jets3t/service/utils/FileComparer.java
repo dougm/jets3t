@@ -868,11 +868,24 @@ public class FileComparer {
                         } else if (s3ObjectLastModified.getTime() < file.lastModified()) {
                             updatedOnClientKeys.add(keyPath);
                         } else {
-                            // Dates match exactly but the hash doesn't. Shouldn't ever happen!
-                            throw new IOException("Backed-up S3Object " + s3Object.getKey()
-                                + " and local file " + file.getName()
-                                + " have the same date but different hash values. "
-                                + "This shouldn't happen!");
+                            // Local file date and S3 object date values match exactly, yet the 
+                            // local file has a different hash. This shouldn't ever happen, but
+                            // sometimes does with Excel files.
+                            if (jets3tProperties.getBoolProperty(
+                                    "filecomparer.assume-local-latest-in-mismatch", false))
+                            {
+                                log.warn("Backed-up S3Object " + s3Object.getKey()
+                                    + " and local file " + file.getName()
+                                    + " have the same date but different hash values. "
+                                    + "Assuming local file is the latest version.");
+                                updatedOnClientKeys.add(keyPath);
+                            } else {
+                                throw new IOException("Backed-up S3Object " + s3Object.getKey()
+                                    + " and local file " + file.getName()
+                                    + " have the same date but different hash values. "
+                                    + "This shouldn't happen!");                                
+                            }
+                            
                         }
                     }
                 }

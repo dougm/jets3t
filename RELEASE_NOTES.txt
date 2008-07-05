@@ -61,6 +61,13 @@ TOOLKIT
   buckets were created with the "US" location.
 - S3Service instances can now be configured individually by providing a
   JetS3tProperties object when constructing the service.
+- FileComparer now supports an optional setting that makes it assume local files 
+  are the latest version when there is a clash between the modification dates 
+  and hash values of a local file and an object stored in S3. This option should
+  only be used as a work-around for users who synchronize Microsoft Excel files
+  to S3, as these are the only documents that exhibit the mismatch. To enable
+  the option, set the jets3t.properties item 
+  "filecomparer.assume-local-latest-in-mismatch" to true.
 - Added support to FileComparer for listing objects based on prefix "partitions"
   that allow a bucket to be listed by multiple simultaneous threads. This can
   speed up listings for large buckets containing many virtual subdirectories.
