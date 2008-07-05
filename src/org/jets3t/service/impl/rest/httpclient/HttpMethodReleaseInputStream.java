@@ -104,35 +104,53 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * input stream is consumed.
      */
     public int read() throws IOException {
-        int read = inputStream.read();
-        if (read == -1) {
-            underlyingStreamConsumed = true;
-            if (!alreadyReleased) {
-                releaseConnection();
-                log.debug("Released HttpMethod as its response data stream is fully consumed");
+        try {
+            int read = inputStream.read();
+            if (read == -1) {
+                underlyingStreamConsumed = true;
+                if (!alreadyReleased) {
+                    releaseConnection();
+                    log.debug("Released HttpMethod as its response data stream is fully consumed");
+                }
             }
+            return read;
+        } catch (IOException e) {
+            httpMethod.releaseConnection();
+            log.debug("Released HttpMethod as its response data stream threw an exception", e);
+            throw e;
         }
-        return read;
     }
     
     /**
      * Standard input stream read method, except it calls {@link #releaseConnection} when the underlying
      * input stream is consumed.
      */
-    public int read(byte[] b, int off, int len) throws IOException {        
-        int read = inputStream.read(b, off, len);
-        if (read == -1) {
-            underlyingStreamConsumed = true;
-            if (!alreadyReleased) {
-                releaseConnection();
-                log.debug("Released HttpMethod as its response data stream is fully consumed");
+    public int read(byte[] b, int off, int len) throws IOException {
+        try {
+            int read = inputStream.read(b, off, len);
+            if (read == -1) {
+                underlyingStreamConsumed = true;
+                if (!alreadyReleased) {
+                    releaseConnection();
+                    log.debug("Released HttpMethod as its response data stream is fully consumed");
+                }
             }
+            return read;
+        } catch (IOException e) {
+            httpMethod.releaseConnection();
+            log.debug("Released HttpMethod as its response data stream threw an exception", e);
+            throw e;
         }
-        return read;
     }
     
     public int available() throws IOException {
-        return inputStream.available();
+        try {
+            return inputStream.available();
+        } catch (IOException e) {
+            httpMethod.releaseConnection();
+            log.debug("Released HttpMethod as its response data stream threw an exception", e);
+            throw e;
+        }            
     }
     
     /**
@@ -158,9 +176,12 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      */
     protected void finalize() throws Throwable {
         if (!alreadyReleased) {
+            log.warn("Attempting to release HttpMethod in finalize() as its response data stream has gone out of scope. "
+                + "This attempt will not always succeed and cannot be relied upon! Please ensure S3 response data streams are "
+                + "always fully consumed or closed to avoid HTTP connection starvation.");
             releaseConnection();
-            log.warn("Released HttpMethod in finalize() as response data stream has gone out of scope. "
-                + "This behaviour is not guarenteed! Please close all response data streams yourself.");
+            log.warn("Successfully released HttpMethod in finalize(). You were lucky this time... "
+                + "Please ensure S3 response data streams are always fully consumed or closed.");
         }
         super.finalize();
     }
