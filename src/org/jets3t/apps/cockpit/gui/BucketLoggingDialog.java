@@ -176,6 +176,19 @@ public class BucketLoggingDialog extends JDialog implements ActionListener {
     
     public void actionPerformed(ActionEvent event) {
         if (event.getSource().equals(finishedButton)) {
+            // Hack to update the logging status of a bucket before exiting the dialog
+            // if the prefix string has changed            
+            String bucketName = (String) loggedBucketComboBox.getSelectedItem();            
+            if (loggingStatusMap.containsKey(bucketName)) {
+                S3BucketLoggingStatus loggingStatus = 
+                    (S3BucketLoggingStatus) loggingStatusMap.get(bucketName);
+                if (!prefixTextField.getText().equals(loggingStatus.getLogfilePrefix())
+                    && loggedToBucketComboBox.getSelectedIndex() != 0) 
+                {
+                    loggedToBucketComboBox.setSelectedIndex(loggedToBucketComboBox.getSelectedIndex());
+                }
+            }   
+            
             this.setVisible(false);
         } else if (event.getSource().equals(loggedBucketComboBox)) {
             prefixTextField.setEnabled(false);
