@@ -115,7 +115,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
             }
             return read;
         } catch (IOException e) {
-            httpMethod.releaseConnection();
+            releaseConnection();
             log.debug("Released HttpMethod as its response data stream threw an exception", e);
             throw e;
         }
@@ -137,7 +137,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
             }
             return read;
         } catch (IOException e) {
-            httpMethod.releaseConnection();
+            releaseConnection();
             log.debug("Released HttpMethod as its response data stream threw an exception", e);
             throw e;
         }
@@ -147,7 +147,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         try {
             return inputStream.available();
         } catch (IOException e) {
-            httpMethod.releaseConnection();
+            releaseConnection();
             log.debug("Released HttpMethod as its response data stream threw an exception", e);
             throw e;
         }            
