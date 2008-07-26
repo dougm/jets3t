@@ -316,7 +316,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     + " request for '" + httpMethod.getURI().toString() 
                     + "', expecting response code " + expectedResponseCode);
             
-            // Variables to manage S3 Internal Server 500 errors.
+            // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
             boolean completedWithoutRecoverableError = true;
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
@@ -348,8 +348,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     if (redirectCount > 5) {
                         throw new S3ServiceException("Encountered too many 307 Redirects, aborting request.");
                     } 
-                } else if (responseCode == 500) {
-                    // Retry on S3 Internal Server 500 errors.
+                } else if (responseCode == 500 || responseCode == 503) {
+                    // Retry on S3 Internal Server 500 or 503 Service Unavailable erros.
                     completedWithoutRecoverableError = false;
                     sleepOnInternalError(++internalErrorCount);
                 } else {
@@ -421,8 +421,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                                 + "Local machine and S3 server disagree on the time by approximately " 
                                 + (timeDifferenceMS / 1000) + " seconds. Retrying connection.");
                             completedWithoutRecoverableError = false;
-                        } else if (responseCode == 500) {
-                            // Retrying after InternalError 500, don't throw exception.
+                        } else if (responseCode == 500 || responseCode == 503) {
+                            // Retrying after 500 or 503 error, don't throw exception.
                         } else if (responseCode == 307) {
                             // Retrying after Temporary Redirect 307, don't throw exception.
                             log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());                            
@@ -440,7 +440,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         log.debug("Releasing error response without XML content");
                         httpMethod.releaseConnection();
                         
-                        if (responseCode == 500) {
+                        if (responseCode == 500 || responseCode == 503) {
                             // Retrying after InternalError 500, don't throw exception.
                         } else {
                             // Throw exception containing the HTTP error fields.
