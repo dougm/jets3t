@@ -45,7 +45,7 @@ import org.jets3t.service.Jets3tProperties;
  * @author James Murty
  */
 public class RepeatableInputStream extends InputStream implements InputStreamWrapper {
-    private final Log log = LogFactory.getLog(RepeatableInputStream.class);
+    private static final Log log = LogFactory.getLog(RepeatableInputStream.class);
 
     private InputStream is = null;
     private int bufferSize = 0;    
@@ -73,7 +73,9 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
         this.bufferSize = bufferSize;
         this.buffer = new byte[this.bufferSize];            
         
-        log.debug("Underlying input stream will be repeatable up to " + this.buffer.length + " bytes");            
+        if (log.isDebugEnabled()) {
+        	log.debug("Underlying input stream will be repeatable up to " + this.buffer.length + " bytes");
+        }
     }
 
     /**
@@ -101,7 +103,9 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
      */
     public void reset() throws IOException {
         if (bytesReadPastMark <= bufferSize) {
-            log.debug("Reset after reading " + bytesReadPastMark + " bytes.");            
+        	if (log.isDebugEnabled()) {
+        		log.debug("Reset after reading " + bytesReadPastMark + " bytes.");            
+        	}
             bufferOffset = 0;
         } else {
             throw new UnrecoverableIOException(
@@ -119,7 +123,9 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
      * stream than fits into the buffer. The readLimit parameter is ignored entirely.
      */
     public synchronized void mark(int readlimit) {
-        log.debug("Input stream marked at " + bytesReadPastMark + " bytes");
+    	if (log.isDebugEnabled()) {
+    		log.debug("Input stream marked at " + bytesReadPastMark + " bytes");
+    	}
     	if (bytesReadPastMark <= bufferSize && buffer != null) {
             // Clear buffer of already-read data to make more space.
     		// it is safe to cast bytesReadPastMark to an int because it is known to be less than bufferSize, which is an int
@@ -174,8 +180,10 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
             bufferOffset += count;
         } else if (buffer != null) {
             // We have exceeded the buffer capacity, after which point it is of no use. Free the memory.
-            log.debug("Buffer size " + bufferSize + " has been exceeded and the input stream " 
+        	if (log.isDebugEnabled()) {
+        		log.debug("Buffer size " + bufferSize + " has been exceeded and the input stream " 
                 + "will not be repeatable until the next mark. Freeing buffer memory");
+        	}
             buffer = null;
         }
         

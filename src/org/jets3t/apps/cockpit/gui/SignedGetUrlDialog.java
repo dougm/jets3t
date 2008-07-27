@@ -37,7 +37,6 @@ import javax.swing.KeyStroke;
 
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
-import org.jets3t.service.S3Service;
 
 /**
  * Dialog box to query for settings to apply to signed GET URLs. This dialog should be created

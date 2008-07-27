@@ -26,6 +26,8 @@ package org.jets3t.service.impl.rest;
  */
 public class HttpException extends Exception {
 
+	private static final long serialVersionUID = 1122712836821079256L;
+	
 	private int responseCode = 0;
 	private String responseMessage = null;
 	

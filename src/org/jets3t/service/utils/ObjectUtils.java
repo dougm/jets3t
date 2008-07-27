@@ -236,8 +236,10 @@ public class ObjectUtils {
                 s3Object.addMetadata("Content-Encoding", contentEncoding);
             }
             
-            log.debug("Transforming upload file '" + dataFile + "' to temporary file '" 
-                + tempUploadFile.getAbsolutePath() + "': " + actionText);
+            if (log.isDebugEnabled()) {
+	            log.debug("Transforming upload file '" + dataFile + "' to temporary file '" 
+	                + tempUploadFile.getAbsolutePath() + "': " + actionText);
+            }
             
             if (progressWatcher != null) {
                 inputStream = new ProgressMonitoredInputStream(inputStream, progressWatcher);

@@ -48,8 +48,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.model.S3Bucket;
@@ -67,8 +65,6 @@ import org.jets3t.service.model.S3Object;
 public class CopyObjectsDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = 418587825849022120L;
 
-    private static final Log log = LogFactory.getLog(CopyObjectsDialog.class);
-    
     private SkinsFactory skinsFactory = null;
 
     private final Insets insetsZero = new Insets(0, 0, 0, 0);

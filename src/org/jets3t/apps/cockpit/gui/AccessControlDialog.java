@@ -26,7 +26,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,7 +33,6 @@ import java.util.Iterator;
 
 import javax.swing.AbstractAction;
 import javax.swing.DefaultCellEditor;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -48,8 +46,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.GuiUtils;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
@@ -90,8 +86,6 @@ import org.jets3t.service.model.S3Owner;
 public class AccessControlDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -6621927508514378546L;
 
-    private static final Log log = LogFactory.getLog(AccessControlDialog.class);
-    
     private GuiUtils guiUtils = new GuiUtils();    
 	private static AccessControlDialog accessControlDialog = null;
     

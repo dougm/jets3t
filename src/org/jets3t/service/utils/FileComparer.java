@@ -126,7 +126,9 @@ public class FileComparer {
         
         File jets3tIgnoreFile = new File(directory, Constants.JETS3T_IGNORE_FILENAME);
         if (jets3tIgnoreFile.exists() && jets3tIgnoreFile.canRead()) {
-            log.debug("Found ignore file: " + jets3tIgnoreFile.getPath());
+        	if (log.isDebugEnabled()) {
+        		log.debug("Found ignore file: " + jets3tIgnoreFile.getPath());
+        	}
             try {
                 String ignorePaths = ServiceUtils.readInputStreamToString(
                     new FileInputStream(jets3tIgnoreFile));
@@ -141,21 +143,27 @@ public class FileComparer {
                     ignoreRegexp = ignoreRegexp.replaceAll("\\?", ".");
                     
                     Pattern pattern = Pattern.compile(ignoreRegexp);
-                    log.debug("Ignore path '" + ignorePath + "' has become the regexp: " 
+                    if (log.isDebugEnabled()) {
+                    	log.debug("Ignore path '" + ignorePath + "' has become the regexp: " 
                         + pattern.pattern());                    
+                    }
                     ignorePatternList.add(pattern);                    
                 }
             } catch (IOException e) {
-                log.error("Failed to read contents of ignore file '" + jets3tIgnoreFile.getPath()
+            	if (log.isErrorEnabled()) {
+            		log.error("Failed to read contents of ignore file '" + jets3tIgnoreFile.getPath()
                     + "'", e);
+            	}
             }
         }
         
         if (jets3tProperties.getBoolProperty("filecomparer.skip-upload-of-md5-files", false))
         {
             Pattern pattern = Pattern.compile(".*\\.md5");
-            log.debug("Skipping upload of pre-computed MD5 files with path '*.md5' using the regexp: " 
+            if (log.isDebugEnabled()) {
+            	log.debug("Skipping upload of pre-computed MD5 files with path '*.md5' using the regexp: " 
                 + pattern.pattern());
+            }
             ignorePatternList.add(pattern);                                
         }        
         
@@ -180,8 +188,10 @@ public class FileComparer {
             Pattern pattern = (Pattern) patternIter.next();
 
             if (pattern.matcher(file.getName()).matches()) {
-                log.debug("Ignoring " + (file.isDirectory() ? "directory" : "file") 
+            	if (log.isDebugEnabled()) {
+            		log.debug("Ignoring " + (file.isDirectory() ? "directory" : "file") 
                     + " matching pattern '" + pattern.pattern() + "': " + file.getName());                
+            	}
                 return true;
             }
         }
@@ -378,11 +388,13 @@ public class FileComparer {
                     while (chunkIter.hasNext()) {
                         S3ObjectsChunk chunk = (S3ObjectsChunk) chunkIter.next();
                         
-                        log.debug("Listed " + chunk.getObjects().length
+                        if (log.isDebugEnabled()) {
+                        	log.debug("Listed " + chunk.getObjects().length
                             + " objects and " + chunk.getCommonPrefixes().length 
                             + " common prefixes in bucket '" + bucketName 
                             + "' using prefix=" + chunk.getPrefix() 
                             + ", delimiter=" + chunk.getDelimiter());
+                        }
 
                         allObjects.addAll(Arrays.asList(chunk.getObjects()));
                         lastCommonPrefixes.addAll(Arrays.asList(chunk.getCommonPrefixes()));
@@ -400,9 +412,11 @@ public class FileComparer {
         int currentDepth = 0;        
         
         while (currentDepth <= toDepth && prefixesToList.length > 0) {
-            log.debug("Listing objects in '" + bucketName + "' using " 
+        	if (log.isDebugEnabled()) {
+        		log.debug("Listing objects in '" + bucketName + "' using " 
                 + prefixesToList.length + " prefixes: " 
                 + Arrays.asList(prefixesToList));
+        	}
 
             // Initialize the variables that will be used, or populated, by the
             // multi-threaded listing.
@@ -747,17 +761,21 @@ public class FileComparer {
                         "filecomparer.ignore-panic-dir-placeholders", false);
                 
                 if (ignorePanicDirPlaceholders) {                                
-                    log.debug("Ignoring object that looks like a directory " +
+                	if (log.isDebugEnabled()) {
+                		log.debug("Ignoring object that looks like a directory " +
                         "placeholder created by Panic's Transmit application: " + keyPath);
+                	}
                     alreadySynchronisedKeys.add(keyPath);                
                     continue;
                 } else {
-                    log.warn("Identified an object that looks like a directory " +
+                	if (log.isWarnEnabled()) {
+                		log.warn("Identified an object that looks like a directory " +
                         "placeholder created by Panic's Transmit application. " +
                         "If this object was indeed created by Transmit, it will not " +
                         "be handled properly unless the JetS3t property " +
                         "\"filecomparer.ignore-panic-dir-placeholders\" is set to " +
                         "true. " + s3Object);                    
+                	}
                 }
             }
 
@@ -791,7 +809,9 @@ public class FileComparer {
                             computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
                             br.close();
                         } catch (Exception e) {
-                            log.warn("Unable to read hash from computed MD5 file", e);
+                        	if (log.isWarnEnabled()) {
+                        		log.warn("Unable to read hash from computed MD5 file", e);
+                        	}
                         }
                     }
                     
@@ -820,7 +840,9 @@ public class FileComparer {
                             fw.write(ServiceUtils.toHex(computedHash));
                             fw.close();
                         } catch (Exception e) {
-                            log.warn("Unable to write computed MD5 hash to a file", e);
+                        	if (log.isWarnEnabled()) {
+                        		log.warn("Unable to write computed MD5 hash to a file", e);
+                        	}
                         }
                     }
                     
@@ -830,8 +852,10 @@ public class FileComparer {
                         // Use the object's *original* hash, as it is an encoded version of a local file.
                         objectHash = (String) s3Object.getMetadata(
                             S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5);
-                        log.debug("Object in S3 is encoded, using the object's original hash value for: "
+                        if (log.isDebugEnabled()) {
+                        	log.debug("Object in S3 is encoded, using the object's original hash value for: "
                             + s3Object.getKey());
+                        }
                     } else {
                         // The object wasn't altered when uploaded, so use its current hash.
                         objectHash = s3Object.getMd5HashAsBase64();
@@ -854,10 +878,12 @@ public class FileComparer {
                         
                         if (metadataLocalFileDate == null) {
                             // This is risky as local file times and S3 times don't match!
-                            log.warn("Using S3 last modified date as file date. This is not reliable " 
+                        	if (log.isWarnEnabled()) {
+                        		log.warn("Using S3 last modified date as file date. This is not reliable " 
                                 + "as the time according to S3 can differ from your local system time. "
                                 + "Please use the metadata item " 
                                 + Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
+                        	}
                             s3ObjectLastModified = s3Object.getLastModifiedDate();
                         } else {
                             s3ObjectLastModified = ServiceUtils
@@ -874,10 +900,12 @@ public class FileComparer {
                             if (jets3tProperties.getBoolProperty(
                                     "filecomparer.assume-local-latest-in-mismatch", false))
                             {
-                                log.warn("Backed-up S3Object " + s3Object.getKey()
+                            	if (log.isWarnEnabled()) {
+                            		log.warn("Backed-up S3Object " + s3Object.getKey()
                                     + " and local file " + file.getName()
                                     + " have the same date but different hash values. "
                                     + "Assuming local file is the latest version.");
+                            	}
                                 updatedOnClientKeys.add(keyPath);
                             } else {
                                 throw new IOException("Backed-up S3Object " + s3Object.getKey()

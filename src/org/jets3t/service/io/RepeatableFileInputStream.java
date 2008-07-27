@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * @author James Murty
  */
 public class RepeatableFileInputStream extends InputStream implements InputStreamWrapper {
-    private final Log log = LogFactory.getLog(RepeatableFileInputStream.class);
+    private static final Log log = LogFactory.getLog(RepeatableFileInputStream.class);
 
     private File file = null;
     private FileInputStream fis = null;
@@ -68,7 +68,9 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
             this.fis.close();
             this.fis = new FileInputStream(file);
             this.fis.skip(markPoint);
-            log.debug("Reset to mark point " + markPoint + " after returning " + bytesReadPastMarkPoint + " bytes");
+            if (log.isDebugEnabled()) {
+            	log.debug("Reset to mark point " + markPoint + " after returning " + bytesReadPastMarkPoint + " bytes");
+            }
             this.bytesReadPastMarkPoint = 0;
         } catch (IOException e) {
             throw new UnrecoverableIOException("Input stream is not repeatable: " + e.getMessage());
@@ -82,7 +84,9 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
     public synchronized void mark(int readlimit) {
     	this.markPoint += bytesReadPastMarkPoint;
     	this.bytesReadPastMarkPoint = 0;
-        log.debug("Input stream marked at " + this.markPoint + " bytes");
+    	if (log.isDebugEnabled()) {
+    		log.debug("Input stream marked at " + this.markPoint + " bytes");
+    	}
     }
     
     public int available() throws IOException {

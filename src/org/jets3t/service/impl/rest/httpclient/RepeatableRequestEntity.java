@@ -53,7 +53,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class RepeatableRequestEntity implements RequestEntity {
-    private final Log log = LogFactory.getLog(RepeatableRequestEntity.class);
+    private static final Log log = LogFactory.getLog(RepeatableRequestEntity.class);
 
     private String name = null;
     private InputStream is = null;
@@ -117,7 +117,9 @@ public class RepeatableRequestEntity implements RequestEntity {
         }
 
         if (this.repeatableInputStream == null) {
-            log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
+        	if (log.isDebugEnabled()) {
+        		log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
+        	}
             this.is = new RepeatableInputStream(is);
             this.repeatableInputStream = this.is;
         }
@@ -156,7 +158,9 @@ public class RepeatableRequestEntity implements RequestEntity {
         if (bytesWritten > 0) {
             // This entity is being repeated.           
             repeatableInputStream.reset();
-            log.warn("Repeating transmission of " + bytesWritten + " bytes");
+            if (log.isWarnEnabled()) {
+            	log.warn("Repeating transmission of " + bytesWritten + " bytes");
+            }
 
             // Notify progress monitored input stream that we've gone backwards (if one is attached) 
             if (progressMonitoredIS != null) {
@@ -170,7 +174,9 @@ public class RepeatableRequestEntity implements RequestEntity {
         try {
             messageDigest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            log.warn("Unable to calculate MD5 hash of data sent as algorithm is not available", e);
+        	if (log.isWarnEnabled()) {
+        		log.warn("Unable to calculate MD5 hash of data sent as algorithm is not available", e);
+        	}
         }
         
         byte[] tmp = new byte[1024];
@@ -190,8 +196,10 @@ public class RepeatableRequestEntity implements RequestEntity {
         
         if (messageDigest != null) {
             dataMD5Hash = messageDigest.digest();
-            log.debug("MD5 digest of data sent for '" + name + "' - B64:" 
+            if (log.isDebugEnabled()) {
+            	log.debug("MD5 digest of data sent for '" + name + "' - B64:" 
                 + ServiceUtils.toBase64(dataMD5Hash) + " Hex:" + ServiceUtils.toHex(dataMD5Hash));
+            }
         }
     }
     

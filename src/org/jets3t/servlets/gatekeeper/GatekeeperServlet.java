@@ -66,7 +66,7 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
 public class GatekeeperServlet extends HttpServlet {
     private static final long serialVersionUID = 2054765427620529238L;
 
-    private final Log log = LogFactory.getLog(GatekeeperServlet.class);
+    private static final Log log = LogFactory.getLog(GatekeeperServlet.class);
     
     private ServletConfig servletConfig = null;
     
@@ -94,8 +94,10 @@ public class GatekeeperServlet extends HttpServlet {
             Constructor constructor = myClass.getConstructor(constructorParamClasses);
             Object instance = constructor.newInstance(constructorParams);
             return instance;
-        } catch (ClassNotFoundException e) { 
-            log.debug("Class does not exist for name: " + className);
+        } catch (ClassNotFoundException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Class does not exist for name: " + className);
+            }
         } catch (Exception e) {
         	throw new ServletException("Unable to instantiate class '" + className + "'", e);
         }
@@ -107,7 +109,9 @@ public class GatekeeperServlet extends HttpServlet {
      * {@link TransactionIdProvider}, and {@link UrlSigner}
      */
     public void init(ServletConfig servletConfig) throws ServletException {
-        log.info("Initialising GatekeeperServlet");
+        if (log.isInfoEnabled()) {
+            log.info("Initialising GatekeeperServlet");
+        }
         this.servletConfig = servletConfig;
         
         // Initialise required classes.
@@ -126,14 +130,20 @@ public class GatekeeperServlet extends HttpServlet {
      */
     private Authorizer initAuthorizer() throws ServletException {
         String authorizerClass = servletConfig.getInitParameter("AuthorizerClass");
-        log.debug("AuthorizerClass: " + authorizerClass);        
+        if (log.isDebugEnabled()) {
+            log.debug("AuthorizerClass: " + authorizerClass);
+        }
         if (authorizerClass != null) {
-            log.info("Loading Authorizer implementation class: " + authorizerClass);
+            if (log.isInfoEnabled()) {
+                log.info("Loading Authorizer implementation class: " + authorizerClass);
+            }
             return (Authorizer) instantiateClass(authorizerClass, 
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
-        log.info("Loaded default Authorizer implementation class: " 
-            + DefaultAuthorizer.class.getName());
+        if (log.isInfoEnabled()) {
+            log.info("Loaded default Authorizer implementation class: " 
+                + DefaultAuthorizer.class.getName());
+        }
         return new DefaultAuthorizer(servletConfig);
     }
 
@@ -145,14 +155,20 @@ public class GatekeeperServlet extends HttpServlet {
      */
     private UrlSigner initUrlSigner() throws ServletException {
         String urlSignerClass = servletConfig.getInitParameter("UrlSignerClass");
-        log.debug("UrlSignerClass: " + urlSignerClass);        
+        if (log.isDebugEnabled()) {
+            log.debug("UrlSignerClass: " + urlSignerClass);
+        }
         if (urlSignerClass != null) {
-            log.info("Loading UrlSigner implementation class: " + urlSignerClass);
+            if (log.isInfoEnabled()) {
+                log.info("Loading UrlSigner implementation class: " + urlSignerClass);
+            }
             return (UrlSigner) instantiateClass(urlSignerClass,
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
-        log.info("Loaded default UrlSigner implementation class: " 
-            + DefaultUrlSigner.class.getName());
+        if (log.isInfoEnabled()) {
+            log.info("Loaded default UrlSigner implementation class: " 
+                + DefaultUrlSigner.class.getName());
+        }
         return new DefaultUrlSigner(servletConfig);            
     }
 
@@ -164,14 +180,20 @@ public class GatekeeperServlet extends HttpServlet {
      */
     private TransactionIdProvider initTransactionIdProvider() throws ServletException {
         String transactionIdProviderClass = servletConfig.getInitParameter("TransactionIdProviderClass");
-        log.debug("TransactionIdProviderClass: " + transactionIdProviderClass);        
+        if (log.isDebugEnabled()) {
+            log.debug("TransactionIdProviderClass: " + transactionIdProviderClass);
+        }
         if (transactionIdProviderClass != null) {
-            log.info("Loading TransactionIdProvider implementation class: " + transactionIdProviderClass);
+            if (log.isInfoEnabled()) {
+                log.info("Loading TransactionIdProvider implementation class: " + transactionIdProviderClass);
+            }
             return (TransactionIdProvider) instantiateClass(transactionIdProviderClass,
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
-        log.info("Loaded default TransactionIdProvider implementation class: " 
-            + TransactionIdProvider.class.getName());
+        if (log.isInfoEnabled()) {
+            log.info("Loaded default TransactionIdProvider implementation class: " 
+                + TransactionIdProvider.class.getName());
+        }
         return new DefaultTransactionIdProvider(servletConfig);            
     }
     
@@ -183,14 +205,20 @@ public class GatekeeperServlet extends HttpServlet {
      */
     private BucketLister initBucketLister() throws ServletException {
         String bucketListerClass = servletConfig.getInitParameter("BucketListerClass");
-        log.debug("BucketListerClass: " + bucketListerClass);        
+        if (log.isDebugEnabled()) {
+            log.debug("BucketListerClass: " + bucketListerClass);
+        }
         if (bucketListerClass != null) {
-            log.info("Loading BucketLister implementation class: " + bucketListerClass);
+            if (log.isInfoEnabled()) {
+                log.info("Loading BucketLister implementation class: " + bucketListerClass);
+            }
             return (BucketLister) instantiateClass(bucketListerClass,
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
-        log.info("Loaded default BucketLister implementation class: " 
-            + TransactionIdProvider.class.getName());
+        if (log.isInfoEnabled()) {
+            log.info("Loaded default BucketLister implementation class: " 
+                + TransactionIdProvider.class.getName());
+        }
         return new DefaultBucketLister(servletConfig);            
     }
 
@@ -198,7 +226,9 @@ public class GatekeeperServlet extends HttpServlet {
      * Sends a simple HTML page in response to GET requests, indicating that the servlet is running.
      */
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        log.debug("Handling GET request");
+        if (log.isDebugEnabled()) {
+            log.debug("Handling GET request");
+        }
         response.setStatus(200);
         response.setContentType("text/html");
         response.getWriter().println("<html><head><title>JetS3t Gatekeeper</title><body>");
@@ -212,8 +242,10 @@ public class GatekeeperServlet extends HttpServlet {
      * sends a plain text response document containing the Gatekeeper response message encoded as
      * a properties file. 
      */
-    public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {    	
-        log.debug("Handling POST request");
+    public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if (log.isDebugEnabled()) {
+            log.debug("Handling POST request");
+        }
         try {
             // Build Gatekeeper request from POST form parameters.
             GatekeeperMessage gatekeeperMessage = 
@@ -233,21 +265,27 @@ public class GatekeeperServlet extends HttpServlet {
             
         	if (!isInitCompleted) 
         	{
-        		log.warn("Cannot process POST request as Gatekeeper servlet did not initialize correctly");
+                if (log.isWarnEnabled()) {
+                    log.warn("Cannot process POST request as Gatekeeper servlet did not initialize correctly");
+                }
         		gatekeeperMessage.addApplicationProperty(
                         GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE, "GatekeeperInitializationError");        		
         	} else if (gatekeeperMessage.getApplicationProperties().containsKey(
             		GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG)) 
             {
                 // Handle "limited listing" requests.
-            	log.debug("Listing objects");
+                if (log.isDebugEnabled()) {
+                    log.debug("Listing objects");
+                }
             	boolean allowed = authorizer.allowBucketListingRequest(gatekeeperMessage, clientInformation);
             	if (allowed) {
             		bucketLister.listObjects(gatekeeperMessage, clientInformation);
             	}
-            } else {            
-            	log.debug("Processing " + gatekeeperMessage.getSignatureRequests().length 
-            			+ " object signature requests");
+            } else {
+                if (log.isDebugEnabled()) {
+                	log.debug("Processing " + gatekeeperMessage.getSignatureRequests().length 
+                			+ " object signature requests");
+                }
 	            // Process each signature request.
 	            for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {
 	                SignatureRequest signatureRequest = (SignatureRequest) gatekeeperMessage.getSignatureRequests()[i];
@@ -280,7 +318,9 @@ public class GatekeeperServlet extends HttpServlet {
                         
             // Build response as a set of properties, and return this document.
             Properties responseProperties = gatekeeperMessage.encodeToProperties();
-            log.debug("Sending response message as properties: " + responseProperties);            
+            if (log.isDebugEnabled()) {
+                log.debug("Sending response message as properties: " + responseProperties);
+            }
             
             // Serialize properties to bytes. 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -291,7 +331,9 @@ public class GatekeeperServlet extends HttpServlet {
             response.setContentType("text/plain");
             response.getOutputStream().write(baos.toByteArray());
         } catch (Exception e) {
-            log.error("Gatekeeper failed to send valid response", e);  
+            if (log.isErrorEnabled()) {
+                log.error("Gatekeeper failed to send valid response", e);
+            }
             response.setStatus(500);
             response.setContentType("text/plain");
             response.getWriter().println(e.toString());

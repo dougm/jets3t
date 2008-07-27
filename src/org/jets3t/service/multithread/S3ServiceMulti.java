@@ -74,7 +74,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
 public class S3ServiceMulti implements Serializable {
     private static final long serialVersionUID = -1031831146656816336L;
 
-    private final Log log = LogFactory.getLog(S3ServiceMulti.class);
+    private static final Log log = LogFactory.getLog(S3ServiceMulti.class);
     
     private S3Service s3Service = null;
     private ArrayList serviceEventListeners = new ArrayList();
@@ -125,14 +125,18 @@ public class S3ServiceMulti implements Serializable {
         int maxConnectionCount = this.s3Service.getJetS3tProperties()
             .getIntProperty("httpclient.max-connections", 4);
         if (maxConnectionCount < maxThreadCount) {
-            log.warn("Insufficient connections available (httpclient.max-connections="
-                + maxConnectionCount + ") to run " + maxThreadCount 
-                + " simultaneous threads (s3service.max-thread-count) - please adjust JetS3t settings");
+            if (log.isWarnEnabled()) {
+                log.warn("Insufficient connections available (httpclient.max-connections="
+                    + maxConnectionCount + ") to run " + maxThreadCount 
+                    + " simultaneous threads (s3service.max-thread-count) - please adjust JetS3t settings");
+            }
         } 
         if (maxConnectionCount < adminMaxThreadCount) {
-            log.warn("Insufficient connections available (httpclient.max-connections="
-                + maxConnectionCount + ") to run " + adminMaxThreadCount 
-                + " simultaneous admin threads (s3service.admin-max-thread-count) - please adjust JetS3t settings");            
+            if (log.isWarnEnabled()) {
+                log.warn("Insufficient connections available (httpclient.max-connections="
+                    + maxConnectionCount + ") to run " + adminMaxThreadCount 
+                    + " simultaneous admin threads (s3service.admin-max-thread-count) - please adjust JetS3t settings");
+            }
         }
     }    
 
@@ -175,7 +179,9 @@ public class S3ServiceMulti implements Serializable {
      */
     protected void fireServiceEvent(ServiceEvent event) {
         if (serviceEventListeners.size() == 0) {
-            log.warn("S3ServiceMulti invoked without any S3ServiceEventListener objects, this is dangerous!");
+            if (log.isWarnEnabled()) {
+                log.warn("S3ServiceMulti invoked without any S3ServiceEventListener objects, this is dangerous!");
+            }
         }
         Iterator listenerIter = serviceEventListeners.iterator();
         while (listenerIter.hasNext()) {
@@ -2072,9 +2078,11 @@ public class S3ServiceMulti implements Serializable {
                     }
                     
                     if (metadataLocalFileDate != null) {
-                        log.debug("Restoring original Last Modified date for object '"
-                            + object.getKey() + "' to file '" + downloadPackage.getDataFile()
-                            + "': " + metadataLocalFileDate);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Restoring original Last Modified date for object '"
+                                + object.getKey() + "' to file '" + downloadPackage.getDataFile()
+                                + "': " + metadataLocalFileDate);
+                        }
                         downloadPackage.getDataFile().setLastModified(
                             ServiceUtils.parseIso8601Date(metadataLocalFileDate).getTime());
                     }
@@ -2087,15 +2095,19 @@ public class S3ServiceMulti implements Serializable {
                 if (bufferedInputStream != null) {
                     try {
                         bufferedInputStream.close();    
-                    } catch (Exception e) {                    
-                        log.error("Unable to close Object input stream", e);
+                    } catch (Exception e) {
+                        if (log.isErrorEnabled()) {
+                            log.error("Unable to close Object input stream", e);
+                        }
                     }
                 }
                 if (bufferedOutputStream != null) {
                     try {
                         bufferedOutputStream.close();                    
                     } catch (Exception e) {
-                        log.error("Unable to close download output stream", e);
+                        if (log.isErrorEnabled()) {
+                            log.error("Unable to close download output stream", e);
+                        }
                     }
                 }
             }
@@ -2147,7 +2159,9 @@ public class S3ServiceMulti implements Serializable {
                 try {
                     signedUrlAndObject.getObject().closeDataInputStream();
                 } catch (IOException e) {
-                    log.error("Unable to close Object's input stream", e);                        
+                    if (log.isErrorEnabled()) {
+                        log.error("Unable to close Object's input stream", e);
+                    }
                 }
             }
         }
@@ -2238,8 +2252,10 @@ public class S3ServiceMulti implements Serializable {
             for (int i = 0; i < threads.length; i++) {
                 if (!alreadyFired[i] && started[i] && !threads[i].isAlive()) {
                     alreadyFired[i] = true;
-                    log.debug("Thread " + (i+1) + " of " + threads.length 
-                        + " has recently completed, releasing resources");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Thread " + (i+1) + " of " + threads.length 
+                            + " has recently completed, releasing resources");
+                    }
 
                     if (runnables[i].getResult() instanceof Throwable) {
                         Throwable throwable = (Throwable) runnables[i].getResult();
@@ -2248,9 +2264,11 @@ public class S3ServiceMulti implements Serializable {
                         
                         if (ignoreExceptions) {
                             // Ignore exceptions
-                            log.warn("Ignoring exception (property " +
-                                    "s3service.ignore-exceptions-in-multi is set to true)", 
-                                    throwable);
+                            if (log.isWarnEnabled()) {
+                                log.warn("Ignoring exception (property " +
+                                        "s3service.ignore-exceptions-in-multi is set to true)", 
+                                        throwable);
+                            }
                             errorResults.add(throwable);
                         } else {
                             throw throwable;
@@ -2295,7 +2313,9 @@ public class S3ServiceMulti implements Serializable {
                     threads[i].start();
                     started[i] = true;
                     runningThreadCount++;
-                    log.debug("Thread " + (i+1) + " of " + runnables.length + " has started");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Thread " + (i+1) + " of " + runnables.length + " has started");
+                    }
                 }
             }
         }
@@ -2319,7 +2339,9 @@ public class S3ServiceMulti implements Serializable {
          *
          */
         private void forceInterruptAllRunnables() {
-            log.debug("Setting force interrupt flag on all runnables");
+            if (log.isDebugEnabled()) {
+                log.debug("Setting force interrupt flag on all runnables");
+            }
             for (int i = 0; i < runnables.length; i++) {
                 if (runnables[i] != null) {
                     runnables[i].forceInterrupt();
@@ -2333,7 +2355,9 @@ public class S3ServiceMulti implements Serializable {
          *
          */
         public void run() {
-            log.debug("Started ThreadManager");
+            if (log.isDebugEnabled()) {
+                log.debug("Started ThreadManager");
+            }
             
             final boolean[] interrupted = new boolean[] { false };
             
@@ -2344,7 +2368,9 @@ public class S3ServiceMulti implements Serializable {
                 private static final long serialVersionUID = 6328417466929608235L;
 
                 public void cancelTask(Object eventSource) {
-                    log.debug("Cancel task invoked on ThreadManager");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Cancel task invoked on ThreadManager");
+                    }
                     
                     // Flag that this ThreadManager class should shutdown.
                     interrupted[0] = true;
@@ -2403,7 +2429,9 @@ public class S3ServiceMulti implements Serializable {
 
                     fireProgressEvent(threadWatcher, results.completedResults);
                     if (results.completedResults.size() > 0) {
-                        log.debug(results.completedResults.size() + " threads have recently completed");
+                        if (log.isDebugEnabled()) {
+                            log.debug(results.completedResults.size() + " threads have recently completed");
+                        }
                     }                    
                     
                     if (results.errorResults.length > 0) {
@@ -2413,7 +2441,9 @@ public class S3ServiceMulti implements Serializable {
                     fireCompletedEvent();
                 }
             } catch (Throwable t) {
-                log.error("A thread failed with an exception. Firing ERROR event and cancelling all threads", t);
+                if (log.isErrorEnabled()) {
+                    log.error("A thread failed with an exception. Firing ERROR event and cancelling all threads", t);
+                }
                 // Set force interrupt flag for all runnables.
                 forceInterruptAllRunnables();
                 

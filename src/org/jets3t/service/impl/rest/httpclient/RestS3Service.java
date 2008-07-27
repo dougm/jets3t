@@ -91,7 +91,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
 public class RestS3Service extends S3Service implements SignedUrlHandler {
     private static final long serialVersionUID = 3515978495790107357L;
 
-    private final Log log = LogFactory.getLog(RestS3Service.class);
+    private static final Log log = LogFactory.getLog(RestS3Service.class);
     
     private static final String PROTOCOL_SECURE = "https";
     private static final String PROTOCOL_INSECURE = "http";
@@ -222,7 +222,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             userAgent = ServiceUtils.getUserAgentDescription(
                 getInvokingApplicationDescription());
         }
-        log.debug("Setting user agent string: " + userAgent);
+        if (log.isDebugEnabled()) {
+            log.debug("Setting user agent string: " + userAgent);
+        }
         clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
 
         clientParams.setBooleanParameter("http.protocol.expect-continue", true);
@@ -233,23 +235,31 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
                 if (executionCount > retryMaxCount) {
-                    log.warn("Retried connection " + executionCount 
-                        + " times, which exceeds the maximum retry count of " + retryMaxCount);
+                    if (log.isWarnEnabled()) {
+                        log.warn("Retried connection " + executionCount 
+                            + " times, which exceeds the maximum retry count of " + retryMaxCount);
+                    }
                     return false;                    
                 }
                 if  (ioe instanceof UnrecoverableIOException) {
-                    log.debug("Deliberate interruption, will not retry");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Deliberate interruption, will not retry");
+                    }
                     return false;
                 }
-                log.warn("Retrying " + httpMethod.getName() + " request with path '" 
-                    + httpMethod.getPath() + "' - attempt " + executionCount 
-                    + " of " + retryMaxCount);
+                if (log.isWarnEnabled()) {
+                    log.warn("Retrying " + httpMethod.getName() + " request with path '" 
+                        + httpMethod.getPath() + "' - attempt " + executionCount 
+                        + " of " + retryMaxCount);
+                }
                 
                 // Build the authorization string for the method.
                 try {
                     buildAuthorizationString(httpMethod);
                 } catch (S3ServiceException e) {
-                    log.warn("Unable to generate updated authorization string for retried request", e);
+                    if (log.isWarnEnabled()) {
+                        log.warn("Unable to generate updated authorization string for retried request", e);
+                    }
                 }
                 
                 return true;
@@ -266,7 +276,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         // Use explicit proxy settings, if available.
         if (proxyHostAddress != null && proxyPort != -1) {
-            log.info("Using Proxy: " + proxyHostAddress + ":" + proxyPort);
+            if (log.isInfoEnabled()) {
+                log.info("Using Proxy: " + proxyHostAddress + ":" + proxyPort);
+            }
             hostConfig.setProxy(proxyHostAddress, proxyPort);
         }
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
@@ -276,16 +288,22 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             try {            
                 proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + Constants.S3_HOSTNAME));
                 if (proxyHost != null) {
-                    log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
+                    if (log.isInfoEnabled()) {
+                        log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
+                    }
                     hostConfig.setProxyHost(proxyHost);
                 }                
             } catch (Throwable t) {
-                log.debug("Unable to set proxy configuration", t);
+                if (log.isDebugEnabled()) {
+                    log.debug("Unable to set proxy configuration", t);
+                }
             }        
         }
                 
         if (credentialsProvider != null) {
-            log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
+            if (log.isDebugEnabled()) {
+                log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
+            }
             httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
             if (jets3tProperties.getBoolProperty("httpclient.authentication-preemptive", false)) {
                 httpClient.getParams().setAuthenticationPreemptive(true);
@@ -312,9 +330,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         throws S3ServiceException 
     {
         try {
-            log.debug("Performing " + httpMethod.getName() 
+            if (log.isDebugEnabled()) {
+                log.debug("Performing " + httpMethod.getName() 
                     + " request for '" + httpMethod.getURI().toString() 
                     + "', expecting response code " + expectedResponseCode);
+            }
             
             // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
             boolean completedWithoutRecoverableError = true;
@@ -361,21 +381,27 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     contentType = httpMethod.getResponseHeader("Content-Type").getValue();
                 }
                 
-                log.debug("Response for '" + httpMethod.getPath() 
-                    + "'. Content-Type: " + contentType
-                    + ", Headers: " + Arrays.asList(httpMethod.getResponseHeaders()));
+                if (log.isDebugEnabled()) {
+                    log.debug("Response for '" + httpMethod.getPath() 
+                        + "'. Content-Type: " + contentType
+                        + ", Headers: " + Arrays.asList(httpMethod.getResponseHeaders()));
+                }
                         
                 // Check we received the expected result code.
-                if (responseCode != expectedResponseCode) {                
-                    log.warn("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
-                        + responseCode + ", expected " + expectedResponseCode);
+                if (responseCode != expectedResponseCode) {
+                    if (log.isWarnEnabled()) {
+                        log.warn("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
+                            + responseCode + ", expected " + expectedResponseCode);
+                    }
                                         
                     if (Mimetypes.MIMETYPE_XML.equals(contentType)
                         && httpMethod.getResponseBodyAsStream() != null
                         && httpMethod.getResponseContentLength() != 0) 
                     {
-                        log.warn("Response '" + httpMethod.getPath() 
-                            + "' - Received error response with XML message");
+                        if (log.isWarnEnabled()) {
+                            log.warn("Response '" + httpMethod.getPath() 
+                                + "' - Received error response with XML message");
+                        }
         
                         StringBuffer sb = new StringBuffer();
                         BufferedReader reader = null;
@@ -403,29 +429,37 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);                            
                             
                             if (requestTimeoutErrorCount < retryMaxCount) {
-                                requestTimeoutErrorCount++;                                
-                                log.warn("Response '" + httpMethod.getPath() 
-                                    + "' - Retrying connection that failed with RequestTimeout error"
-                                    + ", attempt number " + requestTimeoutErrorCount + " of " 
-                                    + retryMaxCount);
+                                requestTimeoutErrorCount++;
+                                if (log.isWarnEnabled()) {
+                                    log.warn("Response '" + httpMethod.getPath() 
+                                        + "' - Retrying connection that failed with RequestTimeout error"
+                                        + ", attempt number " + requestTimeoutErrorCount + " of " 
+                                        + retryMaxCount);
+                                }
                                 completedWithoutRecoverableError = false;
                             } else {
-                                log.warn("Response '" + httpMethod.getPath() 
-                                    + "' - Exceeded maximum number of retries for RequestTimeout errors: "
-                                    + retryMaxCount);
+                                if (log.isWarnEnabled()) {
+                                    log.warn("Response '" + httpMethod.getPath() 
+                                        + "' - Exceeded maximum number of retries for RequestTimeout errors: "
+                                        + retryMaxCount);
+                                }
                                 throw exception;
                             }
                         } else if ("RequestTimeTooSkewed".equals(exception.getS3ErrorCode())) {
                             long timeDifferenceMS = adjustTime();
-                            log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. " 
-                                + "Local machine and S3 server disagree on the time by approximately " 
-                                + (timeDifferenceMS / 1000) + " seconds. Retrying connection.");
+                            if (log.isWarnEnabled()) {
+                                log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. " 
+                                    + "Local machine and S3 server disagree on the time by approximately " 
+                                    + (timeDifferenceMS / 1000) + " seconds. Retrying connection.");
+                            }
                             completedWithoutRecoverableError = false;
                         } else if (responseCode == 500 || responseCode == 503) {
                             // Retrying after 500 or 503 error, don't throw exception.
                         } else if (responseCode == 307) {
                             // Retrying after Temporary Redirect 307, don't throw exception.
-                            log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());                            
+                            if (log.isDebugEnabled()) {
+                                log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());
+                            }
                         } else {
                             throw exception;                            
                         }
@@ -437,7 +471,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             responseText = new String(responseBody);
                         }
     
-                        log.debug("Releasing error response without XML content");
+                        if (log.isDebugEnabled()) {
+                            log.debug("Releasing error response without XML content");
+                        }
                         httpMethod.releaseConnection();
                         
                         if (responseCode == 500 || responseCode == 503) {
@@ -465,7 +501,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 || httpMethod.getResponseBodyAsStream().available() == 0)
                 && httpMethod.getResponseContentLength() == 0) 
             {
-                log.debug("Releasing response without content");
+                if (log.isDebugEnabled()) {
+                    log.debug("Releasing response without content");
+                }
                 byte[] responseBody = httpMethod.getResponseBody();
 
                 if (responseBody != null && responseBody.length > 0) 
@@ -474,7 +512,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             }
             
         } catch (Throwable t) {
-            log.debug("Releasing HttpClient connection after error: " + t.getMessage());            
+            if (log.isDebugEnabled()) {
+                log.debug("Releasing HttpClient connection after error: " + t.getMessage());
+            }
             httpMethod.releaseConnection();
 
             if (t instanceof S3ServiceException) {
@@ -511,9 +551,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     + RestUtils.encodeUrlString(key.toString());
                 if (value != null && value.toString().length() > 0) {
                     urlPath += "=" + RestUtils.encodeUrlString(value.toString());
-                    log.debug("Added request parameter: " + key + "=" + value);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Added request parameter: " + key + "=" + value);
+                    }
                 } else {
-                    log.debug("Added request parameter without value: " + key);                    
+                    if (log.isDebugEnabled()) {
+                        log.debug("Added request parameter without value: " + key);
+                    }
                 }
             }
         }    
@@ -539,7 +583,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 String value = entry.getValue().toString();
                 
                 httpMethod.setRequestHeader(key, value);
-                log.debug("Added request header to connection: " + key + "=" + value);
+                if (log.isDebugEnabled()) {
+                    log.debug("Added request header to connection: " + key + "=" + value);
+                }
             }
         }               
     }
@@ -717,7 +763,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         performRequest(httpMethod, 204);
 
         // Release connection after DELETE (there's no response content)
-        log.debug("Releasing HttpMethod after delete");
+        if (log.isDebugEnabled()) {
+            log.debug("Releasing HttpMethod after delete");
+        }
         httpMethod.releaseConnection();
 
         return httpMethod;
@@ -759,7 +807,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         } else {
             url = PROTOCOL_INSECURE + "://" + hostname + ":" + PORT_INSECURE + resourceString;        
         }
-        log.debug("S3 URL: " + url);
+        if (log.isDebugEnabled()) {
+            log.debug("S3 URL: " + url);
+        }
         
         // Add additional request parameters to the URL for special cases (eg ACL operations)
         url = addRequestParametersToUrlPath(url, requestParameters);
@@ -792,12 +842,16 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             if (getDevPayProductToken() != null) {
                 String securityToken = getDevPayUserToken() + "," + getDevPayProductToken();
                 httpMethod.setRequestHeader("x-amz-security-token", securityToken);
-                log.debug("Including DevPay user and product tokens in request: " 
-                    + "x-amz-security-token=" + securityToken);
+                if (log.isDebugEnabled()) {
+                    log.debug("Including DevPay user and product tokens in request: " 
+                        + "x-amz-security-token=" + securityToken);
+                }
             } else {
-                httpMethod.setRequestHeader("x-amz-security-token", getDevPayUserToken());                
-                log.debug("Including DevPay user token in request: x-amz-security-token=" 
-                    + getDevPayUserToken());
+                httpMethod.setRequestHeader("x-amz-security-token", getDevPayUserToken());
+                if (log.isDebugEnabled()) {
+                    log.debug("Including DevPay user token in request: x-amz-security-token=" 
+                        + getDevPayUserToken());
+                }
             }
         }
 
@@ -814,9 +868,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      */
     protected void buildAuthorizationString(HttpMethod httpMethod) throws S3ServiceException {
         if (isAuthenticatedConnection()) {
-            log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
+            if (log.isDebugEnabled()) {
+                log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
+            }
         } else {
-            log.debug("Service has no AWS Credential and is un-authenticated, skipping authorization");
+            if (log.isDebugEnabled()) {
+                log.debug("Service has no AWS Credential and is un-authenticated, skipping authorization");
+            }
             return;
         }
         
@@ -824,7 +882,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         try {
             hostname = httpMethod.getURI().getHost();
         } catch (URIException e) {
-            log.error("Unable to determine hostname target for request", e);
+            if (log.isErrorEnabled()) {
+                log.error("Unable to determine hostname target for request", e);
+            }
         }
 
         /*
@@ -858,7 +918,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         String canonicalString = RestUtils.makeCanonicalString(
                 httpMethod.getName(), fullUrl,
                 convertHeadersToMap(httpMethod.getRequestHeaders()), null);
-        log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
+        if (log.isDebugEnabled()) {
+            log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
+        }
         
         // Sign the canonical string.
         String signedCanonical = ServiceUtils.signWithHmacSha1(
@@ -875,7 +937,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     ////////////////////////////////////////////////////////////////    
     
     public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
-        log.debug("Checking existence of bucket: " + bucketName);
+        if (log.isDebugEnabled()) {
+            log.debug("Checking existence of bucket: " + bucketName);
+        }
         
         HttpMethodBase httpMethod = null;
         
@@ -888,12 +952,18 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 httpMethod.getResponseBodyAsStream().close();
             }
         } catch (S3ServiceException e) {
-            log.debug("Bucket does not exist: " + bucketName, e);
+            if (log.isDebugEnabled()) {
+                log.debug("Bucket does not exist: " + bucketName, e);
+            }
             return false;
         } catch (IOException e) {
-            log.warn("Unable to close response body input stream", e);
+            if (log.isWarnEnabled()) {
+                log.warn("Unable to close response body input stream", e);
+            }
         } finally {
-            log.debug("Releasing un-wanted bucket HEAD response");
+            if (log.isDebugEnabled()) {
+                log.debug("Releasing un-wanted bucket HEAD response");
+            }
             if (httpMethod != null) {
                 httpMethod.releaseConnection();
             }
@@ -904,7 +974,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     }
     
     public int checkBucketStatus(String bucketName) throws S3ServiceException {
-        log.debug("Checking availability of bucket name: " + bucketName);
+        if (log.isDebugEnabled()) {
+            log.debug("Checking availability of bucket name: " + bucketName);
+        }
         
         HttpMethodBase httpMethod = null;
         
@@ -920,18 +992,26 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             }
         } catch (S3ServiceException e) {
             if (e.getResponseCode() == 403) {
-                log.debug("Bucket named '" + bucketName + "' already belongs to another S3 user");
+                if (log.isDebugEnabled()) {
+                    log.debug("Bucket named '" + bucketName + "' already belongs to another S3 user");
+                }
                 return BUCKET_STATUS__ALREADY_CLAIMED;
             } else if (e.getResponseCode() == 404) {
-                log.debug("Bucket does not exist: " + bucketName, e);
+                if (log.isDebugEnabled()) {
+                    log.debug("Bucket does not exist: " + bucketName, e);
+                }
                 return BUCKET_STATUS__DOES_NOT_EXIST;
             } else {
                 throw e;
             }
         } catch (IOException e) {
-            log.warn("Unable to close response body input stream", e);
+            if (log.isWarnEnabled()) {
+                log.warn("Unable to close response body input stream", e);
+            }
         } finally {
-            log.debug("Releasing un-wanted bucket HEAD response");
+            if (log.isDebugEnabled()) {
+                log.debug("Releasing un-wanted bucket HEAD response");
+            }
             if (httpMethod != null) {
                 httpMethod.releaseConnection();
             }
@@ -942,7 +1022,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     }    
 
     protected S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
-        log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
+        if (log.isDebugEnabled()) {
+            log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
+        }
         
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
         HttpMethodBase httpMethod =  performRestGet(bucketName, null, null, null);
@@ -1009,7 +1091,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             } catch (S3ServiceException e) {
                 if (e.getCause() instanceof IOException && ioErrorRetryCount < 5) {
                     ioErrorRetryCount++;
-                    log.warn("Retrying bucket listing failure due to IO error", e);                    
+                    if (log.isWarnEnabled()) {
+                        log.warn("Retrying bucket listing failure due to IO error", e);
+                    }
                     continue;
                 } else {
                     throw e;
@@ -1017,18 +1101,24 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             }
             
             S3Object[] partialObjects = listBucketHandler.getObjects();
-            log.debug("Found " + partialObjects.length + " objects in one batch");
+            if (log.isDebugEnabled()) {
+                log.debug("Found " + partialObjects.length + " objects in one batch");
+            }
             objects.addAll(Arrays.asList(partialObjects));
             
             String[] partialCommonPrefixes = listBucketHandler.getCommonPrefixes();
-            log.debug("Found " + partialCommonPrefixes.length + " common prefixes in one batch");
+            if (log.isDebugEnabled()) {
+                log.debug("Found " + partialCommonPrefixes.length + " common prefixes in one batch");
+            }
             commonPrefixes.addAll(Arrays.asList(partialCommonPrefixes));
             
             incompleteListing = listBucketHandler.isListingTruncated();            
             if (incompleteListing) {
-                priorLastKey = listBucketHandler.getMarkerForNextListing();                
-                log.debug("Yet to receive complete listing of bucket contents, "
+                priorLastKey = listBucketHandler.getMarkerForNextListing();
+                if (log.isDebugEnabled()) {
+                    log.debug("Yet to receive complete listing of bucket contents, "
                         + "last key for prior chunk: " + priorLastKey);
+                }
             } else {
                 priorLastKey = null;
             }
@@ -1037,7 +1127,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 break;
         }
         if (automaticallyMergeChunks) {
-            log.debug("Found " + objects.size() + " objects in total");
+            if (log.isDebugEnabled()) {
+                log.debug("Found " + objects.size() + " objects in total");
+            }
             return new S3ObjectsChunk(
                 prefix, delimiter,
                 (S3Object[]) objects.toArray(new S3Object[objects.size()]),
@@ -1057,7 +1149,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     }    
 
     protected AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
-        log.debug("Retrieving Access Control List for bucketName=" + bucketName + ", objectKkey=" + objectKey);
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving Access Control List for bucketName=" + bucketName + ", objectKkey=" + objectKey);
+        }
         
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
@@ -1068,7 +1162,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     }
     
     protected AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
-        log.debug("Retrieving Access Control List for Bucket: " + bucketName);
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving Access Control List for Bucket: " + bucketName);
+        }
         
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
@@ -1093,7 +1189,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 
     protected void putAclImpl(String bucketName, String objectKey, AccessControlList acl) throws S3ServiceException 
     {
-        log.debug("Setting Access Control List for bucketName=" + bucketName + ", objectKey=" + objectKey);
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Access Control List for bucketName=" + bucketName + ", objectKey=" + objectKey);
+        }
 
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
@@ -1114,8 +1212,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     
     protected S3Bucket createBucketImpl(String bucketName, String location, AccessControlList acl) 
         throws S3ServiceException 
-    {        
-        log.debug("Creating bucket with name: " + bucketName);
+    {       
+        if (log.isDebugEnabled()) {
+            log.debug("Creating bucket with name: " + bucketName);
+        }
         
         HashMap metadata = new HashMap();
         RequestEntity requestEntity = null;
@@ -1148,19 +1248,25 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      * is not set in the object.
      */
     protected S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException 
-    {        
-        log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);
+    {       
+        if (log.isDebugEnabled()) {
+            log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);
+        }
 
         RequestEntity requestEntity = null;
         if (object.getDataInputStream() != null) {
             if (object.containsMetadata("Content-Length")) {
-                log.debug("Uploading object data with Content-Length: " + object.getContentLength());
+                if (log.isDebugEnabled()) {
+                    log.debug("Uploading object data with Content-Length: " + object.getContentLength());
+                }
                 requestEntity = new RepeatableRequestEntity(object.getKey(),                     
                     object.getDataInputStream(), object.getContentType(), object.getContentLength());
             } else {
                 // Use InputStreamRequestEntity for objects with an unknown content length, as the
                 // entity will cache the results and doesn't need to know the data length in advance.
-                log.warn("Content-Length of data stream not set, will automatically determine data length in memory");
+                if (log.isWarnEnabled()) {
+                    log.warn("Content-Length of data stream not set, will automatically determine data length in memory");
+                }
                 requestEntity = new InputStreamRequestEntity(
                     object.getDataInputStream(), InputStreamRequestEntity.CONTENT_LENGTH_AUTO);
             }
@@ -1172,7 +1278,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         try {
             object.closeDataInputStream();
         } catch (IOException e) {
-            log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
+            if (log.isWarnEnabled()) {
+                log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
+            }
         }
 
         // Populate object with result metadata.
@@ -1230,13 +1338,15 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 putNonStandardAcl = true;
             }
         }
-                        
-        log.debug("Creating object bucketName=" + bucketName + ", objectKey=" + objectKey + "." + 
-            " Content-Type=" + metadata.get("Content-Type") +
-            " Including data? " + (requestEntity != null) +
-            " Metadata: " + metadata +
-            " ACL: " + acl
-            );
+            
+        if (log.isDebugEnabled()) {
+            log.debug("Creating object bucketName=" + bucketName + ", objectKey=" + objectKey + "." + 
+                " Content-Type=" + metadata.get("Content-Type") +
+                " Including data? " + (requestEntity != null) +
+                " Metadata: " + metadata +
+                " ACL: " + acl
+                );
+        }
         
         HttpMethodAndByteCount methodAndByteCount = performRestPut(
             bucketName, objectKey, metadata, null, requestEntity, true);
@@ -1251,7 +1361,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         map = ServiceUtils.cleanRestMetadataMap(map);
 
         if (putNonStandardAcl) {
-            log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
+            if (log.isDebugEnabled()) {
+                log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
+            }
             putAclImpl(bucketName, objectKey, acl);
         }
         
@@ -1263,8 +1375,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         AccessControlList acl, Map destinationMetadata) 
         throws S3ServiceException 
     {
-        log.debug("Copying Object from " + sourceBucketName + ":" + sourceObjectKey 
-            + " to " + destinationBucketName + ":" + destinationObjectKey);
+        if (log.isDebugEnabled()) {
+            log.debug("Copying Object from " + sourceBucketName + ":" + sourceObjectKey 
+                + " to " + destinationBucketName + ":" + destinationObjectKey);
+        }
         
         Map metadata = new HashMap();
         metadata.put("x-amz-copy-source",
@@ -1326,7 +1440,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         map = ServiceUtils.cleanRestMetadataMap(map);
 
         if (putNonStandardAcl) {
-            log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
+            if (log.isDebugEnabled()) {
+                log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
+            }
             putAclImpl(destinationBucketName, destinationObjectKey, acl);
         }
 
@@ -1355,18 +1471,24 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         String[] ifNoneMatchTags, Long byteRangeStart, Long byteRangeEnd) 
         throws S3ServiceException
     {
-        log.debug("Retrieving " + (headOnly? "Head" : "All") + " information for bucket " + bucketName + " and object " + objectKey);
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving " + (headOnly? "Head" : "All") + " information for bucket " + bucketName + " and object " + objectKey);
+        }
         
         HashMap requestHeaders = new HashMap();
         if (ifModifiedSince != null) {
             requestHeaders.put("If-Modified-Since", 
                 ServiceUtils.formatRfc822Date(ifModifiedSince.getTime()));
-            log.debug("Only retrieve object if-modified-since:" + ifModifiedSince);
+            if (log.isDebugEnabled()) {
+                log.debug("Only retrieve object if-modified-since:" + ifModifiedSince);
+            }
         }
         if (ifUnmodifiedSince != null) {
             requestHeaders.put("If-Unmodified-Since", 
                 ServiceUtils.formatRfc822Date(ifUnmodifiedSince.getTime()));
-            log.debug("Only retrieve object if-unmodified-since:" + ifUnmodifiedSince);
+            if (log.isDebugEnabled()) {
+                log.debug("Only retrieve object if-unmodified-since:" + ifUnmodifiedSince);
+            }
         }
         if (ifMatchTags != null) {
             StringBuffer tags = new StringBuffer();
@@ -1377,7 +1499,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 tags.append(ifMatchTags[i]);
             }
             requestHeaders.put("If-Match", tags.toString());            
-            log.debug("Only retrieve object by hash if-match:" + tags.toString());
+            if (log.isDebugEnabled()) {
+                log.debug("Only retrieve object by hash if-match:" + tags.toString());
+            }
         }
         if (ifNoneMatchTags != null) {
             StringBuffer tags = new StringBuffer();
@@ -1387,16 +1511,20 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 }
                 tags.append(ifNoneMatchTags[i]);
             }
-            requestHeaders.put("If-None-Match", tags.toString());            
-            log.debug("Only retrieve object by hash if-none-match:" + tags.toString());
+            requestHeaders.put("If-None-Match", tags.toString());
+            if (log.isDebugEnabled()) {
+                log.debug("Only retrieve object by hash if-none-match:" + tags.toString());
+            }
         }
         if (byteRangeStart != null || byteRangeEnd != null) {
             String range = "bytes="
                 + (byteRangeStart != null? byteRangeStart.toString() : "") 
                 + "-"
                 + (byteRangeEnd != null? byteRangeEnd.toString() : "");
-            requestHeaders.put("Range", range);            
-            log.debug("Only retrieve object if it is within range:" + range);
+            requestHeaders.put("Range", range);
+            if (log.isDebugEnabled()) {
+                log.debug("Only retrieve object if it is within range:" + range);
+            }
         }
         
         HttpMethodBase httpMethod = null;        
@@ -1418,7 +1546,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             responseObject.setDataInputStream(releaseIS);
         } else {                
             // Release connection after HEAD (there's no response content)
-            log.debug("Releasing HttpMethod after HEAD");            
+            if (log.isDebugEnabled()) {
+                log.debug("Releasing HttpMethod after HEAD");
+            }
             httpMethod.releaseConnection();
         }
         
@@ -1428,7 +1558,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     protected String getBucketLocationImpl(String bucketName) 
         throws S3ServiceException
     {
-        log.debug("Retrieving location of Bucket: " + bucketName);
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving location of Bucket: " + bucketName);
+        }
         
         HashMap requestParameters = new HashMap();
         requestParameters.put("location","");
@@ -1441,7 +1573,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     protected S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) 
         throws S3ServiceException
     {
-        log.debug("Retrieving Logging Status for Bucket: " + bucketName);
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving Logging Status for Bucket: " + bucketName);
+        }
         
         HashMap requestParameters = new HashMap();
         requestParameters.put("logging","");
@@ -1454,7 +1588,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
         throws S3ServiceException
     {
-        log.debug("Setting Logging Status for bucket: " + bucketName);
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Logging Status for bucket: " + bucketName);
+        }
 
         HashMap requestParameters = new HashMap();
         requestParameters.put("logging","");
@@ -1522,13 +1658,17 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
 				object.setLastModifiedDate(ServiceUtils.parseRfc822Date(
 					putMethod.getResponseHeader("Date").getValue()));
 			} catch (ParseException e1) {
-				log.warn("Unable to interpret date of object PUT in S3", e1);
+                if (log.isWarnEnabled()) {         
+                    log.warn("Unable to interpret date of object PUT in S3", e1);
+                }
 			}
                        
             try {
                 object.closeDataInputStream();
             } catch (IOException e) {
-                log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
+                if (log.isWarnEnabled()) {
+                    log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
+                }
             }
         } catch (URIException e) {
             throw new S3ServiceException("Unable to lookup URI for object created with signed PUT", e); 
@@ -1697,7 +1837,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             responseObject.setDataInputStream(releaseIS);
         } else {                
             // Release connection after HEAD (there's no response content)
-            log.debug("Releasing HttpMethod after HEAD");            
+            if (log.isDebugEnabled()) {
+                log.debug("Releasing HttpMethod after HEAD");
+            }
             httpMethod.releaseConnection();
         }
         

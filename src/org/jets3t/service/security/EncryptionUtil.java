@@ -92,9 +92,13 @@ public class EncryptionUtil {
                     .getConstructor(new Class[] {}).newInstance(new Object[] {});                        
                 Security.addProvider(bouncyCastleProvider);
             }
-            log.debug("Loaded security provider BouncyCastleProvider");
+            if (log.isDebugEnabled()) {
+            	log.debug("Loaded security provider BouncyCastleProvider");
+            }
         } catch (Exception e) {
-            log.debug("Unable to load security provider BouncyCastleProvider");            
+        	if (log.isDebugEnabled()) {
+        		log.debug("Unable to load security provider BouncyCastleProvider");            
+        	}
         }
     }
 
@@ -121,7 +125,9 @@ public class EncryptionUtil {
     {
         this.algorithm = algorithm;
         this.version = version;
-        log.debug("Cryptographic properties: algorithm=" + this.algorithm + ", version=" + this.version);
+        if (log.isDebugEnabled()) {
+        	log.debug("Cryptographic properties: algorithm=" + this.algorithm + ", version=" + this.version);
+        }
         
         if (!DEFAULT_VERSION.equals(version)) {
             throw new RuntimeException("Unrecognised crypto version setting: " + version);
@@ -552,7 +558,9 @@ public class EncryptionUtil {
                 new EncryptionUtil("Sample Key", cipher, EncryptionUtil.DEFAULT_VERSION);
             encryptionUtil.encrypt("Testing encryption...");
         } catch (Exception e) {
-            log.debug("Availability test failed for encryption cipher " + cipher);
+        	if (log.isDebugEnabled()) {
+        		log.debug("Availability test failed for encryption cipher " + cipher);
+        	}
             return false;
         }
         return true;

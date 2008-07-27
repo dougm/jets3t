@@ -102,8 +102,10 @@ public class RenameToUuidUrlSigner extends DefaultUrlSigner {
             String originalKey = signatureRequest.getObjectKey();
 
             if (objectMetadata.containsKey(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG)) {
-                log.debug("Object with key '" + originalKey + "' is flagged as a Summary Document"
-                    + ", and will not be renamed");
+            	if (log.isDebugEnabled()) {
+	                log.debug("Object with key '" + originalKey + "' is flagged as a Summary Document"
+	                    + ", and will not be renamed");
+            	}
             } else {
                 String extension = null;
                 int lastDotIndex = originalKey.lastIndexOf(".");
@@ -113,7 +115,9 @@ public class RenameToUuidUrlSigner extends DefaultUrlSigner {
                 
                 String newKey = transactionId + "." + (++countOfRenamedObjects) 
                     + (extension != null? "." + extension : "");
-                log.debug("Renamed object key '" + originalKey + "' to '" + newKey + "'");            
+                if (log.isDebugEnabled()) {
+                	log.debug("Renamed object key '" + originalKey + "' to '" + newKey + "'");
+                }
                 signatureRequest.setObjectKey(newKey);
             }
         }

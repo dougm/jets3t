@@ -113,7 +113,9 @@ public class ByteFormatter {
                 result = byteSize + byteSuffix;
             }
         } catch (ParseException e) {
-            log.error("Unable to format byte size " + byteSize, e);
+            if (log.isErrorEnabled()) {
+            	log.error("Unable to format byte size " + byteSize, e);
+            }
             return byteSize + byteSuffix;
         }
         return result;

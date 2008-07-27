@@ -55,7 +55,7 @@ public class GatekeeperClientUtils {
 
 	private HttpClient httpClientGatekeeper = null;
 
-	private final Log log = LogFactory.getLog(GatekeeperClientUtils.class);
+	private static final Log log = LogFactory.getLog(GatekeeperClientUtils.class);
 
     /**
      * Variable to store application exceptions, so that client failure information can be 
@@ -101,11 +101,15 @@ public class GatekeeperClientUtils {
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
                 if (executionCount > maxRetryCount) {
-                    log.error("Retried connection " + executionCount 
-                        + " times, which exceeds the maximum retry count of " + maxRetryCount);
+                    if (log.isErrorEnabled()) {
+                        log.error("Retried connection " + executionCount 
+                            + " times, which exceeds the maximum retry count of " + maxRetryCount);
+                    }
                     return false;                    
                 }
-                log.warn("Retrying request - attempt " + executionCount + " of " + maxRetryCount);                
+                if (log.isWarnEnabled()) {
+                    log.warn("Retrying request - attempt " + executionCount + " of " + maxRetryCount);
+                }
                 return true;
             }
         });
@@ -195,11 +199,15 @@ public class GatekeeperClientUtils {
                 httpClientGatekeeper.setHostConfiguration(hostConfig);
             }
         } catch (Throwable t) {
-            log.debug("No proxy detected");
+            if (log.isDebugEnabled()) {
+                log.debug("No proxy detected");
+            }
         }            
 
         // Perform Gateway request.
-        log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
+        if (log.isDebugEnabled()) {
+            log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
+        }
         try {                        
             int responseCode = httpClientGatekeeper.executeMethod(postMethod);            
             String contentType = postMethod.getResponseHeader("Content-Type").getValue();
@@ -208,7 +216,9 @@ public class GatekeeperClientUtils {
 
                 Header encodingHeader = postMethod.getResponseHeader("Content-Encoding");
                 if (encodingHeader != null && "gzip".equalsIgnoreCase(encodingHeader.getValue())) {
-                    log.debug("Inflating gzip-encoded response");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Inflating gzip-encoded response");
+                    }
                     responseInputStream = new GZIPInputStream(postMethod.getResponseBodyAsStream());
                 } else {
                     responseInputStream = postMethod.getResponseBodyAsStream();
@@ -232,13 +242,17 @@ public class GatekeeperClientUtils {
                 String gatekeeperErrorCode = gatekeeperResponseMessage.getApplicationProperties()
                     .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
                 if (gatekeeperErrorCode != null) {
-                    log.warn("Received Gatekeeper error code: " + gatekeeperErrorCode);
+                    if (log.isWarnEnabled()) {
+                        log.warn("Received Gatekeeper error code: " + gatekeeperErrorCode);
+                    }
                 }
                 
                 return gatekeeperResponseMessage;
-            } else {                
-                log.debug("The Gatekeeper did not permit a request. Response code: " 
-                    + responseCode + ", Response content type: " + contentType);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("The Gatekeeper did not permit a request. Response code: " 
+                        + responseCode + ", Response content type: " + contentType);
+                }
                 throw new IOException("The Gatekeeper did not permit your request");
             }
         } catch (IOException e) {

@@ -184,7 +184,9 @@ public class GatekeeperMessage {
 
     private void encodeProperty(Properties properties, String propertyName, Object value) {
         if (value != null) {
-            log.debug("Encoding property: " + propertyName + "=" + value);
+            if (log.isDebugEnabled()) {
+                log.debug("Encoding property: " + propertyName + "=" + value);
+            }
             properties.put(propertyName, value.toString());
         }        
     }
@@ -197,7 +199,9 @@ public class GatekeeperMessage {
      * all the properties of the message.
      */
     public Properties encodeToProperties() {
-        log.debug("Encoding GatekeeperMessage to properties");
+        if (log.isDebugEnabled()) {
+            log.debug("Encoding GatekeeperMessage to properties");
+        }
         
         Properties encodedProperties = new Properties();
         Iterator iter = null;
@@ -256,7 +260,9 @@ public class GatekeeperMessage {
      * a Gatekeeper message object representing the contents of the properties.
      */
     public static GatekeeperMessage decodeFromProperties(Map postProperties) {
-        log.debug("Decoding GatekeeperMessage from properties");
+        if (log.isDebugEnabled()) {
+            log.debug("Decoding GatekeeperMessage from properties");
+        }
         
         GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
         
@@ -317,11 +323,15 @@ public class GatekeeperMessage {
                     } else if ("declineReason".equals(propertyName)) {
                         request.declineRequest(propertyValue);
                     } else {
-                        log.warn("Ignoring unrecognised SignatureRequest property: " + propertyName);
+                        if (log.isWarnEnabled()) {
+                            log.warn("Ignoring unrecognised SignatureRequest property: " + propertyName);
+                        }
                     }       
                 }
             } else {
-                log.warn("Ignoring unrecognised property name: " + key);
+                if (log.isWarnEnabled()) {
+                    log.warn("Ignoring unrecognised property name: " + key);
+                }
             }            
         }
         

@@ -26,7 +26,6 @@ import java.util.Iterator;
 import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
 
 /**
  * A table model to store {@link S3Bucket}s.

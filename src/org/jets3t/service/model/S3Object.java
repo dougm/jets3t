@@ -46,7 +46,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class S3Object extends BaseS3Object implements Cloneable {
-    private final Log log = LogFactory.getLog(S3Object.class);
+    private static final Log log = LogFactory.getLog(S3Object.class);
 
     private static final long serialVersionUID = -2883501141593631181L;
     
@@ -93,8 +93,8 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * @param file
      * the file the object will represent. This file must exist and be readable.
      * 
-     * @throws IOException 
-     * @throws NoSuchAlgorithmException 
+     * @throws IOException when an i/o error occurred reading the file
+     * @throws NoSuchAlgorithmException when this JRE doesn't support MD5 hashes
      */
     public S3Object(S3Bucket bucket, File file) throws NoSuchAlgorithmException, IOException {
         this(bucket, file.getName());
@@ -498,8 +498,10 @@ public class S3Object extends BaseS3Object implements Cloneable {
 	    		value = ServiceUtils.parseIso8601Date(value.toString());
 	    	} 
     	} catch (ParseException e) {
-    		log.error("Unable to parse value we expect to be a valid date: "
-                + name + "=" + value, e);
+    		if (log.isErrorEnabled()) {
+	    		log.error("Unable to parse value we expect to be a valid date: "
+	                + name + "=" + value, e);
+    		}
     	}
     	
     	super.addMetadata(name, value);

@@ -104,7 +104,7 @@ import org.jets3t.service.utils.ServiceUtils;
 public class SoapS3Service extends S3Service {
     private static final long serialVersionUID = 6421138869712673819L;
     
-    private final Log log = LogFactory.getLog(SoapS3Service.class);
+    private static final Log log = LogFactory.getLog(SoapS3Service.class);
     private AmazonS3_ServiceLocator locator = null;
 
     /**
@@ -128,11 +128,15 @@ public class SoapS3Service extends S3Service {
         
         locator = new AmazonS3_ServiceLocator();
         if (super.isHttpsOnly()) {
-            // Use an SSL connection, to further secure the signature. 
-            log.debug("SOAP service will use HTTPS for all communication");            
+            // Use an SSL connection, to further secure the signature.
+        	if (log.isDebugEnabled()) {
+        		log.debug("SOAP service will use HTTPS for all communication");
+        	}
             locator.setAmazonS3EndpointAddress("https://" + Constants.S3_HOSTNAME + "/soap");
         } else {
-            log.debug("SOAP service will use HTTP for all communication");
+        	if (log.isDebugEnabled()) {
+        		log.debug("SOAP service will use HTTP for all communication");
+        	}
             locator.setAmazonS3EndpointAddress("http://" + Constants.S3_HOSTNAME + "/soap");            
         }
         // Ensure we can get the stub.
@@ -322,7 +326,9 @@ public class SoapS3Service extends S3Service {
             Map.Entry entry = (Map.Entry) metadataIter.next();
             Object metadataName = entry.getKey();
             Object metadataValue = entry.getValue();
-            log.debug("Setting metadata: " + metadataName + "=" + metadataValue);
+            if (log.isDebugEnabled()) {
+            	log.debug("Setting metadata: " + metadataName + "=" + metadataValue);
+            }
             MetadataEntry mdEntry = new MetadataEntry();
             mdEntry.setName(metadataName.toString());
             mdEntry.setValue(metadataValue.toString());
@@ -336,7 +342,9 @@ public class SoapS3Service extends S3Service {
     ////////////////////////////////////////////////////////////////    
     
     protected S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
-        log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
+    	if (log.isDebugEnabled()) {
+    		log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
+    	}
         
         S3Bucket[] buckets = null;
         try {
@@ -366,7 +374,9 @@ public class SoapS3Service extends S3Service {
     }
 
     public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
-        log.debug("Checking existence of bucket: " + bucketName);
+        if (log.isDebugEnabled()) {
+        	log.debug("Checking existence of bucket: " + bucketName);
+        }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -425,7 +435,9 @@ public class SoapS3Service extends S3Service {
                 S3Object[] partialObjects = new S3Object[
                    (entries == null? 0 : entries.length)];
                 
-                log.debug("Found " + partialObjects.length + " objects in one batch");
+                if (log.isDebugEnabled()) {
+                	log.debug("Found " + partialObjects.length + " objects in one batch");
+                }
                 for (int i = 0; entries != null && i < entries.length; i++) {
                     ListEntry entry = entries[i];
                     S3Object object = new S3Object(entry.getKey());
@@ -444,7 +456,9 @@ public class SoapS3Service extends S3Service {
                 
                 PrefixEntry[] prefixEntries = result.getCommonPrefixes();
                 if (prefixEntries != null) {
-                    log.debug("Found " + prefixEntries.length + " common prefixes in one batch");                    
+                	if (log.isDebugEnabled()) {
+                		log.debug("Found " + prefixEntries.length + " common prefixes in one batch");
+                	}
                 }
                 for (int i = 0; prefixEntries != null && i < prefixEntries.length; i++ ) {
                     PrefixEntry entry = prefixEntries[i];
@@ -459,8 +473,10 @@ public class SoapS3Service extends S3Service {
                 	} else {
                 		// Use the prior last key instead of NextMarker if it isn't available.
                 	}
-                    log.debug("Yet to receive complete listing of bucket contents, "
-                        + "last key for prior chunk: " + priorLastKey);
+                	if (log.isDebugEnabled()) {
+	                    log.debug("Yet to receive complete listing of bucket contents, "
+                    		+ "last key for prior chunk: " + priorLastKey);
+                	}
                 } else {
                     priorLastKey = null;
                 }
@@ -473,7 +489,9 @@ public class SoapS3Service extends S3Service {
             throw new S3ServiceException("Unable to List Objects in bucket: " + bucketName, e);   
         }
         if (automaticallyMergeChunks) {
-            log.debug("Found " + objects.size() + " objects in total");
+            if (log.isDebugEnabled()) {
+            	log.debug("Found " + objects.size() + " objects in total");
+            }
             return new S3ObjectsChunk(
                 prefix, delimiter, 
                 (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
@@ -543,7 +561,9 @@ public class SoapS3Service extends S3Service {
     }
 
     protected S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException {
-        log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);        
+        if (log.isDebugEnabled()) {
+        	log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);        
+        }
 
         Grant[] grants = null;
         if (object.getAcl() != null) {
@@ -560,14 +580,18 @@ public class SoapS3Service extends S3Service {
                 contentType = Mimetypes.MIMETYPE_OCTET_STREAM;
             }
             
-            if (object.getDataInputStream() != null) {                
-                log.debug("Uploading data input stream for S3Object: " + object.getKey());
+            if (object.getDataInputStream() != null) {
+            	if (log.isDebugEnabled()) {
+            		log.debug("Uploading data input stream for S3Object: " + object.getKey());
+            	}
                 
                 if (contentLength == 0 && object.getDataInputStream().available() > 0) {
                     
-                    log.warn("S3Object " + object.getKey() 
-                        + " - Content-Length was set to 0 despite having a non-empty data"
-                        + " input stream. The Content-length will be determined in memory.");
+                	if (log.isWarnEnabled()) {
+	                    log.warn("S3Object " + object.getKey() 
+	                        + " - Content-Length was set to 0 despite having a non-empty data"
+	                        + " input stream. The Content-length will be determined in memory.");
+                	}
                     
                     // Read all data into memory to determine it's length.
                     BufferedInputStream bis = new BufferedInputStream(object.getDataInputStream());
@@ -591,7 +615,9 @@ public class SoapS3Service extends S3Service {
                     contentLength = baos.size();
                     object.setDataInputStream(new ByteArrayInputStream(baos.toByteArray()));
                     
-                    log.debug("Content-Length value has been reset to " + contentLength);
+                    if (log.isDebugEnabled()) {
+                    	log.debug("Content-Length value has been reset to " + contentLength);
+                    }
                 }                
                 
                 DataHandler dataHandler = new DataHandler(
@@ -726,13 +752,15 @@ public class SoapS3Service extends S3Service {
             GetObjectResult result = null;
             
             if (useExtendedGet) {
-                log.debug("Using Extended GET to apply constraints: "
-                    + "ifModifiedSince=" + (ifModifiedSince != null? ifModifiedSince.getTime().toString() : "null")
-                    + ", ifUnmodifiedSince=" + (ifUnmodifiedSince != null? ifUnmodifiedSince.getTime().toString() : "null")
-                    + ", ifMatchTags=" + (ifMatchTags != null? Arrays.asList(ifMatchTags).toString() : "null") 
-                    + ", ifNoneMatchTags=" + (ifNoneMatchTags != null? Arrays.asList(ifNoneMatchTags).toString() : "null")
-                    + ", byteRangeStart=" + byteRangeStart + ", byteRangeEnd=" + byteRangeEnd);
-                
+            	if (log.isDebugEnabled()) {
+	                log.debug("Using Extended GET to apply constraints: "
+	                    + "ifModifiedSince=" + (ifModifiedSince != null? ifModifiedSince.getTime().toString() : "null")
+	                    + ", ifUnmodifiedSince=" + (ifUnmodifiedSince != null? ifUnmodifiedSince.getTime().toString() : "null")
+	                    + ", ifMatchTags=" + (ifMatchTags != null? Arrays.asList(ifMatchTags).toString() : "null") 
+	                    + ", ifNoneMatchTags=" + (ifNoneMatchTags != null? Arrays.asList(ifNoneMatchTags).toString() : "null")
+	                    + ", byteRangeStart=" + byteRangeStart + ", byteRangeEnd=" + byteRangeEnd);
+	            }
+            	
                 String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
                     Constants.SOAP_SERVICE_NAME + "GetObjectExtended" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObjectExtended(
@@ -751,7 +779,9 @@ public class SoapS3Service extends S3Service {
                         + objectKey + ": " + result.getStatus().getDescription());
                 }
             } else {
-                log.debug("Using standard GET (no constraints to apply)");
+            	if (log.isDebugEnabled()) {
+            		log.debug("Using standard GET (no constraints to apply)");
+            	}
                 String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
                     Constants.SOAP_SERVICE_NAME + "GetObject" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObject(
@@ -767,7 +797,9 @@ public class SoapS3Service extends S3Service {
             // Get data details from the SOAP attachment.
             if (withData) {
                 Object[] attachments = s3SoapBinding.getAttachments();
-                log.debug("SOAP attachment count for " + object.getKey() + ": " + attachments.length);
+                if (log.isDebugEnabled()) {
+                	log.debug("SOAP attachment count for " + object.getKey() + ": " + attachments.length);
+                }
                 for (int i = 0; i < attachments.length; i++) {
                     if (i > 0) {
                         throw new S3ServiceException(

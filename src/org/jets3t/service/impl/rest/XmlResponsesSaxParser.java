@@ -111,7 +111,9 @@ public class XmlResponsesSaxParser {
         throws S3ServiceException
     {
         try {
-            log.debug("Parsing XML response document with handler: " + handler.getClass());
+        	if (log.isDebugEnabled()) {
+        		log.debug("Parsing XML response document with handler: " + handler.getClass());
+        	}
             BufferedReader breader = new BufferedReader(new InputStreamReader(inputStream,
                 Constants.DEFAULT_ENCODING));
             xr.setContentHandler(handler);
@@ -121,7 +123,9 @@ public class XmlResponsesSaxParser {
             try {
                 inputStream.close();
             } catch (IOException e) {
-                log.error("Unable to close response InputStream up after XML parse failure", e);
+            	if (log.isErrorEnabled()) {
+            		log.error("Unable to close response InputStream up after XML parse failure", e);
+            	}
             }
             throw new S3ServiceException("Failed to parse XML document with handler "
                 + handler.getClass(), t);
@@ -135,7 +139,9 @@ public class XmlResponsesSaxParser {
             // No sanitizing will be performed, return the original input stream unchanged.
             return inputStream;
         } else {
-            log.debug("Sanitizing XML document destined for handler " + handler.getClass());
+        	if (log.isDebugEnabled()) {
+        		log.debug("Sanitizing XML document destined for handler " + handler.getClass());
+        	}
             
             InputStream sanitizedInputStream = null;
 
@@ -166,7 +172,9 @@ public class XmlResponsesSaxParser {
                 try {
                     inputStream.close();
                 } catch (IOException e) {
-                    log.error("Unable to close response InputStream after failure sanitizing XML document", e);
+                	if (log.isErrorEnabled()) {
+                		log.error("Unable to close response InputStream after failure sanitizing XML document", e);
+                	}
                 }
                 throw new S3ServiceException("Failed to sanitize XML document destined for handler "
                     + handler.getClass(), t);            
@@ -305,7 +313,9 @@ public class XmlResponsesSaxParser {
                 } else if (lastKey != null) {
                     return lastKey;                    
                 } else {
-                    log.warn("Unable to find Next Marker or Last Key for truncated listing");
+                	if (log.isWarnEnabled()) {
+                		log.warn("Unable to find Next Marker or Last Key for truncated listing");
+                	}
                     return null;
                 }                
             } else {
@@ -373,7 +383,9 @@ public class XmlResponsesSaxParser {
             // Listing details
             if (name.equals("Name")) {
                 bucketName = elementText;
-                log.debug("Examining listing for bucket: " + bucketName);
+                if (log.isDebugEnabled()) {
+                	log.debug("Examining listing for bucket: " + bucketName);
+                }
             } else if (!insideCommonPrefixes && name.equals("Prefix")) {
                 requestPrefix = elementText;
             } else if (name.equals("Marker")) {
@@ -396,7 +408,9 @@ public class XmlResponsesSaxParser {
             // Object details.
             else if (name.equals("Contents")) {
                 objects.add(currentObject);
-                log.debug("Created new S3Object from listing: " + currentObject);
+                if (log.isDebugEnabled()) {
+                	log.debug("Created new S3Object from listing: " + currentObject);
+                }
             } else if (name.equals("Key")) {
                 currentObject.setKey(elementText);
                 lastKey = elementText;                
@@ -486,7 +500,9 @@ public class XmlResponsesSaxParser {
             }
             // Bucket item details.
             else if (name.equals("Bucket")) {
-                log.debug("Created new bucket from listing: " + currentBucket);
+            	if (log.isDebugEnabled()) {
+            		log.debug("Created new bucket from listing: " + currentBucket);
+            	}
                 currentBucket.setOwner(bucketsOwner);
                 buckets.add(currentBucket);
             } else if (name.equals("Name")) {

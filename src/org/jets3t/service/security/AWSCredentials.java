@@ -198,7 +198,9 @@ public class AWSCredentials implements Serializable {
      * @throws S3ServiceException
      */
     public static AWSCredentials load(String password, File file) throws S3ServiceException {
-        log.debug("Loading credentials from file: " + file.getAbsolutePath());
+    	if (log.isDebugEnabled()) {
+    		log.debug("Loading credentials from file: " + file.getAbsolutePath());
+    	}
         BufferedInputStream fileIS = null;
         try {
             fileIS = new BufferedInputStream(new FileInputStream(file));
@@ -231,9 +233,13 @@ public class AWSCredentials implements Serializable {
     public static AWSCredentials load(String password, BufferedInputStream inputStream) throws S3ServiceException {
         boolean partialReadOnly = (password == null);
         if (partialReadOnly) {
-            log.debug("Loading partial information about AWS Credentials from input stream");
+        	if (log.isDebugEnabled()) {
+        		log.debug("Loading partial information about AWS Credentials from input stream");
+        	}
         } else {
-            log.debug("Loading AWS Credentials from input stream");
+        	if (log.isDebugEnabled()) {
+        		log.debug("Loading AWS Credentials from input stream");
+        	}
         }
         
         try {

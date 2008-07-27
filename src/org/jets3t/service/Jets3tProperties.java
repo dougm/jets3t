@@ -113,14 +113,18 @@ public class Jets3tProperties implements Serializable {
         // Load properties from classpath.
         InputStream cpIS = jets3tProperties.getClass().getResourceAsStream("/" + propertiesFileName);
         if (cpIS != null) {
-            log.debug("Loading properties from resource in the classpath: " + 
-                propertiesFileName);
+        	if (log.isDebugEnabled()) {
+	            log.debug("Loading properties from resource in the classpath: " + 
+	                propertiesFileName);
+        	}
             try {
                 jets3tProperties.loadAndReplaceProperties(cpIS,
                     "Resource '" + propertiesFileName + "' in classpath");
             } catch (IOException e) {
-                log.error("Failed to load properties from resource in classpath: " 
-                    + propertiesFileName, e);
+            	if (log.isErrorEnabled()) {
+	            	log.error("Failed to load properties from resource in classpath: " 
+	            		+ propertiesFileName, e);
+            	}
             }
         } 
         return jets3tProperties;
@@ -196,9 +200,11 @@ public class Jets3tProperties implements Serializable {
             String propertyName = (String) entry.getKey();
             String propertyValue = (String) entry.getValue();
             if (properties.containsKey(propertyName) && !properties.getProperty(propertyName).equals(propertyValue)) {
-                log.debug("Over-riding jets3t property [" + propertyName + "=" + propertyValue
-                    + "] with value from properties source " + propertiesSource 
-                    + ". New value: [" + propertyName + "=" + trim(propertyValue) + "]");
+            	if (log.isDebugEnabled()) {
+	                log.debug("Over-riding jets3t property [" + propertyName + "=" + propertyValue
+	                    + "] with value from properties source " + propertiesSource 
+	                    + ". New value: [" + propertyName + "=" + trim(propertyValue) + "]");
+            	}
             } 
             properties.put(propertyName, trim(propertyValue));                
         }
@@ -223,7 +229,9 @@ public class Jets3tProperties implements Serializable {
      */
     public String getStringProperty(String propertyName, String defaultValue) {
         String stringValue = trim(properties.getProperty(propertyName, defaultValue));
-        log.debug(propertyName + "=" + stringValue);
+        if (log.isDebugEnabled()) {
+        	log.debug(propertyName + "=" + stringValue);
+        }
         return stringValue;
     }
 
@@ -239,7 +247,9 @@ public class Jets3tProperties implements Serializable {
         throws NumberFormatException 
     {
         String longValue = trim(properties.getProperty(propertyName, String.valueOf(defaultValue)));
-        log.debug(propertyName + "=" + longValue);
+        if (log.isDebugEnabled()) {
+        	log.debug(propertyName + "=" + longValue);
+    	}
         return Long.parseLong(longValue);
     }
         
@@ -255,7 +265,9 @@ public class Jets3tProperties implements Serializable {
         throws NumberFormatException 
     {
         String intValue = trim(properties.getProperty(propertyName, String.valueOf(defaultValue)));
-        log.debug(propertyName + "=" + intValue);
+        if (log.isDebugEnabled()) {
+        	log.debug(propertyName + "=" + intValue);
+        }
         return Integer.parseInt(intValue);
     }
 
@@ -271,7 +283,9 @@ public class Jets3tProperties implements Serializable {
         throws IllegalArgumentException 
     {
         String boolValue = trim(properties.getProperty(propertyName, String.valueOf(defaultValue)));
-        log.debug(propertyName + "=" + boolValue);
+        if (log.isDebugEnabled()) {
+        	log.debug(propertyName + "=" + boolValue);
+        }
         if ("true".equalsIgnoreCase(boolValue)) {
             return true;
         } else if ("false".equalsIgnoreCase(boolValue)) {

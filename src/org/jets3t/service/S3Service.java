@@ -334,9 +334,11 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException, InterruptedException 
     {
         if (internalErrorCount <= internalErrorRetryMax) {
-            long delayMs = 50L * (int) Math.pow(internalErrorCount, 2); 
-            log.warn("Encountered " + internalErrorCount 
-                + " S3 Internal Server error(s), will retry in " + delayMs + "ms");
+            long delayMs = 50L * (int) Math.pow(internalErrorCount, 2);
+            if (log.isWarnEnabled()) {
+		        log.warn("Encountered " + internalErrorCount 
+		            + " S3 Internal Server error(s), will retry in " + delayMs + "ms");
+            }
             Thread.sleep(delayMs);
         } else {
             throw new S3ServiceException("Encountered too many S3 Internal Server errors (" 
@@ -430,7 +432,9 @@ public abstract class S3Service implements Serializable {
 
         String canonicalString = RestUtils.makeCanonicalString(method, "/" + virtualBucketPath + uriPath,
             RestUtils.renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch));
-        log.debug("Signing canonical string:\n" + canonicalString);
+        if (log.isDebugEnabled()) {
+        	log.debug("Signing canonical string:\n" + canonicalString);
+        }
 
         String signedCanonical = ServiceUtils.signWithHmacSha1(awsCredentials.getSecretKey(),
             canonicalString);
@@ -960,7 +964,9 @@ public abstract class S3Service implements Serializable {
             String policyDocument = 
                 "{\"expiration\": \"" + ServiceUtils.formatIso8601Date(expiration) 
                 + "\", \"conditions\": [" + ServiceUtils.join(conditions, ",") + "]}";
-            log.debug("Policy document for POST form:\n" + policyDocument);
+            if (log.isDebugEnabled()) {
+            	log.debug("Policy document for POST form:\n" + policyDocument);
+            }
 
             // Add the base64-encoded policy document as the 'policy' form field
             String policyB64 = ServiceUtils.toBase64(
@@ -1007,7 +1013,9 @@ public abstract class S3Service implements Serializable {
             "<input type=\"submit\" value=\"Upload to Amazon S3\">\n" +
           "</form>";
         
-        log.debug("POST Form:\n" + form);        
+        if (log.isDebugEnabled()) {
+        	log.debug("POST Form:\n" + form);
+        }
         return form;
     }  
     
@@ -1981,8 +1989,10 @@ public abstract class S3Service implements Serializable {
     {
         if (status.isLoggingEnabled() && updateTargetACLifRequired) {            
             // Check whether the target bucket has the ACL permissions necessary for logging.
-            log.debug("Checking whether the target logging bucket '" + 
-                status.getTargetBucketName() + "' has the appropriate ACL settings");
+        	if (log.isDebugEnabled()) {
+        		log.debug("Checking whether the target logging bucket '" + 
+        			status.getTargetBucketName() + "' has the appropriate ACL settings");
+        	}
             boolean isSetLoggingGroupWrite = false;
             boolean isSetLoggingGroupReadACP = false;
             String groupIdentifier = GroupGrantee.LOG_DELIVERY.getIdentifier();
@@ -1997,29 +2007,37 @@ public abstract class S3Service implements Serializable {
                     // Found a Group Grantee.                    
                     if (gap.getPermission().equals(Permission.PERMISSION_WRITE)) {
                         isSetLoggingGroupWrite = true;
-                        log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
-                            + "permission " + Permission.PERMISSION_WRITE + " for group " + 
-                            groupIdentifier);
+                        if (log.isDebugEnabled()) {
+                        	log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
+                        			+ "permission " + Permission.PERMISSION_WRITE + " for group " + 
+                        			groupIdentifier);
+                        }
                     } else if (gap.getPermission().equals(Permission.PERMISSION_READ_ACP)) {
                         isSetLoggingGroupReadACP = true;
-                        log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
-                            + "permission " + Permission.PERMISSION_READ_ACP + " for group " + 
-                            groupIdentifier);
+                        if (log.isDebugEnabled()) {
+	                        log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
+	                            + "permission " + Permission.PERMISSION_READ_ACP + " for group " + 
+	                            groupIdentifier);
+                        }
                     }
                 }
             }
             
             // Update target bucket's ACL if necessary.
             if (!isSetLoggingGroupWrite || !isSetLoggingGroupReadACP) {
-                log.warn("Target logging bucket '" + status.getTargetBucketName() 
-                    + "' does not have the necessary ACL settings, updating ACL now");
-                
+            	if (log.isWarnEnabled()) {
+	                log.warn("Target logging bucket '" + status.getTargetBucketName() 
+	                    + "' does not have the necessary ACL settings, updating ACL now");
+            	}
+            	
                 logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_WRITE);
                 logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_READ_ACP);
                 putBucketAcl(status.getTargetBucketName(), logBucketACL);
             } else {
-                log.debug("Target logging bucket '" + status.getTargetBucketName() 
-                    + "' has the necessary ACL settings");                
+            	if (log.isDebugEnabled()) {
+	                log.debug("Target logging bucket '" + status.getTargetBucketName() 
+	                    + "' has the necessary ACL settings");
+            	}
             }
         }
 
@@ -2052,8 +2070,10 @@ public abstract class S3Service implements Serializable {
         Date localTime = new Date();
         this.timeOffset = s3Time.getTime() - localTime.getTime();
 
-        log.debug("Calculated time offset value of " + this.timeOffset +
-                " milliseconds between the local machine and an S3 server");
+        if (log.isDebugEnabled()) {
+	        log.debug("Calculated time offset value of " + this.timeOffset +
+	                " milliseconds between the local machine and an S3 server");
+        }
 
         return this.timeOffset;
     }

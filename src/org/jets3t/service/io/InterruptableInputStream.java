@@ -37,7 +37,7 @@ import org.apache.commons.logging.LogFactory;
  * @author James Murty
  */
 public class InterruptableInputStream extends InputStream implements InputStreamWrapper {
-    private final Log log = LogFactory.getLog(InterruptableInputStream.class);
+    private static final Log log = LogFactory.getLog(InterruptableInputStream.class);
 
     private InputStream inputStream = null;
 
@@ -49,12 +49,16 @@ public class InterruptableInputStream extends InputStream implements InputStream
 
     private void maybeInterruptInputStream() throws IOException {
         if (interrupted) {
-            log.debug("Input stream interrupted, closing underlying input stream " + 
+        	if (log.isDebugEnabled()) {
+        		log.debug("Input stream interrupted, closing underlying input stream " + 
                 this.inputStream.getClass());
+        	}
             try {
                 close();
             } catch (IOException ioe) {
-                log.warn("Unable to close underlying InputStream on interrupt");
+            	if (log.isWarnEnabled()) {
+            		log.warn("Unable to close underlying InputStream on interrupt");
+            	}
             }
             // Throw an unrecoverable exception to indicate that this exception was deliberate, and
             // should not be recovered from.

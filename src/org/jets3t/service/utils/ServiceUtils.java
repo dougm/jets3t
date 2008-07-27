@@ -109,7 +109,9 @@ public class ServiceUtils {
         throws S3ServiceException
     {
         if (awsSecretKey == null) {
-            log.debug("Canonical string will not be signed, as no AWS Secret Key was provided");
+        	if (log.isDebugEnabled()) {
+        		log.debug("Canonical string will not be signed, as no AWS Secret Key was provided");
+        	}
             return null;
         }
         
@@ -169,7 +171,9 @@ public class ServiceUtils {
                 sb.append(line + "\n");
             }
         } catch (Exception e) {
-            log.warn("Unable to read String from Input Stream", e);
+        	if (log.isWarnEnabled()) {
+        		log.warn("Unable to read String from Input Stream", e);
+        	}
         }
         return sb.toString();
     }
@@ -220,7 +224,9 @@ public class ServiceUtils {
      * metadata map with HTTP-connection-specific items removed.
      */
     public static Map cleanRestMetadataMap(Map metadata) {
-        log.debug("Cleaning up REST metadata items");
+    	if (log.isDebugEnabled()) {
+    		log.debug("Cleaning up REST metadata items");
+    	}
         HashMap cleanMap = new HashMap();
         if (metadata != null) {
             Iterator metadataIter = metadata.entrySet().iterator();
@@ -234,22 +240,32 @@ public class ServiceUtils {
                 if (keyStr.startsWith(Constants.REST_METADATA_PREFIX)) {
                     key = keyStr
                         .substring(Constants.REST_METADATA_PREFIX.length(), keyStr.length());
-                    log.debug("Removed Amazon meatadata header prefix from key: " + keyStr
-                        + "=>" + key);
+                    if (log.isDebugEnabled()) {
+	                    log.debug("Removed Amazon meatadata header prefix from key: " + keyStr
+	                        + "=>" + key);
+                    }
                 } else if (keyStr.startsWith(Constants.REST_HEADER_PREFIX)) {
                     key = keyStr.substring(Constants.REST_HEADER_PREFIX.length(), keyStr.length());
-                    log.debug("Removed Amazon header prefix from key: " + keyStr + "=>" + key);
+                    if (log.isDebugEnabled()) {
+                    	log.debug("Removed Amazon header prefix from key: " + keyStr + "=>" + key);
+                    }
                 } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.getDefault()))) {
                     key = keyStr;
-                    log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);                    
+                    if (log.isDebugEnabled()) {
+                    	log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);                    
+                    }
                 } else if ("ETag".equalsIgnoreCase(keyStr)
                     || "Date".equalsIgnoreCase(keyStr)
                     || "Last-Modified".equalsIgnoreCase(keyStr))
                 {
                     key = keyStr;
-                    log.debug("Leaving header item unchanged: " + key + "=" + value);                    
+                    if (log.isDebugEnabled()) {
+                    	log.debug("Leaving header item unchanged: " + key + "=" + value);                    
+                    }
                 } else {
-                    log.debug("Ignoring metadata item: " + keyStr + "=" + value);
+                	if (log.isDebugEnabled()) {
+                		log.debug("Ignoring metadata item: " + keyStr + "=" + value);
+                	}
                     continue;
                 }
 
@@ -257,12 +273,16 @@ public class ServiceUtils {
                 // appropriate)
                 if (value instanceof Collection) {
                     if (((Collection) value).size() == 1) {
-                        log.debug("Converted metadata single-item Collection "
-                            + value.getClass() + " " + value + " for key: " + key);
+                    	if (log.isDebugEnabled()) {
+                    		log.debug("Converted metadata single-item Collection "
+                				+ value.getClass() + " " + value + " for key: " + key);
+                    	}
                         value = ((Collection) value).iterator().next();
                     } else {
-                        log.warn("Collection " + value
-                            + " has too many items to convert to a single string");
+                    	if (log.isWarnEnabled()) {
+                    		log.warn("Collection " + value
+                				+ " has too many items to convert to a single string");
+                    	}
                     }
                 }
 
@@ -270,11 +290,15 @@ public class ServiceUtils {
                 if ("Date".equals(key) || "Last-Modified".equals(key)) {
                     if (!(value instanceof Date)) {
                         try {
-                            log.debug("Parsing date string '" + value
+                        	if (log.isDebugEnabled()) {
+                        		log.debug("Parsing date string '" + value
                                 + "' into Date object for key: " + key);
+                        	}
                             value = ServiceUtils.parseRfc822Date(value.toString());
                         } catch (ParseException pe) {
-                            log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
+                        	if (log.isWarnEnabled()) {
+                        		log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
+                        	}
                             continue;
                         }
                     }
