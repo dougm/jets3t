@@ -261,7 +261,7 @@ public class FileComparer {
      * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
      * 
      * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildS3ObjectMap(S3Service, S3Bucket, String, S3Object[], S3ServiceEventListener)
+     * @see #buildS3ObjectMap(S3Service, S3Bucket, String, S3Object[], boolean, S3ServiceEventListener)
      * 
      * @param rootDirectory
      * The root directory containing the files/directories of interest. The root directory is <b>not</b>
@@ -696,7 +696,7 @@ public class FileComparer {
      *        a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
      * @param s3ObjectsMap
      *        a map of keys/S3Objects built using the method 
-     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3ServiceEventListener)}
+     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3Object[], boolean, S3ServiceEventListener)}
      * @return
      * an object containing the results of the file comparison.
      * 
@@ -720,7 +720,7 @@ public class FileComparer {
      *        a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
      * @param s3ObjectsMap
      *        a map of keys/S3Objects built using the method 
-     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3ServiceEventListener)}
+     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)}
      * @param progressWatcher
      *        watches the progress of file hash generation.
      * @return

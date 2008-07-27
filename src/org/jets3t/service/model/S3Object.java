@@ -522,6 +522,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * session (such as request identifiers). 
      * 
      * @return
+     * the limited set of metadata items that S3 allows users to control. 
      */
     public Map getModifiableMetadata() {
         Map objectMetadata = new HashMap(getMetadataMap());
@@ -598,7 +599,9 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * against this object's hash (as stored in the Content-MD5 header for 
      * uploads, or the ETag header for downloads). 
      * 
-     * @param downloadedData
+     * @param downloadedDataStream
+     * the input stream of a downloaded S3Object.
+     * 
      * @return
      * true if the calculated MD5 hash value of the input stream matches this 
      * object's hash value, false otherwise.

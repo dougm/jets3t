@@ -389,7 +389,7 @@ public class S3ServiceMulti implements Serializable {
      * bucket may be the same as the source bucket.
      * @param sourceObjectKeys
      * the key names of the objects that will be copied.
-     * @param S3Object[] destinationObjects
+     * @param destinationObjects
      * objects that will be created by the copy operation. The AccessControlList
      * setting of each object will determine the access permissions of the 
      * resultant object, and if the replaceMetadata flag is true the metadata 

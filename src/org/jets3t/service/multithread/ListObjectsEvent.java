@@ -24,7 +24,7 @@ import org.jets3t.service.S3ObjectsChunk;
 
 /**
  * Multi-threaded service event fired by 
- * {@link S3ServiceMulti#listObjects(String, String[], String, int)}.
+ * {@link S3ServiceMulti#listObjects(String, String[], String, long)}.
  * <p>
  * EVENT_IN_PROGRESS events include a List of {@link S3ObjectsChunk} objects 
  * that contain information about the objects and common-prefixes for the 

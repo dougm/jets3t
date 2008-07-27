@@ -39,7 +39,7 @@ package org.jets3t.service.multithread;
  * <li>EVENT_IGNORED_ERRORS: One or more operations have failed but ,because the 
  *     "s3service.ignore-exceptions-in-multi" JetS3t property value is set to true,
  *     the overall operation has continued. The errors will be available from 
- *     {@link getIgnoredErrors()}</li>
+ *     {@link #getIgnoredErrors()}</li>
  * </ul>
  * <p>
  * EVENT_STARTED and EVENT_IN_PROGRESS events may include a {@link ThreadWatcher} object containing
