@@ -232,6 +232,47 @@ public class CodeSamples {
         S3Object[] filteredObjects = s3Service.listObjects(testBucket, prefix, delimiter);        
         
         /*
+         * Copying objects
+         */
+        
+        // Objects can be copied within the same bucket and between buckets.
+        
+        // Create a target S3Object
+        S3Object targetObject = new S3Object("targetObjectWithSourcesMetadata");
+        
+        // Copy an existing source object to the target S3Object
+        // This will copy the source's object data and metadata to the target object.
+        boolean replaceMetadata = false;
+        s3Service.copyObject("test-bucket", "HelloWorld.txt", "destination-bucket", targetObject, replaceMetadata);
+
+        // You can also copy an object and update its metadata at the same time. Perform a 
+        // copy-in-place  (with the same bucket and object names for source and destination) 
+        // to update an object's metadata while leaving the object's data unchanged.
+        targetObject = new S3Object("HelloWorld.txt");
+        targetObject.addMetadata(S3Object.METADATA_HEADER_CONTENT_TYPE, "text/html");        
+        replaceMetadata = true;
+        s3Service.copyObject("test-bucket", "HelloWorld.txt", "test-bucket", targetObject, replaceMetadata);
+
+        /*
+         * Moving and Renaming objects
+         */
+        
+        // Objects can be moved within a bucket (to a different name) or to another S3 
+        // bucket in the same region (eg US or EU). 
+        // A move operation is composed of a copy then a delete operation behind the scenes. 
+        // If the initial copy operation fails, the object is not deleted. If the final delete
+        // operation fails, the object will exist in both the source and destination locations.
+
+        // Here is a command that moves an object from one bucket to another.
+        s3Service.moveObject("test-bucket", "HelloWorld.txt", "destination-bucket", targetObject, false);
+        
+        // You can move an object to a new name in the same bucket. This is essentially a rename operation.
+        s3Service.moveObject("test-bucket", "HelloWorld.txt", "test-bucket", new S3Object("NewName.txt"), false);
+
+        // To make renaming easier, JetS3t has a shortcut method especially for this purpose. 
+        s3Service.renameObject("test-bucket", "HelloWorld.txt", targetObject);        
+        
+        /*
          * Deleting objects and buckets 
          */
         
@@ -254,6 +295,7 @@ public class CodeSamples {
         // Now that the bucket is empty, you can delete it.
         s3Service.deleteBucket(testBucket.getName());
         System.out.println("Deleted bucket " + testBucket.getName());
+        
         
         /* ***********************
          * Multi-threaded Examples
