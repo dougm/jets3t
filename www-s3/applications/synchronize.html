@@ -10,7 +10,7 @@
   <meta name="generator"
         content="RapidWeaver" />
   <meta name="generatorversion"
-        content="3.5.1 (Build 264)" />
+        content="3.6.7 (2691)" />
 
   <title>JetS3T - Synchronize</title>
   <link rel="stylesheet"
@@ -112,15 +112,41 @@ tt {
         </ul>
       </div><!-- End navigation -->
 
-      <div class="sideHeader"></div><!-- Sidebar header -->
-
       <div id="sidebar">
         <!-- Start sidebar content -->
 
+        <h1 class="sideHeader"></h1><!-- Sidebar header -->
+
+        <br />
+
+        <p>Learn how to take advantage of Amazon Web Services with
+        my book <a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        Programming Amazon Web Services: S3, EC2, SQS, FPS, and
+        SimpleDB</a> (O'Reilly 2008)</p>
+
+        <p align="center"><a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        <img class="right fancy"
+             border="0"
+             src=
+             "http://www.jamesmurty.com/wordpress/wp-content/uploads/2008/03/21xosvbehnl_aa_sl160_.jpg" /></a><img class="right"
+             src=
+             "http://www.assoc-amazon.com/e/ir?t=jamesmurty-20&amp;l=as2&amp;o=1&amp;a=0596515812"
+             width="1"
+             height="1"
+             border="0"
+             alt=""
+             style=
+             "border:none !important; margin:0px !important;" /></p>
         <br />
 
         <p>Your donation will allow me to continue improving
-        JetS3t. Thanks very much, James.</p>
+        JetS3t. Thanks very much,
+        <br />
+        James.</p>
 
         <form action="https://www.paypal.com/cgi-bin/webscr"
               method="post">
@@ -187,6 +213,15 @@ tt {
           <li>Download a directory and all its contents from
           S3</li>
 
+          <li>Specify an S3 path that includes a prefix
+          component<font color="red">*</font> to download only the
+          objects that match the prefix (see <a href=
+          "#examples">Examples</a>)</li>
+
+          <li>Option to move<font color="red">*</font> rather than
+          copy files to or from S3. In this case, the source file
+          or object is deleted after it has been transferred</li>
+
           <li>Automatically compress (gzip) and/or encrypt files
           sent to S3</li>
 
@@ -197,6 +232,15 @@ tt {
           <li>Upload any number of files and/or directories at one
           time</li>
 
+          <li>Option to upload or download files in
+          batches<font color="red">*</font> of 1,000 to reduce the
+          memory requirements when synching large numbers of
+          objects</li>
+
+          <li>Option to skip object metadata
+          comparisons<font color="red">*</font> to speed up
+          synchronization of large buckets</li>
+
           <li>Access Control List permissions of uploaded files can
           be set to PRIVATE, PUBLIC_READ or PUBLIC_READ_WRITE</li>
 
@@ -204,8 +248,11 @@ tt {
           can be ignored using <a href=
           "../toolkit/configuration.html#ignore">.jets3t-ignore
           settings files</a></li>
+
+          <li>Control the level of detail in the application's
+          reporting<font color="red">*</font></li>
         </ul><sup>Items with a red star (<font color=
-        "red">*</font>) are new in JetS3t version 0.6.0</sup>
+        "red">*</font>) are new in JetS3t version 0.6.1</sup>
 
         <h2>Getting Started</h2>
 
@@ -220,9 +267,18 @@ tt {
         <tt>synchronize.sh</tt>.</p>
 
         <p>Files are copied to S3 with an UP(load) operation, and
-        copied from S3 with a DOWN(load). By default, files are
-        only transferred only if they are new or have changed
-        relative to the destination.</p>
+        copied from S3 with a DOWN(load). By default, only new or
+        changed files are transferred.</p>
+
+        <h3>Preview Your Actions</h3>
+
+        <p>Because Synchronize commands can potentially delete or
+        replace your files, you should <strong>always test your
+        commands</strong> using the <tt>noaction</tt> option before
+        you run them for real. The <tt>--noaction</tt> option
+        allows you to preview the actions that Synchronize will
+        take, so you can avoid performing a command you will
+        regret.</p>
 
         <h3>Properties File</h3>
 
@@ -253,6 +309,12 @@ acl=PRIVATE
 
 # Password used when encrypting/decrypting files. Only required when the --crypto setting is used.
 # password=
+
+# If "upload.ignoreMissingPaths" is set to true, Synchronize will perform an upload despite missing  
+# or unreadable source files. If set to false, Synchronize will halt if files or paths are missing. 
+# WARNING: Be careful enabling this option, as it could cause legitimate objects in S3 to be
+# deleted if the corresponding local files cannot be found or read.
+#upload.ignoreMissingPaths=true
 </pre>
 
         <p>We use a properties file to store this information as we
@@ -268,8 +330,12 @@ acl=PRIVATE
         <p>To view Synchronize's usage instructions, run
         <tt>synchronize.sh --help</tt>. These instructions describe
         the command-line parameters required by Synchronize and the
-        options available. To see some example commands see the
-        <a href="#examples">Examples</a> section below.</p>
+        options available.</p><sup>Options with a red star
+        (<font color="red">*</font>) are new in JetS3t version
+        0.6.1</sup>
+
+        <p>To see some example commands, refer to the <a href=
+        "#examples">Examples</a> section below.</p>
         <pre>
 Usage: Synchronize [options] UP   (...)
    or: Synchronize [options] DOWN  
@@ -283,14 +349,14 @@ File/Directory : A file or directory on your computer to upload
 DownloadDirectory : A directory on your computer where downloaded files
           will be stored
 
-A property file with the name 'synchronize.properties' must be available in the
-classpath and contains the following properties:
+A property file must be provided to the application, either as a file named
+'synchronize.properties' in the classpath or via the --properties option. It must
+contain the following properties:
           accesskey : Your AWS Access Key (Required)
           secretkey : Your AWS Secret Key (Required)
           password  : Encryption password (only required when using crypto)
           acl       : ACL permissions for uploads (optional)
-
-For more help : Synchronize --help
+Properties specified in this file will override those in jets3t.properties.<font color="red">*</font>
 
 Options
 -------
@@ -323,6 +389,25 @@ Options
    option is similar to --keepfiles except that files may be reverted.
    This option cannot be used with --keepfiles.
 
+-m | --move<font color="red">*</font>
+   Move items rather than merely copying them. Files on the local computer will
+   be deleted after they have been uploaded to S3, or objects will be deleted
+   from S3 after they have been downloaded. Be *very* careful with this option.
+   This option cannot be used with --keepfiles.
+
+-b | --batch<font color="red">*</font>
+   Download or upload files in batches, rather than all at once. Enabling this
+   option will reduce the memory required to synchronize large buckets, and will
+   ensure file transfers commence as soon as possible. When this option is
+   enabled, the progress status lines refer only to the progress of a single batch.
+
+-s | --skipmetadata<font color="red">*</font>
+   Skip the retrieval of object metadata information from S3. This will make the
+   synch process much faster for large buckets, but it will leave Synchronize
+   with less information to make decisions. If this option is enabled, empty
+   files or directories will not be synchronized reliably.
+   This option cannot be used with the --gzip or --crypto options.
+
 -g | --gzip
    Compress (GZip) files when backing up and Decompress gzipped files
    when restoring.
@@ -331,19 +416,27 @@ Options
    Encrypt files when backing up and decrypt encrypted files when restoring. If
    this option is specified the properties must contain a password.
 
---properties &lt;filename&gt;
-   Load the synchronizer app properties from the given file instead of from
+--properties <font color="red">*</font>
+   Load the synchronizer app properties from the given file, rather than from
    a synchronizer.properties file in the classpath.
 
---acl &lt;ACL string&gt;
+--acl 
    Specifies the Access Control List setting to apply. This value must be one
    of: PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE. This setting will override any
    acl property specified in the synchronize.properties file
 
+--reportlevel <font color="red">*</font>
+   A number that specifies how much report information will be printed:
+   0 - no report items will be printed (the summary will still be printed)
+   1 - only actions are reported          [Prefixes N, U, D, R, F, M]
+   2 - differences &amp; actions are reported [Prefixes N, U, D, R, F, M, d, r]
+   3 - DEFAULT: all items are reported    [Prefixes N, U, D, R, F, M, d, r, -]
+
 Report
 ------
 Report items are printed on a single line with an action flag followed by
-the relative path of the file or S3 object. The flag meanings are...
+the relative path of the file or S3 object. The report legend follows:
+
 N: A new file/object will be created
 U: An existing file/object has changed and will be updated
 D: A file/object existing on the target does not exist on the source and
@@ -354,23 +447,17 @@ R: An existing file/object has changed more recently on the target than on the
    source. The target version will be reverted to the older source version
 r: An existing file/object has changed more recently on the target than on the
    source but because the --keepfiles option was set it was not reverted.
--: The file identical locally and in S3, no action is necessary.
+-: A file is identical between the local system and S3, no action is necessary.
 F: A file identical locally and in S3 was updated due to the Force option.
+M: The file/object will be moved (deleted after it has been copied to/from S3).
 </pre>
 
         <p><b><font color="red">WARNING</font></b>: Be <i>very</i>
         careful when restoring files from S3 to a directory that
         already contains files. By default Synchronize will delete
         any files in the target directory that are not present in
-        S3, as it is helpfully synchronizing the contents of your
-        the directory on your computer with the contents of S3.
-        Mind you, if you do this for the wrong directory you can
-        lose all your files!
-        <br />
-        For this reason, <b>always</b> test your Synchronize
-        commands with the <tt>--noaction</tt> option before you run
-        them for real - just to make sure you are not about to do
-        something you will later regret.</p>
+        S3, in order to synchronize the contents of the directory
+        on your computer with the contents of S3.</p>
 
         <h2><a name="examples">Examples</a></h2>
 
@@ -387,7 +474,17 @@ F: A file identical locally and in S3 was updated due to the Force option.
         the synchronize run scripts provided in the <b>bin</b>
         directory to run Synchronize.</p>
 
-        <h3>Backing up files in S3</h3>
+        <h3>Preview Your Actions</h3>
+
+        <p>Because Synchronize commands can potentially delete or
+        replace your files, you should <strong>always test your
+        commands</strong> using the <tt>noaction</tt> option before
+        you run them for real. The <tt>--noaction</tt> option
+        allows you to preview the actions that Synchronize will
+        take, so you can avoid performing a command you will
+        regret.</p>
+
+        <h3>Backing up files to S3</h3>
 
         <p>Let's say you have two directories containing important
         files (eg Documents and Reports) and you want to back them
@@ -423,24 +520,54 @@ synchronize.sh --noaction UP MyBackups Documents Reports
         to download a copy of this directory to a second
         computer.</p>
 
-        <p>Let's simulate this simple case by downloading your S3
-        Documents to a new directory:</p>
+        <p>Let's simulate this simple case by downloading all the
+        files in your S3 account to a new directory:</p>
         <pre>
-mkdir NewDocumentsDirectory
-synchronize.sh DOWN MyBackups NewDocumentsDirectory
+mkdir RestoreDirectory
+synchronize.sh DOWN MyBackups RestoreDirectory
 </pre>
 
         <p>Synchronize will download all the contents of the S3
         directory to the new directory name. Like the UPLOAD
         example above, re-running this command will do nothing as
-        Synchronize will detect that your NewDocumentsDirectory
+        Synchronize will detect that your RestoreDirectory
         directory has the same contents as the S3 directory.</p>
 
-        <p>This same command can restore missing files, such as if
-        you accidently deleted a single file in your Documents
-        directory. Try it now, delete one of the files in
-        NewDocumentsDirectory and re-run the command to restore
-        it.</p>
+        <p>This same command can restore missing files, such as
+        files that have accidentally been deleted. To see how this
+        works, delete one of the files in RestoreDirectory and
+        re-run the command to restore it.</p>
+
+        <h3>Selectively Restoring Files</h3>
+
+        <p>If you have many files backed up in S3, you may wish to
+        download only a subset of these files. Synchronize offers
+        two closely-related techniques to selectively download
+        files from your S3 account. First, you can add a
+        subdirectory path to a command's S3Path argument to
+        download only the files in that subdirectory. In our upload
+        example we backed up the contents of two directories in S3:
+        Documents and Reports. To download only the contents of the
+        Documents subdirectory in S3, you could run the following
+        command:</p>
+        <pre>
+synchronize.sh DOWN MyBackups/Documents/ Documents
+</pre>
+
+        <p>The second technique to download a subset of files is to
+        use a prefix constraint. A prefix constraint is a portion
+        of text that matches the beginning of specific objects in
+        your S3 account. This approach is similar to using a
+        subdirectory name as we did above, but with a subtle
+        difference: the prefix constraint does not need to match an
+        entire subdirectory or file name. For example, if your
+        Documents directory contained some files whose names
+        started with "TaxReport" and other files whose names
+        started with "Projections", you could download only the tax
+        documents with the following command:</p>
+        <pre>
+synchronize.sh DOWN MyBackups/Documents/Tax Documents
+</pre>
 
         <h3>Changed files</h3>
 
@@ -476,8 +603,8 @@ synchronize.sh --keepfiles DOWN MyBackups NewDocumentsDirectory
 
         <h3><a name="options">Options, Options</a></h3>
 
-        <p>This sections describes the Synchronize options in more
-        detail.</p>
+        <p>This sections describes some of the Synchronize options
+        in more detail.</p>
 
         <p><b>noaction</b>: Synchronize will not perform any
         action, and will not upload or download any files, but it
@@ -545,7 +672,8 @@ synchronize.sh --keepfiles DOWN MyBackups NewDocumentsDirectory
     <div id="footer">
       <!-- Start Footer -->
 
-      <p>© 2008 James Murty</p>
+      <p>© 2008 <a href="http://www.jamesmurty.com">James
+      Murty</a></p>
     </div><!-- End Footer -->
   </div><!-- End container -->
 </body>

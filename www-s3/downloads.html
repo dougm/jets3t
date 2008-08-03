@@ -10,7 +10,7 @@
   <meta name="generator"
         content="RapidWeaver" />
   <meta name="generatorversion"
-        content="3.5.1 (Build 264)" />
+        content="3.6.7 (2691)" />
 
   <title>JetS3t - Downloads</title>
   <link rel="stylesheet"
@@ -35,6 +35,20 @@
         media="screen"
         href=
         "rw_common/themes/ideal/css/sidebar/sidebar_right.css" />
+<style type="text/css"
+       media="all">
+/*<![CDATA[*/
+pre {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+
+tt {
+        font-face: arial;
+        font-size: 1.2em;       
+}
+/*]]>*/
+</style>
 <script type="text/javascript"
       src="rw_common/themes/ideal/javascript.js">
 </script>
@@ -77,15 +91,41 @@
         </ul>
       </div><!-- End navigation -->
 
-      <div class="sideHeader"></div><!-- Sidebar header -->
-
       <div id="sidebar">
         <!-- Start sidebar content -->
 
+        <h1 class="sideHeader"></h1><!-- Sidebar header -->
+
+        <br />
+
+        <p>Learn how to take advantage of Amazon Web Services with
+        my book <a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        Programming Amazon Web Services: S3, EC2, SQS, FPS, and
+        SimpleDB</a> (O'Reilly 2008)</p>
+
+        <p align="center"><a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        <img class="right fancy"
+             border="0"
+             src=
+             "http://www.jamesmurty.com/wordpress/wp-content/uploads/2008/03/21xosvbehnl_aa_sl160_.jpg" /></a><img class="right"
+             src=
+             "http://www.assoc-amazon.com/e/ir?t=jamesmurty-20&amp;l=as2&amp;o=1&amp;a=0596515812"
+             width="1"
+             height="1"
+             border="0"
+             alt=""
+             style=
+             "border:none !important; margin:0px !important;" /></p>
         <br />
 
         <p>Your donation will allow me to continue improving
-        JetS3t. Thanks very much, James.</p>
+        JetS3t. Thanks very much,
+        <br />
+        James.</p>
 
         <form action="https://www.paypal.com/cgi-bin/webscr"
               method="post">
@@ -134,11 +174,11 @@
         <h2>Latest Stable Release</h2>
 
         <p>The latest stable version of JetS3t is
-        <strong>0.6.0</strong>.</p>
+        <strong>0.6.1</strong>.</p>
 
         <p>Download the JetS3t suite archive: <a href=
-        "https://jets3t.dev.java.net/releases/jets3t-0.6.0.zip">jets3t-0.6.0.zip</a>
-        (10.9 MB)</p>
+        "https://jets3t.dev.java.net/releases/jets3t-0.6.1.zip">jets3t-0.6.1.zip</a>
+        (11 MB)</p>
 
         <p>The JetS3t release archive includes:</p>
 
@@ -187,7 +227,41 @@
         file or via the Preferences dialog in Cockpit. We recommend
         you use a strong algorithm such as
         PBEWithSHAAnd256BitAES-CBC-BC or
-        PBEWithSHAAndTwofish-CBC.</p><!--
+        PBEWithSHAAndTwofish-CBC.</p>
+
+        <h2>Maven Repository</h2>
+
+        <p>The latest version of JetS3t is available from a Maven
+        repository on the website, the repository URL is:
+        <b>http://jets3t.s3.amazonaws.com/maven2</b></p>
+
+        <p>Here is a <i>pom.xml</i> file that demonstrates how to
+        use this repository.</p>
+        <pre>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+  &lt;groupId&gt;Test&lt;/groupId&gt;
+  &lt;artifactId&gt;Test&lt;/artifactId&gt;
+  &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+  &lt;description&gt;&lt;/description&gt;
+  &lt;repositories&gt;<b>
+    &lt;repository&gt;
+      &lt;name&gt;jets3t&lt;/name&gt;
+      &lt;id&gt;jets3t&lt;/id&gt;
+      &lt;url&gt;http://jets3t.s3.amazonaws.com/maven2&lt;/url&gt;
+    &lt;/repository&gt;</b>
+  &lt;/repositories&gt;
+  &lt;dependencies&gt;<b>
+    &lt;dependency&gt;
+      &lt;groupId&gt;net.java.dev.jets3t&lt;/groupId&gt;
+      &lt;artifactId&gt;jets3t&lt;/artifactId&gt;
+      &lt;version&gt;0.6.0&lt;/version&gt;
+    &lt;/dependency&gt;</b>
+  &lt;/dependencies&gt;
+&lt;/project&gt;
+</pre><!--
 <h2>Current Version (Unstable)</h2>
 
 <p>The current version of JetS3t is available as source code from the <a href="https://jets3t.dev.java.net/source/browse/jets3t/">CVS Code Repository</a>.</p>
@@ -211,6 +285,43 @@ Pre-release of version 0.5.1 (25th April 2007): <a href="prereleases/jets3t-0.5.
             <th>Download</th>
 
             <th>Notes</th>
+          </tr>
+
+          <tr valign="top">
+            <td>0.6.1</td>
+
+            <td>10th August 2008</td>
+
+            <td><a href=
+            "https://jets3t.dev.java.net/releases/jets3t-0.6.1.zip">
+            jets3t-0.6.1.zip</a> (11 MB)</td>
+
+            <td>
+              Bug fixes and enhancements. Highlights include:
+
+              <ul>
+                <li>Added support for copying, moving, and renaming
+                S3 objects with the programming toolkit and Cockpit
+                application</li>
+
+                <li>The metadata associated with objects can now be
+                updated without replacing the objects' data</li>
+
+                <li>Improved data verification options for ensuring
+                that information is not corrupted in transit</li>
+
+                <li>Added an XML processing tweak to the REST
+                service to prevent misinterpretation of object
+                names that contain carriage return characters</li>
+
+                <li>The Synchronize application supports new
+                options to improve performance and decrease memory
+                requirements when synchronizing large numbers of
+                files</li>
+              </ul>Refer to the <a href="RELEASE_NOTES.txt"
+                  target="_blank">RELEASE_NOTES.txt</a> document
+                  for a full list of enhancements.
+            </td>
           </tr>
 
           <tr valign="top">
@@ -348,7 +459,8 @@ Pre-release of version 0.5.1 (25th April 2007): <a href="prereleases/jets3t-0.5.
     <div id="footer">
       <!-- Start Footer -->
 
-      <p>© 2008 James Murty</p>
+      <p>© 2008 <a href="http://www.jamesmurty.com">James
+      Murty</a></p>
     </div><!-- End Footer -->
   </div><!-- End container -->
 </body>

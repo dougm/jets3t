@@ -9,7 +9,7 @@
 		<key>page1</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:52:42Z</date>
+			<date>2008-08-03T12:55:36Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -20,10 +20,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					h30l2fg6iZhqh5loVeRdhQ==
+					wpHaaKqO8izb1nA4PHcxOw==
 					</data>
 					<key>Size</key>
-					<integer>12064</integer>
+					<integer>13262</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -34,7 +34,7 @@
 		<key>page10</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:38:32Z</date>
+			<date>2008-08-03T12:55:36Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -45,10 +45,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					QUoodQ0IyqddKuH3aFwRmw==
+					1EeWmHxHTLQPGJrvMCOrBQ==
 					</data>
 					<key>Size</key>
-					<integer>35963</integer>
+					<integer>37165</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -84,7 +84,7 @@
 		<key>page12</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:07:25Z</date>
+			<date>2008-08-03T12:55:36Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -95,10 +95,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					2QoJbRSSYpAxxLPjorRhew==
+					mwaWymi0C5HTi5h2G29I/A==
 					</data>
 					<key>Size</key>
-					<integer>29714</integer>
+					<integer>35259</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -109,7 +109,7 @@
 		<key>page2</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:07:25Z</date>
+			<date>2008-08-03T12:55:36Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -120,10 +120,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					dVKQYhs0RQio+E72GMD5yQ==
+					YhdK++b1sViWHuvv2KFOPw==
 					</data>
 					<key>Size</key>
-					<integer>12584</integer>
+					<integer>13760</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>

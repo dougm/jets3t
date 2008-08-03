@@ -9,7 +9,7 @@
 		<key>page0</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:07:25Z</date>
+			<date>2008-08-03T12:51:40Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -20,10 +20,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					QeLaBGnr0WouqEzNU+L18A==
+					Uaeg4FbjN7u3m8svcWGJ2w==
 					</data>
 					<key>Size</key>
-					<integer>13411</integer>
+					<integer>14609</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -34,7 +34,7 @@
 		<key>page11</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:07:27Z</date>
+			<date>2008-02-19T06:48:23Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -45,10 +45,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					Ulx0tm/pLUa9p7dbwQpZDA==
+					uYv7DBEw+XZPwgBucEKPGw==
 					</data>
 					<key>Size</key>
-					<integer>4010</integer>
+					<integer>4052</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -84,7 +84,7 @@
 		<key>page15</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:07:27Z</date>
+			<date>2008-08-03T12:55:38Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -95,10 +95,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					LeLXpUSALYNFGyJuEWD0og==
+					Gffjm7hOUqslGLdpY+wsEA==
 					</data>
 					<key>Size</key>
-					<integer>3521</integer>
+					<integer>4708</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -109,7 +109,7 @@
 		<key>page3</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:52:42Z</date>
+			<date>2008-08-03T12:55:38Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -120,10 +120,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					flZ8zs8mLuj0u5iUgyYf5w==
+					2nxv0Dnn7DlaJTRNqBaJxg==
 					</data>
 					<key>Size</key>
-					<integer>9242</integer>
+					<integer>10440</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>
@@ -134,7 +134,7 @@
 		<key>page9</key>
 		<dict>
 			<key>CreationDate</key>
-			<date>2008-02-07T06:07:27Z</date>
+			<date>2008-08-03T12:55:38Z</date>
 			<key>DigestAlgorithm</key>
 			<string>MD5</string>
 			<key>DocumentGUID</key>
@@ -145,10 +145,10 @@
 				<dict>
 					<key>Digest</key>
 					<data>
-					ch8XSRDYMlcSDFF5BdACaw==
+					CzMbz3cxQM9sFhWaN4ruIA==
 					</data>
 					<key>Size</key>
-					<integer>14175</integer>
+					<integer>18299</integer>
 				</dict>
 			</dict>
 			<key>PageID</key>

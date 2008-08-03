@@ -10,7 +10,7 @@
   <meta name="generator"
         content="RapidWeaver" />
   <meta name="generatorversion"
-        content="3.5.1 (Build 264)" />
+        content="3.6.7 (2691)" />
 
   <title>JetS3t - Cockpit</title>
   <link rel="stylesheet"
@@ -112,15 +112,41 @@ tt {
         </ul>
       </div><!-- End navigation -->
 
-      <div class="sideHeader"></div><!-- Sidebar header -->
-
       <div id="sidebar">
         <!-- Start sidebar content -->
 
+        <h1 class="sideHeader"></h1><!-- Sidebar header -->
+
+        <br />
+
+        <p>Learn how to take advantage of Amazon Web Services with
+        my book <a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        Programming Amazon Web Services: S3, EC2, SQS, FPS, and
+        SimpleDB</a> (O'Reilly 2008)</p>
+
+        <p align="center"><a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        <img class="right fancy"
+             border="0"
+             src=
+             "http://www.jamesmurty.com/wordpress/wp-content/uploads/2008/03/21xosvbehnl_aa_sl160_.jpg" /></a><img class="right"
+             src=
+             "http://www.assoc-amazon.com/e/ir?t=jamesmurty-20&amp;l=as2&amp;o=1&amp;a=0596515812"
+             width="1"
+             height="1"
+             border="0"
+             alt=""
+             style=
+             "border:none !important; margin:0px !important;" /></p>
         <br />
 
         <p>Your donation will allow me to continue improving
-        JetS3t. Thanks very much, James.</p>
+        JetS3t. Thanks very much,
+        <br />
+        James.</p>
 
         <form action="https://www.paypal.com/cgi-bin/webscr"
               method="post">
@@ -182,10 +208,10 @@ tt {
         <br />
         <a target="_blank"
            href=
-           "../applets-jets3t-0.6.0/jets3t-cockpit.html"><font size=
+           "../applets-jets3t-0.6.1/jets3t-cockpit.html"><font size=
            "2">Cockpit Online</font></a>
         <br />
-        <sup>Version 0.6.0, approximate download size 3 MB</sup>
+        <sup>Version 0.6.1, approximate download size 3 MB</sup>
         <br />
         Sun's JRE plugin version 1.4 or later is required, and you
         will have to accept the certificate used to sign the
@@ -198,14 +224,25 @@ tt {
 
         <ul>
           <li>Manage <a href="#buckets">buckets</a> and <a href=
-          "#objects">objects</a>in your Amazon S3 account</li>
+          "#objects">objects</a> in your Amazon S3 account</li>
 
           <li>Specify where your buckets will be <a href=
-          "#location">located</a><font color="red">*</font>, in
-          Europe or the United States</li>
+          "#location">located</a>, in Europe or the United
+          States</li>
 
           <li><a href="#uploads">Upload</a> and <a href=
           "#downloads">download</a> files</li>
+
+          <li><a href="#copy-move-rename">Copy<font color=
+          "red">*</font> or move<font color="red">*</font></a> S3
+          objects within and between buckets</li>
+
+          <li><a href="#copy-move-rename">Rename<font color=
+          "red">*</font></a> one or more S3 objects</li>
+
+          <li><a href="#update-metadata">Update the
+          metadata<font color="red">*</font></a> associated with S3
+          objects</li>
 
           <li>Manage <a href="#acls">Access Control List (ACL)
           permissions</a> for buckets and objects</li>
@@ -216,8 +253,8 @@ tt {
 
           <li>Automatically <a href="#ulprefs">compress (gzip)</a>
           and/or <a href="#ulprefs">encrypt</a> uploaded files. The
-          encryption algorithm is configurable<font color=
-          "red">*</font> in Cockpit's preferences.</li>
+          encryption algorithm is configurable in Cockpit's
+          preferences.</li>
 
           <li>Uses sophisticated <a href="#filecomparisions">file
           comparison</a> techniques to determine whether files have
@@ -228,7 +265,7 @@ tt {
           URLs</a> to make your private objects publicly available
           to others for a limited time. If your bucket is available
           via a virutal host name, create a URL that references
-          this domain<font color="red">*</font></li>
+          this domain</li>
 
           <li>Manage buckets owned by others (<a href=
           "#buckets">third-party buckets</a>)</li>
@@ -253,7 +290,7 @@ tt {
         </ul>
 
         <p><sup>Items with a red star (<font color="red">*</font>)
-        are new in JetS3t version 0.6.0</sup></p>
+        are new in JetS3t version 0.6.1</sup></p>
 
         <h2><a name="manual">Cockpit Users Manual</a></h2>
 
@@ -263,13 +300,14 @@ tt {
         browser applet.</p>
 
         <p>To run the online browser applet visit <a href=
-        "http://jets3t.s3.amazonaws.com/index.html">Cockpit
-        Online</a>.</p>
+        "http://jets3t.s3.amazonaws.com/applets-jets3t-0.6.1/jets3t-cockpit.html">
+        Cockpit Online</a>.</p>
 
         <p>To obtain the stand-alone version download the <a href=
-        "/downloads.html">JetS3t distribution</a> and unzip the
-        archive on your machine. Cockpit can then be run using the
-        included cockpit start scripts.</p>
+        "http://jets3t.s3.amazonaws.com/downloads.html">JetS3t
+        distribution</a> and unzip the archive on your machine.
+        Cockpit can then be run using the included cockpit start
+        scripts.</p>
 
         <h3><a name="login">Log in</a></h3>
 
@@ -464,7 +502,7 @@ tt {
 
         <h4>Object Menu</h4>
 
-        <p><img src="cockpit_assets/ObjectMenu.jpg"
+        <p><img src="cockpit_assets/Cockpit_ObjectMenu.gif"
              alt="Picture of the Object Menu" /></p>
 
         <p>The <b>Objects</b> menu shows all the operations you can
@@ -480,17 +518,23 @@ tt {
           refresh your object listing manually, to be sure it is
           up-to-date.</li>
 
-          <li><b>View object properties...</b>: Displays objects'
-          properties, such as their size, content type, and all
-          metadata items.
-          <br /></li>
+          <li><b>View or Modify object attributes...</b>: Displays
+          objects' properties, such as their size, content type,
+          and their metadata information. You can <a href=
+          "#update-metadata">modify the metadata</a> information
+          associated with objects.</li>
 
-          <li><b>Update object(s) Access Control List(s)...</b>:
-          View and change the access permissions of the selected
+          <li><b>Copy or Move objects...</b>: Displays a dialog
+          that allows you to <a href="#copy-move-rename">copy, move
+          or rename</a> objects within or between your S3
+          buckets.</li>
+
+          <li><b>View or Modify Access Control Lists...</b>: View
+          and change the access permissions of the selected
           object(s) (see <a href="#acls">Access Control
           Lists</a>)</li>
 
-          <li><b>Download object(s)...</b>: This menu item will
+          <li><b>Download objects...</b>: This menu item will
           prompt for a target directory, then download all the
           selected objects into that directory. If the objects
           being downloaded were stored in a directory structure (eg
@@ -498,7 +542,7 @@ tt {
           and files) that directory structure will be re-created in
           the target location.</li>
 
-          <li><b>Upload file(s)...</b>: This menu item will prompt
+          <li><b>Upload files...</b>: This menu item will prompt
           you to choose some files and/or folders to upload.</li>
 
           <li><b>Generate Public GET URL...</b>: Generates a
@@ -514,7 +558,7 @@ tt {
           points to a BitTorrent file, allowing the object to be
           downloaded with a BitTorrent client application.</li>
 
-          <li><b>Delete object(s)</b>: Deletes the currently
+          <li><b>Delete objects...</b>: Deletes the currently
           selected object or objects, after prompting for
           confirmation.</li>
         </ul>
@@ -667,6 +711,145 @@ tt {
         decrypt Encrypted objects, though you will have to set your
         encryption password in the Cockpit Preferences dialog
         before you can download encrypted objects.</p>
+
+        <h3><a name="update-metadata">View or Modify Object
+        Attributes</a></h3>
+
+        <p>When you select the <b>View or Modify Object
+        Attributes...</b> menu item for one or more objects,
+        Cockpit displays the Object Attributes dialog.</p>
+
+        <p><img src="cockpit_assets/Cockpit_ObjectAttributes.gif"
+             alt="Picture of the Object Attributes dialog" /></p>
+
+        <p>This dialog displays the attributes for each of the
+        objects you selected, and you can step through multiple
+        objects using the left and right arrow buttons. Each object
+        has two kinds of attributes: standard attributes such as
+        Size and Last Modified Date that you cannot change, and
+        Metadata attributes such as Content-Type that you can
+        change.</p>
+
+        <p>In this dialog, you can add and remove the metadata
+        items associated with an object using the green plus and
+        minus buttons, and you can change the name or value of a
+        metadata item by double-clicking an entry in the Metadata
+        Attributes table. Note that metadata item names can contain
+        only standard English (ASCII) characters and cannot contain
+        spaces.</p>
+
+        <p>The S3 service supports a subset of HTTP header metadata
+        values, such as Content-Type and Content-Disposition. When
+        you create a metadata item with a HTTP header name that S3
+        recognizes, Cockpit will store the metadata using exactly
+        this name. This means that you can easily set and change
+        the content type value associated with an object in S3, and
+        these HTTP header values will be returned to web browsers
+        that access your objects.</p>
+
+        <p>If you create a metadata item with a name that S3 will
+        not recognize, such as "my-metadata-name", cockpit will
+        automatically alter the metadata name behind the scenes to
+        include the prefix <tt>x-amz-meta-</tt> prefix. This will
+        allow S3 to store the metadata information even though it
+        does not recognize the name as a valid HTTP header.</p>
+
+        <h3><a name="copy-move-rename">Copy, Move or Rename
+        Objects</a></h3>
+
+        <p>When you select the <b>Copy or Move objects...</b> menu
+        item for one or more objects, Cockpit displays the Copy or
+        Move Objects dialog.</p>
+
+        <p><img src="cockpit_assets/Cockpit_CopyOrMoveObjects.gif"
+             alt=
+             "Picture of the Copy or Move Objects dialog" /></p>
+
+        <p>This dialog allows you to do many things with the
+        objects already stored in your S3 account.</p>
+
+        <p>To copy objects from one bucket to another, select the
+        name of the destination bucket in the <b>Copy to Bucket</b>
+        field. To move objects to another bucket, first select the
+        destination bucket then select the <b>Move Objects</b>
+        checkbox. The only difference between copying and moving
+        objects, is that when you select the move option Cockpit
+        will automatically delete the original object
+        <em>after</em> it has been successfully copied.</p>
+
+        <p>As a convenience, Cockpit allows you to specify the
+        access permissions that will apply to the newly copied or
+        moved objects. If you leave the access permissions
+        Unchanged, the new objects will have the same access
+        control settings as the original objects. Alternatively,
+        you can choose to make the new objects Private or Publicly
+        Accessible.</p>
+
+        <p>The Copy or Move Objects dialog also allows you to
+        change the name of your S3 objects when they are copied or
+        moved. By default, the names of the objects you copy or
+        move will be left unchanged. However, if you select the
+        <b>Rename objects with pattern</b> option you can specify a
+        renaming pattern that will apply to each object.</p>
+
+        <p>Renaming patterns can contain any text values, so you
+        can easily rename a single S3 object by simply typing in
+        its new name directly. However, things get more difficult
+        when you are working with multiple objects at once, because
+        each destination object must have a unique name. To help
+        you rename multiple objects at a time, Cockpit supports a
+        number of pattern variables that you can use to construct
+        your destination object names. As you build your renaming
+        pattern, Cockpit displays a preview of the object names
+        that your pattern will produce, so you can make sure it is
+        doing what you want.</p>
+
+        <p>Here are the pattern variables you can use when renaming
+        objects:</p>
+
+        <ul>
+          <li><tt>{key}</tt> The full key/name of the original
+          objects. This variable is useful if you want to add a
+          "subdirectory" prefix to your objects, in which case you
+          could apply the pattern
+          <tt>new/subdir/prefix/{key}</tt></li>
+
+          <li><tt>{path}</tt> The "subdirectory" path of the
+          original objects, for example an object named
+          "this/is/my/object.txt" will have a path value of
+          "this/is/my/".</li>
+
+          <li><tt>{filename}</tt> The filename portion of the
+          original objects' names, for example an object named
+          "this/is/my/object.txt" will have a filename value of
+          "object.txt". This variable is useful if you need to move
+          objects stored in one "subdirectory" to another one, in
+          which case you could apply the pattern
+          <tt>new/subdir/{filename}</tt>.</li>
+
+          <li><tt>{basename}</tt> The portion of the objects'
+          filename prior to the extension, for example an object
+          named "this/is/my/object.txt" will have a basename value
+          of "object". This variable is useful if you need to
+          change the filename extensions for a number of objects,
+          in which case you could apply the pattern
+          <tt>{basename}.newext</tt>. If the original objects
+          included a "subdirectory" portion in their names, you can
+          retain this path informaiton by including the {path}
+          variable like so: <tt>{path}{basename}.newext</tt>.</li>
+
+          <li><tt>{ext}</tt> The extension portion of the objects'
+          filenames, for example an object named
+          "this/is/my/object.txt" will have an ext value of
+          "txt".</li>
+
+          <li><tt>{count}</tt> This variable assigns a unique
+          integer value to every object in alphabetical order,
+          starting from 1. This variable is not likely to be useful
+          very often, but it may help if you need to move multiple
+          objects with the same name into a single
+          "subdirectory".</li>
+        </ul>
 
         <h3><a name="acls">Access Control Lists</a></h3>
 
@@ -828,7 +1011,8 @@ tt {
     <div id="footer">
       <!-- Start Footer -->
 
-      <p>© 2008 James Murty</p>
+      <p>© 2008 <a href="http://www.jamesmurty.com">James
+      Murty</a></p>
     </div><!-- End Footer -->
   </div><!-- End container -->
 </body>

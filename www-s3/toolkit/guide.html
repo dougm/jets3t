@@ -10,7 +10,7 @@
   <meta name="generator"
         content="RapidWeaver" />
   <meta name="generatorversion"
-        content="3.5.1 (Build 264)" />
+        content="3.6.7 (2691)" />
 
   <title>JetS3t - Programmer Guide</title>
   <link rel="stylesheet"
@@ -113,15 +113,41 @@ tt {
         </ul>
       </div><!-- End navigation -->
 
-      <div class="sideHeader"></div><!-- Sidebar header -->
-
       <div id="sidebar">
         <!-- Start sidebar content -->
 
+        <h1 class="sideHeader"></h1><!-- Sidebar header -->
+
+        <br />
+
+        <p>Learn how to take advantage of Amazon Web Services with
+        my book <a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        Programming Amazon Web Services: S3, EC2, SQS, FPS, and
+        SimpleDB</a> (O'Reilly 2008)</p>
+
+        <p align="center"><a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        <img class="right fancy"
+             border="0"
+             src=
+             "http://www.jamesmurty.com/wordpress/wp-content/uploads/2008/03/21xosvbehnl_aa_sl160_.jpg" /></a><img class="right"
+             src=
+             "http://www.assoc-amazon.com/e/ir?t=jamesmurty-20&amp;l=as2&amp;o=1&amp;a=0596515812"
+             width="1"
+             height="1"
+             border="0"
+             alt=""
+             style=
+             "border:none !important; margin:0px !important;" /></p>
         <br />
 
         <p>Your donation will allow me to continue improving
-        JetS3t. Thanks very much, James.</p>
+        JetS3t. Thanks very much,
+        <br />
+        James.</p>
 
         <form action="https://www.paypal.com/cgi-bin/webscr"
               method="post">
@@ -203,13 +229,13 @@ tt {
         libraries to your classpath:</p>
 
         <ul>
-          <li>jets3t-0.6.0.jar (the jets3t 'toolkit' library)</li>
+          <li>jets3t-0.6.1.jar (the jets3t 'toolkit' library)</li>
 
-          <li>commons-logging-1.1.jar</li>
+          <li>commons-logging-1.1.1.jar</li>
 
           <li>commons-codec-1.3.jar</li>
 
-          <li>log4j-1.2.14.jar</li>
+          <li>log4j-1.2.15.jar</li>
         </ul>
 
         <p>In addition to these libraries, you must also add any
@@ -252,8 +278,6 @@ tt {
               <ul>
                 <li>Commons HttpClient :
                 commons-httpclient-3.1.jar</li>
-
-                <li>Commons Codec : commons-codec-1.3.jar</li>
               </ul>
             </td>
           </tr>
@@ -308,14 +332,14 @@ tt {
             available memory.
             <br />
             S3 requires use of DIME attachments for upload objects
-            greater than 1MB, this implementation does not use
-            DIME</td>
+            greater than 1MB; this implementation does not use DIME
+            and therefore cannot support large uploads.</td>
           </tr>
         </table>
 
         <p>Note: If you would prefer to use your own favourite HTTP
         or SOAP library, you can write your own S3Service
-        implementation by extending the class
+        implementation based on the class
         <tt>org.jets3t.service.S3Service</tt>.</p>
 
         <h3>Logging</h3>
@@ -338,7 +362,8 @@ tt {
     <div id="footer">
       <!-- Start Footer -->
 
-      <p>© 2008 James Murty</p>
+      <p>© 2008 <a href="http://www.jamesmurty.com">James
+      Murty</a></p>
     </div><!-- End Footer -->
   </div><!-- End container -->
 </body>

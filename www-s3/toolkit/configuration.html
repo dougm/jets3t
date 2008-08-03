@@ -10,7 +10,7 @@
   <meta name="generator"
         content="RapidWeaver" />
   <meta name="generatorversion"
-        content="3.5.1 (Build 264)" />
+        content="3.6.7 (2691)" />
 
   <title>JetS3t - Advanced Configuration</title>
   <link rel="stylesheet"
@@ -106,15 +106,41 @@ tt {
         </ul>
       </div><!-- End navigation -->
 
-      <div class="sideHeader"></div><!-- Sidebar header -->
-
       <div id="sidebar">
         <!-- Start sidebar content -->
 
+        <h1 class="sideHeader"></h1><!-- Sidebar header -->
+
+        <br />
+
+        <p>Learn how to take advantage of Amazon Web Services with
+        my book <a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        Programming Amazon Web Services: S3, EC2, SQS, FPS, and
+        SimpleDB</a> (O'Reilly 2008)</p>
+
+        <p align="center"><a target="_blank"
+           href=
+           "http://www.amazon.com/gp/product/0596515812?ie=UTF8&amp;tag=jamesmurty-20&amp;linkCode=as2&amp;camp=1789&amp;creative=9325&amp;creativeASIN=0596515812">
+        <img class="right fancy"
+             border="0"
+             src=
+             "http://www.jamesmurty.com/wordpress/wp-content/uploads/2008/03/21xosvbehnl_aa_sl160_.jpg" /></a><img class="right"
+             src=
+             "http://www.assoc-amazon.com/e/ir?t=jamesmurty-20&amp;l=as2&amp;o=1&amp;a=0596515812"
+             width="1"
+             height="1"
+             border="0"
+             alt=""
+             style=
+             "border:none !important; margin:0px !important;" /></p>
         <br />
 
         <p>Your donation will allow me to continue improving
-        JetS3t. Thanks very much, James.</p>
+        JetS3t. Thanks very much,
+        <br />
+        James.</p>
 
         <form action="https://www.paypal.com/cgi-bin/webscr"
               method="post">
@@ -176,7 +202,8 @@ tt {
           recognition based on file extensions</li>
 
           <li><a href="#ignore">Ignore files</a>: When uploading
-          files, specific file/directory paths can be ignored</li>
+          files, specific file or directory names can be
+          ignored</li>
         </ul>
 
         <h2><a name="jets3t">JetS3t Properties</a></h2>
@@ -202,6 +229,15 @@ tt {
 </pre>
 
         <h3>Overview of jets3t.properties</h3>
+        <br />
+        <b>Note</b>: If you have a fast Internet connection, you
+        can improve the performance of your S3 client by increasing
+        this setting and the corresponding S3 Service properties
+        <tt>s3service.max-thread-count</tt>and
+        <tt>s3service.admin-max-thread-count</tt>. However, be
+        careful because if you increase this value too much for
+        your connection you may exceed your available bandwidth and
+        cause communications errors.
 
         <table bgcolor="#FAFAFA"
                summary="Guide to jets3t.properties">
@@ -231,11 +267,12 @@ tt {
             multi-threaded service for upload and download
             operations.
             <br />
-            <b>Note</b>: This value should not exceed the maximum
-            number of connections available, such as is set by the
-            property <tt>httpclient.max-connections</tt>
+            Default: <tt>4</tt>
             <br />
-            Default: <tt>4</tt></td>
+            <b>Note</b>: This value <strong>must not</strong>
+            exceed the maximum number of HTTP connections available
+            to JetS3t, as set by the property
+            <tt>httpclient.max-connections</tt></td>
           </tr>
 
           <tr>
@@ -250,11 +287,12 @@ tt {
             most systems can reliably use many more administrative
             threads than upload/download threads.
             <br />
-            <b>Note</b>: This value should not exceed the maximum
-            number of connections available, such as is set by the
-            property <tt>httpclient.max-connections</tt>
+            Default: <tt>10</tt>
             <br />
-            Default: <tt>10</tt></td>
+            <b>Note</b>: This value <strong>must not</strong>
+            exceed the maximum number of HTTP connections available
+            to JetS3t, as set by the property
+            <tt>httpclient.max-connections</tt></td>
           </tr>
 
           <tr>
@@ -267,8 +305,9 @@ tt {
             will not exceed their available memory by buffering
             data
             <br />
-            <b>Note</b>: Applies only to InputStream-based uploads,
-            not uploads based on files
+            <b>Note</b>: Applies only to uploads that obtain data
+            from a non-markable InputStream. Uploads of data in
+            File or String objects do not need to be buffered.
             <br />
             Default: <tt>131072</tt></td>
           </tr>
@@ -277,12 +316,12 @@ tt {
             <td valign="top">
             <b><tt>s3service.internal-error-retry-max</tt></b></td>
 
-            <td valign="top">The maximum number of times each
-            connection that fails with S3 InternalServer errors
-            will be retried. To disable retries of InternalError
-            failures set this to 0.
+            <td valign="top">The maximum number of retries that
+            will be attempted when an S3 connection fails with an
+            InternalServer error. To disable retries of
+            InternalError failures, set this to 0.
             <br />
-            <b>Note</b>: After each failure the service waits
+            <b>Note</b>: After each failure, the service pauses
             before retrying. The time to wait is calculated with
             the formula:
             <br />
@@ -295,9 +334,9 @@ tt {
             <td valign="top">
             <b><tt>s3service.default-bucket-location</tt></b></td>
 
-            <td valign="top">The location in which buckets will be
-            created by default. This value may be <tt>US</tt> or
-            <tt>EU</tt>.
+            <td valign="top">The default geographical location in
+            which S3 buckets will be created. This value may be
+            <tt>US</tt> or <tt>EU</tt>.
             <br />
             Default: <tt>US</tt></td>
           </tr>
@@ -321,14 +360,15 @@ tt {
             <td valign="top">By default, JetS3t will always
             incorporate bucket names that are DNS-compatible into
             the host name of its requests. For example, a request
-            addressing the bucket "mybucket" will be sent to the
-            host name "mybucket.s3.amazonaws.com". If you set this
-            property to true, JetS3t will put bucket names in the
-            request's path instead of its host name, for example
-            "s3.amazonaws.com/mybucket". This behaviour may be
-            useful for testing purposes, or if DNS problems prevent
-            the default host name addressing format from working
-            correctly.
+            directed at the bucket named "mybucket" will be sent to
+            the host name "mybucket.s3.amazonaws.com". If you set
+            this property to true, JetS3t will specify bucket names
+            in the request path of the HTTP message instead of the
+            Host header, for example:
+            "http://s3.amazonaws.com/mybucket". This behaviour may
+            be useful for testing purposes, or if DNS problems
+            prevent the default host name addressing format from
+            working correctly.
             <br />
             <b>Note</b>: If you set this property to true, you will
             be unable to access buckets located in the EU.
@@ -389,11 +429,6 @@ tt {
             <td valign="top">The maximum number of simultaneous
             connections to allow
             <br />
-            <b>Note</b>: Be careful increasing this from the
-            default value, as communications errors can result if
-            it is set too high for your system/connection/usage
-            scenarios
-            <br />
             Default: <tt>10</tt></td>
           </tr>
 
@@ -402,11 +437,11 @@ tt {
             <b><tt>httpclient.stale-checking-enabled</tt></b></td>
 
             <td valign="top">"Determines whether stale connection
-            check is to be used. Disabling stale connection check
-            may result in slight performance improvement at the
-            risk of getting an I/O error when executing a request
-            over a connection that has been closed at the server
-            side."
+            checking is to be used. Disabling stale connection
+            check may result in slight performance improvement at
+            the risk of getting an I/O error when executing a
+            request over a connection that has been closed at the
+            server side." (from HttpClient documentation)
             <br />
             Default: <tt>true</tt></td>
           </tr>
@@ -437,9 +472,9 @@ tt {
             <b><tt>httpclient.read-throttle</tt></b></td>
 
             <td valign="top">Imposes a rudimentary limit on the
-            bandwidth used for uploads by throttling the speed at
+            bandwidth used for uploads, by throttling the speed at
             which data will be sent to S3. This property specifies
-            the limit in KB/s, specified as an integer.
+            the limit in KB/s, expressed as an integer.
             <br />
             Default: N/A (This property is commented-out by
             default)</td>
@@ -447,9 +482,21 @@ tt {
 
           <tr>
             <td valign="top">
+            <b><tt>httpclient.authentication-preemptive</tt></b></td>
+
+            <td valign="top">Instructs the HttpClient library
+            whether to pre-emtively authenticate HTTP connections.
+            To improve compatibility with NTLM proxies, pre-emtive
+            authentication is disabled by default.
+            <br />
+            Default: false</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
             <b><tt>httpclient.proxy-autodetect</tt></b></td>
 
-            <td valign="top">Indicates that JetS3t should
+            <td valign="top">Indicates whether JetS3t should
             auto-detect the HTTP proxy settings appropriate for the
             local machine.
             <br />
@@ -480,6 +527,11 @@ tt {
             <br />
             Default: N/A (This property is commented-out by
             default)</td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">TCP window size hints for kernel</th>
           </tr>
 
           <tr>
@@ -527,25 +579,16 @@ tt {
             JetS3t applications that upload files to S3 should
             create place-holder objects to represent directories.
             Place-holder objects are named after a directory, have
-            no data content and have the mimetype
-            <tt>application/x-directory</tt>. If this option is set
-            to false, synchronization from a local filesystem and
-            S3 will not include empty directories.
+            no data content, and have the mimetype
+            <tt>application/x-directory</tt>. These place-holder
+            objects are useful because they allow JetS3t to store
+            empty directories in S3, but they may cause conflicts
+            with other S3 clients that use a different technique to
+            store directory names. If this option is set to false,
+            synchronization from a local filesystem to S3 will not
+            include empty directories.
             <br />
             Default: <tt>true</tt></td>
-          </tr>
-
-          <tr>
-            <td valign="top">
-            <b><tt>filecomparer.ignore-panic-dir-placeholders</tt></b></td>
-
-            <td valign="top">Boolean value that indicates whether
-            JetS3t applications that synchronize files with S3
-            should ignore directory place-holder objects created by
-            the Transmit application provided by Panic.
-            <br />
-            Default: N/A (This property is commented-out by
-            default)</td>
           </tr>
 
           <tr>
@@ -601,6 +644,40 @@ tt {
           </tr>
 
           <tr>
+            <td valign="top">
+            <b><tt>filecomparer.ignore-panic-dir-placeholders</tt></b></td>
+
+            <td valign="top">Boolean value that indicates whether
+            JetS3t applications that synchronize files with S3
+            should ignore directory place-holder objects created by
+            the Transmit application (as sold by Panic). If you use
+            both JetS3t and Transmit programs to interact with your
+            S3 account, setting this option to <tt>true</tt> should
+            minimize naming conflicts.
+            <br />
+            Default: N/A (This property is commented-out by
+            default)</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>filecomparer.assume-local-latest-in-mismatch</tt></b></td>
+
+            <td valign="top">Boolean value that indicates whether
+            JetS3t applications that synchronize files with S3
+            should assume that the local file version is the most
+            recent when there is a clash between the last update
+            time as recorded locally and in S3. This option should
+            only be enabled by users who experience errors
+            synchronizing Microsoft Excel files to S3, due to
+            Excels observed habit of altering a file's contents
+            without updating its last-modified timestamp.
+            <br />
+            Default: N/A (This property is commented-out by
+            default)</td>
+          </tr>
+
+          <tr>
             <th align="left"
                 colspan="2">File Download properties</th>
           </tr>
@@ -617,9 +694,33 @@ tt {
             tools that upload files. If this property is set to
             true, it will be possible to retain a file's last
             modified date when that file is downloaded or restored
-            form S3.
+            from S3.
             <br />
-            Default: <tt>false</tt></td>
+            Default: <tt>true</tt></td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">XML Parsing properties</th>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>xmlparser.sanitize-listings</tt></b></td>
+
+            <td valign="top">Boolean value that indicates whether
+            JetS3t should apply a work-around to properly interpret
+            S3 object names that contain carriage return
+            characters. Because S3 returns object names in XML
+            documents that can be misinterpreted by standard XML
+            parsing tools, JetS3t performs and extra translation
+            step to convert troublesome characters into an
+            unambiguous format before the XML parsing takes place.
+            This step may consume more memory and processing time,
+            so you may want to disable it if you are sure that none
+            of your object names contain problematic characters.
+            <br />
+            Default: <tt>true</tt></td>
           </tr>
 
           <tr>
@@ -644,6 +745,36 @@ tt {
             please refer to documentation elsewhere.
             <br />
             Default: <tt>PBEWithMD5AndDES</tt></td>
+          </tr>
+
+          <tr>
+            <th align="left"
+                colspan="2">DevPay Settings</th>
+          </tr>
+
+          <tr>
+            <td valign="top"><b><tt>devpay.user-token</tt></b></td>
+
+            <td valign="top">The user token of an S3 account that
+            is part of an Amazon DevPay product. You should only
+            use this setting when you are interacting with a DevPay
+            S3 account.
+            <br />
+            Default: N/A (This property is commented-out by
+            default)</td>
+          </tr>
+
+          <tr>
+            <td valign="top">
+            <b><tt>devpay.product-token</tt></b></td>
+
+            <td valign="top">The product of an S3 account that is
+            part of an Amazon DevPay product. You should only use
+            this setting when you are interacting with a DevPay S3
+            account.
+            <br />
+            Default: N/A (This property is commented-out by
+            default)</td>
           </tr>
 
           <tr>
@@ -752,7 +883,8 @@ Subfolder/PrivateFolder
     <div id="footer">
       <!-- Start Footer -->
 
-      <p>© 2008 James Murty</p>
+      <p>© 2008 <a href="http://www.jamesmurty.com">James
+      Murty</a></p>
     </div><!-- End Footer -->
   </div><!-- End container -->
 </body>
