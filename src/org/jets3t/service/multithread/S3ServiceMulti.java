@@ -1018,7 +1018,9 @@ public class S3ServiceMulti implements Serializable {
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public boolean downloadObjectsWithSignedURLs(final DownloadPackage[] downloadPackages) {
+    public boolean downloadObjectsWithSignedURLs(final DownloadPackage[] downloadPackages) 
+        throws S3ServiceException 
+    {
         final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
@@ -1031,7 +1033,13 @@ public class S3ServiceMulti implements Serializable {
         DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
         final S3Object[] objects = new S3Object[downloadPackages.length];
         for (int i = 0; i < runnables.length; i++) {
-            objects[i] = downloadPackages[i].getObject();
+            try {
+                URL url = new URL(downloadPackages[i].getSignedUrl());            
+                objects[i] = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
+            } catch (Exception e) {
+                throw new S3ServiceException("Unable to determine S3 Object key name from URL: " + 
+                    downloadPackages[i].getSignedUrl());
+            }
             BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
                         
             incompleteObjectDownloadList.add(objects[i]);

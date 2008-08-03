@@ -63,11 +63,10 @@ public class DownloadPackage {
         this.encryptionUtil = encryptionUtil;
     }
     
-    public DownloadPackage(String signedUrl, S3Object object, File outputFile, 
-        boolean isUnzipping, EncryptionUtil encryptionUtil) 
+    public DownloadPackage(String signedUrl, File outputFile, boolean isUnzipping, 
+        EncryptionUtil encryptionUtil) 
     {
         this.signedUrl = signedUrl;        
-		this.object = object;        
         this.outputFile = outputFile;
         this.isUnzipping = isUnzipping;
         this.encryptionUtil = encryptionUtil;
