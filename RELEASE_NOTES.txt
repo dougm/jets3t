@@ -4,6 +4,7 @@ Version 0.6.1
 
 COCKPIT
 - Added support for copying or moving objects within and between buckets.
+- Added dialog to assist in moving/renaming multiple objects within a bucket.
 - Added support for updating objects with new metadata values.
 - Fixed issue where downloading items to a directory containing many files and 
   directories (eg 250K+) would cause Cockpit to fail with OutOfMemory errors.
@@ -13,7 +14,7 @@ COCKPIT
     
 
 SYNCHRONIZE
-- Synchonize now recognizes when you have specified a partial S3 paths when 
+- Synchonize now recognizes when you have specified a partial S3 path when 
   synchronizing DOWN. A partial path is one that does not exactly match a
   directory path. Partial paths can now act as a prefix test that identifies
   objects in an S3 path, where only the objects in S3 that match the prefix are
@@ -85,7 +86,8 @@ TOOLKIT
 - The XML parsing code now copes better when object names contain a carriage 
   return character. A work-around is applied to prevent the Java XML parser
   from misinterpreting these characters, a fault which could cause some objects
-  to become un-deletable.
+  to become un-deletable. This new feature is enabled by default, but can be
+  disabled with the jets3t.properties setting "xmlparser.sanitize-listings".
 - Changed default AuthenticationPreemptive setting for HttpClient connections 
   from true to false, to improve compatibility with NTLM proxies. Preemptive
   auth can be turned on by setting "httpclient.authentication-preemptive" to 
@@ -100,14 +102,17 @@ TOOLKIT
 - Added a new listObjects method that performs a multi-threaded listing of a
   bucket's contents. You provide an array of prefix strings which serve to 
   divide your objects into a number of "partitions", and the service performs
-  these prefix-based listings in parallel. See ThreadedObjectListing.java for
-  an example of how this feature can be used.
+  these prefix-based listings in parallel. See 
+  src/org/jets3t/samples/ThreadedObjectListing.java for example usage.
 - Added a new notification event ServiceEvent#EVENT_IGNORED_ERRORS that provides
   information about exceptions that were ignored during a multi-threaded S3 
   operation. Exceptions are only ignored if the JetS3t property
   "s3service.ignore-exceptions-in-multi" is set to true.
 
 KUDOS TO:
+
+Shlomo Swidler for numerous improvements to the project's technical 
+documentation and code.
 
 Keith Bonawitz for a patch to improve the handling of data re-transmissions 
 using reset-able input streams.

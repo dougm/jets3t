@@ -942,7 +942,7 @@ public class Synchronize {
         System.out.println("DownloadDirectory : A directory on your computer where downloaded files");
         System.out.println("          will be stored");
         System.out.println();
-        System.out.println("A property file must be available to the application, either as a file named");
+        System.out.println("A property file must be provided to the application, either as a file named");
         System.out.println("'synchronize.properties' in the classpath or via the --properties option. It must");
         System.out.println("contain the following properties:");
         System.out.println("          accesskey : Your AWS Access Key (Required)");
@@ -950,10 +950,11 @@ public class Synchronize {
         System.out.println("          password  : Encryption password (only required when using crypto)");
         System.out.println("          acl       : ACL permissions for uploads (optional)");
         System.out.println("Properties specified in this file will override those in jets3t.properties.");
-        System.out.println("");
-        System.out.println("For more help : Synchronize --help");
-        if (!fullHelp)
-            System.exit(1);        
+        if (!fullHelp) {
+            System.out.println("");
+            System.out.println("For more help : Synchronize --help");
+            System.exit(1);
+        }
 
         System.out.println("");
         System.out.println("Options");
@@ -1015,7 +1016,7 @@ public class Synchronize {
         System.out.println("   this option is specified the properties must contain a password.");
         System.out.println("");
         System.out.println("--properties <filename>");
-        System.out.println("   Load the synchronizer app properties from the given file instead of from");
+        System.out.println("   Load the synchronizer app properties from the given file rather than from");
         System.out.println("   a synchronizer.properties file in the classpath.");
         System.out.println("");
         System.out.println("--acl <ACL string>");
@@ -1033,7 +1034,8 @@ public class Synchronize {
         System.out.println("Report");
         System.out.println("------");
         System.out.println("Report items are printed on a single line with an action flag followed by");
-        System.out.println("the relative path of the file or S3 object. The flag meanings are...");
+        System.out.println("the relative path of the file or S3 object. The report legend follows:");
+        System.out.println("");
         System.out.println("N: A new file/object will be created");
         System.out.println("U: An existing file/object has changed and will be updated");
         System.out.println("D: A file/object existing on the target does not exist on the source and");
