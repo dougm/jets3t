@@ -54,7 +54,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * underlying thread-safe {@link S3Service} implementation. 
  * <p>
  * This service is designed to be run in non-blocking threads that therefore communicates
- * information about its progress by firing {@link ServiceEvent} events. It is the responsiblity
+ * information about its progress by firing {@link ServiceEvent} events. It is the responsibility
  * of applications using this service to correctly handle these events - see the JetS3t application 
  * {@link org.jets3t.apps.synchronize.Synchronize} for examples of how an application can use these 
  * events.
@@ -161,7 +161,7 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
-     * Remvoes a service event listener to from set of listeners that will be notified of events.
+     * Removes a service event listener from the set of listeners that will be notified of events.
      * 
      * @param listener
      * an event listener to remove from the event notification chain.
@@ -395,7 +395,7 @@ public class S3ServiceMulti implements Serializable {
      * resultant object, and if the replaceMetadata flag is true the metadata 
      * items in each object will also be applied to the resultant object. 
      * @param replaceMetadata
-     * if true, the metadata items in the destiniation objects will be stored 
+     * if true, the metadata items in the destination objects will be stored 
      * in S3 by using the REPLACE metadata copying option. If false, the metadata
      * items will be copied unchanged from the original objects using the COPY
      * metadata copying option.s
@@ -459,7 +459,7 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
-     * Copies multiple objects within or between buckets, and sends {@link CopyObjectsEvent} notification events.
+     * Creates multiple objects in a bucket, and sends {@link CreateObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
      * <tt>s3service.max-admin-thread-count</tt>.
@@ -781,7 +781,7 @@ public class S3ServiceMulti implements Serializable {
     }
     
     /**
-     * Retrieves Acess Control List (ACL) information for multiple objects from a bucket, and sends 
+     * Retrieves Access Control List (ACL) information for multiple objects from a bucket, and sends 
      * {@link LookupACLEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
@@ -847,7 +847,7 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
-     * Updates/sets Acess Control List (ACL) information for multiple objects in a bucket, and sends 
+     * Updates/sets Access Control List (ACL) information for multiple objects in a bucket, and sends 
      * {@link UpdateACLEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
@@ -1258,7 +1258,7 @@ public class S3ServiceMulti implements Serializable {
     }
     
     /**
-     * Updates/sets Acess Control List (ACL) information for multiple objects in 
+     * Updates/sets Access Control List (ACL) information for multiple objects in 
      * a bucket, and sends {@link UpdateACLEvent} notification events.
      * The S3 objects are represented as signed URLs.
      * <p>
@@ -2038,7 +2038,7 @@ public class S3ServiceMulti implements Serializable {
                     object = handler.getObjectWithSignedUrl(downloadPackage.getSignedUrl());
             	}
 
-                // Setup monitoring of stream bytes tranferred. 
+                // Setup monitoring of stream bytes transferred. 
                 interruptableInputStream = new InterruptableInputStream(object.getDataInputStream()); 
                 bufferedInputStream = new BufferedInputStream(
                     new ProgressMonitoredInputStream(interruptableInputStream, progressMonitor));
@@ -2298,7 +2298,7 @@ public class S3ServiceMulti implements Serializable {
         private void startPendingThreads() 
             throws Throwable 
         {
-            // Count active threads that are running (ie have been started but final event not fired)
+            // Count active threads that are running (i.e. have been started but final event not fired)
             int runningThreadCount = 0;
             for (int i = 0; i < runnables.length; i++) {
                 if (started[i] && !alreadyFired[i]) {

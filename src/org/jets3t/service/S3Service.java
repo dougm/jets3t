@@ -102,7 +102,7 @@ public abstract class S3Service implements Serializable {
     protected long timeOffset = 0;
         
     /**
-     * Construct an <code>S3Service</code> identified by the given AWS Principal.
+     * Construct an <code>S3Service</code> identified by the given user credentials.
      * 
      * @param awsCredentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
@@ -135,7 +135,7 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Construct an <code>S3Service</code> identified by the given AWS Principal.
+     * Construct an <code>S3Service</code> identified by the given user credentials.
      * 
      * @param awsCredentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
@@ -154,7 +154,7 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
-     * Construct an <code>S3Service</code> identified by the given AWS Principal.
+     * Construct an <code>S3Service</code> identified by the given user credentials.
      * 
      * @param awsCredentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
@@ -927,7 +927,7 @@ public abstract class S3Service implements Serializable {
      * @param conditions
      * the policy conditions applied to the form, specified as policy document
      * condition statements. These statements can be generated with the 
-     * covenience method {@link #generatePostPolicyCondition(String, String, String)}
+     * convenience method {@link #generatePostPolicyCondition(String, String, String)}
      * and its siblings. If this parameter is null, the generated form will not 
      * include a policy document and will not apply any usage conditions.
      * @param inputFields
@@ -1093,7 +1093,8 @@ public abstract class S3Service implements Serializable {
      * the objects' metadata you must perform follow-up <code>getObject</code>
      * or <code>getObjectDetails</code> operations.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can only list the objects in a publicly-readable bucket.
      * 
      * @param bucket
      * the bucket whose contents will be listed. 
@@ -1115,7 +1116,8 @@ public abstract class S3Service implements Serializable {
      * the objects' metadata you must perform follow-up <code>getObject</code>
      * or <code>getObjectDetails</code> operations.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can only list the objects in a publicly-readable bucket.
      * 
      * @param bucket
      * the bucket whose contents will be listed. 
@@ -1179,7 +1181,8 @@ public abstract class S3Service implements Serializable {
      * Returns an object representing the details and data of an item in S3, without applying any
      * preconditions.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object.
      * <p>
      * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
      * The data stream should be consumed and closed as soon as is practical as network connections 
@@ -1204,7 +1207,8 @@ public abstract class S3Service implements Serializable {
      * Returns an object representing the details of an item in S3 without the object's data, and
      * without applying any preconditions.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object's details.
      * 
      * @param bucket
      * the bucket containing the object.
@@ -1246,7 +1250,8 @@ public abstract class S3Service implements Serializable {
      * the objects' metadata you must perform follow-up <code>getObject</code>
      * or <code>getObjectDetails</code> operations.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can list the contents of a publicly-readable bucket.
      * 
      * @param bucket
      * the bucket whose contents will be listed. 
@@ -1275,7 +1280,8 @@ public abstract class S3Service implements Serializable {
      * the objects' metadata you must perform follow-up <code>getObject</code>
      * or <code>getObjectDetails</code> operations.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can list the contents of a publicly-readable bucket.
      * 
      * @param bucketName
      * the name of the the bucket whose contents will be listed. 
@@ -1295,7 +1301,7 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
-     * a given size, and returning each chunk separately. It is the responsility of the caller 
+     * a given size, and returning each chunk separately. It is the responsibility of the caller 
      * to building a complete bucket object listing by performing follow-up requests if necessary.
      * <p>
      * The objects returned by this method contain only minimal information
@@ -1303,7 +1309,8 @@ public abstract class S3Service implements Serializable {
      * the objects' metadata you must perform follow-up <code>getObject</code>
      * or <code>getObjectDetails</code> operations.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can list the contents of a publicly-readable bucket.
      * 
      * @param bucketName
      * the name of the the bucket whose contents will be listed. 
@@ -1314,7 +1321,7 @@ public abstract class S3Service implements Serializable {
      * @param priorLastKey
      * the last object key received in a prior call to this method. The next chunk of objects
      * listed will start with the next object in the bucket <b>after</b> this key name.
-     * This paramater may be null, in which case the listing will start at the beginning of the
+     * This parameter may be null, in which case the listing will start at the beginning of the
      * bucket's object contents.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
@@ -1338,7 +1345,8 @@ public abstract class S3Service implements Serializable {
      * the objects' metadata you must perform follow-up <code>getObject</code>
      * or <code>getObjectDetails</code> operations.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can list the contents of a publicly-readable bucket.
      * 
      * @param bucketName
      * the name of the the bucket whose contents will be listed. 
@@ -1349,7 +1357,7 @@ public abstract class S3Service implements Serializable {
      * @param priorLastKey
      * the last object key received in a prior call to this method. The next chunk of objects
      * listed will start with the next object in the bucket <b>after</b> this key name.
-     * This paramater may be null, in which case the listing will start at the beginning of the
+     * This parameter may be null, in which case the listing will start at the beginning of the
      * bucket's object contents.
      * @param completeListing
      * if true, the service class will automatically perform follow-up requests to 
@@ -1386,6 +1394,8 @@ public abstract class S3Service implements Serializable {
      * Returns a bucket in your S3 account by listing all your buckets
      * (using {@link #listAllBuckets()}), and looking for the named bucket in
      * this list.
+     * <p>
+     * This method cannot be performed by anonymous services.
      *  
      * @param bucketName
      * @return
@@ -1407,9 +1417,10 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Deletes an S3 bucket.
+     * Deletes an S3 bucket. Only the owner of a bucket may delete it.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method cannot be performed by anonymous services.
+     * 
      * 
      * @param bucket
      * the bucket to delete.
@@ -1421,9 +1432,9 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Deletes an S3 bucket.
+     * Deletes an S3 bucket. Only the owner of a bucket may delete it.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method cannot be performed by anonymous services.
      * 
      * @param bucketName
      * the name of the bucket to delete.
@@ -1437,7 +1448,8 @@ public abstract class S3Service implements Serializable {
      * Puts an object inside an existing bucket in S3, creating a new object or overwriting
      * an existing one with the same key.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can put objects into a publicly-writable bucket.
      * 
      * @param bucketName
      * the name of the bucket inside which the object will be put.
@@ -1459,9 +1471,12 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
-     * Copy an object within your S3 account. You can copy an object within a 
+     * Copy an object from your S3 account. You can copy an object within a 
      * single bucket, or between buckets, and can optionally update the object's 
      * metadata at the same time. 
+     * <p>
+     * This method cannot be performed by anonymous services. You must have read 
+     * access to the source object and write access to the destination bucket.
      * <p>
      * An object can be copied over itself, in which case you can update its 
      * metadata without making any other changes.
@@ -1493,6 +1508,7 @@ public abstract class S3Service implements Serializable {
         String destinationBucketName, S3Object destinationObject,
         boolean replaceMetadata) throws S3ServiceException 
     {
+    	assertAuthenticatedConnection("copyObject");
         Map destinationMetadata =
             replaceMetadata ? destinationObject.getModifiableMetadata() : null;
         
@@ -1502,10 +1518,14 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
-     * Move an object within your S3 account. This method works by invoking the
+     * Move an object from your S3 account. This method works by invoking the
      * {@link #copyObject(String, String, String, S3Object, boolean)} method to 
      * copy the original object, then deletes the original object once the 
      * copy has succeeded.
+     * <p>
+     * This method cannot be performed by anonymous services. You must have read 
+     * access to the source object, write access to the destination bucket, and
+     * write access to the source bucket.
      * <p>
      * If the copy operation succeeds but the delete operation fails, this 
      * method will not throw an exception but the result map object will contain
@@ -1561,6 +1581,9 @@ public abstract class S3Service implements Serializable {
      * The original object's metadata is retained, but to apply an access
      * control setting other than private you must specify an ACL in the 
      * destination object.
+     * <p>
+     * This method cannot be performed by anonymous services. You must have  
+     * write access to the source object and write access to the bucket.
      *  
      * @param bucketName
      * the name of the bucket containing the original object that will be copied. 
@@ -1621,7 +1644,8 @@ public abstract class S3Service implements Serializable {
      * Puts an object inside an existing bucket in S3, creating a new object or overwriting
      * an existing one with the same key.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can put objects into a publicly-writable bucket.
      * 
      * @param bucket
      * the bucket inside which the object will be put, which must be valid.
@@ -1645,7 +1669,8 @@ public abstract class S3Service implements Serializable {
     /**
      * Deletes an object from a bucket in S3.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services
+     * can delete objects from publicly-writable buckets.
      * 
      * @param bucket
      * the bucket containing the object to be deleted.
@@ -1662,7 +1687,8 @@ public abstract class S3Service implements Serializable {
     /**
      * Deletes an object from a bucket in S3.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services
+     * can delete objects from publicly-writable buckets.
      * 
      * @param bucketName
      * the name of the bucket containing the object to be deleted.
@@ -1682,7 +1708,8 @@ public abstract class S3Service implements Serializable {
      * An exception is thrown if any of the preconditions fail. 
      * Preconditions are only applied if they are non-null.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services
+     * can get details of publicly-readable objects.
      * 
      * @param bucket
      * the bucket containing the object.
@@ -1711,6 +1738,33 @@ public abstract class S3Service implements Serializable {
             ifMatchTags, ifNoneMatchTags);
     }
 
+    /**
+     * Returns an object representing the details of an item in S3 that meets any given preconditions.
+     * The object is returned without the object's data.
+     * <p>
+     * An exception is thrown if any of the preconditions fail. 
+     * Preconditions are only applied if they are non-null.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services
+     * can get details of publicly-readable objects.
+     * 
+     * @param bucket
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored if null.
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */
     public S3Object getObjectDetails(String bucketName, String objectKey,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
@@ -1720,8 +1774,7 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Returns an object representing the details of an item in S3 that meets any given preconditions.
-     * The object is returned with the object's data.
+     * Returns an object representing the details and data of an item in S3 that meets any given preconditions.
      * <p>
      * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
      * The data stream should be consumed and closed as soon as is practical as network connections 
@@ -1731,7 +1784,8 @@ public abstract class S3Service implements Serializable {
      * An exception is thrown if any of the preconditions fail. 
      * Preconditions are only applied if they are non-null.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services
+     * can get publicly-readable objects.
      * <p>
      * <b>Implementation notes</b><p>
      * Implementations should use {@link #assertValidBucket} assertion.
@@ -1768,8 +1822,7 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Returns an object representing the details of an item in S3 that meets any given preconditions.
-     * The object is returned with the object's data.
+     * Returns an object representing the details and data of an item in S3 that meets any given preconditions.
      * <p>
      * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
      * The data stream should be consumed and closed as soon as is practical as network connections 
@@ -1779,7 +1832,8 @@ public abstract class S3Service implements Serializable {
      * An exception is thrown if any of the preconditions fail. 
      * Preconditions are only applied if they are non-null.
      * <p>
-     * This method can be performed by anonymous services.
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object.
      * <p>
      * <b>Implementation notes</b><p>
      * Implementations should use {@link #assertValidBucket} assertion.
@@ -1817,6 +1871,13 @@ public abstract class S3Service implements Serializable {
      * Applies access control settings to an object. The ACL settings must be included
      * with the object.
      * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs. 
+     * 
      * @param bucket
      * the bucket containing the object to modify.
      * @param object
@@ -1832,6 +1893,13 @@ public abstract class S3Service implements Serializable {
     /**
      * Applies access control settings to an object. The ACL settings must be included
      * with the object.
+     * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
      * 
      * @param bucketName
      * the name of the bucket containing the object to modify.
@@ -1853,6 +1921,13 @@ public abstract class S3Service implements Serializable {
      * Applies access control settings to a bucket. The ACL settings must be included
      * inside the bucket.
      * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * 
      * @param bucket
      * a bucket with ACL settings to apply.
      * @throws S3ServiceException
@@ -1865,6 +1940,13 @@ public abstract class S3Service implements Serializable {
     /**
      * Applies access control settings to a bucket. The ACL settings must be included
      * inside the bucket.
+     * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
      * 
      * @param bucketName
      * a name of the bucket with ACL settings to apply.
@@ -1880,6 +1962,13 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Retrieves the access control settings of an object.
+     * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows read access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
      * 
      * @param bucket
      * the bucket whose ACL settings will be retrieved (if objectKey is null) or the bucket containing the 
@@ -1898,6 +1987,13 @@ public abstract class S3Service implements Serializable {
     /**
      * Retrieves the access control settings of an object.
      * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * 
      * @param bucketName
      * the name of the bucket whose ACL settings will be retrieved (if objectKey is null) or the 
      * name of the bucket containing the object whose ACL settings will be retrieved (if objectKey is non-null).
@@ -1914,6 +2010,13 @@ public abstract class S3Service implements Serializable {
     /**
      * Retrieves the access control settings of a bucket.
      * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * 
      * @param bucket
      * the bucket whose access control settings will be returned.
      * This must be a valid S3Bucket object that is non-null and contains a name.
@@ -1929,6 +2032,13 @@ public abstract class S3Service implements Serializable {
     /**
      * Retrieves the access control settings of a bucket.
      * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * 
      * @param bucketName
      * the name of the bucket whose access control settings will be returned.
      * @return
@@ -1940,7 +2050,7 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
-     * Retrieves the location of a bucket.
+     * Retrieves the location of a bucket. Only the owner of a bucket may retrieve its location.
      * 
      * @param bucketName
      * the name of the bucket whose location will be returned.
@@ -1954,7 +2064,8 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Retrieves the logging status settings of a bucket.
+     * Retrieves the logging status settings of a bucket. Only the owner of a bucket may retrieve
+     * its logging status.
      * 
      * @param bucketName
      * the name of the bucket whose logging status settings will be returned.
@@ -1968,7 +2079,8 @@ public abstract class S3Service implements Serializable {
     
     /**
      * Applies logging settings to a bucket, optionally modifying the ACL permissions for the 
-     * logging target bucket to ensure log files can be written to it.
+     * logging target bucket to ensure log files can be written to it. Only the owner of
+     * a bucket may change its logging status.
      * 
      * @param bucketName
      * the name of the bucket the logging settings will apply to.

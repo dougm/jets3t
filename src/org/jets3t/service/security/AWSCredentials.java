@@ -306,7 +306,7 @@ public class AWSCredentials implements Serializable {
     }
 
     /**
-     * Console utility to store AWS credential information in an encrypted file in the toolkit's
+     * Console utility to store AWS credentials information in an encrypted file in the toolkit's
      * default preferences directory.
      * <p>
      * This class can be run from the command line as:

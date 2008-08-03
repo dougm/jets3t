@@ -59,7 +59,7 @@ public class CodeSamples {
          */
 
         /*
-         * Connnecting to S3
+         * Connecting to S3
          */
         
         // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. 
@@ -469,7 +469,7 @@ public class CodeSamples {
         // of the S3 ACL mechanism into practice.
         
         // ACL settings may be provided with a bucket or object when it is created, or the ACL of 
-        // existing items may be updated. Let's start by creating a bucket with default (ie private) 
+        // existing items may be updated. Let's start by creating a bucket with default (i.e. private) 
         // access settings, then making it public.
         
         // Create a bucket in S3.
@@ -521,7 +521,7 @@ public class CodeSamples {
          * Temporarily make an Object available to anyone 
          */
         
-        // A private object stored in S3 can be made publicy available for a limited time using a 
+        // A private object stored in S3 can be made publicly available for a limited time using a 
         // signed URL. The signed URL can be used by anyone to download the object, yet it includes 
         // a date and time after which the URL will no longer work.
         
@@ -541,9 +541,9 @@ public class CodeSamples {
         // If you use the generated URL in a web browser within 5 minutes, you will be able to view 
         // the object's contents. After 5 minutes, the URL will no longer work and you will only 
         // see an Access Denied message.
-        String url = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
+        String signedUrl = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
             awsCredentials, expiryDate, false);
-        System.out.println("Signed URL: " + url);
+        System.out.println("Signed URL: " + signedUrl);
         
         
         /*

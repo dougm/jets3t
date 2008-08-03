@@ -148,7 +148,7 @@ public class Jets3tProperties implements Serializable {
      * an input stream containing property name/value pairs in a format that can be read by
      * {@link Properties#load(InputStream)}. 
      * @param propertiesSource
-     * a name for the source of the properties, such as a properties file name or identifer. This
+     * a name for the source of the properties, such as a properties file name or identifier. This
      * is only used to generate meaningful debug messages when properties are updated, so it is
      * possible to tell where the updated property value came from.
      * 
@@ -169,7 +169,7 @@ public class Jets3tProperties implements Serializable {
      * @param properties
      * the object containing properties that will be merged into this set of properties.
      * @param propertiesSource
-     * a name for the source of the properties, such as a properties file name or identifer. This
+     * a name for the source of the properties, such as a properties file name or identifier. This
      * is only used to generate meaningful debug messages when properties are updated, so it is
      * possible to tell where the updated property value came from.
      * 
@@ -187,7 +187,7 @@ public class Jets3tProperties implements Serializable {
      * @param newProperties
      * the object containing properties that will be merged into this set of properties.
      * @param propertiesSource
-     * a name for the source of the properties, such as a properties file name or identifer. This
+     * a name for the source of the properties, such as a properties file name or identifier. This
      * is only used to generate meaningful debug messages when properties are updated, so it is
      * possible to tell where the updated property value came from.
      * 
@@ -315,7 +315,7 @@ public class Jets3tProperties implements Serializable {
         return loaded;
     }
     
-    private String trim(String str) {
+    private static String trim(String str) {
         if (str != null) {
             return str.trim();
         } else {

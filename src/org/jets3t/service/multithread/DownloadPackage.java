@@ -33,6 +33,7 @@ import org.jets3t.service.security.EncryptionUtil;
  * with an output file, where the object's data will be written to. 
  * <p>
  * This class is used by {@link S3ServiceMulti#downloadObjects(S3Bucket, DownloadPackage[])}
+ * and {@link S3ServiceSimpleMulti#downloadObjects(S3Bucket, DownloadPackage[])}
  * to download objects.   
  * 
  * @author James Murty

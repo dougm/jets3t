@@ -41,13 +41,29 @@ public class S3Bucket extends BaseS3Object {
     private String location = LOCATION_US;
     private boolean isLocationKnown = false;
     
+    /**
+     * Create a bucket without any name or location specified
+     */
     public S3Bucket() {        
     }
     
+    /**
+     * Create a bucket with a name. All buckets in S3 share a single namespace, 
+     * so choose a unique name for your bucket. 
+     * @param name the name for the bucket
+     */
     public S3Bucket(String name) {
         this.name = name;
     }
 	
+    /**
+     * Create a bucket with a name and a location. All buckets in S3 share a single namespace, 
+     * so choose a unique name for your bucket. 
+     * @param name the name for the bucket
+     * @param location A string representing the location. Legal values include
+     * {@link #LOCATION_US} and null (which are equivalent), or 
+     * {@link #LOCATION_EUROPE}.
+     */
     public S3Bucket(String name, String location) {
         this.name = name;
         this.location = location;
@@ -61,20 +77,34 @@ public class S3Bucket extends BaseS3Object {
             + "] Metadata=" + getMetadataMap();
 	}
 	
+    /**
+     * @return
+     * the bucket's owner, or null if it is unknown. 
+     */
 	public S3Owner getOwner() {
 		return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
 	}
 
+	/**
+	 * Sets the bucket's owner in S3 - this should only be used internally by JetS3t
+	 * methods that retrieve information directly from S3.
+	 *  
+	 * @param owner
+	 */
 	public void setOwner(S3Owner owner) {
         addMetadata(METADATA_HEADER_OWNER, owner);
 	}	
 
+	/**
+	 * @return
+	 * the bucket's creation date, or null if it is unknown.
+	 */
 	public Date getCreationDate() {
 		return (Date) getMetadata(METADATA_HEADER_CREATION_DATE);
 	}
 	
     /**
-     * Set's the bucket's creation date in S3 - this should only be used internally by JetS3t
+     * Sets the bucket's creation date in S3 - this should only be used internally by JetS3t
      * methods that retrieve information directly from S3.
      * 
      * @param creationDate
@@ -83,18 +113,37 @@ public class S3Bucket extends BaseS3Object {
 		addMetadata(METADATA_HEADER_CREATION_DATE, creationDate);
 	}
 
+	/**
+	 * @return 
+	 * the bucket's Access Control List, or null if it is unknown.
+	 */
 	public AccessControlList getAcl() {
 		return acl;
 	}
 
+	/**
+	 * Sets the bucket's Access Control List in S3 - this should only be used internally by J3tS3t
+	 * methods that retrieve information directly from S3.
+	 * 
+	 * @param acl
+	 */
 	public void setAcl(AccessControlList acl) {
 		this.acl = acl;
 	}
 
+	/**
+	 * @return
+	 * the name of the bucket.
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * Set the name of the bucket. All buckets in S3 share a single namespace, 
+     * so choose a unique name for your bucket. 
+	 * @param name the name for the bucket
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}

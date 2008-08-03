@@ -94,7 +94,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the file the object will represent. This file must exist and be readable.
      * 
      * @throws IOException when an i/o error occurred reading the file
-     * @throws NoSuchAlgorithmException when this JRE doesn't support MD5 hashes
+     * @throws NoSuchAlgorithmException when this JRE doesn't support the MD5 hash algorithm 
      */
     public S3Object(S3Bucket bucket, File file) throws NoSuchAlgorithmException, IOException {
         this(bucket, file.getName());
@@ -112,7 +112,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * key, the given string as its data content (encoded as UTF-8), a content type of 
      * <code>text/plain; charset=utf-8</code>, and a content length matching the 
      * string's length.
-     * The file's MD5 hash value is also calculated and provided to S3, so the service
+     * The given string's MD5 hash value is also calculated and provided to S3, so the service
      * can verify that no data are corrupted in transit.
      * 
      * @param bucket
@@ -124,7 +124,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * This string cannot be null.
      * 
      * @throws IOException 
-     * @throws NoSuchAlgorithmException 
+     * @throws NoSuchAlgorithmException when this JRE doesn't support the MD5 hash algorithm 
      */
     public S3Object(S3Bucket bucket, String key, String dataString) throws NoSuchAlgorithmException, IOException 
     {
@@ -194,7 +194,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * Sets an input stream containing the data content to associate with this object.
      * <p>
      * <b>Note</b>: If the data content comes from a file, use the alternate method
-     * {@link #setDataInputFile(File)} which allows object's to lazily open files and avoid any
+     * {@link #setDataInputFile(File)} which allows objects to lazily open files and avoid any
      * Operating System limits on the number of files that may be opened simultaneously. 
      * <p>
      * <b>Note 2</b>: This method does not calculate an MD5 hash of the input data, 
@@ -246,7 +246,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
     
     /**
      * @return
-     * the ETag value of the object as returned by S3 when an object is created. The ETag values
+     * the ETag value of the object as returned by S3 when an object is created. The ETag value
      * does not include quote (") characters. This value will be null if the object's ETag value
      * is not known, such as when an object has not yet been uploaded to S3.
      */
@@ -318,7 +318,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
     /**
      * @return
      * the last modified date of this object, as provided by S3. If the last modified date is not
-     * available (eg if the object has only just been created) the object's creation date is 
+     * available (e.g. if the object has only just been created) the object's creation date is 
      * returned instead. If both last modified and creation dates are unavailable, null is returned.
      */
     public Date getLastModifiedDate() {    	
@@ -333,7 +333,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
     /**
      * Set this object's last modified date based on information returned from S3.
      * This method should only by used internally by code that reads the last modified date
-     * from an S3 response, it must not be set prior to uploading data to S3.
+     * from an S3 response; it must not be set prior to uploading data to S3.
      * 
      * @param lastModifiedDate
      */
@@ -361,7 +361,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
 
     /**
      * @return
-     * the content length, or size, of this object's data. If the content length is unknown 0 is returned.
+     * the content length, or size, of this object's data, or 0 if it is unknown.
      */
 	public long getContentLength() {
 		Object contentLength = getMetadata(METADATA_HEADER_CONTENT_LENGTH);
@@ -372,10 +372,23 @@ public class S3Object extends BaseS3Object implements Cloneable {
 		}
 	}
 	
+	/**
+	 * Set this object's content length. The content length is set internally by JetS3t for
+	 * objects that are retrieved from S3. For objects that are uploaded into S3, JetS3t
+	 * automatically calculates the content length if the data is provided to the String- or 
+     * File-based S3Object constructor. If you manually provide data to this object via the
+     * {@link #setDataInputStream(InputStream)} or {@link #setDataInputFile(File)} methods, 
+     * you must also set the content length value.
+	 * @param size
+	 */
 	public void setContentLength(long size) {
         addMetadata(METADATA_HEADER_CONTENT_LENGTH, String.valueOf(size));
 	}
 
+	/**
+	 * @return
+	 * the storage class of the object. 
+	 */
 	public String getStorageClass() {
 		return (String) getMetadata(METADATA_HEADER_STORAGE_CLASS);
 	}
@@ -390,52 +403,100 @@ public class S3Object extends BaseS3Object implements Cloneable {
         addMetadata(METADATA_HEADER_STORAGE_CLASS, storageClass);
 	}
 
+	/**
+	 * @return
+	 * the content type of the object
+	 */
 	public String getContentType() {
 		return (String) getMetadata(METADATA_HEADER_CONTENT_TYPE);
 	}
 
+	/**
+	 * Set the content type of the object. JetS3t can help you determine the 
+     * content type when the associated data is a File (see {@link Mimetypes}). 
+	 * You should set the content type for associated String or InputStream data.
+	 * 
+	 * @param contentType
+	 */
 	public void setContentType(String contentType) {
         addMetadata(METADATA_HEADER_CONTENT_TYPE, contentType);
 	}
 	
+	/**
+	 * @return
+	 * the content language of this object, or null if it is unknown.
+	 */
     public String getContentLanguage() {
         return (String) getMetadata(METADATA_HEADER_CONTENT_LANGUAGE);
     }
 
+    /**
+     * Set the content language of the object. 
+     * @param contentLanguage
+     */
     public void setContentLanguage(String contentLanguage) {
         addMetadata(METADATA_HEADER_CONTENT_LANGUAGE, contentLanguage);
     }
 
+    /**
+     * @return
+     * the content disposition of this object, or null if it is unknown.
+     */
     public String getContentDisposition() {
         return (String) getMetadata(METADATA_HEADER_CONTENT_DISPOSITION);
     }
 
+    /**
+     * Set the content disposition of the object.
+     * @param contentDisposition
+     */
     public void setContentDisposition(String contentDisposition) {
         addMetadata(METADATA_HEADER_CONTENT_DISPOSITION, contentDisposition);
     }
 
+    /**
+     * @return
+     * the content encoding of this object, or null if it is unknown.
+     */
     public String getContentEncoding() {
         return (String) getMetadata(METADATA_HEADER_CONTENT_ENCODING);
     }
 
+    /**
+     * Set the content encoding of this object.
+     * @param contentEncoding
+     */
     public void setContentEncoding(String contentEncoding) {
         addMetadata(METADATA_HEADER_CONTENT_ENCODING, contentEncoding);
     }
 
+    /**
+     * @return
+     * the name of the bucket this object belongs to or will be placed into, or null if none is set.
+     */
     public String getBucketName() {
 		return bucketName;
 	}
-
+    
+    
+	/**
+	 * Set the name of the bucket this object belongs to or will be placed into.
+	 * @param bucketName the name for the bucket.
+	 */
 	public void setBucketName(String bucketName) {
 		this.bucketName = bucketName;
 	}
 
+	/**
+	 * @return
+	 * the object's ACL, or null if it is unknown.
+	 */
 	public AccessControlList getAcl() {
 		return acl;
 	}
 
     /**
-     * Sets the object's ACL. If a pre-canned REST ACL is used, the plain-text representation
+     * Set the object's ACL. If a pre-canned REST ACL is used, the plain-text representation
      * of the canned ACL is also added as a metadata header <code>x-amz-acl</code>. 
      * 
      * @param acl
@@ -458,10 +519,18 @@ public class S3Object extends BaseS3Object implements Cloneable {
         }
 	}
 
+	/**
+	 * @return
+	 * the key of this object.
+	 */
 	public String getKey() {
 		return key;
 	}
 
+	/**
+	 * Set the key of this object.
+	 * @param key the key for this object.
+	 */
 	public void setKey(String key) {
 		this.key = key;
 	}
@@ -470,7 +539,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * @return
      * true if the object's metadata are considered complete, such as when the object's metadata
      * has been retrieved from S3 by a HEAD request. If this value is not true, the metadata
-     * information in this object should not be considered authoritive.
+     * information in this object should not be considered authoritative.
      */
     public boolean isMetadataComplete() {
         return isMetadataComplete;
@@ -479,6 +548,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
     /**
      * S3 Object metadata are only complete when it is populated with all values following
      * a HEAD or GET request.
+     * This method should only by used by code that reads S3 responses.
      * 
      * @param isMetadataComplete
      */
@@ -489,6 +559,8 @@ public class S3Object extends BaseS3Object implements Cloneable {
     /**
      * Add metadata information to the object. If date metadata items (as recognized by name)
      * are added and the value is not a date, the value is parsed as an ISO 8601 string.
+     * @param name
+     * @param value
      */
     public void addMetadata(String name, Object value) {
     	try {
@@ -507,6 +579,11 @@ public class S3Object extends BaseS3Object implements Cloneable {
     	super.addMetadata(name, value);
     }
     
+    /**
+     * Add all the metadata information to the object from the provided map.
+     * 
+     * @param metadata
+     */
     public void addAllMetadata(Map metadata) {
     	Iterator iter = metadata.entrySet().iterator();
     	while (iter.hasNext()) {
@@ -579,7 +656,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * 
      * @param downloadedData
      * @return
-     * true if the calculated MD5 hash value of the bytes matche this object's 
+     * true if the calculated MD5 hash value of the bytes matches this object's 
      * hash value, false otherwise.
      * 
      * @throws NoSuchAlgorithmException

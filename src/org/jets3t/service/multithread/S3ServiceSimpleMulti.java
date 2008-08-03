@@ -141,7 +141,7 @@ public class S3ServiceSimpleMulti {
      * resultant object, and if the replaceMetadata flag is true the metadata 
      * items in each object will also be applied to the resultant object. 
      * @param replaceMetadata
-     * if true, the metadata items in the destiniation objects will be stored 
+     * if true, the metadata items in the destination objects will be stored 
      * in S3 by using the REPLACE metadata copying option. If false, the metadata
      * items will be copied unchanged from the original objects using the COPY
      * metadata copying option.s
