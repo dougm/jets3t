@@ -108,7 +108,7 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
      * the AWS Access Key provided by the user.
      */
     public String getAWSAccessKey() {
-        return loginCredentialsPanel.getAWSAccessKey();        
+        return loginCredentialsPanel.getAWSAccessKey().trim();        
     }
     
     /**
@@ -116,7 +116,7 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
      * the AWS Secret Key provided by the user.
      */
     public String getAWSSecretKey() {
-        return loginCredentialsPanel.getAWSSecretKey();
+        return loginCredentialsPanel.getAWSSecretKey().trim();
     }
     
     /**
@@ -125,7 +125,7 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
      * prompted to provide one (the askForFriendlyName option was false).
      */
     public String getFriendlyName() {
-        return loginCredentialsPanel.getFriendlyName();
+        return loginCredentialsPanel.getFriendlyName().trim();
     }
     
     /**
