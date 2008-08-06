@@ -913,8 +913,10 @@ public class S3ServiceMulti implements Serializable {
     }
 
     /**
-     * A convenience method to download multiple objects from S3 to pre-existing output streams, which
-     * is particularly useful for downloading objects to files. This method sends 
+     * A convenience method to download multiple objects from S3 to pre-existing 
+     * output streams, which is particularly useful for downloading objects to files. 
+     * The S3 objects can be represented as S3Objects or as signed URLs in a 
+     * {@link DownloadPackage} package. This method sends 
      * {@link DownloadObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
@@ -933,8 +935,11 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
+     * @throws S3ServiceException 
      */
-    public boolean downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) {
+    public boolean downloadObjects(final S3Bucket bucket, 
+        final DownloadPackage[] downloadPackages) throws S3ServiceException
+    {
         final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.        
@@ -947,14 +952,31 @@ public class S3ServiceMulti implements Serializable {
         DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
         final S3Object[] objects = new S3Object[downloadPackages.length];
         for (int i = 0; i < runnables.length; i++) {
-            objects[i] = downloadPackages[i].getObject();
+            if (downloadPackages[i].isSignedDownload()) {
+                // For signed URL downloads, we create a surrogate S3Object purely for monitoring purposes.
+                try {
+                    URL url = new URL(downloadPackages[i].getSignedUrl());            
+                    objects[i] = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
+                } catch (Exception e) {
+                    throw new S3ServiceException("Unable to determine S3 Object key name from signed URL: " + 
+                        downloadPackages[i].getSignedUrl());
+                }
+            } else {
+                objects[i] = downloadPackages[i].getObject();                
+            }
+            
             BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
                         
             incompleteObjectDownloadList.add(objects[i]);
             progressWatchers.add(progressMonitor);
             
-            runnables[i] = new DownloadObjectRunnable(bucket, objects[i].getKey(), 
-                downloadPackages[i], progressMonitor, restoreLastModifiedDate);    
+            if (downloadPackages[i].isSignedDownload()) {
+                runnables[i] = new DownloadObjectRunnable( 
+                    downloadPackages[i], progressMonitor, restoreLastModifiedDate);                
+            } else {
+                runnables[i] = new DownloadObjectRunnable(bucket, objects[i].getKey(), 
+                    downloadPackages[i], progressMonitor, restoreLastModifiedDate);
+            }
         }
 
         int maxThreadCount = this.s3Service.getJetS3tProperties()
@@ -998,10 +1020,13 @@ public class S3ServiceMulti implements Serializable {
 
     /**
      * A convenience method to download multiple objects from S3 to pre-existing 
-     * output streams, which is particularly useful for downloading objects to 
-     * files. The S3 objects are represented as signed URLs.
-     * <p>
+     * output streams, which is particularly useful for downloading objects to files.
      * This method sends {@link DownloadObjectsEvent} notification events.
+     * <p> 
+     * This method can only download S3 objects represented by {@link DownloadPackage} 
+     * packages based on signed UR. To download objects when you don't have
+     * signed URLs, you must use the method 
+     * {@link #downloadObjects(S3Bucket, DownloadPackage[])} 
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
      * <tt>s3service.max-thread-count</tt>.
@@ -1012,79 +1037,26 @@ public class S3ServiceMulti implements Serializable {
      * item. 
      * 
      * @param downloadPackages
-     * an array of download packages containing the object to be downloaded, and able to build
-     * an output stream where the object's contents will be written to.
+     * an array of download packages containing the object to be downloaded, represented
+     * with signed URL strings.
      * 
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
+     * @throws S3ServiceException 
      */
-    public boolean downloadObjectsWithSignedURLs(final DownloadPackage[] downloadPackages) 
-        throws S3ServiceException 
+    public boolean downloadObjects(final DownloadPackage[] downloadPackages) 
+        throws S3ServiceException
     {
-        final List progressWatchers = new ArrayList();        
-        final List incompleteObjectDownloadList = new ArrayList();
-        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
-
-        boolean restoreLastModifiedDate = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("downloads.restoreLastModifiedDate", false);                
-
-        // Start all queries in the background.
-        DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
-        final S3Object[] objects = new S3Object[downloadPackages.length];
-        for (int i = 0; i < runnables.length; i++) {
-            try {
-                URL url = new URL(downloadPackages[i].getSignedUrl());            
-                objects[i] = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
-            } catch (Exception e) {
-                throw new S3ServiceException("Unable to determine S3 Object key name from URL: " + 
-                    downloadPackages[i].getSignedUrl());
+        // Sanity check to ensure all packages are based on signed URLs
+        for (int i = 0; i < downloadPackages.length; i++) {
+            if (!downloadPackages[i].isSignedDownload()) {
+                throw new S3ServiceException(
+                    "The downloadObjects(DownloadPackage[]) method may only be used with " + 
+                    "download packages based on signed URLs. Download package " + (i + 1) +
+                    " of " + downloadPackages.length + " is not based on a signed URL");                
             }
-            BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
-                        
-            incompleteObjectDownloadList.add(objects[i]);
-            progressWatchers.add(progressMonitor);
-            
-            runnables[i] = new DownloadObjectRunnable(downloadPackages[i], progressMonitor, restoreLastModifiedDate);    
         }
-
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
-        // Wait for threads to finish, or be cancelled.        
-        ThreadWatcher threadWatcher = new ThreadWatcher(
-            (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
-        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher, ignoreExceptions) {
-            public void fireStartEvent(ThreadWatcher threadWatcher) {
-                fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));
-            }
-            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                incompleteObjectDownloadList.removeAll(completedResults);                
-                S3Object[] completedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
-                fireServiceEvent(DownloadObjectsEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
-            }
-            public void fireCancelEvent() {
-                S3Object[] incompleteObjects = (S3Object[]) incompleteObjectDownloadList
-                    .toArray(new S3Object[incompleteObjectDownloadList.size()]);
-                fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects, uniqueOperationId));
-            }
-            public void fireCompletedEvent() {
-                success[0] = true;
-                fireServiceEvent(DownloadObjectsEvent.newCompletedEvent(uniqueOperationId));                    
-            }
-            public void fireErrorEvent(Throwable throwable) {
-                fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
-            }
-            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
-                fireServiceEvent(DownloadObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
-            }
-        }).run();
-        
-        return success[0];
+        return downloadObjects(null, downloadPackages);
     }
 
     /**

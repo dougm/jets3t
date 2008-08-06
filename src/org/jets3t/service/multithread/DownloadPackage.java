@@ -30,10 +30,10 @@ import org.jets3t.service.security.EncryptionUtil;
 
 /**
  * A simple container object to associate one of an {@link S3Object} or a signed URL string
- * with an output file, where the object's data will be written to. 
+ * with an output file, to which the S3 object's data will be written. 
  * <p>
- * This class is used by {@link S3ServiceMulti#downloadObjects(S3Bucket, DownloadPackage[])}
- * and {@link S3ServiceSimpleMulti#downloadObjects(S3Bucket, DownloadPackage[])}
+ * This class is used by 
+ * {@link S3ServiceMulti#downloadObjects(org.jets3t.service.model.S3Bucket, DownloadPackage[])}
  * to download objects.   
  * 
  * @author James Murty

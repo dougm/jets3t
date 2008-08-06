@@ -377,9 +377,9 @@ public class CodeSamples {
         // The most obvious place to put this data is into a file, so let's go through an example of 
         // downloading object data into files.
 
-        // To download our objects into files we first must create a S3ObjectAndOutputStream class for 
-        // each object. This class is a simple container which merely associates an object with an 
-        // output stream, to which the object's data will be written.
+        // To download our objects into files we first must create a DownloadPackage class for  
+        // each object. This class is a simple container which merely associates an object with a  
+        // file, to which the object's data will be written.
         
         // Create a DownloadPackage for each object, to associate the object with an output file.
         DownloadPackage[] downloadPackages = new DownloadPackage[5];
@@ -397,7 +397,7 @@ public class CodeSamples {
         // Download the objects.
         simpleMulti.downloadObjects(bucket, downloadPackages);
         System.out.println("Downloaded objects to current working directory");
-
+        
         /*
          * Delete multiple objects 
          */

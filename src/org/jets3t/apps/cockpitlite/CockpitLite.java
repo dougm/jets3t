@@ -1658,8 +1658,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 	                        DownloadPackage[] downloadPackagesArray = (DownloadPackage[])
 	                        	downloadPackageList.toArray(new DownloadPackage[downloadPackageList.size()]);        
 	                       
-	                        // Perform downloads.                		
-	                        s3ServiceMulti.downloadObjectsWithSignedURLs(downloadPackagesArray);
+	                        // Perform downloads.
+                            s3ServiceMulti.downloadObjects(downloadPackagesArray);
 	                	}
             		} catch (Exception e) {
                         log.error("Download failed", e);
