@@ -141,6 +141,26 @@ public class Jets3tProperties implements Serializable {
     }
     
     /**
+     * Removes the property value of the given name. 
+     * 
+     * @param propertyName
+     * the name of the property to remove.
+     */
+    public void clearProperty(String propertyName) {
+        this.properties.remove(propertyName);
+    }
+    
+    /**
+     * Clears (removes) all the property names and values used internally by
+     * this object. Use this method in combination with 
+     * {@link #loadAndReplaceProperties(Properties, String)} to directly 
+     * manage the properties encapsulated in this class.
+     */
+    public void clearAllProperties() {
+        this.properties.clear();
+    }
+    
+    /**
      * Reads properties from an InputStream and stores them in this class's properties object. 
      * If a new property already exists, the property value is replaced.
      *  
