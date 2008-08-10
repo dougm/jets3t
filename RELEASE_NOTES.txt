@@ -47,6 +47,8 @@ TOOLKIT
   move, rename and update objects in your S3 account. These operations are
   available through the S3Service as the methods copyObject, moveObject,
   renameObject and updateObjectMetadata.
+- Added support for conditional copying of objects, based on ETag and 
+  Modified Date comparisons.
 - Made it easier to verify that your data is correctly stored in S3 without 
   corruption during transit, by calculating Content-MD5 hash values by default
   in commonly-used S3Object constructors and providing S3Object#verifyData 
@@ -61,7 +63,9 @@ TOOLKIT
 - Fixed bug in RestS3Service that caused failures in some circumstances when 
   buckets were created with the "US" location.
 - S3Service instances can now be configured individually by providing a
-  JetS3tProperties object when constructing the service.
+  JetS3tProperties object when constructing the service. The property values
+  in this object can also be updated programmatically after the object has
+  been constructed.
 - FileComparer now supports an optional setting that makes it assume local files 
   are the latest version when there is a clash between the modification dates 
   and hash values of a local file and an object stored in S3. This option should
@@ -82,7 +86,7 @@ TOOLKIT
 
   * REST Implementation
 
-- Added support for the new Copy Object functionality.
+- Added support for the new Copy Object functionality, and conditional copying.
 - The XML parsing code now copes better when object names contain a carriage 
   return character. A work-around is applied to prevent the Java XML parser
   from misinterpreting these characters, a fault which could cause some objects

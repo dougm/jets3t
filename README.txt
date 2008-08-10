@@ -106,3 +106,16 @@ if errors occur.
 To use JetS3t in high-performance scenarios, the classes should be 
 recompiled using the latest version of Java available to you, and with 
 debugging turned off.
+
+
+* Rebuilding JetS3t
+
+The JetS3t distribution package includes an ANT build script (build.xml) that
+allows you to easily rebuild the project yourself. For example, the following
+command will recompile the JetS3t libary and applications:
+
+ant rebuild-all
+
+To repackage JetS3t applications or applets for redistribution:
+
+ant repackage-applets
