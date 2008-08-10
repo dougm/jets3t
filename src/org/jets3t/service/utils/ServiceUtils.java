@@ -157,14 +157,23 @@ public class ServiceUtils {
      * 
      * @param is
      * input stream from which text data is read.
+     * @param encoding
+     * the character encoding of the textual data in the input stream. If this
+     * parameter is null, the default system encoding will be used.
+     * 
      * @return
      * text data read from the input stream.
      * 
      * @throws IOException
      */
-    public static String readInputStreamToString(InputStream is) throws IOException {
+    public static String readInputStreamToString(InputStream is, String encoding) throws IOException {
         StringBuffer sb = new StringBuffer();
-        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        BufferedReader br = null;
+        if (encoding != null) {
+            br = new BufferedReader(new InputStreamReader(is, encoding));
+        } else {
+            br = new BufferedReader(new InputStreamReader(is));
+        }
         String line = null;
         try {
             while ((line = br.readLine()) != null) {

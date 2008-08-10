@@ -131,7 +131,7 @@ public class FileComparer {
         	}
             try {
                 String ignorePaths = ServiceUtils.readInputStreamToString(
-                    new FileInputStream(jets3tIgnoreFile));
+                    new FileInputStream(jets3tIgnoreFile), null);
                 StringTokenizer st = new StringTokenizer(ignorePaths.trim(), "\n");
                 while (st.hasMoreTokens()) {
                     String ignorePath = st.nextToken();
