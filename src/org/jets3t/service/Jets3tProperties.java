@@ -131,17 +131,24 @@ public class Jets3tProperties implements Serializable {
     }
     
     /**
-     * Sets or over-rides a property value.
+     * Sets or removes a property value.
      * 
      * @param propertyName
+     * the name of the property to set or remove.
      * @param propertyValue
+     * a new value for the property. If this value is null, the named property
+     * will be removed.
      */
     public void setProperty(String propertyName, String propertyValue) {
-        this.properties.put(propertyName, trim(propertyValue));
+        if (propertyValue == null) {
+            this.clearProperty(propertyName);
+        } else {
+            this.properties.put(propertyName, trim(propertyValue));
+        }
     }
     
     /**
-     * Removes the property value of the given name. 
+     * Removes a property name and value. 
      * 
      * @param propertyName
      * the name of the property to remove.
