@@ -74,9 +74,10 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
     {
         super(new GridBagLayout());
         this.ownerFrame = ownerFrame;
-        this.cockpitHomeFolder = Constants.DEFAULT_PREFERENCES_DIRECTORY;
-        if (!cockpitHomeFolder.exists()) {
-            cockpitHomeFolder.mkdirs();
+        if (Constants.DEFAULT_PREFERENCES_DIRECTORY.exists()) {
+            this.cockpitHomeFolder = Constants.DEFAULT_PREFERENCES_DIRECTORY;
+        } else {
+            this.cockpitHomeFolder = new File(System.getProperty("user.home"));
         }
         this.hyperlinkListener = hyperlinkListener;
         

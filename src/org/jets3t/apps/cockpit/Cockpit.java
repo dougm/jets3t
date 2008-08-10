@@ -316,12 +316,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             ErrorDialog.showDialog(ownerFrame, this, message, e);
         }
         
-        // Ensure cockpit's home directory exists.
-        if (!cockpitHomeDirectory.exists()) {
-            log.info("Creating home directory for Cockpit: " + cockpitHomeDirectory);
-            cockpitHomeDirectory.mkdirs();
-        }
-        
         // Load Cockpit configuration files from cockpit's home directory.
         File mimeTypesFile = new File(cockpitHomeDirectory, "mime.types");
         if (mimeTypesFile.exists()) {
