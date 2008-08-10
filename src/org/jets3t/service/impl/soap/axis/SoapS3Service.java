@@ -677,7 +677,8 @@ public class SoapS3Service extends S3Service {
     
     protected Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, String destinationObjectKey,
-        AccessControlList acl, Map destinationMetadata) 
+        AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince, 
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
         throws S3ServiceException 
     {
         try {
@@ -703,8 +704,9 @@ public class SoapS3Service extends S3Service {
             
             CopyObjectResult result = s3SoapBinding.copyObject(
                 sourceBucketName, sourceObjectKey, destinationBucketName, 
-                destinationObjectKey, metadataDirective, metadata, grants, null, 
-                getAWSAccessKey(), timestamp, signature, null);
+                destinationObjectKey, metadataDirective, metadata, grants,
+                ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags,
+                null, getAWSAccessKey(), timestamp, signature, null);
             
             Map resultMap = new HashMap();
             resultMap.put("ETag", result.getETag());

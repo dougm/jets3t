@@ -1301,7 +1301,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 // Compare our locally-calculated hash with the ETag returned by S3.
                 if (!object.getETag().equals(hexMD5OfUploadedData)) {
                     throw new S3ServiceException("Mismatch between MD5 hash of uploaded data ("
-                        + hexMD5OfUploadedData + ") and ETag returned by S3 (" + object.getETag() + ")");
+                        + hexMD5OfUploadedData + ") and ETag returned by S3 (" + object.getETag() + ") for: "
+                        + object.getKey());
+                } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Object upload was automatically verified, the calculated MD5 hash "+ 
+                            "value matched the ETag returned by S3: " + object.getKey());
+                    }
                 }
             }            
         }        
@@ -1372,7 +1378,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     
     protected Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, String destinationObjectKey,
-        AccessControlList acl, Map destinationMetadata) 
+        AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince, 
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
         throws S3ServiceException 
     {
         if (log.isDebugEnabled()) {
@@ -1410,6 +1417,35 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 putNonStandardAcl = true;
             }
         }
+        
+        if (ifModifiedSince != null) {
+            metadata.put("x-amz-copy-source-if-modified-since", 
+                ServiceUtils.formatRfc822Date(ifModifiedSince.getTime()));
+            if (log.isDebugEnabled()) {
+                log.debug("Only copy object if-modified-since:" + ifModifiedSince);
+            }
+        }
+        if (ifUnmodifiedSince != null) {
+            metadata.put("x-amz-copy-source-if-unmodified-since", 
+                ServiceUtils.formatRfc822Date(ifUnmodifiedSince.getTime()));
+            if (log.isDebugEnabled()) {
+                log.debug("Only copy object if-unmodified-since:" + ifUnmodifiedSince);
+            }
+        }
+        if (ifMatchTags != null) {
+            String tags = ServiceUtils.join(ifMatchTags, ",");
+            metadata.put("x-amz-copy-source-if-match", tags);            
+            if (log.isDebugEnabled()) {
+                log.debug("Only copy object based on hash comparison if-match:" + tags);
+            }
+        }
+        if (ifNoneMatchTags != null) {
+            String tags = ServiceUtils.join(ifNoneMatchTags, ",");
+            metadata.put("x-amz-copy-source-if-none-match", tags);
+            if (log.isDebugEnabled()) {
+                log.debug("Only copy object based on hash comparison if-none-match:" + tags);
+            }
+        }        
         
         HttpMethodAndByteCount methodAndByteCount = performRestPut(
             destinationBucketName, destinationObjectKey, metadata, null, null, false);
@@ -1491,29 +1527,17 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             }
         }
         if (ifMatchTags != null) {
-            StringBuffer tags = new StringBuffer();
-            for (int i = 0; i < ifMatchTags.length; i++) {
-                if (i > 0) {
-                    tags.append(",");
-                }
-                tags.append(ifMatchTags[i]);
-            }
-            requestHeaders.put("If-Match", tags.toString());            
+            String tags = ServiceUtils.join(ifMatchTags, ",");
+            requestHeaders.put("If-Match", tags);            
             if (log.isDebugEnabled()) {
-                log.debug("Only retrieve object by hash if-match:" + tags.toString());
+                log.debug("Only retrieve object based on hash comparison if-match:" + tags);
             }
         }
         if (ifNoneMatchTags != null) {
-            StringBuffer tags = new StringBuffer();
-            for (int i = 0; i < ifNoneMatchTags.length; i++) {
-                if (i > 0) {
-                    tags.append(",");
-                }
-                tags.append(ifNoneMatchTags[i]);
-            }
-            requestHeaders.put("If-None-Match", tags.toString());
+            String tags = ServiceUtils.join(ifNoneMatchTags, ",");
+            requestHeaders.put("If-None-Match", tags);
             if (log.isDebugEnabled()) {
-                log.debug("Only retrieve object by hash if-none-match:" + tags.toString());
+                log.debug("Only retrieve object based on hash comparison if-none-match:" + tags);
             }
         }
         if (byteRangeStart != null || byteRangeEnd != null) {

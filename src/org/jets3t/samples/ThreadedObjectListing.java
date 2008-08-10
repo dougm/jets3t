@@ -15,7 +15,7 @@ import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.security.AWSCredentials;
 
 /**
- * Demonstrates how to use the {@link S3ServiceMulti#listObjects(String, String[], String, int)}
+ * Demonstrates how to use the {@link S3ServiceMulti#listObjects(String, String[], String, long)}
  * method to list multiple "partitions" of an S3 bucket at once, using multiple 
  * threads to list objects matching different prefixes. 
  * 

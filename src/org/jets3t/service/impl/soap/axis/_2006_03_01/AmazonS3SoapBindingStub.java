@@ -478,6 +478,18 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
         param.setItemQName(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "Grant"));
         param.setOmittable(true);
         oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CopySourceIfModifiedSince"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"), java.util.Calendar.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CopySourceIfUnmodifiedSince"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "dateTime"), java.util.Calendar.class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CopySourceIfMatch"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String[].class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "CopySourceIfNoneMatch"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String[].class, false, false);
+        param.setOmittable(true);
+        oper.addParameter(param);
         param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "StorageClass"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://s3.amazonaws.com/doc/2006-03-01/", "StorageClass"), org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass.class, false, false);
         param.setOmittable(true);
         oper.addParameter(param);
@@ -1272,7 +1284,7 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
 }
     }
 
-    public org.jets3t.service.impl.soap.axis._2006_03_01.CopyObjectResult copyObject(java.lang.String sourceBucket, java.lang.String sourceKey, java.lang.String destinationBucket, java.lang.String destinationKey, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataDirective metadataDirective, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata, org.jets3t.service.impl.soap.axis._2006_03_01.Grant[] accessControlList, org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass storageClass, java.lang.String AWSAccessKeyId, java.util.Calendar timestamp, java.lang.String signature, java.lang.String credential) throws java.rmi.RemoteException {
+    public org.jets3t.service.impl.soap.axis._2006_03_01.CopyObjectResult copyObject(java.lang.String sourceBucket, java.lang.String sourceKey, java.lang.String destinationBucket, java.lang.String destinationKey, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataDirective metadataDirective, org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata, org.jets3t.service.impl.soap.axis._2006_03_01.Grant[] accessControlList, java.util.Calendar copySourceIfModifiedSince, java.util.Calendar copySourceIfUnmodifiedSince, java.lang.String[] copySourceIfMatch, java.lang.String[] copySourceIfNoneMatch, org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass storageClass, java.lang.String AWSAccessKeyId, java.util.Calendar timestamp, java.lang.String signature, java.lang.String credential) throws java.rmi.RemoteException {
         if (super.cachedEndpoint == null) {
             throw new org.apache.axis.NoEndPointException();
         }
@@ -1288,7 +1300,7 @@ public class AmazonS3SoapBindingStub extends org.apache.axis.client.Stub impleme
 
         setRequestHeaders(_call);
         setAttachments(_call);
- try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {sourceBucket, sourceKey, destinationBucket, destinationKey, metadataDirective, metadata, accessControlList, storageClass, AWSAccessKeyId, timestamp, signature, credential});
+ try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {sourceBucket, sourceKey, destinationBucket, destinationKey, metadataDirective, metadata, accessControlList, copySourceIfModifiedSince, copySourceIfUnmodifiedSince, copySourceIfMatch, copySourceIfNoneMatch, storageClass, AWSAccessKeyId, timestamp, signature, credential});
 
         if (_resp instanceof java.rmi.RemoteException) {
             throw (java.rmi.RemoteException)_resp;

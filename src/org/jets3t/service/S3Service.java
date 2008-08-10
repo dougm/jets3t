@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2008 James Murty
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1496,6 +1496,67 @@ public abstract class S3Service implements Serializable {
      * If this parameter is true, the copied object will be assigned the metadata
      * values present in the destinationObject. Otherwise, the copied object will
      * have the same metadata as the original object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been 
+     * modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have 
+     * been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if 
+     * null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored 
+     * if null.
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified).    
+     * 
+     * @throws S3ServiceException
+     */    
+    public Map copyObject(String sourceBucketName, String sourceObjectKey, 
+        String destinationBucketName, S3Object destinationObject, boolean replaceMetadata, 
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String[] ifNoneMatchTags) throws S3ServiceException 
+    {
+    	assertAuthenticatedConnection("copyObject");
+        Map destinationMetadata =
+            replaceMetadata ? destinationObject.getModifiableMetadata() : null;
+        
+        return copyObjectImpl(sourceBucketName, sourceObjectKey, 
+            destinationBucketName, destinationObject.getKey(), 
+            destinationObject.getAcl(), destinationMetadata,
+            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags);
+    }
+
+    /**
+     * Copy an object from your S3 account. You can copy an object within a 
+     * single bucket, or between buckets, and can optionally update the object's 
+     * metadata at the same time. 
+     * <p>
+     * This method cannot be performed by anonymous services. You must have read 
+     * access to the source object and write access to the destination bucket.
+     * <p>
+     * An object can be copied over itself, in which case you can update its 
+     * metadata without making any other changes.
+     * 
+     * @param sourceBucketName
+     * the name of the bucket that contains the original object. 
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param destinationBucketName
+     * the name of the destination bucket to which the object will be copied.
+     * @param destinationObject
+     * the object that will be created by the copy operation. If this item 
+     * includes an AccessControlList setting the copied object will be assigned
+     * that ACL, otherwise the copied object will be assigned the default private
+     * ACL setting. 
+     * @param replaceMetadata
+     * If this parameter is true, the copied object will be assigned the metadata
+     * values present in the destinationObject. Otherwise, the copied object will
+     * have the same metadata as the original object.
      * 
      * @return
      * a map of the header and result information returned by S3 after the object
@@ -1508,14 +1569,9 @@ public abstract class S3Service implements Serializable {
         String destinationBucketName, S3Object destinationObject,
         boolean replaceMetadata) throws S3ServiceException 
     {
-    	assertAuthenticatedConnection("copyObject");
-        Map destinationMetadata =
-            replaceMetadata ? destinationObject.getModifiableMetadata() : null;
-        
-        return copyObjectImpl(sourceBucketName, sourceObjectKey, 
-            destinationBucketName, destinationObject.getKey(), 
-            destinationObject.getAcl(), destinationMetadata);
-    }
+        return copyObject(sourceBucketName, sourceObjectKey, destinationBucketName, 
+            destinationObject, replaceMetadata, null, null, null, null);
+    }                
     
     /**
      * Move an object from your S3 account. This method works by invoking the
@@ -1748,7 +1804,7 @@ public abstract class S3Service implements Serializable {
      * This method can be performed by anonymous services. Anonymous services
      * can get details of publicly-readable objects.
      * 
-     * @param bucket
+     * @param bucketName
      * the name of the bucket containing the object.
      * @param objectKey
      * the key identifying the object.
@@ -2369,7 +2425,9 @@ public abstract class S3Service implements Serializable {
      */
     protected abstract Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, String destinationObjectKey,
-        AccessControlList acl, Map destinationMetadata) throws S3ServiceException;     
+        AccessControlList acl, Map destinationMetadata,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, 
+        String[] ifMatchTags, String[] ifNoneMatchTags) throws S3ServiceException;     
 
     protected abstract void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException;
     
