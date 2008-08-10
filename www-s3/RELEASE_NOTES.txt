@@ -1,4 +1,128 @@
 -------------
+Version 0.6.1
+-------------
+
+COCKPIT
+- Added support for copying or moving objects within and between buckets.
+- Added dialog to assist in moving/renaming multiple objects within a bucket.
+- Added support for updating objects with new metadata values.
+- Fixed issue where downloading items to a directory containing many files and 
+  directories (eg 250K+) would cause Cockpit to fail with OutOfMemory errors.
+- Added a Confirm Password field to the encryption settings, to help prevent 
+  problems where a password is mistyped.
+- Cockpit can now generate valid signed GET URLs for DevPay S3 accounts.
+    
+
+SYNCHRONIZE
+- Synchonize now recognizes when you have specified a partial S3 path when 
+  synchronizing DOWN. A partial path is one that does not exactly match a
+  directory path. Partial paths can now act as a prefix test that identifies
+  objects in an S3 path, where only the objects in S3 that match the prefix are
+  downloaded. For example, in a bucket that has a Docs subdirectory containing
+  objects named with a timestamp prefix, the S3 path "my-bucket/Docs/2008" will 
+  identify the objects in the Docs subdirectory with names beginning with 2008.
+- Added --batch option that causes Synchronize to compare and download/upload 
+  files in batches of 1000, rather than all at once. This option will reduce the 
+  memory required to synchronize buckets with many objects, and will allow file
+  transfers to commence as soon as possible rather than after the slow
+  comparison process.
+- Added --skipmetadata option that causes Synchronize to skip the retrieval of 
+  object metadata information from S3. This makes synchs much faster for large 
+  buckets, but leave the app with less info to make decisions.
+- Added --reportlevel option that allows the user to control how much report
+  detail is printed, from 0 (no reporting) to 3 (all reporting).
+- Added --move option that deletes local files after they have been uploaded to
+  S3, or deletes objects from S3 after they have been downloaded.
+- Property settings in the synchronize.properties file, or in the file referred
+  to by the --properties option, will override properties of the same name in
+  jets3t.properties. This makes it easy to create task-specific properties
+  files.
+
+
+TOOLKIT
+
+  * General
+
+- Added support for the new Copy Object functionality that allows you to copy,
+  move, rename and update objects in your S3 account. These operations are
+  available through the S3Service as the methods copyObject, moveObject,
+  renameObject and updateObjectMetadata.
+- Added support for conditional copying of objects, based on ETag and 
+  Modified Date comparisons.
+- Made it easier to verify that your data is correctly stored in S3 without 
+  corruption during transit, by calculating Content-MD5 hash values by default
+  in commonly-used S3Object constructors and providing S3Object#verifyData 
+  methods that make it easy to verify data downloaded from S3.  
+- Added basic support for accessing DevPay S3 accounts. DevPay user and product
+  tokens can be provided to the S3Service class directly using the 
+  #setDevPayUserToken and #setDevPayProductToken methods, and default token
+  values can be specified in the jets3t.properties file using the settings
+  "devpay.user-token" and "devpay.product-token".
+- Modified Bucket Logging Status changing behaviour to update ACL settings of
+  the target bucket before (re)directing log files to the bucket.
+- Fixed bug in RestS3Service that caused failures in some circumstances when 
+  buckets were created with the "US" location.
+- S3Service instances can now be configured individually by providing a
+  JetS3tProperties object when constructing the service. The property values
+  in this object can also be updated programmatically after the object has
+  been constructed.
+- FileComparer now supports an optional setting that makes it assume local files 
+  are the latest version when there is a clash between the modification dates 
+  and hash values of a local file and an object stored in S3. This option should
+  only be used as a work-around for users who synchronize Microsoft Excel files
+  to S3, as these are the only documents that exhibit the mismatch. To enable
+  the option, set the jets3t.properties item 
+  "filecomparer.assume-local-latest-in-mismatch" to true.
+- Added support to FileComparer for listing objects based on prefix "partitions"
+  that allow a bucket to be listed by multiple simultaneous threads. This can
+  speed up listings for large buckets containing many virtual subdirectories.
+  To use multiple partitions when building S3 object maps, configure the
+  jets3t.properties item "filecomparer.bucket-listing.<bucketname>" to specify
+  a delimiter string and a traversal depth value separated by a comma, eg:
+  filecomparer.bucket-listing.my-bucket=/,2
+  to partition the bucket my-bucket based on the '/' delimiter to a depth of
+  2 virtual subdirectories.
+
+
+  * REST Implementation
+
+- Added support for the new Copy Object functionality, and conditional copying.
+- The XML parsing code now copes better when object names contain a carriage 
+  return character. A work-around is applied to prevent the Java XML parser
+  from misinterpreting these characters, a fault which could cause some objects
+  to become un-deletable. This new feature is enabled by default, but can be
+  disabled with the jets3t.properties setting "xmlparser.sanitize-listings".
+- Changed default AuthenticationPreemptive setting for HttpClient connections 
+  from true to false, to improve compatibility with NTLM proxies. Preemptive
+  auth can be turned on by setting "httpclient.authentication-preemptive" to 
+  true in jets3t.properties.
+- Refactored repeatable input streams implementations to recognize and support
+  standard InputStream objects that can be reset. Thanks to Keith Bonawitz for
+  the idea and patch for this.
+
+
+  * Multi-threaded Service
+
+- Added a new listObjects method that performs a multi-threaded listing of a
+  bucket's contents. You provide an array of prefix strings which serve to 
+  divide your objects into a number of "partitions", and the service performs
+  these prefix-based listings in parallel. See 
+  src/org/jets3t/samples/ThreadedObjectListing.java for example usage.
+- Added a new notification event ServiceEvent#EVENT_IGNORED_ERRORS that provides
+  information about exceptions that were ignored during a multi-threaded S3 
+  operation. Exceptions are only ignored if the JetS3t property
+  "s3service.ignore-exceptions-in-multi" is set to true.
+
+KUDOS TO:
+
+Shlomo Swidler for numerous improvements to the project's technical 
+documentation and code.
+
+Keith Bonawitz for a patch to improve the handling of data re-transmissions 
+using reset-able input streams.
+
+
+-------------
 Version 0.6.0
 -------------
 

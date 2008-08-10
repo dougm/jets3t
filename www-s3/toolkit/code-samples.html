@@ -217,7 +217,7 @@ tt {
                cellpadding="3">
           <tr>
             <th valign="top"
-                rowspan="2">Basic</th>
+                rowspan="3">Basic</th>
 
             <td><a href="#connecting">Connecting to S3</a></td>
 
@@ -235,6 +235,15 @@ tt {
 
             <td><a href="#deleting">Deleting Buckets and
             Objects</a></td>
+          </tr>
+
+          <tr>
+            <td><a href="#copying">Copying Objects</a></td>
+
+            <td><a href="#moving">Moving and Renaming
+            Objects</a></td>
+
+            <td></td>
           </tr>
 
           <tr>
@@ -299,7 +308,7 @@ tt {
           which is the amount of the data in the object.</li>
         </ul>
 
-        <h3><a name="connecting">Connnecting to S3</a></h3>
+        <h3><a name="connecting">Connecting to S3</a></h3>
 
         <p>Your Amazon Web Services (AWS) login credentials are
         required to manage S3 accounts. These credentials are
@@ -399,11 +408,7 @@ S3Object fileObject = new S3Object(testBucket, fileData);
 
         <p>If your data isn't a File or String you can use any
         input stream as a data source, but you must manually set
-        the Content-Length. <b>Note</b>: It isn't strictly
-        necessary to set the Content Length as the jets3t toolkit
-        can work out the value itself, however it's a good habit to
-        do this as it can prevent problems when uploading large
-        objects.</p>
+        the Content-Length.</p>
         <pre>
 // Create an object containing a greeting string as input stream data.
 String greeting = "Hello World!";
@@ -420,6 +425,40 @@ s3Service.putObject(testBucket, helloWorldObject);
 
 // Print details about the uploaded object.
 System.out.println("S3Object with data: " + helloWorldObject);
+</pre>
+
+        <h3><a name="verify-uploads">Verifying Uploads</a></h3>
+
+        <p>To be 100% sure that data you have uploaded to S3 has
+        not been corrupted in transit, you can verify that the hash
+        value of the data S3 received matches the hash value of
+        your original data.</p>
+
+        <p>The easiest way to do this is to specify your data's
+        hash value in the <tt>Content-MD5</tt> header before you
+        upload the object. JetS3t will do this for you
+        automatically when you use the File- or String-based
+        <tt>S3Object</tt> constructors:</p>
+        <pre>
+S3Object objectWithHash = new S3Object(testBucket, "HelloWorld.txt", stringData);
+System.out.println("Hash value: " + objectWithHash.getMd5HashAsHex());
+</pre>
+
+        <p>If you do not use these constructors, you should
+        <strong>always</strong> set the <tt>Content-MD5</tt> header
+        value yourself before you upload an object. JetS3t provides
+        the <tt>ServiceUtils#computeMD5Hash</tt> method to
+        calculate the hash value of an input stream or byte
+        array.</p>
+        <pre>
+ByteArrayInputStream dataIS = new ByteArrayInputStream(
+        "Here is my data".getBytes(Constants.DEFAULT_ENCODING));
+byte[] md5Hash = ServiceUtils.computeMD5Hash(dataIS);
+dataIS.reset();        
+                
+stringObject = new S3Object("MyData");
+stringObject.setDataInputStream(dataIS);
+stringObject.setMd5Hash(md5Hash);        
 </pre>
 
         <h3><a name="downloading">Downloading data objects</a></h3>
@@ -460,6 +499,25 @@ while ((data = reader.readLine()) != null) {
 }
 </pre>
 
+        <h3><a name="verify-downloads">Verifying Downloads</a></h3>
+
+        <p>To be 100% sure that data you have downloaded from S3
+        has not been corrupted in transit, you can verify the data
+        by calculating its hash value and comparing this against
+        the hash value returned by S3.</p>
+
+        <p>JetS3t provides convenient methods for verifying data
+        that has been downloaded to a File, byte array or
+        InputStream.</p>
+        <pre>
+        
+S3Object downloadedObject = s3Service.getObject(testBucket, "helloWorld.txt");
+String textData = ServiceUtils.readInputStreamToString(
+        downloadedObject.getDataInputStream(), "UTF-8");
+boolean valid = downloadedObject.verifyData(textData.getBytes("UTF-8"));
+System.out.println("Object verified? " + valid);
+</pre>
+
         <h3><a name="listing">List your buckets and
         objects</a></h3>
 
@@ -497,6 +555,63 @@ for (int b = 0; b &lt; buckets.length; b++) {
 String prefix = "Reports";
 String delimiter = null; // Refer to the S3 guide for more information on delimiters
 S3Object[] filteredObjects = s3Service.listObjects(testBucket, prefix, delimiter);
+</pre>
+
+        <h3><a name="copying">Copying objects</a></h3>
+
+        <p>Objects can be copied within the same bucket and between
+        buckets.</p>
+        <pre>
+// Create a target S3Object
+S3Object targetObject = new S3Object("targetObjectWithSourcesMetadata");
+</pre>
+
+        <p>Copy an existing source object to the target
+        <tt>S3Object</tt>. This will copy the source's object data
+        and metadata to the target object.</p>
+        <pre>
+boolean replaceMetadata = false;
+s3Service.copyObject("test-bucket", "HelloWorld.txt", "destination-bucket", targetObject, replaceMetadata);
+</pre>
+
+        <p>You can also copy an object and update its metadata at
+        the same time. Perform a copy-in-place (with the same
+        bucket and object names for source and destination) to
+        update an object's metadata while leaving the object's data
+        unchanged.</p>
+        <pre>
+targetObject = new S3Object("HelloWorld.txt");
+targetObject.addMetadata(S3Object.METADATA_HEADER_CONTENT_TYPE, "text/html");        
+replaceMetadata = true;
+s3Service.copyObject("test-bucket", "HelloWorld.txt", "test-bucket", targetObject, replaceMetadata);
+</pre>
+
+        <h3><a name="moving">Moving and Renaming objects</a></h3>
+
+        <p>Objects can be moved within a bucket (to a different
+        name) or to another S3 bucket in the same region (eg US or
+        EU). A move operation is composed of a copy then a delete
+        operation behind the scenes. If the initial copy operation
+        fails, the object is not deleted. If the final delete
+        operation fails, the object will exist in both the source
+        and destination locations.</p>
+
+        <p>Here is a command that moves an object from one bucket
+        to another.</p>
+        <pre>
+s3Service.moveObject("test-bucket", "HelloWorld.txt", "destination-bucket", targetObject, false);
+</pre>
+
+        <p>You can move an object to a new name in the same bucket.
+        This is essentially a rename operation.</p>
+        <pre>
+s3Service.moveObject("test-bucket", "HelloWorld.txt", "test-bucket", new S3Object("NewName.txt"), false);
+</pre>
+
+        <p>To make renaming easier, JetS3t has a shortcut method
+        especially for this purpose.</p>
+        <pre>
+s3Service.renameObject("test-bucket", "HelloWorld.txt", targetObject);        
 </pre>
 
         <h3><a name="deleting">Deleting objects and
@@ -711,8 +826,8 @@ try {
 
         <p>ACL settings may be provided with a bucket or object
         when it is created, or the ACL of existing items may be
-        updated. Let's start by creating a bucket with default (ie
-        private) access settings, then making it public.</p>
+        updated. Let's start by creating a bucket with default
+        (i.e. private) access settings, then making it public.</p>
         <pre>
 // Create a bucket in S3.
 S3Bucket publicBucket = new S3Bucket(awsAccessKey + ".publicBucket");
@@ -769,7 +884,7 @@ acl.grantPermission(new CanonicalGrantee("AWS member's ID"),
         <h3><a name="signed-urls">Temporarily make an Object
         available to anyone</a></h3>
 
-        <p>A private object stored in S3 can be made publicy
+        <p>A private object stored in S3 can be made publicly
         available for a limited time using a signed URL. The signed
         URL can be used by anyone to download the object, yet it
         includes a date and time after which the URL will no longer
@@ -795,9 +910,9 @@ Date <b>expiryDate</b> = cal.getTime();
         <pre>
 // Create a signed HTTP URL valid for 5 minutes.
 boolean isHttpsUrl = false; // Choose whether URL is HTTP or HTTPS.
-String url = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
+String signedUrl = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(), 
             awsCredentials, expiryDate);
-System.out.println("Signed URL: " + url);
+System.out.println("Signed URL: " + signedUrl);
 </pre>
 
         <h3><a name="post">Create an S3 POST form</a></h3>
