@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -39,6 +40,7 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.S3ServiceSimpleMulti;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * This class includes all the code samples as listed in the JetS3t
@@ -142,9 +144,6 @@ public class CodeSamples {
 
         // If your data isn't a File or String you can use any input stream as a data source,
         // but you must manually set the Content-Length.        
-        // Note: It isn't strictly necessary to set the Content Length as the jets3t toolkit can 
-        // work out the value itself, however it's a good habit to do this as it can prevent 
-        // problems when uploading large objects.
 
         // Create an object containing a greeting string as input stream data.
         String greeting = "Hello World!";
@@ -162,7 +161,36 @@ public class CodeSamples {
 
         // Print details about the uploaded object.
         System.out.println("S3Object with data: " + helloWorldObject);
+        
+        /*
+         * Verifying Uploads
+         */
+        
+        // To be 100% sure that data you have uploaded to S3 has not been
+        // corrupted in transit, you can verify that the hash value of the data 
+        // S3 received matches the hash value of your original data.
+        
+        // The easiest way to do this is to specify your data's hash value
+        // in the Content-MD5 header before you upload the object. JetS3t will
+        // do this for you automatically when you use the File- or String-based 
+        // S3Object constructors:
+        
+        S3Object objectWithHash = new S3Object(testBucket, "HelloWorld.txt", stringData);
+        System.out.println("Hash value: " + objectWithHash.getMd5HashAsHex());
+        
+        // If you do not use these constructors, you should *always* set the
+        // Content-MD5 header value yourself before you upload an object.
+        // JetS3t provides the ServiceUtils#computeMD5Hash method to calculate
+        // the hash value of an input stream or byte array.
 
+        ByteArrayInputStream dataIS = new ByteArrayInputStream(
+            "Here is my data".getBytes(Constants.DEFAULT_ENCODING));
+        byte[] md5Hash = ServiceUtils.computeMD5Hash(dataIS);
+        dataIS.reset();        
+                
+        stringObject = new S3Object("MyData");
+        stringObject.setDataInputStream(dataIS);
+        stringObject.setMd5Hash(md5Hash);        
 
         /*
          * Downloading data objects 
@@ -196,6 +224,23 @@ public class CodeSamples {
         while ((data = reader.readLine()) != null) {
             System.out.println(data);
         }
+        
+        /*
+         * Verifying Downloads
+         */
+        
+        // To be 100% sure that data you have downloaded from S3 has not been
+        // corrupted in transit, you can verify the data by calculating its hash
+        // value and comparing this against the hash value returned by S3. 
+        
+        // JetS3t provides convenient methods for verifying data that has been 
+        // downloaded to a File, byte array or InputStream.
+        
+        S3Object downloadedObject = s3Service.getObject(testBucket, "helloWorld.txt");
+        String textData = ServiceUtils.readInputStreamToString(
+            downloadedObject.getDataInputStream(), "UTF-8");
+        boolean valid = downloadedObject.verifyData(textData.getBytes("UTF-8"));
+        System.out.println("Object verified? " + valid);
 
         /*
          * List your buckets and objects 
