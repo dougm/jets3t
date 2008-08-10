@@ -562,6 +562,10 @@
         <xsd:element name="MetadataDirective" type="tns:MetadataDirective" minOccurs="0"/>
         <xsd:element name="Metadata" type="tns:MetadataEntry" minOccurs="0" maxOccurs="100"/>
         <xsd:element name="AccessControlList" type="tns:AccessControlList" minOccurs="0"/>
+	<xsd:element name="CopySourceIfModifiedSince" type="xsd:dateTime" minOccurs="0"/>
+        <xsd:element name="CopySourceIfUnmodifiedSince" type="xsd:dateTime" minOccurs="0"/>
+        <xsd:element name="CopySourceIfMatch" type="xsd:string" minOccurs="0" maxOccurs="100"/>
+        <xsd:element name="CopySourceIfNoneMatch" type="xsd:string" minOccurs="0" maxOccurs="100"/>
         <xsd:element name="StorageClass" type="tns:StorageClass" minOccurs="0"/>
         <xsd:element name="AWSAccessKeyId" type="xsd:string" minOccurs="0"/>
         <xsd:element name="Timestamp" type="xsd:dateTime" minOccurs="0"/>
@@ -582,8 +586,9 @@
   <xsd:complexType name="CopyObjectResult">
     <xsd:sequence>
       <xsd:element name="LastModified" type="xsd:dateTime"/>
-      <xsd:element name="ETag" type="xsd:string"/>
+      <xsd:element name="ETag" type="xsd:string"/>      
     </xsd:sequence>
   </xsd:complexType>
 
 </xsd:schema>
+
