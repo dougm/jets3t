@@ -1024,7 +1024,7 @@ public class S3ServiceMulti implements Serializable {
      * This method sends {@link DownloadObjectsEvent} notification events.
      * <p> 
      * This method can only download S3 objects represented by {@link DownloadPackage} 
-     * packages based on signed UR. To download objects when you don't have
+     * packages based on signed URL. To download objects when you don't have
      * signed URLs, you must use the method 
      * {@link #downloadObjects(S3Bucket, DownloadPackage[])} 
      * <p>
