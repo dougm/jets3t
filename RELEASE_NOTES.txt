@@ -1,4 +1,26 @@
 -------------
+Version 0.6.2
+-------------
+
+TOOLKIT
+
+  * REST Implementation
+
+- Added support for proxy authentication settings in jets3t.properties:
+  "proxy-user", "proxy-password", and "proxy-domain"
+- The service's HTTP proxy settings can be updated an reapplied on-demand using
+  a range of #initHttpProxy methods.
+- The HttpConnectionManager and HttpClient objects used by the REST service can
+  now be reinitialised on-demand using the #initHttpConnection method.
+- The underlying HttpConnectionManager can be accessed to update its settings
+  using the #getHttpConnectionManager method.
+
+KUDOS TO:
+
+David Kavanagh for sample code that helped improve HTTP proxy support and 
+configurability.
+
+-------------
 Version 0.6.1
 -------------
 

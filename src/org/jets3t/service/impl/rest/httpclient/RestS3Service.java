@@ -35,13 +35,17 @@ import java.util.Map;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpConnectionManager;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpMethodRetryHandler;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.NTCredentials;
 import org.apache.commons.httpclient.ProxyHost;
 import org.apache.commons.httpclient.URI;
 import org.apache.commons.httpclient.URIException;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.httpclient.methods.DeleteMethod;
@@ -100,6 +104,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
     private HttpClient httpClient = null;
     private MultiThreadedHttpConnectionManager connectionManager = null;
+    private CredentialsProvider credentialsProvider = null;
     
     /**
      * Constructs the service and initialises the properties.
@@ -188,25 +193,45 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         HostConfiguration hostConfig) throws S3ServiceException 
     {
         super(awsCredentials, invokingApplicationDescription, jets3tProperties);
-        
+        this.credentialsProvider = credentialsProvider;
+        initHttpConnection(hostConfig);
+    }
+    
+    /**
+     * Initialises, or re-initialises, the underlying HttpConnectionManager and 
+     * HttpClient objects this service will use to communicate with S3. If proxy
+     * settings are specified in this service's {@link Jets3tProperties} object,
+     * these settings will also be passed on to the underlying objects.
+     * <p>
+     * This method is automatically invoked when a RestS3Service is constructed, but 
+     * it can also be re-invoked later on to reinitialise the objects to use updated 
+     * settings.  
+     * 
+     * @param hostConfig
+     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory.
+     * This parameter may be null, in which case a default host configuration will be
+     * used.
+     */
+    public void initHttpConnection(HostConfiguration hostConfig) 
+    {
         // Configure HttpClient properties based on Jets3t Properties.
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
-        connectionParams.setConnectionTimeout(jets3tProperties.
+        connectionParams.setConnectionTimeout(this.jets3tProperties.
             getIntProperty("httpclient.connection-timeout-ms", 60000));
-        connectionParams.setSoTimeout(jets3tProperties.
+        connectionParams.setSoTimeout(this.jets3tProperties.
             getIntProperty("httpclient.socket-timeout-ms", 60000));        
         connectionParams.setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION,
-            jets3tProperties.getIntProperty("httpclient.max-connections", 4));
-        connectionParams.setStaleCheckingEnabled(jets3tProperties.
+            this.jets3tProperties.getIntProperty("httpclient.max-connections", 4));
+        connectionParams.setStaleCheckingEnabled(this.jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
         
         // Connection properties to take advantage of S3 window scaling.
-        if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
-            connectionParams.setReceiveBufferSize(jets3tProperties.
+        if (this.jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
+            connectionParams.setReceiveBufferSize(this.jets3tProperties.
                 getIntProperty("httpclient.socket-receive-buffer", 0));
         }
-        if (jets3tProperties.containsKey("httpclient.socket-send-buffer")) {
-            connectionParams.setSendBufferSize(jets3tProperties.
+        if (this.jets3tProperties.containsKey("httpclient.socket-send-buffer")) {
+            connectionParams.setSendBufferSize(this.jets3tProperties.
                 getIntProperty("httpclient.socket-send-buffer", 0));
         }
         
@@ -217,7 +242,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         
         // Set user agent string.
         HttpClientParams clientParams = new HttpClientParams();
-        String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
+        String userAgent = this.jets3tProperties.getStringProperty("httpclient.useragent", null);
         if (userAgent == null) {
             userAgent = ServiceUtils.getUserAgentDescription(
                 getInvokingApplicationDescription());
@@ -230,7 +255,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         clientParams.setBooleanParameter("http.protocol.expect-continue", true);
 
         // Replace default error retry handler.
-        final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
+        final int retryMaxCount = this.jets3tProperties.getIntProperty("httpclient.retry-max", 5);
         
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
@@ -267,12 +292,90 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         });
         
         httpClient = new HttpClient(clientParams, connectionManager);
-        httpClient.setHostConfiguration(hostConfig);        
-
+        httpClient.setHostConfiguration(hostConfig);
+        
+        if (credentialsProvider != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
+            }
+            httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
+            if (this.jets3tProperties.getBoolProperty("httpclient.authentication-preemptive", false)) {
+                httpClient.getParams().setAuthenticationPreemptive(true);
+            }
+        }                                  
+        
         // Retrieve Proxy settings.
-        boolean proxyAutodetect = jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true);        
-        String proxyHostAddress = jets3tProperties.getStringProperty("httpclient.proxy-host", null);
-        int proxyPort = jets3tProperties.getIntProperty("httpclient.proxy-port", -1);
+        if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
+            initHttpProxy();
+        } else {
+            String proxyHostAddress = this.jets3tProperties.getStringProperty("httpclient.proxy-host", null);
+            int proxyPort = this.jets3tProperties.getIntProperty("httpclient.proxy-port", -1);            
+            String proxyUser = this.jets3tProperties.getStringProperty("httpclient.proxy-user", null);
+            String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
+            String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);            
+            initHttpProxy(proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
+        }
+    }
+    
+    /**
+     * @return
+     * the manager of HTTP connections for this service.
+     */
+    public HttpConnectionManager getHttpConnectionManager() {
+        return this.connectionManager;
+    }
+    
+    /**
+     * Initialises this service's HTTP proxy by auto-detecting the proxy settings.
+     */
+    public void initHttpProxy() {
+        this.initHttpProxy(true, null, -1, null, null, null);
+    }
+
+    /**
+     * Initialises this service's HTTP proxy with the given proxy settings.
+     * 
+     * @param proxyHostAddress
+     * @param proxyPort
+     */
+    public void initHttpProxy(String proxyHostAddress, int proxyPort) {
+        this.initHttpProxy(false, proxyHostAddress, proxyPort, null, null, null);
+    }
+
+    /**
+     * Initialises this service's HTTP proxy for authentication using the given 
+     * proxy settings.
+     * 
+     * @param proxyHostAddress
+     * @param proxyPort
+     * @param proxyUser
+     * @param proxyPassword
+     * @param proxyDomain
+     * if a proxy domain is provided, an {@link NTCredentials} credential provider
+     * will be used. If the proxy domain is null, a 
+     * {@link UsernamePasswordCredentials} credentials provider will be used.   
+     */
+    public void initHttpProxy(String proxyHostAddress, int proxyPort, 
+        String proxyUser, String proxyPassword, String proxyDomain) 
+    {
+        this.initHttpProxy(false, proxyHostAddress, proxyPort, proxyUser, 
+            proxyPassword, proxyDomain);
+    }
+    
+
+    /**
+     * 
+     * @param proxyAutodetect
+     * @param proxyHostAddress
+     * @param proxyPort
+     * @param proxyUser
+     * @param proxyPassword
+     * @param proxyDomain
+     */
+    protected void initHttpProxy(boolean proxyAutodetect, String proxyHostAddress, 
+        int proxyPort, String proxyUser, String proxyPassword, String proxyDomain) 
+    {
+        HostConfiguration hostConfig = this.httpClient.getHostConfiguration();
         
         // Use explicit proxy settings, if available.
         if (proxyHostAddress != null && proxyPort != -1) {
@@ -280,6 +383,19 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                 log.info("Using Proxy: " + proxyHostAddress + ":" + proxyPort);
             }
             hostConfig.setProxy(proxyHostAddress, proxyPort);
+            
+            if (proxyUser != null && !proxyUser.trim().equals("")) {
+                if (proxyDomain != null) {
+                    this.httpClient.getState().setProxyCredentials(
+                        new AuthScope(proxyHostAddress, proxyPort),
+                            new NTCredentials(proxyUser, proxyPassword, proxyHostAddress, proxyDomain));
+                }
+                else {
+                    this.httpClient.getState().setProxyCredentials(
+                        new AuthScope(proxyHostAddress, proxyPort),
+                            new UsernamePasswordCredentials(proxyUser, proxyPassword));
+                }
+            }
         }
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
         else if (proxyAutodetect) {        
@@ -298,17 +414,28 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     log.debug("Unable to set proxy configuration", t);
                 }
             }        
-        }
-                
-        if (credentialsProvider != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
-            }
-            httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
-            if (jets3tProperties.getBoolProperty("httpclient.authentication-preemptive", false)) {
-                httpClient.getParams().setAuthenticationPreemptive(true);
-            }
-        }                          
+        }                
+    }
+    
+    /**
+     * @return
+     * the credentials provider this service will use to authenticate itself, or null
+     * if no provider is set.
+     */
+    public CredentialsProvider getCredentialsProvider() {
+        return this.credentialsProvider;
+    }
+    
+    /**
+     * Sets the credentials provider this service will use to authenticate itself.
+     * Changing the credentials provider with this method will have no effect until
+     * the {@link #initHttpConnection()} method
+     * is called.
+     * 
+     * @param credentialsProvider
+     */
+    public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
+        this.credentialsProvider = credentialsProvider;
     }
     
     /**
