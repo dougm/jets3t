@@ -326,6 +326,14 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     }
     
     /**
+     * @return
+     * the HTTP client for this service.
+     */
+    public HttpClient getHttpClient() {
+        return this.httpClient;
+    }
+    
+    /**
      * Initialises this service's HTTP proxy by auto-detecting the proxy settings.
      */
     public void initHttpProxy() {

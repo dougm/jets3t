@@ -20,8 +20,6 @@ package org.jets3t.service;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -31,6 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
@@ -2225,22 +2226,32 @@ public abstract class S3Service implements Serializable {
      * you should never have to resort to this work-around.
      */
     public long adjustTime() throws Exception {
+        RestS3Service restService = new RestS3Service(null);
+        HttpClient client = restService.getHttpClient();
+        
         // Connect to an AWS server to obtain response headers.
-        URL url = new URL("http://" + Constants.S3_HOSTNAME + "/");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.connect();
+        GetMethod getMethod = new GetMethod("http://" + Constants.S3_HOSTNAME + "/");
+        int result = client.executeMethod(getMethod);
+        
+        if (result == 200) {
+            Header dateHeader = getMethod.getResponseHeader("Date");
+            // Retrieve the time according to AWS, based on the Date header
+            Date s3Time = ServiceUtils.parseRfc822Date(dateHeader.getValue());            
 
-        // Retrieve the time according to AWS, based on the Date header
-        Date s3Time = ServiceUtils.parseRfc822Date(conn.getHeaderField("Date"));
+            // Calculate the difference between the current time according to AWS,
+            // and the current time according to your computer's clock.
+            Date localTime = new Date();
+            this.timeOffset = s3Time.getTime() - localTime.getTime();
 
-        // Calculate the difference between the current time according to AWS,
-        // and the current time according to your computer's clock.
-        Date localTime = new Date();
-        this.timeOffset = s3Time.getTime() - localTime.getTime();
-
-        if (log.isDebugEnabled()) {
-	        log.debug("Calculated time offset value of " + this.timeOffset +
-	                " milliseconds between the local machine and an S3 server");
+            if (log.isDebugEnabled()) {
+                log.debug("Calculated time offset value of " + this.timeOffset +
+                        " milliseconds between the local machine and an S3 server");
+            }
+        } else {
+            if (log.isWarnEnabled()) {
+                log.warn("Unable to calculate value of time offset between the "
+                    + "local machine and S3 server");
+            }            
         }
 
         return this.timeOffset;
