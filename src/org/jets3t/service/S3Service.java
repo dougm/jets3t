@@ -1416,6 +1416,28 @@ public abstract class S3Service implements Serializable {
         }
         return null;
     }
+    
+    /**
+     * Returns a bucket in your S3 account, and creates the bucket if it does 
+     * not yet exist. 
+     *  
+     * @param bucketName
+     * the name of the bucket to retrieve or create.
+     * @return
+     * the bucket in your account.
+     * 
+     * @throws S3ServiceException
+     */
+    public S3Bucket getOrCreateBucket(String bucketName) throws S3ServiceException {
+        assertAuthenticatedConnection("Get or Create Bucket");
+        
+        S3Bucket bucket = getBucket(bucketName);
+        if (bucket == null) {
+            // Bucket does not exist in this user's account, create it.
+            bucket = createBucket(new S3Bucket(bucketName));
+        }
+        return bucket;
+    }
 
     /**
      * Deletes an S3 bucket. Only the owner of a bucket may delete it.
