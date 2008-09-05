@@ -43,6 +43,8 @@ import javax.swing.text.Document;
 
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 
 /**
@@ -81,7 +83,11 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         HyperlinkActivatedListener hyperlinkListener) 
     {
         super(ownerFrame, "Create a new bucket", true);
-        
+                
+        boolean disableDnsBuckets = 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getBoolProperty("s3service.disable-dns-buckets", false);
+
         cancelButton = new JButton("Cancel");
         cancelButton.setActionCommand("Cancel");
         cancelButton.addActionListener(this);
@@ -96,9 +102,32 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         JHtmlLabel bucketNameIsValidDNSLabel = new JHtmlLabel("<html>DNS compatible?</html>", hyperlinkListener);
         bucketLocationLabel.setHorizontalAlignment(JLabel.CENTER);        
         bucketNameIsValidDNSResultLabel = new JLabel("No");
-        JHtmlLabel bucketNameIsValidDNSExplanationLabel = new JHtmlLabel(
-            "<html><font size=\"-2\">If your bucket name is DNS-compatible, you can choose a storage location<br>" +
-            "other than the U.S. and may potentially use the bucket as a virtual host.</font></html>", hyperlinkListener);
+        
+        bucketLocationComboBox = new JComboBox(new String[] {
+            "United States",
+            "Europe"
+        });
+        bucketLocationComboBox.addActionListener(new ActionListener() {
+           public void actionPerformed(ActionEvent e) {
+               okButton.setEnabled(
+                   bucketLocationComboBox.getSelectedIndex() == 0
+                   || "Yes".equals(bucketNameIsValidDNSResultLabel.getText()));
+           } 
+        });
+        bucketLocationComboBox.setToolTipText("The geographical location where the bucket's contents will be stored");
+        
+        JHtmlLabel bucketNameIsValidDNSExplanationLabel = null;
+        if (disableDnsBuckets) {
+            bucketNameIsValidDNSExplanationLabel = new JHtmlLabel(
+                "<html><font size=\"-2\">Because the 's3service.disable-dns-buckets' property is set, you<br>" +
+                "may only create buckets in the U.S. location.</font></html>", hyperlinkListener);
+            bucketLocationComboBox.setEnabled(false);
+        } else {
+            bucketNameIsValidDNSExplanationLabel = new JHtmlLabel(
+                "<html><font size=\"-2\">If your bucket name is DNS-compatible, you can choose a storage location<br>" +
+                "other than the U.S. and may potentially use the bucket as a virtual host.</font></html>", hyperlinkListener);
+            bucketLocationComboBox.setEnabled(true);
+        }        
         bucketNameIsValidDNSExplanationLabel.setHorizontalAlignment(JLabel.CENTER);        
         
         bucketNameTextField = new JTextField();
@@ -132,20 +161,7 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         bucketNameTextField.setText(suggestedBucketName);
         bucketNameTextField.setSelectionStart(0);
         bucketNameTextField.setSelectionEnd(suggestedBucketName.length());
-        
-        bucketLocationComboBox = new JComboBox(new String[] {
-            "United States",
-            "Europe"
-        });
-        bucketLocationComboBox.addActionListener(new ActionListener() {
-           public void actionPerformed(ActionEvent e) {
-               okButton.setEnabled(
-                   bucketLocationComboBox.getSelectedIndex() == 0
-                   || "Yes".equals(bucketNameIsValidDNSResultLabel.getText()));
-           } 
-        });
-        bucketLocationComboBox.setToolTipText("The geographical location where the bucket's contents will be stored");
-                        
+                                
         // Set default ENTER and ESCAPE buttons.
         this.getRootPane().setDefaultButton(okButton);        
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
@@ -172,11 +188,13 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         panel.add(bucketNameTextField, new GridBagConstraints(1, row, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         panel.add(bucketNameIsValidDNSExplanationLabel, new GridBagConstraints(0, ++row, 
-            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
-        panel.add(bucketNameIsValidDNSLabel, new GridBagConstraints(0, ++row, 
-            1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
-        panel.add(bucketNameIsValidDNSResultLabel, new GridBagConstraints(1, row, 
-            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
+            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        if (!disableDnsBuckets) {
+            panel.add(bucketNameIsValidDNSLabel, new GridBagConstraints(0, ++row, 
+                1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
+            panel.add(bucketNameIsValidDNSResultLabel, new GridBagConstraints(1, row, 
+                2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        }
         panel.add(bucketLocationLabel, new GridBagConstraints(0, ++row, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         panel.add(bucketLocationComboBox, new GridBagConstraints(1, row, 
