@@ -272,8 +272,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     }
                     return false;
                 }
-                if (log.isWarnEnabled()) {
-                    log.warn("Retrying " + httpMethod.getName() + " request with path '" 
+                if (log.isDebugEnabled()) {
+                    log.debug("Retrying " + httpMethod.getName() + " request with path '" 
                         + httpMethod.getPath() + "' - attempt " + executionCount 
                         + " of " + retryMaxCount);
                 }
@@ -524,8 +524,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         
                 // Check we received the expected result code.
                 if (responseCode != expectedResponseCode) {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
+                    if (log.isDebugEnabled()) {
+                        log.debug("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
                             + responseCode + ", expected " + expectedResponseCode);
                     }
                                         
@@ -533,8 +533,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                         && httpMethod.getResponseBodyAsStream() != null
                         && httpMethod.getResponseContentLength() != 0) 
                     {
-                        if (log.isWarnEnabled()) {
-                            log.warn("Response '" + httpMethod.getPath() 
+                        if (log.isDebugEnabled()) {
+                            log.debug("Response '" + httpMethod.getPath() 
                                 + "' - Received error response with XML message");
                         }
         
@@ -565,8 +565,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                             
                             if (requestTimeoutErrorCount < retryMaxCount) {
                                 requestTimeoutErrorCount++;
-                                if (log.isWarnEnabled()) {
-                                    log.warn("Response '" + httpMethod.getPath() 
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Response '" + httpMethod.getPath() 
                                         + "' - Retrying connection that failed with RequestTimeout error"
                                         + ", attempt number " + requestTimeoutErrorCount + " of " 
                                         + retryMaxCount);
