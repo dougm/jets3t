@@ -1027,7 +1027,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private void loginEvent() {
         try {
-            StartupDialog startupDialog = new StartupDialog(ownerFrame, this);
+            StartupDialog startupDialog = new StartupDialog(ownerFrame, cockpitProperties, this);
             startupDialog.setVisible(true);            
             AWSCredentials awsCredentials = startupDialog.getAWSCredentials();
             startupDialog.dispose();

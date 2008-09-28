@@ -51,6 +51,7 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.ProgressDialog;
 import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -70,12 +71,13 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * @author James Murty
  */
 public class StartupDialog extends JDialog implements ActionListener, ChangeListener {
-    private static final long serialVersionUID = 7370703438310578947L;
+    private static final long serialVersionUID = -7287769042945320400L;
 
     private static final Log log = LogFactory.getLog(StartupDialog.class);
 
     private Frame ownerFrame = null;
     private HyperlinkActivatedListener hyperlinkListener = null;
+    private Jets3tProperties myProperties = null;
     
     private AWSCredentials awsCredentials = null;
     
@@ -106,10 +108,11 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
      * the frame within which this dialog will be displayed and centred.
      * @param hyperlinkListener
      */
-    public StartupDialog(Frame owner, HyperlinkActivatedListener hyperlinkListener) {
+    public StartupDialog(Frame owner, Jets3tProperties properties, HyperlinkActivatedListener hyperlinkListener) {
         super(owner, "Cockpit Login", true);
         this.ownerFrame = owner;
         this.hyperlinkListener = hyperlinkListener;        
+        this.myProperties = properties;
         this.initGui();
     }
     
@@ -411,8 +414,9 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         final ByteArrayInputStream[] bais = new ByteArrayInputStream[1];
         try {
             // Convert AWS Credentials into a readable input stream.
+            String algorithm = myProperties.getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");            
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            awsCredentials.save(password, baos); 
+            awsCredentials.save(password, baos, algorithm); 
             bais[0] = new ByteArrayInputStream(baos.toByteArray());
         } catch (RuntimeException e) {
             throw e;
@@ -507,7 +511,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         File credentialsFile = new File(directory, awsCredentials.getFriendlyName() + ".enc"); 
         
         try {
-            awsCredentials.save(password, credentialsFile);
+            String algorithm = myProperties.getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");            
+            awsCredentials.save(password, credentialsFile, algorithm);
             loginLocalFolderPanel.refreshStoredCredentialsTable();
     
             JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in the file:\n" +
@@ -543,7 +548,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             }           
         };
         
-        StartupDialog startupDialog = new StartupDialog(f, listener);
+        StartupDialog startupDialog = new StartupDialog(f, 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME), listener);
         startupDialog.setVisible(true);
         AWSCredentials awsCredentials = startupDialog.getAWSCredentials();
         startupDialog.dispose();

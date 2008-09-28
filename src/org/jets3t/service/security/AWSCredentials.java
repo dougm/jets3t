@@ -121,6 +121,37 @@ public class AWSCredentials implements Serializable {
      * the password used to encrypt the credentials.
      * @param file
      * the file to write the encrypted credentials data to.
+     * @param algorithm
+     * the algorithm used to encrypt the output stream.
+     * 
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     * @throws InvalidKeySpecException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws InvalidAlgorithmParameterException
+     * @throws IOException
+     */
+    public void save(String password, File file, String algorithm) throws InvalidKeyException,
+        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+        IllegalStateException, IllegalBlockSizeException, BadPaddingException,
+        InvalidAlgorithmParameterException, IOException
+    {
+        FileOutputStream fos = new FileOutputStream(file);
+        save(password, fos, algorithm);
+        fos.close();
+    }
+
+    /**
+     * Encrypts AWS Credentials with the given password and saves the encrypted data to a file
+     * using the default algorithm {@link EncryptionUtil#DEFAULT_ALGORITHM}.
+     * 
+     * @param password
+     * the password used to encrypt the credentials.
+     * @param file
+     * the file to write the encrypted credentials data to.
      * 
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
@@ -137,14 +168,56 @@ public class AWSCredentials implements Serializable {
         IllegalStateException, IllegalBlockSizeException, BadPaddingException,
         InvalidAlgorithmParameterException, IOException
     {
-        FileOutputStream fos = new FileOutputStream(file);
-        save(password, fos);
-        fos.close();
+        save(password, file, EncryptionUtil.DEFAULT_ALGORITHM);
     }
     
     /**
      * Encrypts AWS Credentials with the given password and writes the encrypted data to an
      * output stream.
+     * 
+     * @param password
+     * the password used to encrypt the credentials.
+     * @param outputStream
+     * the output stream to write the encrypted credentials data to, this stream must be closed by
+     * the caller.
+     * @param algorithm
+     * the algorithm used to encrypt the output stream.
+     * 
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchPaddingException
+     * @throws InvalidKeySpecException
+     * @throws IllegalStateException
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     * @throws InvalidAlgorithmParameterException
+     * @throws IOException
+     */
+    public void save(String password, OutputStream outputStream, String algorithm) throws InvalidKeyException,
+        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+        IllegalStateException, IllegalBlockSizeException, BadPaddingException,
+        InvalidAlgorithmParameterException, IOException
+    {
+        BufferedOutputStream bufferedOS = null;
+        EncryptionUtil encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
+        bufferedOS = new BufferedOutputStream(outputStream);
+
+        // Encrypt AWS credentials
+        String dataToEncrypt = getAccessKey() + KEYS_DELIMITER + getSecretKey();
+        byte[] encryptedData = encryptionUtil.encrypt(dataToEncrypt);
+        
+        // Write plain-text header information to file.
+        bufferedOS.write((VERSION_PREFIX + EncryptionUtil.DEFAULT_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        
+        bufferedOS.write(encryptedData);
+        bufferedOS.flush();
+    }
+
+    /**
+     * Encrypts AWS Credentials with the given password and writes the encrypted data to an
+     * output stream using the default algorithm {@link EncryptionUtil#DEFAULT_ALGORITHM}.
      * 
      * @param password
      * the password used to encrypt the credentials.
@@ -167,21 +240,7 @@ public class AWSCredentials implements Serializable {
         IllegalStateException, IllegalBlockSizeException, BadPaddingException,
         InvalidAlgorithmParameterException, IOException
     {
-        BufferedOutputStream bufferedOS = null;
-        EncryptionUtil encryptionUtil = new EncryptionUtil(password);
-        bufferedOS = new BufferedOutputStream(outputStream);
-
-        // Encrypt AWS credentials
-        String dataToEncrypt = getAccessKey() + KEYS_DELIMITER + getSecretKey();
-        byte[] encryptedData = encryptionUtil.encrypt(dataToEncrypt);
-        
-        // Write plain-text header information to file.
-        bufferedOS.write((VERSION_PREFIX + EncryptionUtil.DEFAULT_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
-        bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
-        bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
-        
-        bufferedOS.write(encryptedData);
-        bufferedOS.flush();
+        save(password, outputStream, EncryptionUtil.DEFAULT_ALGORITHM);
     }
 
     /**
@@ -311,7 +370,7 @@ public class AWSCredentials implements Serializable {
      * <p>
      * This class can be run from the command line as:
      * <pre>
-     * java org.jets3t.service.security.AWSCredentials &lt;friendlyName> &lt;credentialsFilename>
+     * java org.jets3t.service.security.AWSCredentials &lt;friendlyName> &lt;credentialsFilename> &lt;algorithm>
      * </pre>
      * When run it will prompt for the user's AWS access key,secret key and encryption password. 
      * It will then encode into the specified credentials file.  
@@ -319,12 +378,16 @@ public class AWSCredentials implements Serializable {
      * @param args
      */
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
+        if (args.length < 2 || args.length > 3) {
             printHelp();
             System.exit(1);
         }
         String userName = args[0];
         File encryptedFile = new File(args[1]);
+        String algorithm = EncryptionUtil.DEFAULT_ALGORITHM;
+        if (args.length == 3) {
+            algorithm = args[2];
+        }
 
         // Check arguments provided.
         try {
@@ -342,14 +405,13 @@ public class AWSCredentials implements Serializable {
         String awsAccessKey = reader.readLine();
         System.out.print("Secret Key: ");
         String awsSecretKey = reader.readLine();
-        System.out
-            .println("Please enter a password to protect your credentials file (may be empty)");
+        System.out.println("Please enter a password to protect your credentials file (may be empty)");
         System.out.print("Password: ");
         String password = reader.readLine();
 
         // Create AWSCredentials object and save the details to an encrypted file.
         AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey, userName);
-        awsCredentials.save(password, encryptedFile);
+        awsCredentials.save(password, encryptedFile, algorithm);
 
         System.out.println("Successfully saved AWS Credentials to " + encryptedFile);
     }
@@ -358,12 +420,11 @@ public class AWSCredentials implements Serializable {
      * Prints help for the use of this class from the console (via the main method).
      */
     private static void printHelp() {
-        System.out.println("AWSCredentials <User Name> <File Path>");
+        System.out.println("AWSCredentials <User Name> <File Path> [algorithm]");
         System.out.println();
-        System.out
-            .println("User Name: A human-friendly name for the owner of the credentials, e.g. Horace.");
-        System.out
-            .println("File Path: Path and name for the encrypted file. Will be replaced if it already exists.");
+        System.out.println("User Name: A human-friendly name for the owner of the credentials, e.g. Horace.");
+        System.out.println("File Path: Path and name for the encrypted file. Will be replaced if it already exists.");
+        System.out.println("Algorithm: PBE encryption algorithm. Defaults to PBEWithMD5AndDES");
     }
 
 }
