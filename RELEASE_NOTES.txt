@@ -2,6 +2,14 @@
 Version 0.6.2
 -------------
 
+SYNCHRONIZE
+- AWS credentials and the cryptographic password can now be provided via prompts
+  on the command-line, rather than merely through a properties file.
+- Added the --credentials option, which allows AWS credentials to be loaded from 
+  an encrypted file rather than an insecure properties file. The encrypted file 
+  can be created with the AWSCredentials API or the Cockpit application.
+
+
 TOOLKIT
 
   * REST Implementation
@@ -12,8 +20,10 @@ TOOLKIT
   a range of #initHttpProxy methods.
 - The HttpConnectionManager and HttpClient objects used by the REST service can
   now be reinitialised on-demand using the #initHttpConnection method.
-- The underlying HttpConnectionManager can be accessed to update its settings
-  using the #getHttpConnectionManager method.
+- The underlying HttpClient and HttpConnectionManager objects can be accessed 
+  to provide greater control and flexibility after a service is created.
+- The automatic time adjustment performed in response to RequestTimeTooSkewed
+  errors will now work through proxies.
 
 KUDOS TO:
 

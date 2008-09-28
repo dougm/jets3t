@@ -18,9 +18,11 @@
  */
 package org.jets3t.apps.synchronize;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,6 +35,7 @@ import java.util.Set;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.BytesProgressWatcher;
@@ -942,13 +945,12 @@ public class Synchronize {
         System.out.println("DownloadDirectory : A directory on your computer where downloaded files");
         System.out.println("          will be stored");
         System.out.println();
-        System.out.println("A property file must be provided to the application, either as a file named");
-        System.out.println("'synchronize.properties' in the classpath or via the --properties option. It must");
-        System.out.println("contain the following properties:");
+        System.out.println("Required properties can be provided via: a file named 'synchronize.properties'");
+        System.out.println("in the classpath, a file specified with the --properties option, or by typing");
+        System.out.println("them in when prompted on the command line. Required properties are:");
         System.out.println("          accesskey : Your AWS Access Key (Required)");
         System.out.println("          secretkey : Your AWS Secret Key (Required)");
         System.out.println("          password  : Encryption password (only required when using crypto)");
-        System.out.println("          acl       : ACL permissions for uploads (optional)");
         System.out.println("Properties specified in this file will override those in jets3t.properties.");
         if (!fullHelp) {
             System.out.println("");
@@ -1019,6 +1021,11 @@ public class Synchronize {
         System.out.println("   Load the synchronizer app properties from the given file rather than from");
         System.out.println("   a synchronizer.properties file in the classpath.");
         System.out.println("");
+        System.out.println("--credentials <filename>");
+        System.out.println("   Load your AWS credentials from an encrypted file, rather than from the");
+        System.out.println("   synchronizer.properties file. This encrypted file can be created using");
+        System.out.println("   the Cockpit application, or the JetS3t API library.");
+        System.out.println("");
         System.out.println("--acl <ACL string>");
         System.out.println("   Specifies the Access Control List setting to apply. This value must be one");
         System.out.println("   of: PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE. This setting will override any");
@@ -1085,6 +1092,7 @@ public class Synchronize {
         boolean isSkipMetadata = false;
         String aclString = null;
         int reportLevel = REPORT_LEVEL_ALL;
+        AWSCredentials awsCredentials = null;
                 
         // Parse arguments.
         for (int i = 0; i < args.length; i++) {
@@ -1170,6 +1178,32 @@ public class Synchronize {
                         System.err.println("ERROR: --reportlevel option must be followed by 0, 1, 2 or 3");
                         printHelpAndExit(false);
                     }
+                } else if (arg.equalsIgnoreCase("--credentials")) {
+                    if (i + 1 < args.length) {
+                        // Read the credentials file location
+                        i++;
+                        File credentialsFile = new File(args[i]);
+                        if (!credentialsFile.canRead()) {
+                            System.err.println("ERROR: Cannot read credentials file '" + credentialsFile + "'");
+                            printHelpAndExit(false);                            
+                        }                        
+                        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
+                        while (awsCredentials == null) {
+                            System.out.print("Password for credentials file '" + credentialsFile + "': ");
+                            String credentialsPassword = inputReader.readLine();
+                            try {
+                                awsCredentials = AWSCredentials.load(credentialsPassword, credentialsFile);
+                                // Set dummy accesskey and secretkey property values, to avoid prompting for these values later on. 
+                                myProperties.setProperty("accesskey", "");
+                                myProperties.setProperty("secretkey", "");
+                            } catch (S3ServiceException e) {
+                                System.out.println("Failed to read AWS credentials from the file '" + credentialsFile + "'");
+                            }
+                        }
+                    } else {
+                        System.err.println("ERROR: --credentials option must be followed by a file path");
+                        printHelpAndExit(false);
+                    }
                 } else {
                     System.err.println("ERROR: Invalid option: " + arg);
                     printHelpAndExit(false);
@@ -1245,31 +1279,51 @@ public class Synchronize {
             // Read the Synchronize properties file from the classpath
             Jets3tProperties synchronizeProperties = 
                 Jets3tProperties.getInstance(propertiesFileName);
-            if (!synchronizeProperties.isLoaded()) {
-                System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found in the classpath");
-                System.exit(2);                        
-            } else {
+            if (synchronizeProperties.isLoaded()) {
                 myProperties.loadAndReplaceProperties(synchronizeProperties, 
                     propertiesFileName + " in classpath");                
             }
         }
                 
-        // Ensure the Synchronize properties file contains everything we need.
-        if (!myProperties.containsKey("accesskey")) {
-            System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: accesskey");
-            System.exit(2);            
-        } else if (!myProperties.containsKey("secretkey")) {
-            System.err.println("ERROR: The properties file " + propertiesFileName + " must contain the property: secretkey");
-            System.exit(2);                        
-        } else if (isEncryptionEnabled && !myProperties.containsKey("password")) {
-            System.err.println("ERROR: You are using encryption, so the properties file " + propertiesFileName + " must contain the property: password");
-            System.exit(2);                        
+        // Ensure the Synchronize properties file contains everything we need, and prompt
+        // for any required information that is missing.
+        if (!myProperties.containsKey("accesskey") 
+            || !myProperties.containsKey("secretkey") 
+            || (isEncryptionEnabled && !myProperties.containsKey("password"))) 
+        {
+            System.out.println("Please enter the required properties that have not been provided in a properties file:");
+            BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
+            if (!myProperties.containsKey("accesskey")) {
+                System.out.print("AWS Acccess Key: ");
+                myProperties.setProperty("accesskey", inputReader.readLine());
+            }
+            if (!myProperties.containsKey("secretkey")) {
+                System.out.print("AWS Secret Key: ");
+                myProperties.setProperty("secretkey", inputReader.readLine());
+            }
+            if (isEncryptionEnabled && !myProperties.containsKey("password")) {
+                String password1 = "password1";                
+                String password2 = "password2";
+                while (!password1.equals(password2)) {
+                    System.out.print("Encryption password: ");
+                    password1 = inputReader.readLine();
+                    System.out.print("Confirm password: ");
+                    password2 = inputReader.readLine();
+                    if (!password1.equals(password2)) {
+                        System.out.println("The original and confirmation passwords do not match, try again.");
+                    }
+                }                
+                myProperties.setProperty("password", password1);
+            }
         }
         
-        // Load the AWS credentials from encrypted file.
-        AWSCredentials awsCredentials = new AWSCredentials(
-            myProperties.getStringProperty("accesskey", null), 
-            myProperties.getStringProperty("secretkey", null));       
+        // Use property values for the AWS credentials, if we haven't already been
+        // given the credentials through the --credentials argument.
+        if (awsCredentials == null) {
+            awsCredentials = new AWSCredentials(
+                myProperties.getStringProperty("accesskey", null), 
+                myProperties.getStringProperty("secretkey", null));
+        }
         
         if (aclString == null) {
             aclString = myProperties.getStringProperty("acl", "PRIVATE");
