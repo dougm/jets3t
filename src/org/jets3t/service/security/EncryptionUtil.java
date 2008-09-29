@@ -71,6 +71,7 @@ public class EncryptionUtil {
     private static final Log log = LogFactory.getLog(EncryptionUtil.class);
     
     public static final String DEFAULT_VERSION = "2";
+    public static final String DEFAULT_ALGORITHM = "PBEWithMD5AndDES";
 
     private String algorithm = null;
     private String version = null;
