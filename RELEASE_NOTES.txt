@@ -8,6 +8,10 @@ SYNCHRONIZE
 - Added the --credentials option, which allows AWS credentials to be loaded from 
   an encrypted file rather than an insecure properties file. The encrypted file 
   can be created with the AWSCredentials API or the Cockpit application.
+- Synchronize will act as an anonymous client if empty values are provided
+  as the AWS access and secret keys. When the S3 connection is anonymous, only 
+  public buckets will be accessible.
+  
 
 
 TOOLKIT

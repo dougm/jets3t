@@ -806,15 +806,23 @@ public class Synchronize {
         
         this.cryptoPassword = cryptoPassword;
                 
-        S3Bucket bucket = s3Service.getBucket(bucketName);
-        if (bucket == null) {
-            // Bucket does not exist in this user's account, try creating it.
-            try {
-                bucket = s3Service.createBucket(new S3Bucket(bucketName));
-            } catch (Exception e) {
-                throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
-            }
+        S3Bucket bucket = null;
+        if (s3Service.getAWSCredentials() == null) {
+            // Using an anonymous connection, don't check bucket ownership or attempt to create it.
+            bucket = new S3Bucket(bucketName);
+        } else {
+            // Using an authentication connection, so check for bucket ownership and create one if necessary. 
+            bucket = s3Service.getBucket(bucketName);
+            if (bucket == null) {
+                // Bucket does not exist in this user's account, try creating it.
+                try {
+                    bucket = s3Service.createBucket(new S3Bucket(bucketName));
+                } catch (Exception e) {
+                    throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
+                }
+            }            
         }
+        
                             
         boolean storeEmptyDirectories = properties
             .getBoolProperty("uploads.storeEmptyDirectories", true);
@@ -1323,6 +1331,14 @@ public class Synchronize {
             awsCredentials = new AWSCredentials(
                 myProperties.getStringProperty("accesskey", null), 
                 myProperties.getStringProperty("secretkey", null));
+        }
+        
+        // Sanity-check AWS credentials -- if both are null or empty strings, 
+        // then nullify the AWSCredentials object to get an anonymous connection.
+        if (awsCredentials.getAccessKey() == null || awsCredentials.getAccessKey().length() == 0
+            || awsCredentials.getSecretKey() == null || awsCredentials.getSecretKey().length() == 0)
+        {
+            awsCredentials = null;
         }
         
         if (aclString == null) {
