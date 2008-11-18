@@ -22,7 +22,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,16 +37,9 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpConnectionManager;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpMethodBase;
-import org.apache.commons.httpclient.HttpMethodRetryHandler;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.ProxyHost;
 import org.apache.commons.httpclient.URI;
 import org.apache.commons.httpclient.URIException;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.HeadMethod;
@@ -55,9 +47,6 @@ import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
@@ -70,7 +59,6 @@ import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
-import org.jets3t.service.io.UnrecoverableIOException;
 import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
@@ -92,7 +80,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * 
  * @author James Murty
  */
-public class RestS3Service extends S3Service implements SignedUrlHandler {
+public class RestS3Service extends S3Service implements SignedUrlHandler, AWSRequestAuthorizer {
     private static final long serialVersionUID = 3515978495790107357L;
 
     private static final Log log = LogFactory.getLog(RestS3Service.class);
@@ -103,7 +91,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     private static final int PORT_INSECURE = 80;
         
     private HttpClient httpClient = null;
-    private MultiThreadedHttpConnectionManager connectionManager = null;
+    private HttpConnectionManager connectionManager = null;
     private CredentialsProvider credentialsProvider = null;
     
     /**
@@ -194,128 +182,25 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
     {
         super(awsCredentials, invokingApplicationDescription, jets3tProperties);
         this.credentialsProvider = credentialsProvider;
-        initHttpConnection(hostConfig);
-    }
-    
-    /**
-     * Initialises, or re-initialises, the underlying HttpConnectionManager and 
-     * HttpClient objects this service will use to communicate with S3. If proxy
-     * settings are specified in this service's {@link Jets3tProperties} object,
-     * these settings will also be passed on to the underlying objects.
-     * <p>
-     * This method is automatically invoked when a RestS3Service is constructed, but 
-     * it can also be re-invoked later on to reinitialise the objects to use updated 
-     * settings.  
-     * 
-     * @param hostConfig
-     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory.
-     * This parameter may be null, in which case a default host configuration will be
-     * used.
-     */
-    public void initHttpConnection(HostConfiguration hostConfig) 
-    {
-        // Configure HttpClient properties based on Jets3t Properties.
-        HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
-        connectionParams.setConnectionTimeout(this.jets3tProperties.
-            getIntProperty("httpclient.connection-timeout-ms", 60000));
-        connectionParams.setSoTimeout(this.jets3tProperties.
-            getIntProperty("httpclient.socket-timeout-ms", 60000));        
-        connectionParams.setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION,
-            this.jets3tProperties.getIntProperty("httpclient.max-connections", 4));
-        connectionParams.setStaleCheckingEnabled(this.jets3tProperties.
-            getBoolProperty("httpclient.stale-checking-enabled", true));
         
-        // Connection properties to take advantage of S3 window scaling.
-        if (this.jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
-            connectionParams.setReceiveBufferSize(this.jets3tProperties.
-                getIntProperty("httpclient.socket-receive-buffer", 0));
-        }
-        if (this.jets3tProperties.containsKey("httpclient.socket-send-buffer")) {
-            connectionParams.setSendBufferSize(this.jets3tProperties.
-                getIntProperty("httpclient.socket-send-buffer", 0));
-        }
-        
-        connectionParams.setTcpNoDelay(true);
-        
-        connectionManager = new MultiThreadedHttpConnectionManager();
-        connectionManager.setParams(connectionParams);
-        
-        // Set user agent string.
-        HttpClientParams clientParams = new HttpClientParams();
-        String userAgent = this.jets3tProperties.getStringProperty("httpclient.useragent", null);
-        if (userAgent == null) {
-            userAgent = ServiceUtils.getUserAgentDescription(
-                getInvokingApplicationDescription());
-        }
-        if (log.isDebugEnabled()) {
-            log.debug("Setting user agent string: " + userAgent);
-        }
-        clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
-
-        clientParams.setBooleanParameter("http.protocol.expect-continue", true);
-
-        // Replace default error retry handler.
-        final int retryMaxCount = this.jets3tProperties.getIntProperty("httpclient.retry-max", 5);
-        
-        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
-            public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
-                if (executionCount > retryMaxCount) {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Retried connection " + executionCount 
-                            + " times, which exceeds the maximum retry count of " + retryMaxCount);
-                    }
-                    return false;                    
-                }
-                if  (ioe instanceof UnrecoverableIOException) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Deliberate interruption, will not retry");
-                    }
-                    return false;
-                }
-                if (log.isDebugEnabled()) {
-                    log.debug("Retrying " + httpMethod.getName() + " request with path '" 
-                        + httpMethod.getPath() + "' - attempt " + executionCount 
-                        + " of " + retryMaxCount);
-                }
-                
-                // Build the authorization string for the method.
-                try {
-                    buildAuthorizationString(httpMethod);
-                } catch (S3ServiceException e) {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Unable to generate updated authorization string for retried request", e);
-                    }
-                }
-                
-                return true;
-            }
-        });
-        
-        httpClient = new HttpClient(clientParams, connectionManager);
-        httpClient.setHostConfiguration(hostConfig);
-        
-        if (credentialsProvider != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
-            }
-            httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
-            if (this.jets3tProperties.getBoolProperty("httpclient.authentication-preemptive", false)) {
-                httpClient.getParams().setAuthenticationPreemptive(true);
-            }
-        }                                  
+        HttpClientAndConnectionManager initHttpResult = RestUtils.initHttpConnection(
+            this, hostConfig, jets3tProperties, 
+            getInvokingApplicationDescription(), credentialsProvider);
+        this.httpClient = initHttpResult.getHttpClient();
+        this.connectionManager = initHttpResult.getHttpConnectionManager();
         
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
-            initHttpProxy();
+            RestUtils.initHttpProxy(httpClient);
         } else {
             String proxyHostAddress = this.jets3tProperties.getStringProperty("httpclient.proxy-host", null);
             int proxyPort = this.jets3tProperties.getIntProperty("httpclient.proxy-port", -1);            
             String proxyUser = this.jets3tProperties.getStringProperty("httpclient.proxy-user", null);
             String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
             String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);            
-            initHttpProxy(proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
-        }
-    }
+            RestUtils.initHttpProxy(httpClient, proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
+        }        
+    }    
     
     /**
      * @return
@@ -331,99 +216,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
      */
     public HttpClient getHttpClient() {
         return this.httpClient;
-    }
-    
-    /**
-     * Initialises this service's HTTP proxy by auto-detecting the proxy settings.
-     */
-    public void initHttpProxy() {
-        this.initHttpProxy(true, null, -1, null, null, null);
-    }
-
-    /**
-     * Initialises this service's HTTP proxy with the given proxy settings.
-     * 
-     * @param proxyHostAddress
-     * @param proxyPort
-     */
-    public void initHttpProxy(String proxyHostAddress, int proxyPort) {
-        this.initHttpProxy(false, proxyHostAddress, proxyPort, null, null, null);
-    }
-
-    /**
-     * Initialises this service's HTTP proxy for authentication using the given 
-     * proxy settings.
-     * 
-     * @param proxyHostAddress
-     * @param proxyPort
-     * @param proxyUser
-     * @param proxyPassword
-     * @param proxyDomain
-     * if a proxy domain is provided, an {@link NTCredentials} credential provider
-     * will be used. If the proxy domain is null, a 
-     * {@link UsernamePasswordCredentials} credentials provider will be used.   
-     */
-    public void initHttpProxy(String proxyHostAddress, int proxyPort, 
-        String proxyUser, String proxyPassword, String proxyDomain) 
-    {
-        this.initHttpProxy(false, proxyHostAddress, proxyPort, proxyUser, 
-            proxyPassword, proxyDomain);
-    }
-    
-
-    /**
-     * 
-     * @param proxyAutodetect
-     * @param proxyHostAddress
-     * @param proxyPort
-     * @param proxyUser
-     * @param proxyPassword
-     * @param proxyDomain
-     */
-    protected void initHttpProxy(boolean proxyAutodetect, String proxyHostAddress, 
-        int proxyPort, String proxyUser, String proxyPassword, String proxyDomain) 
-    {
-        HostConfiguration hostConfig = this.httpClient.getHostConfiguration();
-        
-        // Use explicit proxy settings, if available.
-        if (proxyHostAddress != null && proxyPort != -1) {
-            if (log.isInfoEnabled()) {
-                log.info("Using Proxy: " + proxyHostAddress + ":" + proxyPort);
-            }
-            hostConfig.setProxy(proxyHostAddress, proxyPort);
-            
-            if (proxyUser != null && !proxyUser.trim().equals("")) {
-                if (proxyDomain != null) {
-                    this.httpClient.getState().setProxyCredentials(
-                        new AuthScope(proxyHostAddress, proxyPort),
-                            new NTCredentials(proxyUser, proxyPassword, proxyHostAddress, proxyDomain));
-                }
-                else {
-                    this.httpClient.getState().setProxyCredentials(
-                        new AuthScope(proxyHostAddress, proxyPort),
-                            new UsernamePasswordCredentials(proxyUser, proxyPassword));
-                }
-            }
-        }
-        // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
-        else if (proxyAutodetect) {        
-            // Try to detect any proxy settings from applet.
-            ProxyHost proxyHost = null;
-            try {            
-                proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + Constants.S3_HOSTNAME));
-                if (proxyHost != null) {
-                    if (log.isInfoEnabled()) {
-                        log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
-                    }
-                    hostConfig.setProxyHost(proxyHost);
-                }                
-            } catch (Throwable t) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Unable to set proxy configuration", t);
-                }
-            }        
-        }                
-    }
+    }    
     
     /**
      * @return
@@ -483,7 +276,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
             do {
                 // Build the authorization string for the method (Unless we have just been redirected).
                 if (!wasRecentlyRedirected) {
-                    buildAuthorizationString(httpMethod);
+                    authorizeHttpRequest(httpMethod);
                 } else {
                     // Reset redirection flag
                     wasRecentlyRedirected = false;
@@ -581,11 +374,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                                 throw exception;
                             }
                         } else if ("RequestTimeTooSkewed".equals(exception.getS3ErrorCode())) {
-                            long timeDifferenceMS = adjustTime();
+                            this.timeOffset = RestUtils.getAWSTimeAdjustment();
                             if (log.isWarnEnabled()) {
                                 log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. " 
                                     + "Local machine and S3 server disagree on the time by approximately " 
-                                    + (timeDifferenceMS / 1000) + " seconds. Retrying connection.");
+                                    + (this.timeOffset / 1000) + " seconds. Retrying connection.");
                             }
                             completedWithoutRecoverableError = false;
                         } else if (responseCode == 500 || responseCode == 503) {
@@ -659,6 +452,79 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
                     + " connection failed for '" + httpMethod.getPath() + "'", t);                
             }            
         } 
+    }
+    
+    /**
+     * Authorizes an HTTP request by signing it. The signature is based on the target URL, and the
+     * signed authorization string is added to the {@link HttpMethod} object as an Authorization header.
+     * 
+     * @param httpMethod
+     *        the request object
+     * @throws S3ServiceException
+     */
+    public void authorizeHttpRequest(HttpMethod httpMethod) throws Exception {
+        if (getAWSCredentials() != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
+            }
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Service has no AWS Credential and is un-authenticated, skipping authorization");
+            }
+            return;
+        }
+        
+        String hostname = null;
+        try {
+            hostname = httpMethod.getURI().getHost();
+        } catch (URIException e) {
+            if (log.isErrorEnabled()) {
+                log.error("Unable to determine hostname target for request", e);
+            }
+        }
+
+        /*
+         * Determine the complete URL for the S3 resource, including any S3-specific parameters.
+         */         
+        String fullUrl = httpMethod.getPath();
+
+        // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
+        if (!Constants.S3_HOSTNAME.equals(hostname)) {
+            int subdomainOffset = hostname.indexOf("." + Constants.S3_HOSTNAME);
+            if (subdomainOffset > 0) {
+                // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
+                fullUrl = "/" + hostname.substring(0, subdomainOffset) + httpMethod.getPath();                    
+            } else {
+                // Hostname represents a virtual host, so the bucket's name is identical to hostname
+                fullUrl = "/" + hostname + httpMethod.getPath();                    
+            }
+        }
+        
+        String queryString = httpMethod.getQueryString();
+        if (queryString != null && queryString.length() > 0) {
+            fullUrl += "?" + queryString;
+        }
+        
+        // Set/update the date timestamp to the current time 
+        // Note that this will be over-ridden if an "x-amz-date" header is present.
+        httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(
+            getCurrentTimeWithOffset()));
+        
+        // Generate a canonical string representing the operation.
+        String canonicalString = RestUtils.makeS3CanonicalString(
+                httpMethod.getName(), fullUrl,
+                convertHeadersToMap(httpMethod.getRequestHeaders()), null);
+        if (log.isDebugEnabled()) {
+            log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
+        }
+        
+        // Sign the canonical string.
+        String signedCanonical = ServiceUtils.signWithHmacSha1(
+            getAWSCredentials().getSecretKey(), canonicalString);
+        
+        // Add encoded authorization to connection as HTTP Authorization header. 
+        String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signedCanonical;
+        httpMethod.setRequestHeader("Authorization", authorizationString);
     }
     
     /**
@@ -991,80 +857,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler {
         }
 
         return httpMethod;
-    }
-    
-    /**
-     * Authorizes an HTTP request by signing it. The signature is based on the target URL, and the
-     * signed authorization string is added to the {@link HttpMethod} object as an Authorization header.
-     * 
-     * @param httpMethod
-     *        the request object
-     * @throws S3ServiceException
-     */
-    protected void buildAuthorizationString(HttpMethod httpMethod) throws S3ServiceException {
-        if (isAuthenticatedConnection()) {
-            if (log.isDebugEnabled()) {
-                log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
-            }
-        } else {
-            if (log.isDebugEnabled()) {
-                log.debug("Service has no AWS Credential and is un-authenticated, skipping authorization");
-            }
-            return;
-        }
-        
-        String hostname = null;
-        try {
-            hostname = httpMethod.getURI().getHost();
-        } catch (URIException e) {
-            if (log.isErrorEnabled()) {
-                log.error("Unable to determine hostname target for request", e);
-            }
-        }
-
-        /*
-         * Determine the complete URL for the S3 resource, including any S3-specific parameters.
-         */         
-        String fullUrl = httpMethod.getPath();
-
-        // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-        if (!Constants.S3_HOSTNAME.equals(hostname)) {
-            int subdomainOffset = hostname.indexOf("." + Constants.S3_HOSTNAME);
-            if (subdomainOffset > 0) {
-                // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
-                fullUrl = "/" + hostname.substring(0, subdomainOffset) + httpMethod.getPath();                    
-            } else {
-                // Hostname represents a virtual host, so the bucket's name is identical to hostname
-                fullUrl = "/" + hostname + httpMethod.getPath();                    
-            }
-        }
-        
-        String queryString = httpMethod.getQueryString();
-        if (queryString != null && queryString.length() > 0) {
-            fullUrl += "?" + queryString;
-        }
-        
-        // Set/update the date timestamp to the current time 
-        // Note that this will be over-ridden if an "x-amz-date" header is present.
-        httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(
-            getCurrentTimeWithOffset()));
-        
-        // Generate a canonical string representing the operation.
-        String canonicalString = RestUtils.makeCanonicalString(
-                httpMethod.getName(), fullUrl,
-                convertHeadersToMap(httpMethod.getRequestHeaders()), null);
-        if (log.isDebugEnabled()) {
-            log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
-        }
-        
-        // Sign the canonical string.
-        String signedCanonical = ServiceUtils.signWithHmacSha1(
-                getAWSCredentials().getSecretKey(), canonicalString);
-        
-        // Add encoded authorization to connection as HTTP Authorization header. 
-        String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signedCanonical;
-        httpMethod.setRequestHeader("Authorization", authorizationString);
-    }
+    }    
 
     
     ////////////////////////////////////////////////////////////////

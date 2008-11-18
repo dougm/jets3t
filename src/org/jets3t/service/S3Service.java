@@ -29,9 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
@@ -97,7 +94,7 @@ public abstract class S3Service implements Serializable {
      * 
      * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()} 
      * to obtain the current time with this offset factor included, and the 
-     * {@link #adjustTime()} method to calculate an offset value for your
+     * {@link #getAWSTimeAdjustment()} method to calculate an offset value for your
      * computer based on a response from an AWS server.
      */
     protected long timeOffset = 0;
@@ -431,7 +428,7 @@ public abstract class S3Service implements Serializable {
         uriPath += "AWSAccessKeyId=" + awsCredentials.getAccessKey();
         uriPath += "&Expires=" + secondsSinceEpoch;
 
-        String canonicalString = RestUtils.makeCanonicalString(method, "/" + virtualBucketPath + uriPath,
+        String canonicalString = RestUtils.makeS3CanonicalString(method, "/" + virtualBucketPath + uriPath,
             RestUtils.renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch));
         if (log.isDebugEnabled()) {
         	log.debug("Signing canonical string:\n" + canonicalString);
@@ -2237,62 +2234,17 @@ public abstract class S3Service implements Serializable {
     
 
     /**
-     * Sets a time offset value to reflect the time difference between your
-     * computer's clock and the current time according to an S3 server. This
-     * method returns the calculated time difference and also sets the 
-     * timeOffset variable in this class.
-     * 
-     * Ideally you should not rely on this method to overcome clock-related
-     * disagreements between your computer and S3. If you computer is set
-     * to update its clock periodically and has the correct timezone setting 
-     * you should never have to resort to this work-around.
-     */
-    public long adjustTime() throws Exception {
-        RestS3Service restService = new RestS3Service(null);
-        HttpClient client = restService.getHttpClient();
-        
-        // Connect to an AWS server to obtain response headers.
-        GetMethod getMethod = new GetMethod("http://" + Constants.S3_HOSTNAME + "/");
-        int result = client.executeMethod(getMethod);
-        
-        if (result == 200) {
-            Header dateHeader = getMethod.getResponseHeader("Date");
-            // Retrieve the time according to AWS, based on the Date header
-            Date s3Time = ServiceUtils.parseRfc822Date(dateHeader.getValue());            
-
-            // Calculate the difference between the current time according to AWS,
-            // and the current time according to your computer's clock.
-            Date localTime = new Date();
-            this.timeOffset = s3Time.getTime() - localTime.getTime();
-
-            if (log.isDebugEnabled()) {
-                log.debug("Calculated time offset value of " + this.timeOffset +
-                        " milliseconds between the local machine and an S3 server");
-            }
-        } else {
-            if (log.isWarnEnabled()) {
-                log.warn("Unable to calculate value of time offset between the "
-                    + "local machine and S3 server");
-            }            
-        }
-
-        return this.timeOffset;
-    }
-    
-    
-    /**
      * Returns the current date and time, adjusted according to the time
      * offset between your computer and an AWS server (as set by the
-     * {@link #adjustTime()} method).
+     * {@link #getAWSTimeAdjustment()} method).
      * 
      * @return
      * the current time, or the current time adjusted to match the AWS time 
-     * if the {@link #adjustTime()} method has been invoked.
+     * if the {@link #getAWSTimeAdjustment()} method has been invoked.
      */
     public Date getCurrentTimeWithOffset() {
         return new Date(System.currentTimeMillis() + timeOffset);
     }
-    
 
     // /////////////////////////////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by interface-specific S3Service classes
