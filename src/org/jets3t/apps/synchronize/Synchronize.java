@@ -332,22 +332,6 @@ public class Synchronize {
             while (fileKeyIter.hasNext()) {
                 String relativeKeyPath = (String) fileKeyIter.next();
                 
-                if (isBatchMode) {
-                    if (priorLastKey != null && relativeKeyPath.compareTo(priorLastKey) > 0) {
-                        // We do not yet have the S3 object listing to compare this file.
-                        continue;
-                    }
-                    
-                    if (relativeKeyPath.compareTo(lastFileKeypathChecked) <= 0) {
-                        // We have already handled this file in a prior batch.
-                        continue;
-                    } else {
-                        lastFileKeypathChecked = relativeKeyPath;
-                    }
-                }
-                
-                File file = (File) filesMap.get(relativeKeyPath);
-                
                 String targetKey = relativeKeyPath;
                 if (rootObjectPath.length() > 0) {
                     if (rootObjectPath.endsWith(Constants.FILE_PATH_DELIM)) {
@@ -356,26 +340,42 @@ public class Synchronize {
                         targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;                         
                     }
                 }
-    
+
+                if (isBatchMode) {
+                    if (priorLastKey != null && targetKey.compareTo(priorLastKey) > 0) {
+                        // We do not yet have the S3 object listing to compare this file.
+                        continue;
+                    }
+                    
+                    if (targetKey.compareTo(lastFileKeypathChecked) <= 0) {
+                        // We have already handled this file in a prior batch.
+                        continue;
+                    } else {
+                        lastFileKeypathChecked = targetKey;
+                    }
+                }
+                
+                File file = (File) filesMap.get(relativeKeyPath);
+                    
                 if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
-                    printOutputLine("N " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
+                    printOutputLine("N " + targetKey, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                 } else if (discrepancyResults.updatedOnClientKeys.contains(relativeKeyPath)) {
-                    printOutputLine("U " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
+                    printOutputLine("U " + targetKey, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                 } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)) {
                     if (isForce) {
-                        printOutputLine("F " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
+                        printOutputLine("F " + targetKey, REPORT_LEVEL_ACTIONS);
                         objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                     } else {
-                        printOutputLine("- " + relativeKeyPath, REPORT_LEVEL_ALL);
+                        printOutputLine("- " + targetKey, REPORT_LEVEL_ALL);
                     }
                 } else if (discrepancyResults.updatedOnServerKeys.contains(relativeKeyPath)) {
                     // This file has been updated on the server-side.
                     if (isKeepFiles) {
-                        printOutputLine("r " + relativeKeyPath, REPORT_LEVEL_DIFFERENCES);                    
+                        printOutputLine("r " + targetKey, REPORT_LEVEL_DIFFERENCES);                    
                     } else {
-                        printOutputLine("R " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
+                        printOutputLine("R " + targetKey, REPORT_LEVEL_ACTIONS);
                         objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
                     }
                 } else {

@@ -11,10 +11,15 @@ SYNCHRONIZE
 - Synchronize will act as an anonymous client if empty values are provided
   as the AWS access and secret keys. When the S3 connection is anonymous, only 
   public buckets will be accessible.
-  
+- Fixed a bug that prevented Synchronize from recognizing duplicate file names
+  when uploading to an S3 subdirectory path when using the --batch option.  
 
 
 TOOLKIT
+
+  * General
+
+- Added initial implementation of CloudFront service.
 
   * REST Implementation
 
