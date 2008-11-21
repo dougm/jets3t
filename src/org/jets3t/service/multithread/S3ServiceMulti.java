@@ -251,10 +251,10 @@ public class S3ServiceMulti implements Serializable {
      * an optional delimiter string to apply to each listing operation. This
      * parameter should be null if you do not wish to apply a delimiter. 
      * @param maxListingLength
-     * the maximum object listing length that will be applied to each listing
-     * operation. This should be a value between 1 and 1000, and 1000 will
-     * generally be the best choice to minimize the number of listing requests
-     * that must be performed. 
+     * the maximum number of objects to list in each iteration. This should be a 
+     * value between 1 and 1000, where 1000 will be the best choice in almost all
+     * circumstances. Regardless of this value, all the objects in the bucket that
+     * match the criteria will be returned.
      * 
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 

@@ -79,7 +79,7 @@ public class PutViaSocket {
     private static String generateAuthorizationString(AWSCredentials awsCredentials, 
         String url, Map headersMap) throws Exception 
     {
-        String canonicalString = RestUtils.makeCanonicalString("PUT", url, 
+        String canonicalString = RestUtils.makeS3CanonicalString("PUT", url, 
             headersMap, null);
 
         // Sign the canonical string.
