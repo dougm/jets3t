@@ -479,6 +479,33 @@ public class ServiceUtils {
     }    
     
     /**
+     * Identifies the name of a bucket from a given host name, if available. 
+     * Returns null if the bucket name cannot be identified, as might happen
+     * when a bucket name is represented by the path component of a URL instead 
+     * of the host name component.
+     * 
+     * @param host
+     * the host name component of a URL that may include the bucket name, 
+     * if an alternative host name is in use.
+     * 
+     * @return
+     * The S3 bucket name represented by the DNS host name, or null if none.
+     */
+    public static String findBucketNameInHostname(String host) {
+        String bucketName = null;
+        // Bucket name is available in URL's host name.
+        if (host.endsWith(Constants.S3_HOSTNAME)) {
+            // Bucket name is available as S3 subdomain
+            bucketName = host.substring(0, 
+                host.length() - Constants.S3_HOSTNAME.length() - 1);
+        } else {
+            // URL refers to a virtual host name
+            bucketName = host;
+        }        
+        return bucketName;
+    }
+    
+    /**
      * Builds an object based on the bucket name and object key information 
      * available in the components of a URL. 
      * 
@@ -501,15 +528,7 @@ public class ServiceUtils {
         String objectKey = null;
         
         if (!Constants.S3_HOSTNAME.equals(host)) {
-            // Bucket name is available in URL's host name.
-            if (host.endsWith(Constants.S3_HOSTNAME)) {
-                // Bucket name is available as S3 subdomain
-                bucketName = host.substring(0, 
-                    host.length() - Constants.S3_HOSTNAME.length() - 1);
-            } else {
-                // URL refers to a virtual host name
-                bucketName = host;
-            }
+            bucketName = findBucketNameInHostname(host);            
         } else {
             // Bucket name must be first component of URL path
             int slashIndex = urlPath.indexOf("/");

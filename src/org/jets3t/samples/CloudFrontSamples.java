@@ -43,8 +43,14 @@ public class CloudFrontSamples {
         for (int i = 0; i < distributions.length; i++) {
             System.out.println("Distribution " + (i + 1) + ": " + distributions[i]);
         }
-
+        
         /*
+        // List the distributions applied to a given S3 bucket
+        Distribution[] bucketDistributions = cloudFrontService.listDistributions("jets3t");
+        for (int i = 0; i < bucketDistributions.length; i++) {
+            System.out.println("Bucket distribution " + (i + 1) + ": " + bucketDistributions[i]);
+        }
+        
         // Create a new distribution 
         String originBucket = "jets3t.s3.amazonaws.com";
         Distribution newDistribution = cloudFrontService.createDistribution(

@@ -206,6 +206,32 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }        
     }
     
+    /**
+     * List the distributions for the given S3 bucket.
+     * 
+     * @param bucketName
+     * @return
+     * @throws CloudFrontServiceException
+     */
+    public Distribution[] listDistributions(String bucketName) throws CloudFrontServiceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Listing distributions for the S3 bucket '" + bucketName 
+                + "' for AWS user: " + getAWSCredentials().getAccessKey());
+        }
+        ArrayList bucketDistributions = new ArrayList();
+        Distribution[] allDistributions = listDistributions();
+        for (int i = 0; i < allDistributions.length; i++) {
+            String distributionOrigin = allDistributions[i].getOrigin(); 
+            if (distributionOrigin.equals(bucketName) 
+                || bucketName.equals(ServiceUtils.findBucketNameInHostname(distributionOrigin))) 
+            {
+                bucketDistributions.add(allDistributions[i]);
+            }
+        }
+        return (Distribution[]) bucketDistributions.toArray(
+            new Distribution[bucketDistributions.size()]);
+    }
+    
     public Distribution createDistribution(String origin, String callerReference, 
         String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException 
     {
