@@ -297,7 +297,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                         throw new S3ServiceException("Encountered too many 307 Redirects, aborting request.");
                     } 
                 } else if (responseCode == 500 || responseCode == 503) {
-                    // Retry on S3 Internal Server 500 or 503 Service Unavailable erros.
+                    // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
                     completedWithoutRecoverableError = false;
                     sleepOnInternalError(++internalErrorCount);
                 } else {

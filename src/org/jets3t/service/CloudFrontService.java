@@ -46,6 +46,17 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
+/**
+ * A service that handles communication with the Amazon CloudFront REST API, offering 
+ * all the operations that can be performed on CloudFront distributions.
+ * <p>
+ * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
+ * these properties please refer to 
+ * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
+ * </p>
+ * 
+ * @author James Murty
+ */
 public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
@@ -59,6 +70,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private AWSCredentials awsCredentials = null;
     protected Jets3tProperties jets3tProperties = null;
     private String invokingApplicationDescription = null;
+    protected boolean isHttpsOnly = true;
+    protected int internalErrorRetryMax = 5;
+
 
     /**
      * The approximate difference in the current time between your computer and
@@ -71,6 +85,27 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      */
     protected long timeOffset = 0;
 
+    /**
+     * Constructs the service and initialises its properties.
+     * 
+     * @param awsCredentials
+     * the AWS user credentials to use when communicating with CloudFront
+     * @param invokingApplicationDescription
+     * a short description of the application using the service, suitable for inclusion in a
+     * user agent string for REST/HTTP requests. Ideally this would include the application's
+     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>.
+     * May be null.
+     * @param credentialsProvider
+     * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
+     * prompting for credentials when necessary. May be null.
+     * @param jets3tProperties
+     * JetS3t properties that will be applied within this service. May be null.
+     * @param hostConfig
+     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory.
+     * May be null.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public CloudFrontService(AWSCredentials awsCredentials, String invokingApplicationDescription, 
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
         HostConfiguration hostConfig) throws CloudFrontServiceException 
@@ -78,12 +113,22 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         this.awsCredentials = awsCredentials;        
         this.invokingApplicationDescription = invokingApplicationDescription;        
         this.credentialsProvider = credentialsProvider;
-        this.jets3tProperties = jets3tProperties;                
+        if (jets3tProperties == null) {
+            jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
+        }
+        this.jets3tProperties = jets3tProperties;
         
         // Configure the InetAddress DNS caching times to work well with CloudFront. The cached DNS will
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
+                
+        this.isHttpsOnly = jets3tProperties.getBoolProperty("cloudfront-service.https-only", true);        
+        this.internalErrorRetryMax = jets3tProperties.getIntProperty("cloudfront-service.internal-error-retry-max", 5);
+
+        if (hostConfig == null) {
+            hostConfig = new HostConfiguration();
+        }        
         
         HttpClientAndConnectionManager initHttpResult = RestUtils.initHttpConnection(
             this, hostConfig, jets3tProperties, 
@@ -102,10 +147,22 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             RestUtils.initHttpProxy(this.httpClient, proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
         }                
     }
+    
+    /**
+     * Constructs the service with default properties.
+     * 
+     * @param awsCredentials
+     * the AWS user credentials to use when communicating with CloudFront
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public CloudFrontService(AWSCredentials awsCredentials) throws CloudFrontServiceException 
+    {
+        this(awsCredentials, null, null, null, null);
+    }
 
     /**
-     * @return the AWS Credentials identifying the AWS user, may be null if the service is acting
-     * anonymously.
+     * @return the AWS Credentials identifying the AWS user.
      */
     public AWSCredentials getAWSCredentials() {
         return awsCredentials;
@@ -146,6 +203,21 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         httpMethod.setRequestHeader("Authorization", authorizationString);
     }
 
+    /**
+     * Performs an HTTP/S request by invoking the provided HttpMethod object. If the HTTP
+     * response code doesn't match the expected value, an exception is thrown.
+     * 
+     * @param httpMethod
+     * the object containing a request target and all other information necessary to 
+     * perform the request
+     * @param expectedResponseCode
+     * the HTTP response code that indicates a successful request. If the response code received
+     * does not match this value an error must have occurred, so an exception is thrown.
+     * @throws CloudFrontServiceException
+     * all exceptions are wrapped in a CloudFrontServiceException. Depending on the kind of error that 
+     * occurred, this exception may contain additional error information available from an XML
+     * error response document.  
+     */
     protected void performRestRequest(HttpMethod httpMethod, int expectedResponseCode) 
         throws CloudFrontServiceException 
     {
@@ -155,32 +227,71 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 getCurrentTimeWithOffset()));
         }
 
+        boolean completedWithoutRecoverableError = true;
+        int internalErrorCount = 0;
+
         try {
-            authorizeHttpRequest(httpMethod);
-            int responseCode = httpClient.executeMethod(httpMethod);
-    
-            if (responseCode != expectedResponseCode) {
-                if ("text/xml".equals(httpMethod.getResponseHeader("Content-Type"))) {
-                    ErrorHandler handler = (new CloudFrontXmlResponsesSaxParser())
-                        .parseErrorResponse(httpMethod.getResponseBodyAsStream());
-                    throw new CloudFrontServiceException("Request failed with CloudFront Service error",
-                        responseCode, handler.getType(), handler.getCode(), 
-                        handler.getMessage(), handler.getDetail(), 
-                        handler.getRequestId());            
-                } else {
-                    throw new CloudFrontServiceException(
-                        "Request failed with HTTP error " + responseCode + 
-                        ":" + httpMethod.getStatusText());
-                }
-            }
+            do {
+                completedWithoutRecoverableError = true;
+                authorizeHttpRequest(httpMethod);
+                int responseCode = httpClient.executeMethod(httpMethod);
+        
+                if (responseCode != expectedResponseCode) {
+                    if (responseCode == 500) {
+                        // Retry on Internal Server errors, up to the defined limit.
+                        long delayMs = 1000;
+                        if (++internalErrorCount < this.internalErrorRetryMax) {
+                            log.warn("Encountered " + internalErrorCount + 
+                                " CloudFront Internal Server error(s), will retry in " + delayMs + "ms");
+                            Thread.sleep(delayMs);
+                            completedWithoutRecoverableError = false;
+                        } else {
+                            throw new CloudFrontServiceException("Encountered too many CloudFront Internal Server errors (" 
+                                + internalErrorCount + "), aborting request.");                            
+                        }
+                    } else {
+                        // Parse XML error message.
+                        ErrorHandler handler = (new CloudFrontXmlResponsesSaxParser())
+                            .parseErrorResponse(httpMethod.getResponseBodyAsStream());
+                            
+                        CloudFrontServiceException exception = new CloudFrontServiceException(
+                            "Request failed with CloudFront Service error",
+                            responseCode, handler.getType(), handler.getCode(), 
+                            handler.getMessage(), handler.getDetail(), 
+                            handler.getRequestId());
+                        
+                        if ("RequestExpired".equals(exception.getErrorCode())) {
+                            // Retry on time skew errors.
+                            this.timeOffset = RestUtils.getAWSTimeAdjustment();
+                            if (log.isWarnEnabled()) {
+                                log.warn("Adjusted time offset in response to RequestExpired error. " 
+                                    + "Local machine and CloudFront server disagree on the time by approximately " 
+                                    + (this.timeOffset / 1000) + " seconds. Retrying connection.");
+                            }
+                            completedWithoutRecoverableError = false;
+                        } else {
+                            throw exception;
+                        }
+                    }  
+                } // End responseCode check
+            } while (!completedWithoutRecoverableError);
         } catch (CloudFrontServiceException e) {
+            httpMethod.releaseConnection();
             throw e;
         } catch (Throwable t) {
+            httpMethod.releaseConnection();
             throw new CloudFrontServiceException("CloudFront Request failed", t);
         }
     }
-    
-    
+        
+    /**
+     * List all your CloudFront distributions.
+     *  
+     * @return
+     * a list of your distributions.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public Distribution[] listDistributions() throws CloudFrontServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Listing distributions for AWS user: " + getAWSCredentials().getAccessKey());
@@ -207,10 +318,14 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
     
     /**
-     * List the distributions for the given S3 bucket.
+     * List the distributions for a given S3 bucket name, if any.
      * 
      * @param bucketName
+     * the name of the S3 bucket whose distributions will be returned.
      * @return
+     * a list of distributions applied to the given S3 bucket, or an empty list
+     * if there are no such distributions.
+     * 
      * @throws CloudFrontServiceException
      */
     public Distribution[] listDistributions(String bucketName) throws CloudFrontServiceException {
@@ -232,12 +347,66 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             new Distribution[bucketDistributions.size()]);
     }
     
+    /**
+     * Create a CloudFront distribution for an S3 bucket that will be publicly
+     * available once created.
+     * 
+     * @param origin
+     * the Amazon S3 bucket to associate with the distribution.
+     * 
+     * @return
+     * an object that describes the newly-created distribution, in particular the
+     * distribution's identifier and domain name values. 
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public Distribution createDistribution(String origin) throws CloudFrontServiceException 
+    {
+        return this.createDistribution(origin, null, null, null, true);
+    }
+    
+    /**
+     * Create a CloudFront distribution for an S3 bucket.
+     * 
+     * @param origin
+     * the Amazon S3 bucket to associate with the distribution.
+     * @param callerReference
+     * A user-set unique reference value that ensures the request can't be replayed
+     * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
+     * case your computer's local epoch time in milliseconds will be used.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This 
+     * parameter may be a null or empty array.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms 
+     * (max 128 characters). May be null. 
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible upon creation?
+     * 
+     * @return
+     * an object that describes the newly-created distribution, in particular the
+     * distribution's identifier and domain name values. 
+     * 
+     * @throws CloudFrontServiceException
+     */
     public Distribution createDistribution(String origin, String callerReference, 
         String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException 
     {
         if (log.isDebugEnabled()) {
             log.debug("Creating distribution for origin: " + origin);
         }
+        
+        // Sanitize parameters.
+        if (callerReference == null) {
+            callerReference = "" + System.currentTimeMillis();
+        }
+        if (cnames == null) {
+            cnames = new String[] {};
+        }
+        if (comment == null) {
+            comment = "";
+        }
+        
         PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION + "/distribution");
                 
         String xmlRequest = 
@@ -268,6 +437,18 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }                
     }
     
+    /**
+     * Lookup information for a distribution.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @return
+     * an object that describes the distribution, including its identifier and domain 
+     * name values as well as its configuration details. 
+     * 
+     * @throws CloudFrontServiceException
+     */
     public Distribution getDistributionInfo(String id) throws CloudFrontServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Getting information for distribution with id: " + id);
@@ -286,6 +467,20 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }                        
     }
     
+    /**
+     * Lookup configuration information for a distribution. The configuration information
+     * is a subset of the information available from the {@link #getDistributionInfo(String)}
+     * method.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @return
+     * an object that describes the distribution's configuration, including its origin bucket
+     * and CNAME aliases. 
+     * 
+     * @throws CloudFrontServiceException
+     */
     public DistributionConfig getDistributionConfig(String id) throws CloudFrontServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Getting configuration for distribution with id: " + id);
@@ -306,14 +501,51 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }                        
     }
 
-    public DistributionConfig updateDistributionConfig(
-        String id, String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException 
+    /**
+     * Update the configuration of an existing distribution to change its CNAME aliases, 
+     * comment or enabled status. The new configuration settings <strong>replace</strong>
+     * the existing configuration, and may take some time to be fully applied. 
+     * <p>
+     * This method performs all the steps necessary to update the configuration. It
+     * first performs lookup on the distribution  using 
+     * {@link #getDistributionConfig(String)} to find its origin and caller reference
+     * values, then uses this information to apply your configuration changes.
+     *  
+     * @param id
+     * the distribution's unique identifier.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This 
+     * parameter may be null, in which case the original CNAME aliases are retained.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms 
+     * (max 128 characters). May be null, in which case the original comment is retained.
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible after the
+     * configuration update?
+     * 
+     * @return
+     * an object that describes the distribution's updated configuration, including its 
+     * origin bucket and CNAME aliases.
+     *  
+     * @throws CloudFrontServiceException
+     */
+    public DistributionConfig updateDistributionConfig(String id, String[] cnames, 
+        String comment, boolean enabled) throws CloudFrontServiceException 
     {
         if (log.isDebugEnabled()) {
             log.debug("Setting configuration of distribution with id: " + id);
         }
+
         // Retrieve the old configuration.
         DistributionConfig oldConfig = getDistributionConfig(id);
+        
+        // Sanitize parameters.
+        if (cnames == null) {
+            cnames = oldConfig.getCNAMEs();
+        }
+        if (comment == null) {
+            comment = oldConfig.getComment();
+        }        
         
         PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION + "/distribution/" + id + "/config");
                 
@@ -348,6 +580,26 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }                
     }
 
+    /**
+     * Delete a disabled distribution. You can only delete a distribution that is 
+     * already disabled, if you delete an enabled distribution this operation will 
+     * fail with a <tt>DistributionNotDisabled</tt> error.
+     * <p>
+     * This method performs many of the steps necessary to delete a disabled
+     * distribution. It first performs lookup on the distribution using 
+     * {@link #getDistributionConfig(String)} to find its ETag value, then uses 
+     * this information to delete the distribution.
+     * <p>
+     * Because it can take a long time (minutes) to disable a distribution, this
+     * task is not performed automatically by this method. In your own code, you
+     * need to verify that a distribution is disabled with a status of 
+     * <tt>Deployed</tt> before you invoke this method.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public void deleteDistribution(String id) throws CloudFrontServiceException 
     {
         if (log.isDebugEnabled()) {

@@ -18,25 +18,19 @@
  */
 package org.jets3t.samples;
 
-import org.apache.commons.httpclient.HostConfiguration;
 import org.jets3t.service.CloudFrontService;
-import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 
+/**
+ * Sample code for performing CloudFront service operations.
+ */
 public class CloudFrontSamples {
 
-    /**
-     * Sample code for performing CloudFront service operations.
-     */
     public static void main(String[] args) throws Exception {
         // Construct a CloudFrontService object to interact with the service.
         CloudFrontService cloudFrontService = new CloudFrontService(
-            SamplesUtils.loadAWSCredentials(), 
-            null, // Invoking application description 
-            null, // Credentials Provider
-            new Jets3tProperties(), 
-            new HostConfiguration());
+            SamplesUtils.loadAWSCredentials());
         
         // List your distributions
         Distribution[] distributions = cloudFrontService.listDistributions();

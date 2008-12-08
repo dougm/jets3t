@@ -1136,7 +1136,15 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Creates a bucket in a specific location. 
+     * Creates a bucket in a specific location, without checking whether the bucket already
+     * exists. <b>Caution:</b> Performing this operation unnecessarily when a bucket already
+     * exists may cause OperationAborted errors with the message "A conflicting conditional 
+     * operation is currently in progress against this resource.". To avoid this error, use the
+     * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
+     * <p>
+     * <b>Warning:</b> Prior to version 0.6.1 this method did check whether a bucket already 
+     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
+     * this check started to cause issues so it was removed.
      * <p>
      * This method cannot be performed by anonymous services.
      * 
@@ -1159,6 +1167,14 @@ public abstract class S3Service implements Serializable {
     /**
      * Creates a bucket. The bucket is created in the default location as
      * specified in the properties setting <tt>s3service.default-bucket-location</tt>.
+     * <b>Caution:</b> Performing this operation unnecessarily when a bucket already
+     * exists may cause OperationAborted errors with the message "A conflicting conditional 
+     * operation is currently in progress against this resource.". To avoid this error, use the
+     * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
+     * <p>
+     * <b>Warning:</b> Prior to version 0.6.1 this method did check whether a bucket already 
+     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
+     * this check started to cause issues so it was removed.
      * <p>
      * This method cannot be performed by anonymous services.
      * 
@@ -1372,7 +1388,15 @@ public abstract class S3Service implements Serializable {
     }    
 
     /**
-     * Creates a bucket in S3 based on the provided bucket object.
+     * Creates a bucket in S3 based on the provided bucket object. 
+     * <b>Caution:</b> Performing this operation unnecessarily when a bucket already
+     * exists may cause OperationAborted errors with the message "A conflicting conditional 
+     * operation is currently in progress against this resource.". To avoid this error, use the
+     * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
+     * <p>
+     * <b>Warning:</b> Prior to version 0.6.1 this method did check whether a bucket already 
+     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
+     * this check started to cause issues so it was removed.
      * <p>
      * This method cannot be performed by anonymous services.
      * 
@@ -2251,7 +2275,11 @@ public abstract class S3Service implements Serializable {
     // /////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Indicates whether a bucket exists and is accessible to a service user. 
+     * Indicates whether a bucket exists and is accessible to a service user.
+     * <b>Caution:</b> After changes to the way S3 operates, this check started to 
+     * cause issues in situations where you need to immediately create a bucket 
+     * when it does not exist. To conditionally create a bucket, use the 
+     * {@link #getOrCreateBucket(String)} method instead. 
      * <p>
      * This method can be performed by anonymous services.
      * <p>
@@ -2275,8 +2303,8 @@ public abstract class S3Service implements Serializable {
      * seconds. This problem has something to do with connection caching (I think). 
      * <p>
      * This S3 quirk makes it a bad idea to use this method to check for a bucket's 
-     * existence before creating that bucket. Use the {@link #getBucket(String)} method
-     * for this purpose instead.  
+     * existence before creating that bucket. Use the {@link #getOrCreateBucket(String)} 
+     * method for this purpose instead.  
      * 
      * @param bucketName
      * @return
