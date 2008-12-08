@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Date;
 
 public class Distribution {
+    private static final String DEFAULT_ORIGIN_SUFFIX = ".s3.amazonaws.com";
+    
     private String id = null;
     private String status = null;        
     private Date lastModifiedTime = null;
@@ -57,14 +59,36 @@ public class Distribution {
     public String getOrigin() {
         return origin;
     }
+    
+    /**
+     * @return
+     * the origin bucket's name, without the suffix ".s3.amazonaws.com"
+     */
+    public String getOriginAsBucketName() {
+        if (origin.endsWith(DEFAULT_ORIGIN_SUFFIX)) {
+            return origin.substring(0, origin.length() - DEFAULT_ORIGIN_SUFFIX.length());
+        } else {
+            return origin;
+        }
+    }
+    
     public String[] getCNAMEs() {
         return cnames;
     }
     public boolean isEnabled() {
         return enabled;
     }
+    
     public String getStatus() {
         return status;
+    }
+    
+    /**
+     * @return
+     * true if this distribution's status is "Deployed".
+     */
+    public boolean isDeployed() {
+        return "Deployed".equals(getStatus());
     }
 
     public DistributionConfig getConfig() {

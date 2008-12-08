@@ -70,7 +70,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private AWSCredentials awsCredentials = null;
     protected Jets3tProperties jets3tProperties = null;
     private String invokingApplicationDescription = null;
-    protected boolean isHttpsOnly = true;
     protected int internalErrorRetryMax = 5;
 
 
@@ -123,7 +122,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
                 
-        this.isHttpsOnly = jets3tProperties.getBoolProperty("cloudfront-service.https-only", true);        
         this.internalErrorRetryMax = jets3tProperties.getIntProperty("cloudfront-service.internal-error-retry-max", 5);
 
         if (hostConfig == null) {

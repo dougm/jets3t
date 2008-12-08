@@ -21,10 +21,13 @@ package org.jets3t.apps.cockpit.gui;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
 import javax.swing.table.DefaultTableModel;
 
+import org.jets3t.gui.GuiUtils;
 import org.jets3t.service.model.S3Bucket;
 
 /**
@@ -33,24 +36,38 @@ import org.jets3t.service.model.S3Bucket;
  * @author James Murty
  */
 public class BucketTableModel extends DefaultTableModel {
-    private static final long serialVersionUID = -2486904365563130393L;
+    private static final long serialVersionUID = 7957867859342194534L;
     
-    ArrayList bucketList = new ArrayList();
+    private GuiUtils guiUtils = new GuiUtils();
+    private ArrayList bucketList = new ArrayList();
+    
+    private Icon distributionActiveIcon = null;
     
     public BucketTableModel() {
-        super(new String[] {"Bucket Name"}, 0);
+        super(new String[] {"Bucket Name", ""}, 0);
+        
+        JLabel dummyLabel = new JLabel();
+        if (guiUtils.applyIcon(dummyLabel, "/images/nuvola/16x16/actions/irkick.png"))
+        {
+            distributionActiveIcon = dummyLabel.getIcon();
+        }
     }
     
-    public int addBucket(S3Bucket bucket) {
-        int insertRow = 
-            Collections.binarySearch(bucketList, bucket, new Comparator() {
+    protected int findBucketsIndex(S3Bucket bucket) {
+        return Collections.binarySearch(
+            bucketList, new S3BucketAndDistributionFlag(bucket, false), new Comparator() {
                 public int compare(Object o1, Object o2) {
-                    String b1Name = ((S3Bucket)o1).getName();
-                    String b2Name = ((S3Bucket)o2).getName();
+                    String b1Name = ((S3BucketAndDistributionFlag)o1).getS3Bucket().getName();
+                    String b2Name = ((S3BucketAndDistributionFlag)o2).getS3Bucket().getName();
                     int result =  b1Name.compareTo(b2Name);
                     return result;
                 }
-            });
+            }
+        );
+    }
+    
+    public int addBucket(S3Bucket bucket, boolean hasDistributions) {
+        int insertRow = findBucketsIndex(bucket);
         if (insertRow >= 0) {
             // We already have an item with this key, replace it.
             bucketList.remove(insertRow);
@@ -59,15 +76,19 @@ public class BucketTableModel extends DefaultTableModel {
             insertRow = (-insertRow) - 1;                
         }
         // New object to insert.
-        bucketList.add(insertRow, bucket);
-        this.insertRow(insertRow, new Object[] {bucket.getName()});
+        bucketList.add(insertRow, new S3BucketAndDistributionFlag(bucket, hasDistributions));
+        Boolean flag = Boolean.FALSE;
+        if (hasDistributions) {
+            flag = Boolean.TRUE;
+        }
+        this.insertRow(insertRow, new Object[] {bucket.getName(), flag});
         return insertRow;
     }
     
     public void removeBucket(S3Bucket bucket) {
-        int index = bucketList.indexOf(bucket);
+        int index = findBucketsIndex(bucket);
         this.removeRow(index);
-        bucketList.remove(bucket);
+        bucketList.remove(index);
     }
     
     public void removeAllBuckets() {
@@ -79,28 +100,79 @@ public class BucketTableModel extends DefaultTableModel {
     }
     
     public S3Bucket getBucket(int row) {
-        return (S3Bucket) bucketList.get(row);
+        return ((S3BucketAndDistributionFlag)bucketList.get(row)).getS3Bucket();
     }
     
     public S3Bucket[] getBuckets() {
-        return (S3Bucket[]) bucketList.toArray(new S3Bucket[bucketList.size()]);
+        S3Bucket[] buckets = new S3Bucket[bucketList.size()];
+        for (int i = 0; i < bucketList.size(); i++) {
+            buckets[i] = getBucket(i);
+        }
+        return buckets;
     }
     
     public int getBucketIndexByName(String name) {
         synchronized (bucketList) {
-            Iterator bucketIter = bucketList.iterator();
-            while (bucketIter.hasNext()) {
-                S3Bucket bucket = (S3Bucket) bucketIter.next();
+            for (int index=0; index < bucketList.size(); index++) {
+                S3Bucket bucket = getBucket(index);
                 if (bucket.getName().equals(name)) {
-                    return bucketList.indexOf(bucket);
+                    return index;
                 }
             }
             return -1;
         }
-    }    
+    }
+    
+    /**
+     * @return
+     * true if the distributions flag is true for at least one bucket. 
+     */
+    public boolean hasDistributions() {
+        for (int i = 0; i < bucketList.size(); i++) {
+            if ( ((S3BucketAndDistributionFlag)bucketList.get(i)).distributionFlag ) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     public boolean isCellEditable(int row, int column) {
         return false;
+    }
+    
+    public Class getColumnClass(int columnIndex) {
+        if (columnIndex == 1) {
+            if (distributionActiveIcon != null) {
+                return ImageIcon.class;
+            } else {
+                return Boolean.class;
+            }
+        } else {
+            return String.class;
+        }
+    }
+    
+    public Object getValueAt(int rowIndex, int columnIndex) {
+        if (columnIndex == 1 && distributionActiveIcon != null) {
+            if (((S3BucketAndDistributionFlag)bucketList.get(rowIndex)).hasDistribution()) {
+                return distributionActiveIcon;                
+            } 
+        }
+        return super.getValueAt(rowIndex, columnIndex);
+    }
+
+    
+    private class S3BucketAndDistributionFlag {
+        private S3Bucket bucket = null;
+        private boolean distributionFlag = false;
+        
+        public S3BucketAndDistributionFlag(S3Bucket bucket, boolean distributionFlag) {
+            this.bucket = bucket;
+            this.distributionFlag = distributionFlag;
+        }
+        
+        public S3Bucket getS3Bucket() { return bucket; }
+        public boolean hasDistribution() { return distributionFlag; }
     }
     
 }
