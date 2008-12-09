@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2006 James Murty, 2008 Zmanda Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ import java.net.URL;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -48,7 +47,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
-import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.ProgressDialog;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -59,6 +57,7 @@ import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
@@ -69,11 +68,14 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * <p>
  * 
  * @author James Murty
+ * @author Nikolas Coukouma
  */
 public class StartupDialog extends JDialog implements ActionListener, ChangeListener {
-    private static final long serialVersionUID = -7287769042945320400L;
+    private static final long serialVersionUID = -2520889480615456474L;
 
     private static final Log log = LogFactory.getLog(StartupDialog.class);
+    
+    public static final String EMPTY_PASSWORD_SURROGATE = "NONE"; 
 
     private Frame ownerFrame = null;
     private HyperlinkActivatedListener hyperlinkListener = null;
@@ -83,7 +85,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     
     private JButton okButton = null;
     private JButton cancelButton = null;
-    private JComboBox actionModeComboBox = null;
+    private JButton storeCredentialsButton = null;
     private JTabbedPane tabbedPane = null;
     private LoginPassphrasePanel loginPassphrasePanel = null;
     private LoginLocalFolderPanel loginLocalFolderPanel = null;
@@ -91,10 +93,6 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
-    
-    private static final int ACTION_MODE_LOG_IN = 0;
-    private static final int ACTION_MODE_STORE = 1;
-    private int actionMode = ACTION_MODE_LOG_IN;
     
     private static final int LOGIN_MODE_PASSPHRASE = 0;
     private static final int LOGIN_MODE_LOCAL_FOLDER = 1;
@@ -123,16 +121,12 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         this.setResizable(false);
         this.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
 
-        String actionText = "<html>Would you like to log in or store your credentials?<br>" +
-            "<font size=\"-2\">You must first store your credentials before you can use S3 Online " +
-            "or Local Folder</font></html>";
-        JHtmlLabel actionLabel = new JHtmlLabel(actionText, hyperlinkListener);        
-        actionModeComboBox = new JComboBox(new String[] {"Log in", "Store"});
-        actionModeComboBox.addActionListener(this);
-
         cancelButton = new JButton("Don't log in");
         cancelButton.setActionCommand("Cancel");
         cancelButton.addActionListener(this);
+        storeCredentialsButton = new JButton("Store Credentials");
+        storeCredentialsButton.setActionCommand("StoreCredentials");
+        storeCredentialsButton.addActionListener(this);
         okButton = new JButton("Log in");
         okButton.setActionCommand("LogIn");
         okButton.addActionListener(this);
@@ -152,8 +146,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         JPanel buttonsPanel = new JPanel(new GridBagLayout());
         buttonsPanel.add(cancelButton, new GridBagConstraints(0, 0, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
-        buttonsPanel.add(okButton, new GridBagConstraints(1, 0, 
+        buttonsPanel.add(storeCredentialsButton, new GridBagConstraints(1, 0, 
             1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
+        buttonsPanel.add(okButton, new GridBagConstraints(2, 0, 
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
 
         loginPassphrasePanel = new LoginPassphrasePanel(hyperlinkListener);
         loginLocalFolderPanel = new LoginLocalFolderPanel(ownerFrame, hyperlinkListener);
@@ -170,15 +166,11 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         this.getContentPane().setLayout(new GridBagLayout());
         this.getContentPane().add(tabbedPane, new GridBagConstraints(0, row++, 
             2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
-        this.getContentPane().add(actionLabel, new GridBagConstraints(0, row, 
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-        this.getContentPane().add(actionModeComboBox, new GridBagConstraints(1, row++, 
-            1, 1, 0, 0, GridBagConstraints.NORTHEAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         this.getContentPane().add(buttonsPanel, new GridBagConstraints(0, row++, 
             2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
         this.pack();
-        this.setSize(500, 380);
+        this.setSize(500, 400);
         this.setLocationRelativeTo(this.getOwner());
     }
 
@@ -186,33 +178,50 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
      * Event handler for this dialog.
      */
     public void actionPerformed(ActionEvent e) {
-        if (e.getSource().equals(actionModeComboBox)) { 
-            actionMode = actionModeComboBox.getSelectedIndex();
-            changedActionMode();
-        } else if (e.getSource().equals(okButton)) {
-            if (actionMode == ACTION_MODE_LOG_IN) {
-                if (loginMode == LOGIN_MODE_PASSPHRASE) {
-                    retrieveCredentialsFromS3(
-                        loginPassphrasePanel.getPassphrase(), loginPassphrasePanel.getPassword());
-                } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
-                    retrieveCredentialsFromDirectory(loginLocalFolderPanel.getHomeFolder(), 
-                        loginLocalFolderPanel.getAWSCredentialsFile(), loginLocalFolderPanel.getPassword());
-                } else if (loginMode == LOGIN_MODE_DIRECT) {
-                    this.awsCredentials = new AWSCredentials(
-                        loginCredentialsPanel.getAWSAccessKey(), loginCredentialsPanel.getAWSSecretKey());
+        if (e.getSource().equals(okButton)) {
+            if (loginMode == LOGIN_MODE_PASSPHRASE) {
+                retrieveCredentialsFromS3(
+                    loginPassphrasePanel.getPassphrase(), loginPassphrasePanel.getPassword());
+            } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
+                retrieveCredentialsFromDirectory(loginLocalFolderPanel.getHomeFolder(), 
+                    loginLocalFolderPanel.getAWSCredentialsFile(), loginLocalFolderPanel.getPassword());
+            } else if (loginMode == LOGIN_MODE_DIRECT) {
+                String[] inputErrors = loginCredentialsPanel.checkForInputErrors();
+                if (inputErrors.length > 0) {
+                    String errorMessages = "<html>Please correct the following errors:<ul>";
+                    for (int i = 0; i < inputErrors.length; i++) {
+                        errorMessages += "<li>" + inputErrors[i] + "</li>";
+                    }
+                    errorMessages += "</ul></html>";
+
+                    ErrorDialog.showDialog(this, null, errorMessages, null);                
+                } else {            
+                    if (loginCredentialsPanel.getUsingDevPay()) {
+                        this.awsCredentials = new AWSDevPayCredentials(
+                            loginCredentialsPanel.getAWSAccessKey(),
+                            loginCredentialsPanel.getAWSSecretKey(),
+                            loginCredentialsPanel.getAWSUserToken(),
+                            loginCredentialsPanel.getAWSProductToken(),
+                            loginCredentialsPanel.getFriendlyName());
+                    } else {
+                        this.awsCredentials = new AWSCredentials(
+                            loginCredentialsPanel.getAWSAccessKey(),
+                            loginCredentialsPanel.getAWSSecretKey(),
+                            loginCredentialsPanel.getFriendlyName());
+                    }
                     this.setVisible(false);
                 }
-            } else if (actionMode == ACTION_MODE_STORE) {
-                if (loginMode == LOGIN_MODE_PASSPHRASE) {
-                    storeCredentialsInS3( 
-                        loginPassphrasePanel.getPassphrase(), loginPassphrasePanel.getPassword());                            
-                } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
-                    storeCredentialsInDirectory(
-                        loginLocalFolderPanel.getHomeFolder(), loginLocalFolderPanel.getPassword());
-                } else if (loginMode == LOGIN_MODE_DIRECT) {
-                    throw new IllegalStateException("Cannot store AWS credentials from Direct Login panel");
-                }                     
             }
+        } else if (e.getSource().equals(storeCredentialsButton)) {
+            if (loginMode == LOGIN_MODE_PASSPHRASE) {
+                storeCredentialsInS3( 
+                    loginPassphrasePanel.getPassphrase(), loginPassphrasePanel.getPassword());                            
+            } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
+                storeCredentialsInDirectory(
+                    loginLocalFolderPanel.getHomeFolder(), loginLocalFolderPanel.getPassword());
+            } else if (loginMode == LOGIN_MODE_DIRECT) {
+                throw new IllegalStateException("Cannot store AWS credentials from Direct Login panel");
+            }                     
         } else if (e.getSource().equals(cancelButton)) {
             this.awsCredentials = null;
             this.setVisible(false);
@@ -226,29 +235,13 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         }
     }
     
-    private void changedActionMode() {
-        if (actionMode == ACTION_MODE_LOG_IN) {
-            okButton.setText("Log in");
-        } else if (actionMode == ACTION_MODE_STORE) {
-            okButton.setText("Store Credentials");            
-        } else {
-            throw new IllegalStateException("Invalid value for actionMode: " + actionMode);
-        }
-    }
-    
     private void changedLoginMode() {
         if (loginMode == LOGIN_MODE_PASSPHRASE) {
-            actionModeComboBox.setEnabled(true);            
+            storeCredentialsButton.setEnabled(true);
         } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
-            actionModeComboBox.setEnabled(true);                        
+            storeCredentialsButton.setEnabled(true);
         } else if (loginMode == LOGIN_MODE_DIRECT) {
-            // Store action mode is not available.
-            actionModeComboBox.setEnabled(false);
-            if (actionMode != ACTION_MODE_LOG_IN) {
-                actionMode = ACTION_MODE_LOG_IN;
-                actionModeComboBox.setSelectedIndex(actionMode);
-                changedActionMode();
-            }
+            storeCredentialsButton.setEnabled(false);
         } else {
             throw new IllegalStateException("Invalid value for loginMode: " + loginMode);
         }
@@ -269,7 +262,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     private boolean validPassphraseInputs(String passphrase, String password) {
         String invalidInputsMessage = "";
         if (passphrase.length() < 6) {
-            invalidInputsMessage += "Passphrase must be at least 6 characters";
+            invalidInputsMessage += "Passphrase must be at least 6 characters.";
         }
         if (password.length() < 6) {
             invalidInputsMessage += (invalidInputsMessage.length() > 0
@@ -286,8 +279,22 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     }
     
     private boolean validFolderInputs(boolean isStoreAction, File directory, 
-        File credentialsFile, String password) 
+        File credentialsFile, String password, boolean allowLegacyPassword) 
     {
+        if (password.length() < 6) {
+            if (allowLegacyPassword) {
+                // Legacy password allowed for login, an error will be displayed later if it's incorrect.
+            } else if (EMPTY_PASSWORD_SURROGATE.equals(password)) {
+                // Surrogate empty password was used, not an error.
+            } else {
+                ErrorDialog.showDialog(this, hyperlinkListener,
+                    "Password must be at least 6 characters. " +
+                    "If you do not wish to set a password, use the password " + 
+                    EMPTY_PASSWORD_SURROGATE + ".",
+                    null);
+                return false;                
+            }
+        }
         if (!directory.exists() || !directory.canWrite()) {
             String invalidInputsMessage = "Directory '" + directory.getAbsolutePath() 
             + "' does not exist or cannot be written to.";            
@@ -458,8 +465,6 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
 
                     JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in your " +
                         "S3 account\n\nBucket name: " + bucketName[0] + "\nObject key: " + credentialObjectKey[0]);
-                    actionModeComboBox.setSelectedIndex(ACTION_MODE_LOG_IN);
-                    
                 } catch (S3ServiceException e) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -476,7 +481,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     }
     
     private void retrieveCredentialsFromDirectory(File directory, File credentialsFile, String password) {
-        if (!validFolderInputs(false, directory, credentialsFile, password)) {
+        if (!validFolderInputs(false, directory, credentialsFile, password, true)) {
             return;
         }
         
@@ -492,8 +497,11 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     }
     
     private void storeCredentialsInDirectory(File directory, String password) {
-        if (!validFolderInputs(true, directory, null, password)) {
+        if (!validFolderInputs(true, directory, null, password, false)) {
             return;
+        }        
+        if (EMPTY_PASSWORD_SURROGATE.equals(password.trim())) {
+            password = "";
         }
                     
         AWSCredentials awsCredentials = 
@@ -513,11 +521,11 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         try {
             String algorithm = myProperties.getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");            
             awsCredentials.save(password, credentialsFile, algorithm);
+            loginLocalFolderPanel.clearPassword();
             loginLocalFolderPanel.refreshStoredCredentialsTable();
-    
+            
             JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in the file:\n" +
                 credentialsFile.getAbsolutePath());
-            actionModeComboBox.setSelectedIndex(ACTION_MODE_LOG_IN);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -538,6 +546,16 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
      * @throws Exception
      */
     public static void main(String args[]) throws Exception {
+//        String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+//            .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
+//        File file = new File("/Users/jmurty/Desktop/test.enc");
+//        AWSCredentials awsCredentialsTest = new AWSCredentials("a", "b");
+//        awsCredentialsTest.save("please", file, algorithm);
+//        System.err.println("Saved: " + awsCredentialsTest);
+//        System.err.println("Loaded: " + AWSCredentials.load("please", file));
+//        if (true)
+//            return;
+//        
         JFrame f = new JFrame();
 
         HyperlinkActivatedListener listener = new HyperlinkActivatedListener() {
@@ -555,8 +573,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         startupDialog.dispose();
         
         if (awsCredentials != null) {
-            System.out.println("AWS Credentials: " + awsCredentials.getAccessKey() 
-                + " : " + awsCredentials.getSecretKey());
+            System.out.println("AWS Credentials: " + awsCredentials.getLogString());
         } else {
             System.out.println("AWS Credentials: null");            
         }

@@ -2,6 +2,12 @@
 Version 0.6.2
 -------------
 
+COCKPIT
+- Added ability to view and manage Amazon CloudFront distributions using
+  a dialog box.
+- Improved support for DevPay credentials, which can now be set and saved 
+  directly in the login dialog box instead of only in a properties file.
+
 SYNCHRONIZE
 - AWS credentials and the cryptographic password can now be provided via prompts
   on the command-line, rather than merely through a properties file.
@@ -20,6 +26,14 @@ TOOLKIT
   * General
 
 - Added initial implementation of CloudFront service.
+- Added property "cloudfront-service.internal-error-retry-max" for defining the
+  retry limit for CloudFront internal service errors.
+- Improved support for accessing S3 using DevPay credentials with a new
+  credentials class for defining and storing these credentials: 
+  AWSDevPayCredentials
+- Added a class (AWSDevPayProduct) to represent a DevPay product, and to load 
+  information about pre-defined products from the properties file 
+  devpay_products.properties.
 
   * REST Implementation
 
@@ -38,6 +52,9 @@ KUDOS TO:
 
 David Kavanagh for sample code that helped improve HTTP proxy support and 
 configurability.
+
+Nikolas Coukouma of Zmanda Inc. for patches to significantly improve support
+for Amazon DevPay in the library and Cockpit applications.
 
 -------------
 Version 0.6.1

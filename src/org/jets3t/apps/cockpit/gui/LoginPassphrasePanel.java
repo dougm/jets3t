@@ -55,8 +55,12 @@ public class LoginPassphrasePanel extends JPanel {
     private void initGui() {
         // Textual information.
         String descriptionText = 
-            "<html><center>Your AWS Credentials are stored in an encrypted object in your S3 account. " +
-            "To access your credentials you must provide your unique passphrase and a password.</center></html>";
+            "<html><center>" +
+            "Your AWS Credentials are stored in an encrypted object in your S3 account. " +
+            "To access your credentials you must provide your unique passphrase and a password." +
+            "<br><font size=\"-2\">You need to store your AWS credentials before you can use this login method.</font>" +
+            "</center></html>";
+        
         String passphraseLabelText = 
             "Passphrase";
         String passphraseTooltipText = 

@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2006 James Murty, 2008 Zmanda Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,19 +29,22 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
+import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.AWSDevPayCredentials;
 
 /**
  * Dialog box for obtaining a user's AWS Credentials, where the dialog is simply
  * a wrapping for a {@link LoginCredentialsPanel}. 
  * 
  * @author James Murty
+ * @author Nikolas Coukouma
  */
 public class AWSCredentialsDialog extends JDialog implements ActionListener {
-    private static final long serialVersionUID = -7054406572498134994L;
+    private static final long serialVersionUID = -8201015667689728582L;
     
-    private LoginCredentialsPanel loginCredentialsPanel = null;
+    private LoginCredentialsPanel loginCredentialsPanel = null;    
     private JButton okButton = null;
     private boolean isConfirmed = false;
     
@@ -90,9 +93,21 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
     
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(okButton)) {
-            isConfirmed = true;
+            String[] inputErrors = loginCredentialsPanel.checkForInputErrors();
+            if (inputErrors.length == 0) {
+                isConfirmed = true;                
+                this.setVisible(false);
+            } else {
+                // Sanity-check provided information
+                String errorMessages = "<html>Please correct the following errors:<ul>";
+                for (int i = 0; i < inputErrors.length; i++) {
+                    errorMessages += "<li>" + inputErrors[i] + "</li>";
+                }
+                errorMessages += "</ul></html>";
+
+                ErrorDialog.showDialog(this, null, errorMessages, null);                
+            }            
         }
-        this.setVisible(false);
     }
     
     /**
@@ -117,6 +132,30 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
      */
     public String getAWSSecretKey() {
         return loginCredentialsPanel.getAWSSecretKey().trim();
+    }
+    
+    /**
+     * @return
+     * whether or not DevPay authentication should be used
+     */
+    public boolean getUsingDevPay() {
+        return loginCredentialsPanel.getUsingDevPay();
+    }
+    
+    /**
+     * @return
+     * the AWS User Token provided by the user.
+     */
+    public String getAWSUserToken() {
+        return loginCredentialsPanel.getAWSUserToken().trim();
+    }
+    
+    /**
+     * @return
+     * the AWS Product Token provided by the user.
+     */
+    public String getAWSProductToken() {
+        return loginCredentialsPanel.getAWSProductToken().trim();
     }
     
     /**
@@ -146,8 +185,19 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
         
         AWSCredentials awsCredentials = null; 
         if (dialog.isConfirmed()) {
-            awsCredentials = new AWSCredentials(
-                dialog.getAWSAccessKey(), dialog.getAWSSecretKey(), dialog.getFriendlyName());
+            if (dialog.getUsingDevPay()) {
+                awsCredentials = new AWSDevPayCredentials(
+                    dialog.getAWSAccessKey(),
+                    dialog.getAWSSecretKey(),
+                    dialog.getAWSUserToken(),
+                    dialog.getAWSProductToken(),
+                    dialog.getFriendlyName());
+            } else {
+                awsCredentials = new AWSCredentials(
+                    dialog.getAWSAccessKey(),
+                    dialog.getAWSSecretKey(),
+                    dialog.getFriendlyName());
+            }
         } else {
             awsCredentials = null;
         }

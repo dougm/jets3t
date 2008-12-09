@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2006 James Murty, 2008 Zmanda Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,17 @@
  */
 package org.jets3t.apps.cockpit.gui;
 
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.ItemSelectable;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.util.ArrayList;
 
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -35,17 +42,24 @@ import org.jets3t.gui.JHtmlLabel;
  * an AWS Secret Key, and optionally for a Friendly name for an AWS account.
  * 
  * @author James Murty
+ * @author Nikolas Coukouma
  */
-public class LoginCredentialsPanel extends JPanel {
+public class LoginCredentialsPanel extends JPanel implements ItemListener {
     private static final long serialVersionUID = 5819631423081597078L;
 
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
+    private final Insets insetsZero = new Insets(0, 0, 0, 0);
     
     private HyperlinkActivatedListener hyperlinkListener = null;
     private JTextField awsAccessKeyTextField = null;
     private JPasswordField awsSecretKeyPasswordField = null;
+    private JCheckBox useDevPayCheckBox = null;
+    private JTextField awsUserTokenTextField = null;
+    private AWSDevPayProductPanel awsProductPanel = null;
     private JTextField friendlyNameTextField = null;
     private boolean askForFriendlyName = false;
+
+    private Component[] awsDevPayComponents = null;
 
     public LoginCredentialsPanel(boolean askForFriendlyName, HyperlinkActivatedListener hyperlinkListener) {
         super(new GridBagLayout());
@@ -72,7 +86,13 @@ public class LoginCredentialsPanel extends JPanel {
         String awsSecretKeyLabelText = 
             "AWS Secret Key";
         String awsSecretKeyTooltipText = 
-            "Your Amazon Web Services secret key"; 
+            "Your Amazon Web Services secret key";
+        String useDevPayButtonText = 
+            "Use DevPay";
+        String awsUserTokenLabelText = 
+            "DevPay User Token";
+        String awsUserTokenTooltipText = 
+            "Your DevPay user token";
         
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
@@ -86,7 +106,15 @@ public class LoginCredentialsPanel extends JPanel {
         JHtmlLabel awsSecretKeyLabel = new JHtmlLabel(awsSecretKeyLabelText, hyperlinkListener);
         awsSecretKeyPasswordField = new JPasswordField();
         awsSecretKeyPasswordField.setToolTipText(awsSecretKeyTooltipText);
-        
+
+        useDevPayCheckBox = new JCheckBox(useDevPayButtonText);
+        useDevPayCheckBox.setSelected(false);
+        useDevPayCheckBox.addItemListener(this);
+        JHtmlLabel awsUserTokenLabel = new JHtmlLabel(awsUserTokenLabelText, hyperlinkListener);
+        awsUserTokenTextField = new JTextField();
+        awsUserTokenTextField.setToolTipText(awsUserTokenTooltipText);
+        awsProductPanel = new AWSDevPayProductPanel();
+
         int row = 0;
         add(descriptionLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
@@ -104,18 +132,45 @@ public class LoginCredentialsPanel extends JPanel {
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(awsSecretKeyPasswordField, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        add(useDevPayCheckBox, new GridBagConstraints(0, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         
+        // These items are displayed conditionally when useDevPayCheckBox is checked
+        add(awsUserTokenLabel, new GridBagConstraints(0, row++,
+            1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        add(awsUserTokenTextField, new GridBagConstraints(0, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        add(awsProductPanel, new GridBagConstraints(0, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+
         // Padder.
         add(new JLabel(), new GridBagConstraints(0, row++,
             1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+
+        awsDevPayComponents = new Component[] {awsUserTokenLabel, awsUserTokenTextField, awsProductPanel};
+        // Make DevPay GUI elements inivisible initially.
+        for (int i = 0; i < awsDevPayComponents.length; i++) {
+            awsDevPayComponents[i].setVisible(useDevPayCheckBox.isSelected());
+        }
+        
+        this.setPreferredSize(new Dimension(400, 350));
     }
-    
+
+    public void itemStateChanged(ItemEvent e) {
+        ItemSelectable source = e.getItemSelectable();
+        if (source == useDevPayCheckBox) {
+            for (int i = 0; i < awsDevPayComponents.length; i++) {
+                awsDevPayComponents[i].setVisible(useDevPayCheckBox.isSelected());
+            }
+        }
+    }
+
     /**
      * @return
      * the AWS Access Key provided by the user.
      */
     public String getAWSAccessKey() {
-        return awsAccessKeyTextField.getText();
+        return awsAccessKeyTextField.getText().trim();
     }
     
     /**
@@ -123,8 +178,32 @@ public class LoginCredentialsPanel extends JPanel {
      * the AWS Secret Key provided by the user.
      */
     public String getAWSSecretKey() {
-        return new String(awsSecretKeyPasswordField.getPassword());
-    }    
+        return new String(awsSecretKeyPasswordField.getPassword()).trim();
+    }
+    
+    /**
+     * @return
+     * whether or not DevPay authentication should be used
+     */
+    public boolean getUsingDevPay() {
+        return useDevPayCheckBox.isSelected();
+    }
+    
+    /**
+     * @return
+     * the AWS Secret Key provided by the user.
+     */
+    public String getAWSUserToken() {
+        return new String(awsUserTokenTextField.getText().trim());
+    }
+    
+    /**
+     * @return
+     * the product token provided by the user.
+     */
+    public String getAWSProductToken() {
+        return awsProductPanel.getAWSProductToken();
+    }
     
     /**
      * @return
@@ -133,6 +212,34 @@ public class LoginCredentialsPanel extends JPanel {
      */
     public String getFriendlyName() {
         return friendlyNameTextField.getText();
+    }
+    
+    /**
+     * Verifies that the user has provided the correct inputs, and returns a list
+     * of error messages if not.
+     * 
+     * @return
+     * an empty array if there a no input errors, otherwise the array will contain
+     * a list of error messages.
+     */
+    public String[] checkForInputErrors() {
+        ArrayList errors = new ArrayList();
+        
+        if (getAWSAccessKey().length() != 20) {
+            errors.add("AWS Access Key must have 20 characters");
+        }
+        if (getAWSSecretKey().length() != 40) {
+            errors.add("AWS Secret Key must have 40 characters");
+        }
+        if (getUsingDevPay()) {
+            if (getAWSUserToken().length() == 0) {
+                errors.add("DevPay User Token must be provided");
+            }
+            if (getAWSProductToken().length() == 0) {
+                errors.add("DevPay Product Token must be provided");
+            }
+        }
+        return (String[]) errors.toArray(new String[errors.size()]);
     }
     
 }

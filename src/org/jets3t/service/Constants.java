@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2006 James Murty, 2008 Zmanda Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,9 @@ import java.io.File;
  * Constants used by the S3Service and its implementation classes.
  * 
  * @author James Murty
+ * @author Nikolas Coukouma
  */
-public class Constants {
+public interface Constants {
     
     public static final String S3_HOSTNAME = 
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -40,6 +41,19 @@ public class Constants {
      * file: jets3t.properties
      */
     public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
+    
+    /**
+     * The file containing the list of AWS DevPay Products
+     */
+    public static final String DEVPAY_PRODUCTS_PROPERTIES_FILENAME = "devpay_products.properties";
+    /**
+     * The property name suffix for the names of products
+     */
+    public static final String DEVPAY_PRODUCT_NAME_PROP_SUFFIX = ".name";
+    /**
+     * The property name suffix for the tokens of products
+     */
+    public static final String DEVPAY_PRODUCT_TOKEN_PROP_SUFFIX = ".token";
     
     /**
      * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#ignore">JetS3t ignore</a> 

@@ -49,18 +49,24 @@ import org.jets3t.service.utils.ServiceUtils;
  * these files.
  * 
  * @author James Murty
+ * @author Nikolas Coukouma
  */
 public class AWSCredentials implements Serializable {
-    private static final long serialVersionUID = -9198887548912640773L;
+    private static final long serialVersionUID = 4856782158657135551L;
 
-    private static final Log log = LogFactory.getLog(AWSCredentials.class);    
+    protected static final Log log = LogFactory.getLog(AWSCredentials.class);
     
-    protected static final String KEYS_DELIMITER = "AWSKEYS";
-    protected static final String VERSION_PREFIX = "jets3t AWS Credentials, version: ";
+    public static final int CREDENTIALS_STORAGE_VERSION = 3;
 
-    private String awsAccessKey = null;
-    private String awsSecretAccessKey = null;
-    private String friendlyName = null;
+    protected static final String V2_KEYS_DELIMITER = "AWSKEYS";
+    protected static final String V3_KEYS_DELIMITER = "\n";
+    protected static final String VERSION_PREFIX = "jets3t AWS Credentials, version: ";
+    protected static final String REGULAR_TYPE_NAME = "regular";
+    protected static final String DEVPAY_TYPE_NAME = "devpay";
+
+    protected String awsAccessKey = null;
+    protected String awsSecretAccessKey = null;
+    protected String friendlyName = null;
 
     /**
      * Construct credentials.
@@ -112,6 +118,30 @@ public class AWSCredentials implements Serializable {
      */
     public String getFriendlyName() {
         return friendlyName;
+    }
+
+    /**
+     * @return
+     * a string summarizing these credentials
+     */
+    public String getLogString() {
+        return getAccessKey() + " : " + getSecretKey();
+    }
+
+    /**
+     * @return
+     * string representing this credential type's name (for serialization)
+     */
+    protected String getTypeName() {
+        return REGULAR_TYPE_NAME;
+    }
+
+    /**
+     * @return
+     * the string of data that needs to be encrypted (for serialization)
+     */
+    protected String getDataToEncrypt() {
+        return getAccessKey() + V3_KEYS_DELIMITER + getSecretKey();
     }
     
     /**
@@ -203,13 +233,13 @@ public class AWSCredentials implements Serializable {
         bufferedOS = new BufferedOutputStream(outputStream);
 
         // Encrypt AWS credentials
-        String dataToEncrypt = getAccessKey() + KEYS_DELIMITER + getSecretKey();
-        byte[] encryptedData = encryptionUtil.encrypt(dataToEncrypt);
+        byte[] encryptedData = encryptionUtil.encrypt(getDataToEncrypt());
         
         // Write plain-text header information to file.
-        bufferedOS.write((VERSION_PREFIX + EncryptionUtil.DEFAULT_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        bufferedOS.write((VERSION_PREFIX + CREDENTIALS_STORAGE_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
         bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
         bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        bufferedOS.write((getTypeName() + "\n").getBytes(Constants.DEFAULT_ENCODING));
         
         bufferedOS.write(encryptedData);
         bufferedOS.flush();
@@ -307,8 +337,10 @@ public class AWSCredentials implements Serializable {
             int encryptedDataIndex = 0;
             
             String version = null;
-            String algorithm = null;
-            String friendlyName = null;
+            int versionNum = 0;
+            String algorithm = "";
+            String friendlyName = "";
+            boolean usingDevPay = false;
             
             // Read version information from AWS credentials file.
             version = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
@@ -322,34 +354,47 @@ public class AWSCredentials implements Serializable {
                     encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(password);
                 }
             } else {
+                // Extract the version number
+                versionNum = Integer.parseInt(version.substring(VERSION_PREFIX.length()));
                 // Read algorithm and friendly name from file.
                 algorithm = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
-                friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);    
+                friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
                 
                 if (!partialReadOnly) {
                     encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
                 }
+
+                if (3 <= versionNum) {
+                    String credentialsType = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
+                    usingDevPay = (DEVPAY_TYPE_NAME.equals(credentialsType));
+                }
             }
             
             if (partialReadOnly) {
-                return new AWSCredentials(null, null, friendlyName);                
-            }            
-            
+                if (usingDevPay) {
+                    return new AWSDevPayCredentials(null, null, friendlyName);
+                } else {
+                    return new AWSCredentials(null, null, friendlyName);
+                }
+            }
+
             // Read encrypted data bytes from file.
             encryptedDataIndex = inputStream.read(encryptedKeys);
             
             // Decrypt data.
             String keys = encryptionUtil.decryptString(encryptedKeys, 0, encryptedDataIndex);
 
-            int delimOffset = keys.indexOf(KEYS_DELIMITER);
-            if (delimOffset < 0) {
-                throw new Exception("Unable to load AWS keys. Is the password correct?");
+            String[] parts = keys.split((3 <= versionNum)? V3_KEYS_DELIMITER : V2_KEYS_DELIMITER);
+            int expectedParts = (usingDevPay? 4 : 2);
+            if (parts.length != expectedParts) {
+                throw new Exception("Number of parts (" + parts.length + ") did not match the expected number of parts (" + expectedParts + ") for this version (" + versionNum + ")");
             }
 
-            AWSCredentials awsCredentials = new AWSCredentials(keys.substring(0, delimOffset), keys
-                .substring(delimOffset + KEYS_DELIMITER.length()), friendlyName);
-            
-            return awsCredentials;
+            if (usingDevPay) {
+                return new AWSDevPayCredentials(parts[0], parts[1], parts[2], parts[3], friendlyName);
+            } else {
+                return new AWSCredentials(parts[0], parts[1], friendlyName);
+            }
         } catch (BadPaddingException bpe) {
             throw new S3ServiceException("Unable to decrypt AWS credentials. Is your password correct?", bpe);
         } catch (Throwable t) {

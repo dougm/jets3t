@@ -88,8 +88,11 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
     private void initGui() {
         // Textual information.
         String descriptionText = 
-            "<html><center>Your AWS Credentials are stored in encrypted files in a folder on " +
-            "your computer. Each stored login has a nickname.</center></html>";
+            "<html><center>" +
+            "Your AWS Credentials are stored in encrypted files in a folder on " +
+            "your computer. Each stored login has a nickname." +
+            "<br><font size=\"-2\">You need to store your AWS credentials before you can use this login method.</font>" +
+            "</center></html>";
         String folderTooltipText = 
             "The folder containing your AWS Credentials";
         String browseButtonText = 
@@ -216,6 +219,13 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
      */
     public String getPassword() {
         return new String(passwordPasswordField.getPassword()); 
+    }
+    
+    /**
+     * Clears the user-provided password field.
+     */
+    public void clearPassword() {
+        passwordPasswordField.setText("");
     }
         
     private class AWSCredentialsFileTableModel extends DefaultTableModel {

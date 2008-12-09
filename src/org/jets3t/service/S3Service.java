@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2008 James Murty
+ * Copyright 2008 James Murty, 2008 Zmanda Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -62,6 +63,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * </p>
  * 
  * @author James Murty
+ * @author Nikolas Coukouma
  */
 public abstract class S3Service implements Serializable {
     private static final Log log = LogFactory.getLog(S3Service.class);
@@ -121,8 +123,14 @@ public abstract class S3Service implements Serializable {
         this.isHttpsOnly = jets3tProperties.getBoolProperty("s3service.https-only", true);        
         this.internalErrorRetryMax = jets3tProperties.getIntProperty("s3service.internal-error-retry-max", 5);
         
-        this.awsDevPayUserToken = jets3tProperties.getStringProperty("devpay.user-token", null);
-        this.awsDevPayProductToken = jets3tProperties.getStringProperty("devpay.product-token", null);
+        if (awsCredentials instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials awsDevPayCredentials = (AWSDevPayCredentials) awsCredentials;
+            this.awsDevPayUserToken = awsDevPayCredentials.getUserToken();
+            this.awsDevPayProductToken = awsDevPayCredentials.getProductToken();
+        } else {
+            this.awsDevPayUserToken = jets3tProperties.getStringProperty("devpay.user-token", null);
+            this.awsDevPayProductToken = jets3tProperties.getStringProperty("devpay.product-token", null);
+        }
         
         // Configure the InetAddress DNS caching times to work well with S3. The cached DNS will
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
@@ -398,6 +406,9 @@ public abstract class S3Service implements Serializable {
         long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps) 
         throws S3ServiceException
     {
+        if (awsCredentials instanceof AWSDevPayCredentials) {
+            throw new S3ServiceException("Can not use DevPay credentials to sign URLs");
+        }
         String uriPath = "";
         
         String hostname = (isVirtualHost? bucketName : generateS3HostnameForBucket(bucketName));
