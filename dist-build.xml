@@ -61,6 +61,8 @@ init              : Sets dynamic properties required by the
 unzip-source-code : Unzips the JetS3t source code from src.zip.
                     This target will be called automatically if 
                     necessary.
+zip-source-code   : Zips the JetS3t source code to an archive file with a 
+			        version number: jets3t-src-${version}.zip
 </echo>
 	</target>
 
@@ -79,6 +81,13 @@ unzip-source-code : Unzips the JetS3t source code from src.zip.
 		<unzip dest="." src="src.zip" overwrite="false"/>
 	</target>
 	
+	<target name="zip-source-code">
+		<zip 
+			destfile="jets3t-src-${version}.zip"
+			basedir="."
+			includes="${dir.src}/**/*.java"/>
+	</target>
+
 	<target name="init">
 		<available property="src-unzipped" file="${dir.src}"/>
 		<available property="keystore-exists" file="${keystore.file}"/>
