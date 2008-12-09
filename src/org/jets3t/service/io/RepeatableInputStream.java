@@ -18,7 +18,6 @@
  */
 package org.jets3t.service.io;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -62,7 +61,7 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
      * @param bufferSize
      * the number of bytes buffered by this class. 
      * 
-     * @throws FileNotFoundException
+     * @throws java.io.FileNotFoundException
      */
     public RepeatableInputStream(InputStream inputStream, int bufferSize) {
         if (inputStream == null) {
@@ -86,7 +85,7 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
      * read, up to the buffer limit as set by the JetS3t property 
      * <tt>s3service.stream-retry-buffer-size</tt>.
      * 
-     * @throws FileNotFoundException
+     * @throws java.io.FileNotFoundException
      */
     public RepeatableInputStream(InputStream inputStream) {
         this(inputStream, Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)

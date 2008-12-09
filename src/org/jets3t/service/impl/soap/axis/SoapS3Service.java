@@ -51,7 +51,6 @@ import org.jets3t.service.acl.EmailAddressGrantee;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AccessControlPolicy;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonCustomerByEmail;
 import org.jets3t.service.impl.soap.axis._2006_03_01.AmazonS3SoapBindingStub;
@@ -93,7 +92,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * <b>Note 2</b>: The SOAP implementation does not perform retries when communication with s3 fails.
  * </p> 
  * <p>
- * The preferred S3Service implementation in JetS3t is {@link RestS3Service}. This SOAP 
+ * The preferred S3Service implementation in JetS3t is 
+ * {@link org.jets3t.service.impl.rest.httpclient.RestS3Service}. This SOAP 
  * implementation class is provided with JetS3t as a proof-of-concept, showing that alternative
  * service implementations are possible and what a SOAP service might look like. <b>We do not
  * recommend that this service be used to perform any real work.</b>

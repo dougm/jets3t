@@ -49,7 +49,6 @@ import javax.crypto.spec.PBEParameterSpec;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
-import org.jets3t.service.Jets3tProperties;
 
 /**
  * Utility class to handle encryption and decryption in the JetS3t suite.
@@ -60,8 +59,8 @@ import org.jets3t.service.Jets3tProperties;
  * these mechanisms are deprecated and could be removed from JetS3t at any time. 
  * </p> 
  * <p>
- * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
- * these properties please refer to 
+ * This class uses properties obtained through {@link org.jets3t.service.Jets3tProperties}. 
+ * For more information on these properties please refer to 
  * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  * 

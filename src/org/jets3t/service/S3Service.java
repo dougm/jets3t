@@ -35,11 +35,9 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
@@ -55,7 +53,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * </p>
  * <p>
  * Implementations of <code>S3Service</code> must be thread-safe as they will probably be used by
- * the multi-threaded service class {@link S3ServiceMulti}. 
+ * the multi-threaded service class {@link org.jets3t.service.multithread.S3ServiceMulti}. 
  * </p>
  * <p>
  * This class uses properties obtained through {@link Jets3tProperties}. For more information on 
@@ -2295,7 +2293,7 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Find out the status of an S3 bucket with the given name. This method is only implemented
-     * in the {@link RestS3Service} client.  
+     * in the {@link org.jets3t.service.impl.rest.httpclient.RestS3Service} client.  
      * <p>
      * <b>Warning!</b> S3 can act strangely when you use this method in some circumstances.
      * If you check the status of a bucket and find that it does not exist, then create 
