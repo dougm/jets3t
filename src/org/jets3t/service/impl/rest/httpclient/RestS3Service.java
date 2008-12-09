@@ -183,9 +183,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         super(awsCredentials, invokingApplicationDescription, jets3tProperties);
         this.credentialsProvider = credentialsProvider;
         
-        HttpClientAndConnectionManager initHttpResult = RestUtils.initHttpConnection(
-            this, hostConfig, jets3tProperties, 
-            getInvokingApplicationDescription(), credentialsProvider);
+        HttpClientAndConnectionManager initHttpResult = initHttpConnection(hostConfig);        
         this.httpClient = initHttpResult.getHttpClient();
         this.connectionManager = initHttpResult.getHttpConnectionManager();
         
@@ -201,6 +199,26 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             RestUtils.initHttpProxy(httpClient, proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
         }        
     }    
+    
+    /**
+     * Initialise HttpClient and HttpConnectionManager objects with the configuration settings
+     * appropriate for communicating with S3. By default, this method simply delegates the
+     * configuration task to {@link RestUtils#initHttpConnection(AWSRequestAuthorizer, 
+     * HostConfiguration, Jets3tProperties, String, CredentialsProvider)}. 
+     * <p>
+     * To alter the low-level behaviour of the HttpClient library, override this method in 
+     * a subclass and apply your own settings before returning the objects.
+     * 
+     * @param hostConfig
+     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory
+     * 
+     * @return
+     * configured HttpClient library client and connection manager objects. 
+     */
+    protected HttpClientAndConnectionManager initHttpConnection(HostConfiguration hostConfig) {
+        return RestUtils.initHttpConnection(this, hostConfig, jets3tProperties, 
+            getInvokingApplicationDescription(), credentialsProvider);
+    }
     
     /**
      * @return
