@@ -1206,7 +1206,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                     log.debug("Uploading object data with Content-Length: " + object.getContentLength());
                 }
                 requestEntity = new RepeatableRequestEntity(object.getKey(),                     
-                    object.getDataInputStream(), object.getContentType(), object.getContentLength());
+                    object.getDataInputStream(), object.getContentType(), object.getContentLength(),
+                    this.jets3tProperties);
             } else {
                 // Use InputStreamRequestEntity for objects with an unknown content length, as the
                 // entity will cache the results and doesn't need to know the data length in advance.
@@ -1612,7 +1613,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         
         if (object.getDataInputStream() != null) {
             putMethod.setRequestEntity(new RepeatableRequestEntity(object.getKey(),
-                object.getDataInputStream(), object.getContentType(), object.getContentLength()));
+                object.getDataInputStream(), object.getContentType(), object.getContentLength(), this.jets3tProperties));
         }
 
         performRequest(putMethod, 200);

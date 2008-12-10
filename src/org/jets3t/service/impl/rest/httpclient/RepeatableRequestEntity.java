@@ -91,7 +91,9 @@ public class RepeatableRequestEntity implements RequestEntity {
      * @param contentType
      * @param contentLength
      */
-    public RepeatableRequestEntity(String name, InputStream is, String contentType, long contentLength) {
+    public RepeatableRequestEntity(String name, InputStream is, String contentType, 
+        long contentLength, Jets3tProperties jets3tProperties) 
+    {
         if (is == null) {
             throw new IllegalArgumentException("InputStream cannot be null");
         }
@@ -124,8 +126,33 @@ public class RepeatableRequestEntity implements RequestEntity {
             this.repeatableInputStream = this.is;
         }
 
-        MAX_BYTES_PER_SECOND = 1024 * Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getLongProperty("httpclient.read-throttle", 0);
+        MAX_BYTES_PER_SECOND = 1024 * jets3tProperties.getLongProperty("httpclient.read-throttle", 0);
+    }
+    
+    /**
+     * Creates a repeatable request entity for the input stream provided.
+     * <p>
+     * If the input stream provided, or any underlying wrapped input streams, supports the 
+     * {@link InputStream#reset()} method then it will be capable of repeating data
+     * transmission. If the input stream provided does not supports this method, it will
+     * automatically be wrapped in a {@link RepeatableInputStream}.
+     * <p>
+     * This constructor also detects when an underlying {@link ProgressMonitoredInputStream} is
+     * present, and will notify this monitor if a repeat occurs.
+     * <p>
+     * If the JetS3t properties option <code>httpclient.read-throttle</code> is set to a 
+     * non-zero value, all simultaneous uploads performed by this class will be throttled
+     * to the specified speed. 
+     * 
+     * 
+     * @param is
+     * @param contentType
+     * @param contentLength
+     */
+    public RepeatableRequestEntity(String name, InputStream is, String contentType, long contentLength) 
+    {
+        this(name, is, contentType, contentLength, 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
     }
     
     public long getContentLength() {

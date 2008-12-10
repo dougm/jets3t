@@ -28,7 +28,7 @@ import java.io.File;
  */
 public interface Constants {
     
-    public static final String S3_HOSTNAME = 
+    public static String S3_HOSTNAME = 
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
             .getStringProperty("s3service.s3-endpoint", "s3.amazonaws.com");        
 
@@ -40,43 +40,42 @@ public interface Constants {
      * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#jets3t">JetS3t properties</a>
      * file: jets3t.properties
      */
-    public static final String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
+    public static String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
     
     /**
      * The file containing the list of AWS DevPay Products
      */
-    public static final String DEVPAY_PRODUCTS_PROPERTIES_FILENAME = "devpay_products.properties";
+    public static String DEVPAY_PRODUCTS_PROPERTIES_FILENAME = "devpay_products.properties";
     /**
      * The property name suffix for the names of products
      */
-    public static final String DEVPAY_PRODUCT_NAME_PROP_SUFFIX = ".name";
+    public static String DEVPAY_PRODUCT_NAME_PROP_SUFFIX = ".name";
     /**
      * The property name suffix for the tokens of products
      */
-    public static final String DEVPAY_PRODUCT_TOKEN_PROP_SUFFIX = ".token";
+    public static String DEVPAY_PRODUCT_TOKEN_PROP_SUFFIX = ".token";
     
     /**
      * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#ignore">JetS3t ignore</a> 
      * file: .jets3t-ignore 
      */
-    public static final String JETS3T_IGNORE_FILENAME = ".jets3t-ignore";
+    public static String JETS3T_IGNORE_FILENAME = ".jets3t-ignore";
     
     /**
      * The default preferences directory: &lt;user.home&gt;/.jets3t
      */
-    public static final File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home")
-        + "/.jets3t");
+    public static File DEFAULT_PREFERENCES_DIRECTORY = new File(System.getProperty("user.home") + "/.jets3t");
 
     /**
      * The file delimiter used by JetS3t is the '/' character, which is compatible with standard
      * browser access to S3 files.
      */
-    public static final String FILE_PATH_DELIM = "/";
+    public static String FILE_PATH_DELIM = "/";
 
     /**
      * The default encoding used for text data: UTF-8 
      */
-    public static final String DEFAULT_ENCODING = "UTF-8";
+    public static String DEFAULT_ENCODING = "UTF-8";
 
     /**
      * HMAC/SHA1 Algorithm per RFC 2104, used when generating S3 signatures.
