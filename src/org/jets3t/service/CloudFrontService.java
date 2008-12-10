@@ -310,6 +310,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             } while (incompleteListing);
             
             return (Distribution[]) distributions.toArray(new Distribution[distributions.size()]);            
+        } catch (CloudFrontServiceException e) {
+            throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }        
@@ -430,6 +432,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
             
             return handler.getDistribution();
+        } catch (CloudFrontServiceException e) {
+            throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                
@@ -460,6 +464,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
             
             return handler.getDistribution();
+        } catch (CloudFrontServiceException e) {
+            throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                        
@@ -494,6 +500,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             DistributionConfig config = handler.getDistributionConfig();
             config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            
             return config; 
+        } catch (CloudFrontServiceException e) {
+            throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                        
@@ -573,6 +581,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             DistributionConfig config = handler.getDistributionConfig();
             config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            
             return config; 
+        } catch (CloudFrontServiceException e) {
+            throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                
@@ -612,6 +622,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         try {
             httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
             performRestRequest(httpMethod, 204);
+        } catch (CloudFrontServiceException e) {
+            throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                

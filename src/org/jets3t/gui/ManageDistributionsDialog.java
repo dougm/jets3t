@@ -42,6 +42,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -51,6 +52,7 @@ import javax.swing.table.DefaultTableModel;
 
 import org.jets3t.samples.SamplesUtils;
 import org.jets3t.service.CloudFrontService;
+import org.jets3t.service.CloudFrontServiceException;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
@@ -67,7 +69,7 @@ import org.jets3t.service.model.cloudfront.Distribution;
  *
  */
 public class ManageDistributionsDialog extends JDialog implements ActionListener, ListSelectionListener {
-    private static final long serialVersionUID = 2952177170688440622L;
+    private static final long serialVersionUID = -6023438299751644436L;
 
     private CloudFrontService cloudFrontService = null;
     
@@ -83,6 +85,7 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
     private CNAMETableModel cnamesTableModel = null;
     private JButton addCname = null;
     private JButton removeCname = null;
+    private JTextArea commentTextArea = null;
     private JButton actionButton = null;
     private JButton deleteButton = null;
     private JButton finishedButton = null;
@@ -109,9 +112,10 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
         bucketComboBox = new JComboBox(bucketNames);
         JLabel enabledLabel = new JLabel("Enabled:");
         enabledCheckbox = new JCheckBox();
-        JLabel cnamesLabel = new JLabel("CNAME Aliases:");
         cnamesTableModel = new CNAMETableModel();
-        cnamesTable = new JTable(cnamesTableModel);
+        TableSorter cnamesTableModelSorter = new TableSorter(cnamesTableModel);
+        cnamesTable = new JTable(cnamesTableModelSorter);
+        cnamesTableModelSorter.setTableHeader(cnamesTable.getTableHeader());
         cnamesTable.getSelectionModel().addListSelectionListener(this);
         
         removeCname = new JButton();
@@ -125,6 +129,10 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
         guiUtils.applyIcon(addCname, "/images/nuvola/16x16/actions/viewmag+.png");
         addCname.setActionCommand("AddCname");
         addCname.addActionListener(this);
+        
+        JLabel commentLabel = new JLabel("Comment");
+        commentTextArea = new JTextArea();
+        commentTextArea.setLineWrap(true);
                 
         JButton refreshButton = new JButton("Refresh Distributions");
         refreshButton.setActionCommand("RefreshDistributions");
@@ -158,25 +166,26 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
             }
         });        
         
-        JPanel distributionsButtonsPanel = new JPanel();
-        distributionsButtonsPanel.add(refreshButton);
-        distributionsButtonsPanel.add(deleteButton);
+        JPanel distributionsButtonsPanel = new JPanel(new GridBagLayout());
+        distributionsButtonsPanel.add(refreshButton, new GridBagConstraints(0, 0, 
+            1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
+        distributionsButtonsPanel.add(deleteButton, new GridBagConstraints(1, 0, 
+            1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
 
         JPanel tablePanel = new JPanel(new GridBagLayout());
         tablePanel.add(new JScrollPane(distributionListTable), new GridBagConstraints(0, 0, 
-            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(3, 5, 0, 3), 0, 0));
         tablePanel.add(distributionsButtonsPanel, new GridBagConstraints(0, 1, 
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
 
-        JPanel cnameAddRemoveButtonsPanel = new JPanel();
-        cnameAddRemoveButtonsPanel.add(removeCname);
-        cnameAddRemoveButtonsPanel.add(addCname);
-
-        JPanel actionButtonsPanel = new JPanel();
-        actionButtonsPanel.add(actionButton);
+        JPanel cnameAddRemoveButtonsPanel = new JPanel(new GridBagLayout());
+        cnameAddRemoveButtonsPanel.add(removeCname, new GridBagConstraints(0, 0, 
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
+        cnameAddRemoveButtonsPanel.add(addCname, new GridBagConstraints(1, 0, 
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
 
         JPanel detailPanel = new JPanel(new GridBagLayout());
-        detailPanel.setBorder(BorderFactory.createEtchedBorder());
+        detailPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Distribution Details"));
         int row = 0;
         detailPanel.add(bucketLabel, new GridBagConstraints(0, row, 
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
@@ -186,26 +195,28 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         detailPanel.add(enabledCheckbox, new GridBagConstraints(1, row++, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        detailPanel.add(cnamesLabel, new GridBagConstraints(0, row++, 
-            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         detailPanel.add(new JScrollPane(cnamesTable), new GridBagConstraints(0, row++, 
-            2, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+            2, 1, 1, 2, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(3, 5, 0, 5), 0, 0));
         detailPanel.add(cnameAddRemoveButtonsPanel, new GridBagConstraints(0, row++, 
-            2, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsHorizontalOnly, 0, 0));
-        detailPanel.add(actionButtonsPanel, new GridBagConstraints(0, row++, 
+            2, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
+        detailPanel.add(commentLabel, new GridBagConstraints(0, row++, 
+            2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
+        detailPanel.add(new JScrollPane(commentTextArea), new GridBagConstraints(0, row++, 
+            2, 1, 0, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+        detailPanel.add(actionButton, new GridBagConstraints(0, row++, 
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
             
         this.getContentPane().setLayout(new GridBagLayout());
         this.getContentPane().add(tablePanel, new GridBagConstraints(0, 0, 
             1, 1, 1, 2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));        
         this.getContentPane().add(detailPanel, new GridBagConstraints(0, 1, 
-            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));        
+            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsHorizontalOnly, 0, 0));        
         this.getContentPane().add(finishedButton, new GridBagConstraints(0, 2, 
-            1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
                 
         // Size dialog
         this.pack();
-        this.setSize(600, 500);        
+        this.setSize(600, 550);        
         distributionListTable.getColumnModel().getColumn(0).setPreferredWidth(this.getWidth() / 10);
         distributionListTable.getColumnModel().getColumn(1).setPreferredWidth(this.getWidth() * 4 / 10);
         distributionListTable.getColumnModel().getColumn(2).setPreferredWidth(this.getWidth() * 4 / 10);
@@ -252,7 +263,11 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                         }
                      });
 
-                    ErrorDialog.showDialog(ownerFrame, null, "Failed to list distributions", e);
+                    String errorMessage = "Failed to list distributions";
+                    if (e instanceof CloudFrontServiceException) {
+                        errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
+                    }                        
+                    ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                 }
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
@@ -283,6 +298,7 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                 bucketComboBox.setEnabled(true);
                 enabledCheckbox.setSelected(false);
                 cnamesTableModel.removeAll();
+                commentTextArea.setText("");
                 
                 actionButton.setText("New Distribution");
                 actionButton.setActionCommand("NewDistribution");
@@ -297,6 +313,7 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                 for (int i = 0; i < cnames.length; i++) {
                     cnamesTableModel.addCname(cnames[i]);
                 }
+                commentTextArea.setText(distribution.getComment());
                 
                 // Update possible actions
                 deleteButton.setEnabled(!distribution.isEnabled() && distribution.isDeployed());
@@ -355,8 +372,12 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                                     progressDialog.stopDialog();
                                 }
                              });
-
-                            ErrorDialog.showDialog(ownerFrame, null, "Failed to delete distribution", e);
+                            
+                            String errorMessage = "Failed to delete distribution";
+                            if (e instanceof CloudFrontServiceException) {
+                                errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
+                            }                        
+                            ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                         }
                         SwingUtilities.invokeLater(new Runnable() {
                             public void run() {
@@ -383,7 +404,7 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
 
                     try {
                         cloudFrontService.createDistribution(origin, null, 
-                            cnamesTableModel.getCnames(), null, enabledCheckbox.isSelected());
+                            cnamesTableModel.getCnames(), commentTextArea.getText(), enabledCheckbox.isSelected());
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -392,7 +413,11 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                             }
                          });
 
-                        ErrorDialog.showDialog(ownerFrame, null, "Failed to create distribution", e);
+                        String errorMessage = "Failed to create distribution";
+                        if (e instanceof CloudFrontServiceException) {
+                            errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
+                        }                        
+                        ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                     }
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -420,7 +445,7 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
 
                     try {
                         cloudFrontService.updateDistributionConfig(distribution.getId(),
-                            cnamesTableModel.getCnames(), null, enabledCheckbox.isSelected());
+                            cnamesTableModel.getCnames(), commentTextArea.getText(), enabledCheckbox.isSelected());
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -429,7 +454,11 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                             }
                          });
 
-                        ErrorDialog.showDialog(ownerFrame, null, "Failed to update distribution", e);
+                        String errorMessage = "Failed to update distribution";
+                        if (e instanceof CloudFrontServiceException) {
+                            errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
+                        }                        
+                        ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                     }
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -546,7 +575,7 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
         private static final long serialVersionUID = 7975150589167172506L;
 
         public CNAMETableModel() {
-            super(new String[] {"CNAME"}, 0);
+            super(new String[] {"CNAME Aliases"}, 0);
         }
         
         public void addCname(String cname) {
