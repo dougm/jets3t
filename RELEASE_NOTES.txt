@@ -7,6 +7,8 @@ COCKPIT
   a dialog box.
 - Improved support for DevPay credentials, which can now be set and saved 
   directly in the login dialog box instead of only in a properties file.
+- User preferences can now be remembered on your computer, so they do not need
+  to be re-set every time you start Cockpit.
 
 SYNCHRONIZE
 - AWS credentials and the cryptographic password can now be provided via prompts

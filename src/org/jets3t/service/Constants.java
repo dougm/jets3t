@@ -43,6 +43,10 @@ public interface Constants {
     public static String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
     
     /**
+     * The file containing local Cockpit preferences.
+     */
+    public static String COCKPIT_PROPERTIES_FILENAME = "jets3t-cockpit.properties";
+    /**
      * The file containing the list of AWS DevPay Products
      */
     public static String DEVPAY_PRODUCTS_PROPERTIES_FILENAME = "devpay_products.properties";

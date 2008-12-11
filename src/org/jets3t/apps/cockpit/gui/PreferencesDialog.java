@@ -28,6 +28,7 @@ import java.awt.event.ActionListener;
 import javax.swing.AbstractAction;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -54,7 +55,7 @@ import org.jets3t.service.security.EncryptionUtil;
  * @author James Murty
  */
 public class PreferencesDialog extends JDialog implements ActionListener, ChangeListener {
-    private static final long serialVersionUID = -5208140886913744801L;
+    private static final long serialVersionUID = 4017680813954709789L;
 
     private static PreferencesDialog preferencesDialog = null;
     
@@ -71,6 +72,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
     private JComboBox encryptAlgorithmComboBox = null;
     private JButton okButton = null;
     private JButton cancelButton = null;
+    private JCheckBox rememberPreferencesCheckBox = null;
     private JTabbedPane tabbedPane = null;
     
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
@@ -241,14 +243,54 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         tabbedPane.add(uploadPrefsPanel, "Uploads");
         tabbedPane.add(encryptionPrefsPanel, "Encryption");
         
+        // Remember preferences option
+        rememberPreferencesCheckBox = new JCheckBox("Remember my preferences on this computer?");
+        rememberPreferencesCheckBox.setHorizontalAlignment(JCheckBox.CENTER);
+        String rememberPreferencesExplanation = 
+            "<html><font size=\"-2\">" +
+            "Your encryption password will <b>not</b> be remembered." +
+            "</font></html>";
+        JHtmlLabel rememberPreferencesLabel = 
+            new JHtmlLabel(rememberPreferencesExplanation, hyperlinkListener);
+        rememberPreferencesLabel.setHorizontalAlignment(JLabel.CENTER);
+        
         row = 0;
         this.getContentPane().setLayout(new GridBagLayout());
         this.getContentPane().add(introductionLabel, new GridBagConstraints(0, row++, 
             2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         this.getContentPane().add(tabbedPane, new GridBagConstraints(0, row++, 
             2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+        this.getContentPane().add(rememberPreferencesCheckBox, new GridBagConstraints(0, row++, 
+            2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 10, 0, 10), 0, 0));
+        this.getContentPane().add(rememberPreferencesLabel, new GridBagConstraints(0, row++, 
+            2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 10, 0, 10), 0, 0));
         this.getContentPane().add(buttonsPanel, new GridBagConstraints(0, row++, 
             2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        
+        // Load preferences from CockpitPreferences object.
+        rememberPreferencesCheckBox.setSelected(cockpitPreferences.isRememberPreferences());
+        
+        String aclPermission = cockpitPreferences.getUploadACLPermission();
+        if (CockpitPreferences.UPLOAD_ACL_PERMISSION_PRIVATE.equals(aclPermission)) {
+            aclPrivateButton.setSelected(true);
+        } else if (CockpitPreferences.UPLOAD_ACL_PERMISSION_PUBLIC_READ.equals(aclPermission)) {
+            aclPublicReadButton.setSelected(true);
+        } else if (CockpitPreferences.UPLOAD_ACL_PERMISSION_PUBLIC_READ_WRITE.equals(aclPermission)) {
+            aclPublicReadWriteButton.setSelected(true);
+        }
+        
+        if (cockpitPreferences.isUploadCompressionActive()) {
+            compressYesButton.setSelected(true);            
+        } else {
+            compressNoButton.setSelected(true);                        
+        }
+        
+        if (cockpitPreferences.isUploadEncryptionActive()) {
+            encryptYesButton.setSelected(true);
+        } else {
+            encryptNoButton.setSelected(true);            
+        }
+        encryptAlgorithmComboBox.setSelectedItem(cockpitPreferences.getEncryptionAlgorithm());
         
         this.pack();
         this.setLocationRelativeTo(this.getOwner());
@@ -279,6 +321,8 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             }
             
             // Save preferences to CockpitPreferences object.
+            cockpitPreferences.setRememberPreferences(
+                rememberPreferencesCheckBox.isSelected());
             cockpitPreferences.setUploadACLPermission(
                 aclButtonGroup.getSelection().getActionCommand());            
             cockpitPreferences.setUploadCompressionActive(

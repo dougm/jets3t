@@ -19,6 +19,7 @@
 package org.jets3t.apps.cockpit;
 
 import java.io.Serializable;
+import java.util.Properties;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -32,8 +33,8 @@ import org.jets3t.service.Jets3tProperties;
  * @author James Murty
  */
 public class CockpitPreferences implements Serializable {
-    private static final long serialVersionUID = -7780871977411876849L;
-    
+    private static final long serialVersionUID = 6072192057121567975L;
+
     /**
      * Represents ACL permissions to make objects private.
      */
@@ -49,6 +50,7 @@ public class CockpitPreferences implements Serializable {
      */
     public static final String UPLOAD_ACL_PERMISSION_PUBLIC_READ_WRITE = "PUBLIC_READ_WRITE";
 
+    private boolean rememberPreferences = true;
     private String uploadACLPermission = UPLOAD_ACL_PERMISSION_PRIVATE;
     private boolean uploadCompressionActive = false;
     private boolean uploadEncryptionActive = false;
@@ -120,6 +122,37 @@ public class CockpitPreferences implements Serializable {
     
     public void setUploadEncryptionActive(boolean uploadEncryptionActive) {
         this.uploadEncryptionActive = uploadEncryptionActive;
+    }
+    
+    public void setRememberPreferences(boolean rememberPreferences) {
+        this.rememberPreferences = rememberPreferences;
+    }
+    
+    public boolean isRememberPreferences() {
+        return rememberPreferences;
+    }
+    
+    public Properties toProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("upload-acl-permission", getUploadACLPermission());
+        properties.setProperty("upload-compression-active", 
+            isUploadCompressionActive() ? "true" : "false");
+        properties.setProperty("upload-encryption-active", 
+            isUploadEncryptionActive() ? "true" : "false");
+        properties.setProperty("upload-encryption-algorithm", getEncryptionAlgorithm());
+        return properties;
+    }
+    
+    public void fromProperties(Properties properties) {
+        setRememberPreferences(true);
+        setUploadACLPermission(
+            properties.getProperty("upload-acl-permission", getUploadACLPermission()));
+        setUploadCompressionActive(
+            "true".equalsIgnoreCase(properties.getProperty("upload-compression-active")));
+        setUploadEncryptionActive(
+            "true".equalsIgnoreCase(properties.getProperty("upload-encryption-active")));
+        setEncryptionAlgorithm(
+            properties.getProperty("upload-encryption-algorithm", getEncryptionAlgorithm()));
     }
 
 }

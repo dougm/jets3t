@@ -40,7 +40,9 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -52,6 +54,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.swing.JApplet;
 import javax.swing.JButton;
@@ -176,7 +179,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
     
     private File cockpitHomeDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
-    private CockpitPreferences cockpitPreferences = new CockpitPreferences();
+    private CockpitPreferences cockpitPreferences = null;
     
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
@@ -311,7 +314,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         
         // Initialise the GUI.
         initGui();      
-
+        
         // Initialise a non-authenticated service.
         try {
             // Revert to anonymous service.
@@ -344,6 +347,20 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         "jets3t.properties in Cockpit's home folder " + cockpitHomeDirectory);
             } catch (IOException e) {
                 String message = "Unable to load jets3t.properties file: " + jets3tPropertiesFile;
+                log.error(message, e);
+                ErrorDialog.showDialog(ownerFrame, this, message, e);
+            }
+        }
+        // Initialise the user's preferences.
+        this.cockpitPreferences = new CockpitPreferences();
+        File cockpitPreferencesPropertiesFile = new File(cockpitHomeDirectory, Constants.COCKPIT_PROPERTIES_FILENAME);
+        if (cockpitPreferencesPropertiesFile.exists()) {
+            try {
+                Properties properties = new Properties();
+                properties.load(new FileInputStream(cockpitPreferencesPropertiesFile));
+                this.cockpitPreferences.fromProperties(properties);
+            } catch (IOException e) {
+                String message = "Unable to load your preferences";
                 log.error(message, e);
                 ErrorDialog.showDialog(ownerFrame, this, message, e);
             }
@@ -1010,6 +1027,26 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         else if ("PreferencesDialog".equals(event.getActionCommand())) {
             PreferencesDialog.showDialog(cockpitPreferences, ownerFrame, this);
             
+            // Save a user's preferences if requested, otherwise wipe any existing preferences file.
+            File cockpitPreferencesPropertiesFile = new File(cockpitHomeDirectory, Constants.COCKPIT_PROPERTIES_FILENAME);
+            if (cockpitPreferences.isRememberPreferences()) {
+                try {
+                    Properties properties = cockpitPreferences.toProperties();
+                    if (!cockpitHomeDirectory.exists()) {
+                        cockpitHomeDirectory.mkdir();
+                    }                    
+                    properties.list(new PrintStream(
+                        new FileOutputStream(cockpitPreferencesPropertiesFile)));
+                } catch (IOException e) {
+                    String message = "Unable to save your preferences";
+                    log.error(message, e);
+                    ErrorDialog.showDialog(ownerFrame, this, message, e);
+                }
+            } else if (cockpitPreferencesPropertiesFile.exists()) {
+                // User elected not to store preferences, delete the existing preferences file.
+                cockpitPreferencesPropertiesFile.delete();
+            }
+            
             if (cockpitPreferences.isEncryptionPasswordSet()) {
                 try {
                     encryptionUtil = new EncryptionUtil(
@@ -1031,7 +1068,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             log.warn("Unrecognised ActionEvent command '" + event.getActionCommand() + "' in " + event);
         }
     }
-    
+        
     /**
      * Handles list selection events for this application.
      */
@@ -1928,9 +1965,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         if (cockpitPreferences.isUploadEncryptionActive()
             && !cockpitPreferences.isEncryptionPasswordSet())
         {
-            ErrorDialog.showDialog(ownerFrame, this, 
-                "Cockpit cannot upload encrypted "
-                + "objects unless the encyption password is set in Preferences", null);
+            ErrorDialog.showDialog(ownerFrame, this,
+                "Upload encryption is enabled but you have not yet set a password in the Encryption Preferences.",
+                null);
             return;
 
         }
