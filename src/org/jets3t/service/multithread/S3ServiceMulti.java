@@ -267,7 +267,7 @@ public class S3ServiceMulti implements Serializable {
         final String delimiter, final long maxListingLength) 
     {
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
                 
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
             .getIntProperty("s3service.admin-max-thread-count", 4);
@@ -294,16 +294,18 @@ public class S3ServiceMulti implements Serializable {
                     uniqueOperationId));
             }
             public void fireCancelEvent() {
+                success[0] = false;
                 fireServiceEvent(ListObjectsEvent.newCancelledEvent(uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(ListObjectsEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(ListObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }            
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(ListObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -326,7 +328,7 @@ public class S3ServiceMulti implements Serializable {
     public boolean createBuckets(final S3Bucket[] buckets) {
         final List incompletedBucketList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
         
         // Start all queries in the background.
         CreateBucketRunnable[] runnables = new CreateBucketRunnable[buckets.length];
@@ -358,16 +360,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Bucket[] incompletedBuckets = (S3Bucket[]) incompletedBucketList
                     .toArray(new S3Bucket[incompletedBucketList.size()]);                
+                success[0] = false;
                 fireServiceEvent(CreateBucketsEvent.newCancelledEvent(incompletedBuckets, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(CreateBucketsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(CreateBucketsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(CreateBucketsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -408,7 +412,7 @@ public class S3ServiceMulti implements Serializable {
     {            
         final List incompletedObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
                 
         // Start all queries in the background.
         CopyObjectRunnable[] runnables = new CopyObjectRunnable[sourceObjectKeys.length];
@@ -440,17 +444,19 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
                     .toArray(new S3Object[incompletedObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(CopyObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(CopyObjectsEvent.newCompletedEvent(uniqueOperationId, 
                     sourceObjectKeys, destinationObjects));
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(CopyObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(CopyObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -476,7 +482,7 @@ public class S3ServiceMulti implements Serializable {
         final List incompletedObjectsList = new ArrayList();
         final List progressWatchers = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
         
         // Start all queries in the background.
         CreateObjectRunnable[] runnables = new CreateObjectRunnable[objects.length];
@@ -510,16 +516,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
                     .toArray(new S3Object[incompletedObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(CreateObjectsEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(CreateObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(CreateObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -544,7 +552,7 @@ public class S3ServiceMulti implements Serializable {
     public boolean deleteObjects(final S3Bucket bucket, final S3Object[] objects) {
         final List objectsToDeleteList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[objects.length];
@@ -575,16 +583,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList
                     .toArray(new S3Object[objectsToDeleteList.size()]);                    
+                success[0] = false;
                 fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(DeleteObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(DeleteObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -630,7 +640,7 @@ public class S3ServiceMulti implements Serializable {
     public boolean getObjects(final S3Bucket bucket, final String[] objectKeys) {
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
@@ -669,16 +679,18 @@ public class S3ServiceMulti implements Serializable {
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
                     .toArray(new S3Object[cancelledObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(GetObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(GetObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -724,7 +736,7 @@ public class S3ServiceMulti implements Serializable {
     public boolean getObjectsHeads(final S3Bucket bucket, final String[] objectKeys) {
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
@@ -763,16 +775,18 @@ public class S3ServiceMulti implements Serializable {
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
                     .toArray(new S3Object[cancelledObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(GetObjectHeadsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(GetObjectHeadsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -798,7 +812,7 @@ public class S3ServiceMulti implements Serializable {
     public boolean getObjectACLs(final S3Bucket bucket, final S3Object[] objects) {
         final List pendingObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         GetACLRunnable[] runnables = new GetACLRunnable[objects.length];
@@ -829,16 +843,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
                     .toArray(new S3Object[pendingObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(LookupACLEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(LookupACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(LookupACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -864,7 +880,7 @@ public class S3ServiceMulti implements Serializable {
     public boolean putACLs(final S3Bucket bucket, final S3Object[] objects) {
         final List pendingObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         PutACLRunnable[] runnables = new PutACLRunnable[objects.length];
@@ -895,16 +911,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
                     .toArray(new S3Object[pendingObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(UpdateACLEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(UpdateACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -943,7 +961,7 @@ public class S3ServiceMulti implements Serializable {
         final List progressWatchers = new ArrayList();        
         final List incompleteObjectDownloadList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.        
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         boolean restoreLastModifiedDate = this.s3Service.getJetS3tProperties()
             .getBoolProperty("downloads.restoreLastModifiedDate", false);                
@@ -1001,16 +1019,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] incompleteObjects = (S3Object[]) incompleteObjectDownloadList
                     .toArray(new S3Object[incompleteObjectDownloadList.size()]);
+                success[0] = false;
                 fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(DownloadObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(DownloadObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(DownloadObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -1089,7 +1109,7 @@ public class S3ServiceMulti implements Serializable {
         
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedGetURLs.length];
@@ -1131,16 +1151,18 @@ public class S3ServiceMulti implements Serializable {
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
                     .toArray(new S3Object[cancelledObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(GetObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(GetObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(GetObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -1178,7 +1200,7 @@ public class S3ServiceMulti implements Serializable {
         
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         GetObjectRunnable[] runnables = new GetObjectRunnable[signedHeadURLs.length];
@@ -1220,16 +1242,18 @@ public class S3ServiceMulti implements Serializable {
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
                     .toArray(new S3Object[cancelledObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(GetObjectHeadsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(GetObjectHeadsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(GetObjectHeadsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -1259,7 +1283,7 @@ public class S3ServiceMulti implements Serializable {
     {
         final List pendingObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         PutACLRunnable[] runnables = new PutACLRunnable[signedURLs.length];
@@ -1292,16 +1316,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
                     .toArray(new S3Object[pendingObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(UpdateACLEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(UpdateACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(UpdateACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -1338,7 +1364,7 @@ public class S3ServiceMulti implements Serializable {
 
         final List objectsToDeleteList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         DeleteObjectRunnable[] runnables = new DeleteObjectRunnable[signedDeleteUrls.length];
@@ -1372,16 +1398,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList
                     .toArray(new S3Object[objectsToDeleteList.size()]);                    
+                success[0] = false;
                 fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(DeleteObjectsEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(DeleteObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(DeleteObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -1419,7 +1447,7 @@ public class S3ServiceMulti implements Serializable {
         final List progressWatchers = new ArrayList();
         final List incompletedObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Calculate total byte count being transferred.
         S3Object objects[] = new S3Object[signedPutUrlAndObjects.length];
@@ -1458,16 +1486,18 @@ public class S3ServiceMulti implements Serializable {
             public void fireCancelEvent() {
                 S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
                     .toArray(new S3Object[incompletedObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(CreateObjectsEvent.newCompletedEvent(uniqueOperationId));
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(CreateObjectsEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(CreateObjectsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
@@ -1506,7 +1536,7 @@ public class S3ServiceMulti implements Serializable {
         
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
-        final boolean[] success = new boolean[] {false};
+        final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
         GetACLRunnable[] runnables = new GetACLRunnable[signedAclURLs.length];
@@ -1547,16 +1577,18 @@ public class S3ServiceMulti implements Serializable {
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
                     .toArray(new S3Object[cancelledObjectsList.size()]);
+                success[0] = false;
                 fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
             public void fireCompletedEvent() {
-                success[0] = true;
                 fireServiceEvent(LookupACLEvent.newCompletedEvent(uniqueOperationId));                    
             }
             public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
                 fireServiceEvent(LookupACLEvent.newErrorEvent(throwable, uniqueOperationId));
             }
             public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
                 fireServiceEvent(LookupACLEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
             }
         }).run();
