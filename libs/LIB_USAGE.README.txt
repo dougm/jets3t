@@ -96,7 +96,7 @@ Files       : safehaus_jug/jug-asl-2.0.0.jar
 
 
 Name        : JUnit
-Version     : 4.5
+Version     : 3.8.2
 Location    : http://www.junit.org/
 Required?   : NO. Only required to run JUnit code test cases.
 Description : Framework for writing and running code test cases.
