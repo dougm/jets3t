@@ -46,6 +46,8 @@ import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
+import com.jamesmurty.utils.XMLBuilder;
+
 /**
  * A service that handles communication with the Amazon CloudFront REST API, offering 
  * all the operations that can be performed on CloudFront distributions.
@@ -409,22 +411,20 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         
         PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION + "/distribution");
                 
-        String xmlRequest = 
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +            
-            "<DistributionConfig xmlns=\"" + XML_NAMESPACE + "\">" + 
-                "<Origin>" + origin + "</Origin>" +
-                "<CallerReference>" + callerReference + "</CallerReference>";
-        for (int i = 0; i < cnames.length; i++) {
-            xmlRequest += "<CNAME>" + cnames[i] + "</CNAME>";
-        }
-        xmlRequest += 
-                "<Comment>" + comment + "</Comment>" +
-                "<Enabled>" + enabled + "</Enabled>" +
-            "</DistributionConfig>";
-                
         try {
+            XMLBuilder builder = XMLBuilder.create("DistributionConfig")
+                .a("xmlns", XML_NAMESPACE)
+                .e("Origin").t(origin).up()
+                .e("CallerReference").t(callerReference).up();
+            for (int i = 0; i < cnames.length; i++) {
+                builder.e("CNAME").t(cnames[i]).up();
+            }
+            builder
+                .e("Comment").t(comment).up()
+                .e("Enabled").t("" + enabled);
+
             httpMethod.setRequestEntity(
-                new StringRequestEntity(xmlRequest, "text/xml", Constants.DEFAULT_ENCODING));
+                new StringRequestEntity(builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
 
             performRestRequest(httpMethod, 201);
 
@@ -555,22 +555,20 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         
         PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION + "/distribution/" + id + "/config");
                 
-        String xmlRequest = 
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +            
-            "<DistributionConfig xmlns=\"" + XML_NAMESPACE + "\">" + 
-                "<Origin>" + oldConfig.getOrigin() + "</Origin>" +
-                "<CallerReference>" + oldConfig.getCallerReference() + "</CallerReference>"; 
-            for (int i = 0; i < cnames.length; i++) {
-                xmlRequest += "<CNAME>" + cnames[i] + "</CNAME>";
-            }
-            xmlRequest += 
-                "<Comment>" + comment + "</Comment>" +
-                "<Enabled>" + enabled + "</Enabled>" +
-            "</DistributionConfig>";
-                
         try {
+            XMLBuilder builder = XMLBuilder.create("DistributionConfig")
+                .a("xmlns", XML_NAMESPACE)
+                .e("Origin").t(oldConfig.getOrigin()).up()
+                .e("CallerReference").t(oldConfig.getCallerReference()).up();
+            for (int i = 0; i < cnames.length; i++) {
+                builder.e("CNAME").t(cnames[i]).up();
+            }
+            builder
+                .e("Comment").t(comment).up()
+                .e("Enabled").t("" + enabled);
+            
             httpMethod.setRequestEntity(
-                new StringRequestEntity(xmlRequest, "text/xml", Constants.DEFAULT_ENCODING));
+                new StringRequestEntity(builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
             httpMethod.setRequestHeader("If-Match", oldConfig.getEtag());
 
             performRestRequest(httpMethod, 200);
