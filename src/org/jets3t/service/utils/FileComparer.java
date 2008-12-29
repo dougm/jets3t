@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2006-2008 James Murty
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,18 +108,53 @@ public class FileComparer {
     /**
      * If a <code>.jets3t-ignore</code> file is present in the given directory, the file is read
      * and all the paths contained in it are coverted to regular expression Pattern objects.
+     * If the parent directory's list of patterns is provided, any relevant patterns are also 
+     * added to the ignore listing. Relevant parent patterns are those with a directory prefix
+     * that matches the current directory, or with the wildcard depth pattern (*.*./).
      * 
      * @param directory
      * a directory that may contain a <code>.jets3t-ignore</code> file. If this parameter is null
      * or is actually a file and not a directory, an empty list will be returned.
+     * @param parentIgnorePatternList
+     * a list of Patterns that were applied to the parent directory of the given directory. If this
+     * parameter is null, no parent ignore patterns are applied.
      * 
      * @return
      * a list of Pattern objects representing the paths in the ignore file. If there is no ignore
      * file, or if it has no contents, the list returned will be empty. 
      */
-    protected List buildIgnoreRegexpList(File directory) {
+    protected List buildIgnoreRegexpList(File directory, List parentIgnorePatternList) {
         ArrayList ignorePatternList = new ArrayList();
-
+        
+        // Add any applicable ignore patterns found in ancestor directories
+        if (parentIgnorePatternList != null) {
+            Iterator parentIgnorePatternIter = parentIgnorePatternList.iterator();
+            while (parentIgnorePatternIter.hasNext()) {
+                Pattern parentPattern = (Pattern) parentIgnorePatternIter.next();
+                String parentIgnorePatternString = parentPattern.pattern();
+                
+                // If parent ignore pattern contains a slash, it is eligible for inclusion.
+                int slashOffset = parentIgnorePatternString.indexOf(Constants.FILE_PATH_DELIM);
+                if (slashOffset >= 0 && parentIgnorePatternString.length() > (slashOffset + 1)) { // Ensure there is at least 1 char after slash
+                    // Chop pattern into header and tail around first slash character.
+                    String patternHeader = parentIgnorePatternString.substring(0, slashOffset);
+                    String patternTail = parentIgnorePatternString.substring(slashOffset + 1);
+                    
+                    if (".*.*".equals(patternHeader)) {
+                        // ** patterns are special and apply to any directory depth, so add both the 
+                        // pattern's tail to match in this directory, and the original pattern to match
+                        // again in descendent directories.
+                        ignorePatternList.add(Pattern.compile(patternTail));                    
+                        ignorePatternList.add(parentPattern);                    
+                    } else if (Pattern.compile(patternHeader).matcher(directory.getName()).matches()) {
+                        // Adds pattern's tail section to ignore list for this directory, provided 
+                        // the pre-slash pattern matches the current directory's name.
+                        ignorePatternList.add(Pattern.compile(patternTail));
+                    }
+                }
+            }
+        }
+        
         if (directory == null || !directory.isDirectory()) {
             return ignorePatternList;
         }
@@ -141,13 +176,20 @@ public class FileComparer {
                     ignoreRegexp = ignoreRegexp.replaceAll("\\.", "\\\\.");
                     ignoreRegexp = ignoreRegexp.replaceAll("\\*", ".*");
                     ignoreRegexp = ignoreRegexp.replaceAll("\\?", ".");
-                    
+
                     Pattern pattern = Pattern.compile(ignoreRegexp);
                     if (log.isDebugEnabled()) {
                     	log.debug("Ignore path '" + ignorePath + "' has become the regexp: " 
                         + pattern.pattern());                    
                     }
-                    ignorePatternList.add(pattern);                    
+                    ignorePatternList.add(pattern);
+                    
+                    if (pattern.pattern().startsWith(".*.*/") && pattern.pattern().length() > 5) {
+                        // **/ patterns are special and apply to any directory depth, including the current
+                        // directory. So add the pattern's after-slash tail to match in this directory as well.
+                        ignorePatternList.add(Pattern.compile(pattern.pattern().substring(5)));
+                    }
+                    
                 }
             } catch (IOException e) {
             	if (log.isErrorEnabled()) {
@@ -229,11 +271,11 @@ public class FileComparer {
                 // For direct references to a file or dir, look for a .jets3t-ignore file
                 // in the current directory - only do this once for the current dir.
                 if (ignorePatternListForCurrentDir == null) {
-                    ignorePatternListForCurrentDir = buildIgnoreRegexpList(new File("."));
+                    ignorePatternListForCurrentDir = buildIgnoreRegexpList(new File("."), null);
                 }
                 ignorePatternList = ignorePatternListForCurrentDir;
             } else {
-                ignorePatternList = buildIgnoreRegexpList(files[i].getParentFile());
+                ignorePatternList = buildIgnoreRegexpList(files[i].getParentFile(), null);
             }
             
             if (!isIgnored(ignorePatternList, files[i])) {
@@ -245,7 +287,7 @@ public class FileComparer {
                 }
                 if (files[i].isDirectory()) {
                     buildFileMapImpl(files[i], files[i].getName() + Constants.FILE_PATH_DELIM, 
-                        fileMap, includeDirectories);
+                        fileMap, includeDirectories, ignorePatternList);
                 }
             }
         }
@@ -280,7 +322,7 @@ public class FileComparer {
      */
     public Map buildFileMap(File rootDirectory, String fileKeyPrefix, boolean includeDirectories) {
         HashMap fileMap = new HashMap();
-        List ignorePatternList = buildIgnoreRegexpList(rootDirectory);
+        List ignorePatternList = buildIgnoreRegexpList(rootDirectory, null);
         
         if (!isIgnored(ignorePatternList, rootDirectory)) {        
             if (fileKeyPrefix == null || fileKeyPrefix.length() == 0) {
@@ -290,7 +332,7 @@ public class FileComparer {
                     fileKeyPrefix += Constants.FILE_PATH_DELIM;
                 }
             }
-            buildFileMapImpl(rootDirectory, fileKeyPrefix, fileMap, includeDirectories);
+            buildFileMapImpl(rootDirectory, fileKeyPrefix, fileMap, includeDirectories, ignorePatternList);
         }
         return fileMap;
     }
@@ -316,10 +358,17 @@ public class FileComparer {
      * will be mere place-holder objects with the content type {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY}.
      * If this variable is false directory objects will not be included in the Map, and it will not
      * be possible to store empty directories in S3.
+     * @param parentIgnorePatternList
+     * a list of Patterns that were applied to the parent directory of the given directory. This list
+     * will be checked to see if any of the parent's patterns should apply to the current directory.
+     * See {@link #buildIgnoreRegexpList(File, List)} for more information. 
+     * If this parameter is null, no parent ignore patterns are applied.
      */
-    protected void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap, boolean includeDirectories) {
-        List ignorePatternList = buildIgnoreRegexpList(directory);
-
+    protected void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap, 
+        boolean includeDirectories, List parentIgnorePatternList) 
+    {
+        List ignorePatternList = buildIgnoreRegexpList(directory, parentIgnorePatternList);
+        
         File children[] = directory.listFiles();
         for (int i = 0; children != null && i < children.length; i++) {                        
             if (!isIgnored(ignorePatternList, children[i])) {
@@ -328,7 +377,7 @@ public class FileComparer {
                 }
                 if (children[i].isDirectory()) {
                     buildFileMapImpl(children[i], fileKeyPrefix + children[i].getName() + "/", 
-                        fileMap, includeDirectories);
+                        fileMap, includeDirectories, ignorePatternList);
                 } 
             }
         }

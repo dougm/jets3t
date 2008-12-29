@@ -36,6 +36,9 @@ TOOLKIT
 - Added a class (AWSDevPayProduct) to represent a DevPay product, and to load 
   information about pre-defined products from the properties file 
   devpay_products.properties.
+- Improved the interpretation of .jets3t-ignore files so that child paths or
+  arbitrary paths can be specified and ignored. For example, to ignore all CVS
+  directories you can now add a single ignore path at the top level: **/CVS
 
   * REST Implementation
 
