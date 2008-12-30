@@ -81,13 +81,13 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * @author James Murty
  */
 public class RestS3Service extends S3Service implements SignedUrlHandler, AWSRequestAuthorizer {
-    private static final long serialVersionUID = 3515978495790107357L;
+    private static final long serialVersionUID = 3481768088915480629L;
 
     private static final Log log = LogFactory.getLog(RestS3Service.class);
     
-    private HttpClient httpClient = null;
-    private HttpConnectionManager connectionManager = null;
-    private CredentialsProvider credentialsProvider = null;
+    protected HttpClient httpClient = null;
+    protected HttpConnectionManager connectionManager = null;
+    protected CredentialsProvider credentialsProvider = null;
     
     /**
      * Constructs the service and initialises the properties.
@@ -224,6 +224,18 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     }
     
     /**
+     * Replaces the service's default HTTP connection manager. 
+     * This method should only be used by advanced users.
+     * 
+     * @param httpConnectionManager
+     * the connection manager that will replace the default manager created by
+     * the class constructor.
+     */
+    public void setHttpConnectionManager(HttpConnectionManager httpConnectionManager) {
+        this.connectionManager = httpConnectionManager;
+    }
+    
+    /**
      * @return
      * the HTTP client for this service.
      */
@@ -231,6 +243,18 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         return this.httpClient;
     }    
     
+    /**
+     * Replaces the service's default HTTP client. 
+     * This method should only be used by advanced users.
+     * 
+     * @param httpClient
+     * the client that will replace the default client created by
+     * the class constructor.
+     */
+    public void setHttpClient(HttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
     /**
      * @return
      * the credentials provider this service will use to authenticate itself, or null
