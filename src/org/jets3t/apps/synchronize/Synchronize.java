@@ -142,7 +142,7 @@ public class Synchronize {
         boolean isSkipMetadata, boolean isGzipEnabled, boolean isEncryptionEnabled, 
         int reportLevel, Jets3tProperties properties) 
     {
-        this.s3Service = s3Service;
+        this.s3Service = s3Service;        
         this.doAction = doAction;
         this.isQuiet = isQuiet;
         this.isNoProgress = isNoProgress;
@@ -934,8 +934,8 @@ public class Synchronize {
                 displayProgressStatus("Deleting objects in S3: ", event.getThreadWatcher());
             }
         }
-    };
-
+    };        
+    
     /**
      * Prints usage/help information and forces the application to exit with errorcode 1. 
      */
@@ -1355,7 +1355,8 @@ public class Synchronize {
          
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
-            new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, null, myProperties),
+            new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, 
+                new CommandLineCredentialsProvider(), myProperties),
             doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, 
             isMoveEnabled, isBatchMode, isSkipMetadata, isGzipEnabled, 
             isEncryptionEnabled, reportLevel, myProperties);

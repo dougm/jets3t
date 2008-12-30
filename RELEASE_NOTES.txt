@@ -21,6 +21,9 @@ SYNCHRONIZE
   public buckets will be accessible.
 - Fixed a bug that prevented Synchronize from recognizing duplicate file names
   when uploading to an S3 subdirectory path when using the --batch option.  
+- Synchronize will now prompt for HTTP Proxy login credentials if required. If
+  proxy credentials are pre-specified in the jets3t.properties file, you should
+  not be prompted.
 
 
 TOOLKIT
@@ -46,6 +49,9 @@ TOOLKIT
   "proxy-user", "proxy-password", and "proxy-domain"
 - The service's HTTP proxy settings can be updated an reapplied on-demand using
   a range of #initHttpProxy methods.
+- Added property settings to allow the default HTTP and HTTPS ports to be 
+  changed, which can be handy when running the service through a proxy for 
+  testing: s3service.s3-endpoint-http-port, s3service.s3-endpoint-https-port
 - The HttpConnectionManager and HttpClient objects used by the REST service can
   now be reinitialised on-demand using the #initHttpConnection method.
 - The underlying HttpClient and HttpConnectionManager objects can be accessed 

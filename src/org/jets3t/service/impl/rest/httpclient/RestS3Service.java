@@ -85,11 +85,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
     private static final Log log = LogFactory.getLog(RestS3Service.class);
     
-    private static final String PROTOCOL_SECURE = "https";
-    private static final String PROTOCOL_INSECURE = "http";
-    private static final int PORT_SECURE = 443;
-    private static final int PORT_INSECURE = 80;
-        
     private HttpClient httpClient = null;
     private HttpConnectionManager connectionManager = null;
     private CredentialsProvider credentialsProvider = null;
@@ -822,9 +817,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 		// Construct a URL representing a connection for the S3 resource.
         String url = null;
         if (isHttpsOnly()) {
-            url = PROTOCOL_SECURE + "://" + hostname + ":" + PORT_SECURE + resourceString;
+            int securePort = this.jets3tProperties.getIntProperty("s3service.s3-endpoint-https-port", 443);            
+            url = "https://" + hostname + ":" + securePort + resourceString;
         } else {
-            url = PROTOCOL_INSECURE + "://" + hostname + ":" + PORT_INSECURE + resourceString;        
+            int insecurePort = this.jets3tProperties.getIntProperty("s3service.s3-endpoint-http-port", 80);            
+            url = "http://" + hostname + ":" + insecurePort + resourceString;        
         }
         if (log.isDebugEnabled()) {
             log.debug("S3 URL: " + url);
