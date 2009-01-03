@@ -71,7 +71,7 @@ public interface SignedUrlHandler {
      * 
      * @param signedDeleteUrl
      * a signed DELETE URL generated with 
-     * {@link S3Service#createSignedDeleteUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
+     * {@link org.jets3t.service.S3Service#createSignedDeleteUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
      * 
      * @throws S3ServiceException
      */

@@ -97,7 +97,7 @@ public abstract class S3Service implements Serializable {
      * 
      * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()} 
      * to obtain the current time with this offset factor included, and the 
-     * {@link #getAWSTimeAdjustment()} method to calculate an offset value for your
+     * {@link RestUtils#getAWSTimeAdjustment()} method to calculate an offset value for your
      * computer based on a response from an AWS server.
      */
     protected long timeOffset = 0;
@@ -220,7 +220,8 @@ public abstract class S3Service implements Serializable {
      * <code>httpclient.requester-pay-buckets-enabled</code>.
      * <p>
      * NOTE: Only the REST S3 API supports Requester Pays requests, this 
-     * setting is ignored by the SOAP implementation {@link SoapS3Service}.
+     * setting is ignored by the SOAP implementation 
+     * {@link org.jets3t.service.impl.soap.axis.SoapS3Service}.
      * 
      * @param isRequesterPays
      * if true, all subsequent S3 service requests will include the Requester
@@ -238,7 +239,8 @@ public abstract class S3Service implements Serializable {
      * <code>httpclient.requester-pay-buckets-enabled</code>.
      * <p>
      * NOTE: Only the REST S3 API supports Requester Pays requests, this 
-     * setting is ignored by the SOAP implementation {@link SoapS3Service}.
+     * setting is ignored by the SOAP implementation 
+     * {@link org.jets3t.service.impl.soap.axis.SoapS3Service}.
      * 
      * @return
      * true if S3 service requests will include the Requester Pays flag, false 
@@ -2359,11 +2361,11 @@ public abstract class S3Service implements Serializable {
     /**
      * Returns the current date and time, adjusted according to the time
      * offset between your computer and an AWS server (as set by the
-     * {@link #getAWSTimeAdjustment()} method).
+     * {@link RestUtils#getAWSTimeAdjustment()} method).
      * 
      * @return
      * the current time, or the current time adjusted to match the AWS time 
-     * if the {@link #getAWSTimeAdjustment()} method has been invoked.
+     * if the {@link RestUtils#getAWSTimeAdjustment()} method has been invoked.
      */
     public Date getCurrentTimeWithOffset() {
         return new Date(System.currentTimeMillis() + timeOffset);

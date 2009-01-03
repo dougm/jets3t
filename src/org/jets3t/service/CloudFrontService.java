@@ -81,7 +81,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * 
      * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()} 
      * to obtain the current time with this offset factor included, and the 
-     * {@link #getAWSTimeAdjustment()} method to calculate an offset value for your
+     * {@link RestUtils#getAWSTimeAdjustment()} method to calculate an offset value for your
      * computer based on a response from an AWS server.
      */
     protected long timeOffset = 0;
@@ -171,11 +171,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     /**
      * Returns the current date and time, adjusted according to the time
      * offset between your computer and an AWS server (as set by the
-     * {@link #getAWSTimeAdjustment()} method).
+     * {@link RestUtils#getAWSTimeAdjustment()} method).
      * 
      * @return
      * the current time, or the current time adjusted to match the AWS time 
-     * if the {@link #getAWSTimeAdjustment()} method has been invoked.
+     * if the service has experienced a RequestExpired error.
      */
     protected Date getCurrentTimeWithOffset() {
         return new Date(System.currentTimeMillis() + timeOffset);

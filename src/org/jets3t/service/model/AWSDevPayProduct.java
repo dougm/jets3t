@@ -79,7 +79,8 @@ public class AWSDevPayProduct implements Serializable, Comparable {
     }
     
     /**
-     * Loads the products listed in {@link org.jets3t.service.Constants.DEVPAY_PRODUCTS_PROPERTIES_FILENAME} 
+     * Loads the products listed in 
+     * {@link Constants#DEVPAY_PRODUCTS_PROPERTIES_FILENAME} 
      *
      * @return the Vector of <code>AWSDevPayProduct</code>s
      */
@@ -116,9 +117,9 @@ public class AWSDevPayProduct implements Serializable, Comparable {
     
     /**
      * Loads the products listed in the {@link java.util.Properties}.
-     * Specifically, any properties ending in {@link org.jets3t.service.Constants.DEVPAY_PRODUCT_NAME_PROP_SUFFIX} 
+     * Specifically, any properties ending in {@link Constants#DEVPAY_PRODUCT_NAME_PROP_SUFFIX} 
      * (the product's name)
-     * have that ending removed and replaced with {@link org.jets3t.service.Constants.DEVPAY_PRODUCT_NAME_PROP_SUFFIX} 
+     * have that ending removed and replaced with {@link Constants#DEVPAY_PRODUCT_NAME_PROP_SUFFIX} 
      * (to form name of the property for the product's token).
      * If the token exists, then a <code>AWSDevPayProduct</code> is constructed
      * with that name and token, and then is added to the Vector. For example,

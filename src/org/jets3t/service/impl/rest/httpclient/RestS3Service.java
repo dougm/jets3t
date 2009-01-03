@@ -270,7 +270,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     /**
      * Sets the credentials provider this service will use to authenticate itself.
      * Changing the credentials provider with this method will have no effect until
-     * the {@link #initHttpConnection()} method
+     * the {@link #initHttpConnection(HostConfiguration)} method
      * is called.
      * 
      * @param credentialsProvider
