@@ -68,7 +68,7 @@ import org.jets3t.service.utils.FileComparer.PartialObjectListing;
  * @author James Murty
  */
 public class Synchronize {
-    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.6.1";
+    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.7.0";
     
     protected static final int REPORT_LEVEL_NONE = 0;
     protected static final int REPORT_LEVEL_ACTIONS = 1;

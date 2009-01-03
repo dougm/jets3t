@@ -165,7 +165,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     
 	private static final String PROPERTIES_FILENAME = "cockpitlite.properties";
 	
-    public static final String APPLICATION_DESCRIPTION = "Cockpit Lite/0.6.1";
+    public static final String APPLICATION_DESCRIPTION = "Cockpit Lite/0.7.0";
     
     public static final String APPLICATION_TITLE = "JetS3t Cockpit Lite";
     
