@@ -40,6 +40,8 @@ public class S3Bucket extends BaseS3Object {
 	private AccessControlList acl = null;
     private String location = LOCATION_US;
     private boolean isLocationKnown = false;
+    private boolean requesterPays = false;
+    private boolean isRequesterPaysKnown = false;
     
     /**
      * Create a bucket without any name or location specified
@@ -178,6 +180,46 @@ public class S3Bucket extends BaseS3Object {
      */
     public String getLocation() {
         return location;
+    }
+    
+    
+    /**
+     * Set's the bucket's Requester Pays Configuration setting. 
+     * This method should only be used internally by JetS3t methods that 
+     * retrieve information directly from S3.
+     * 
+     * @param requesterPays
+     * true if the bucket is configured for Requester Pays, false if it is
+     * configured for Owner pays.
+     */
+    public void setRequesterPays(boolean requesterPays) {
+        this.requesterPays = requesterPays;
+        this.isRequesterPaysKnown = true;
+    }
+    
+    /**
+     * @return
+     * true if this bucket object knows its Requester Pays status, false otherwise.
+     */
+    public boolean isRequesterPaysKnown() {
+        return this.isRequesterPaysKnown;
+    }
+    
+    /**
+     * Return the Requester Pays status of this bucket, if it is known. 
+     * <p>
+     * WARNING: 
+     * Before you use this method, always check with the {@link #isRequesterPaysKnown} 
+     * method to ensure that the Requester Pays status has been set, otherwise 
+     * the result of this method is meaningless.  
+     * 
+     * @return
+     * true if the bucket is configured for Requester Pays, false if it is
+     * configured for Owner pays or the Request Pays configuration status is
+     * unknown.
+     */
+    public boolean isRequesterPays() {
+        return requesterPays;
     }
 	
 }

@@ -111,7 +111,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.0</code> or <code>My App Name/1.0</code>
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
@@ -134,7 +134,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.0</code> or <code>My App Name/1.0</code>
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
@@ -160,7 +160,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.0</code> or <code>My App Name/1.0</code>
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
@@ -181,6 +181,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         HttpClientAndConnectionManager initHttpResult = initHttpConnection(hostConfig);        
         this.httpClient = initHttpResult.getHttpClient();
         this.connectionManager = initHttpResult.getHttpConnectionManager();
+        
+        this.setRequesterPaysEnabled(
+            this.jets3tProperties.getBoolProperty("httpclient.requester-pay-buckets-enabled", false));
         
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
@@ -894,6 +897,16 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 }
             }
         }
+        
+        // Set Requester Pays header to allow access to these buckets.
+        if (this.isRequesterPaysEnabled()) {
+            String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
+            httpMethod.setRequestHeader(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
+            if (log.isDebugEnabled()) {
+                log.debug("Including Requester Pays header in request: " +
+                    Constants.REQUESTER_PAYS_BUCKET_FLAG);
+            }            
+        }
 
         return httpMethod;
     }    
@@ -1600,6 +1613,49 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }    
     }
+    
+    protected boolean isRequesterPaysBucketImpl(String bucketName) 
+        throws S3ServiceException 
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving Request Payment Configuration settings for Bucket: " + bucketName);
+        }
+        
+        HashMap requestParameters = new HashMap();
+        requestParameters.put("requestPayment","");
+
+        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+        return (new XmlResponsesSaxParser()).parseRequestPaymentConfigurationResponse(
+            new HttpMethodReleaseInputStream(httpMethod));        
+    }
+
+    protected void setRequesterPaysBucketImpl(String bucketName, boolean requesterPays) throws S3ServiceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Request Payment Configuration settings for bucket: " + bucketName);
+        }
+
+        HashMap requestParameters = new HashMap();
+        requestParameters.put("requestPayment","");
+        
+        HashMap metadata = new HashMap();
+        metadata.put("Content-Type", "text/plain");
+        
+        try {
+            String xml = 
+                "<RequestPaymentConfiguration xmlns=\"" + Constants.XML_NAMESPACE + "\">" +
+                    "<Payer>" +
+                        (requesterPays ? "Requester" : "BucketOwner") +
+                    "</Payer>" +
+                "</RequestPaymentConfiguration>";
+            
+            metadata.put("Content-Length", String.valueOf(xml.length()));
+            performRestPut(bucketName, null, metadata, requestParameters, 
+                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);                
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to encode RequestPaymentConfiguration XML document", e);
+        }    
+    }    
 
     /**
      * Puts an object using a pre-signed PUT URL generated for that object.

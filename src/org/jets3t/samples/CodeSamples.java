@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Map;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
@@ -652,7 +653,71 @@ public class CodeSamples {
         // Generate the form.
         String restrictedForm = S3Service.buildPostForm(
             bucketName, key, awsCredentials, expiration, conditions, 
-            inputFields, null, true);       
+            inputFields, null, true);
+        
+        /*
+         * Activate the Requester Pays feature for a bucket.
+         */
+        
+        // A bucket in S3 is normally configured such that the bucket's owner
+        // pays all the service fees for accessing, sharing and storing objects.
+        // The Requester Pays feature of S3 allows a bucket to be configured 
+        // such that the individual who sends requests to a bucket is charged
+        // the S3 request and data transfer fees, instead of the bucket's owner.
+
+        // Note: Only the S3 REST API supports the Requester Pays feature, so 
+        // you must use a RestS3Service for all the operations described below.
+        // The SoapS3Service will not work.
+
+        // Set a bucket to be Requester Pays 
+        s3Service.setRequesterPaysBucket(bucketName, true);
+
+        // Set a bucket to be Owner pays (the default value for S3 buckets)
+        s3Service.setRequesterPaysBucket(bucketName, false);
+
+        // Find out whether a bucket is configured as Requester pays
+        s3Service.isRequesterPaysBucket(bucketName);
+                
+        /*
+         * Access a Requester Pays bucket when you are not the bucket's owner
+         */
+        
+        // When a bucket is configured as Requester Pays, other AWS users can
+        // upload objects to the bucket or retrieve them provided the user:
+        // - has the necessary Access Control List permissions, and
+        // - indicates that he/she is willing to pay the Requester Pays fees,
+        //   by including a special flag in the request.
+        
+        // Indicate that you will accept any Requester Pays fees by setting
+        // the RequesterPaysEnabled flag to true in your RestS3Service class.
+        // You can then use the service to list, upload, or download objects as 
+        // normal.
+        // Support for Requester Pays buckets is enabled by default with the
+        // jets3t.properties setting 'httpclient.requester-pay-buckets-enabled'
+        s3Service.setRequesterPaysEnabled(true);
+        
+        /*
+         * Generate a Signed URL for a Requester Pays bucket
+         */
+        
+        // Third party users of a Requester Pays bucket can generate Signed 
+        // URLs that permit public access to objects. To generate such a URL, 
+        // these users call the S3Service#createSignedUrl method with a flag to
+        // indicate that the he/she is willing to pay the Requester Pays fees
+        // incurred by the use of the signed URL.
+        
+        // Generate a signed GET URL for
+        Map httpHeaders = null;
+        long expirySecsAfterEpoch = System.currentTimeMillis() / 1000 + 300;
+        boolean isVirtualHost = false;
+        boolean isHttpsUrl = false;
+        
+        String requesterPaysSignedGetUrl = 
+            S3Service.createSignedUrl("GET", bucketName, "object-name", 
+                Constants.REQUESTER_PAYS_BUCKET_FLAG, // Include Requester Pays flag  
+                httpHeaders,
+                awsCredentials, expirySecsAfterEpoch, 
+                isVirtualHost, isHttpsUrl);
     }
     
 }

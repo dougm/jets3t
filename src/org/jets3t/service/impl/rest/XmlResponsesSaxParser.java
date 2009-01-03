@@ -267,6 +267,23 @@ public class XmlResponsesSaxParser {
         return handler;
     }
     
+    /**
+     * @param inputStream
+     * 
+     * @return
+     * true if the bucket's is configured as Requester Pays, false if it is 
+     * configured as Owner pays.
+     *      
+     * @throws S3ServiceException
+     */
+    public boolean parseRequestPaymentConfigurationResponse(InputStream inputStream)
+        throws S3ServiceException
+    {
+        RequestPaymentConfigurationHandler handler = new RequestPaymentConfigurationHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler.isRequesterPays();
+    }
+
     // ////////////
     // Handlers //
     // ////////////
@@ -806,6 +823,57 @@ public class XmlResponsesSaxParser {
                 errorHostId = elementText;
             }
             
+            this.currText = new StringBuffer();
+        }
+
+        public void characters(char ch[], int start, int length) {
+            this.currText.append(ch, start, length);
+        }
+    }
+
+    /**
+     * Handler for RequestPaymentConfiguration response XML documents for a bucket.
+     * The document is parsed into a boolean value: true if the bucket's is configured
+     * as Requester Pays, false if it is configured as Owner pays. This boolean value
+     * is available via the {@link #isRequesterPays()} method.
+     * 
+     * @author James Murty
+     */
+    public class RequestPaymentConfigurationHandler extends DefaultHandler {
+        private String payer = null;
+
+        private StringBuffer currText = null;
+
+        public RequestPaymentConfigurationHandler() {
+            super();
+            this.currText = new StringBuffer();
+        }
+
+        /**
+         * @return
+         * true if the bucket's is configured as Requester Pays, false if it is 
+         * configured as Owner pays.
+         */
+        public boolean isRequesterPays() {            
+            return "Requester".equals(payer);
+        }
+
+        public void startDocument() {
+        }
+
+        public void endDocument() {
+        }
+
+        public void startElement(String uri, String name, String qName, Attributes attrs) {
+            if (name.equals("RequestPaymentConfiguration")) {
+            } 
+        }
+
+        public void endElement(String uri, String name, String qName) {
+            String elementText = this.currText.toString();
+            if (name.equals("Payer")) {
+                payer = elementText;
+            } 
             this.currText = new StringBuffer();
         }
 

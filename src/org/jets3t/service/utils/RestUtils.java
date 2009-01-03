@@ -213,7 +213,7 @@ public class RestUtils {
             buf.append(resource.substring(0, queryIndex));
         }
 
-        // ...unless there is an acl, torrent or logging parameter
+        // ...unless there is an acl, torrent, logging or requestPayment parameter.
         if (resource.matches(".*[&?]acl($|=|&).*")) {
             buf.append("?acl");
         } else if (resource.matches(".*[&?]torrent($|=|&).*")) {
@@ -222,6 +222,8 @@ public class RestUtils {
             buf.append("?logging");
         } else if (resource.matches(".*[&?]location($|=|&).*")) {
             buf.append("?location");
+        } else if (resource.matches(".*[&?]requestPayment($|=|&).*")) {
+            buf.append("?requestPayment");
         }
 
         return buf.toString();

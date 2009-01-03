@@ -1,14 +1,17 @@
 -------------
-Version 0.6.2
+Version 0.7.0
 -------------
 
 COCKPIT
 - Added ability to view and manage Amazon CloudFront distributions using
   a dialog box.
+- Added support for configuring Requester Pays buckets.
 - Improved support for DevPay credentials, which can now be set and saved 
   directly in the login dialog box instead of only in a properties file.
 - User preferences can now be remembered on your computer, so they do not need
   to be re-set every time you start Cockpit.
+- Improved dialog box for generating Signed URLs. URLs for multiple objects
+  can now be generated at once.
 
 SYNCHRONIZE
 - AWS credentials and the cryptographic password can now be provided via prompts
@@ -33,6 +36,9 @@ TOOLKIT
 - Added initial implementation of CloudFront service.
 - Added property "cloudfront-service.internal-error-retry-max" for defining the
   retry limit for CloudFront internal service errors.
+- Added support for configuring and accessing Requester Pays buckets.
+- Added property "httpclient.requester-pay-buckets-enabled" for defining whether
+  the RestS3Service supports Requester Pays buckets by default.
 - Improved support for accessing S3 using DevPay credentials with a new
   credentials class for defining and storing these credentials: 
   AWSDevPayCredentials

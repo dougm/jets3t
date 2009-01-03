@@ -115,7 +115,7 @@ public class SoapS3Service extends S3Service {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.0</code> or <code>My App Name/1.0</code>
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      * 
@@ -151,7 +151,7 @@ public class SoapS3Service extends S3Service {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.6.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.0</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
     public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) 
@@ -945,6 +945,18 @@ public class SoapS3Service extends S3Service {
             throw new S3ServiceException("Unable to Set Bucket logging status for " + bucketName
                 + ": " + status, e);   
         }        
+    }
+
+    protected boolean isRequesterPaysBucketImpl(String bucketName) throws S3ServiceException {
+        throw new S3ServiceException("The SOAP API interface for S3 does not allow " +
+            "you to retrieve request payment configuration settings for a bucket, " +
+            "please use the REST API client class RestS3Service instead");    
+    }
+
+    protected void setRequesterPaysBucketImpl(String bucketName, boolean requesterPays) throws S3ServiceException {
+        throw new S3ServiceException("The SOAP API interface for S3 does not allow " +
+            "you to set a bucket's request payment configuration settings, " +
+            "please use the REST API client class RestS3Service instead");        
     }
 
 }

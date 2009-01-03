@@ -156,6 +156,13 @@ public interface Constants {
      */
     public static final String XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
 
+    /**
+     * A flag used to indicate that the sender is willing to accept any Requester Pays 
+     * bucket fees imposed by the request. This flag may be used in request Headers,
+     * or as a parameter.
+     */
+    public static final String REQUESTER_PAYS_BUCKET_FLAG = "x-amz-request-payer=requester";
+
     ///////////////////////////////////
     // Headers used by SOAP S3 Services
     ///////////////////////////////////
