@@ -48,7 +48,6 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -99,6 +98,7 @@ import org.jets3t.apps.cockpit.gui.BucketTableModel;
 import org.jets3t.apps.cockpit.gui.CreateBucketDialog;
 import org.jets3t.apps.cockpit.gui.ObjectTableModel;
 import org.jets3t.apps.cockpit.gui.PreferencesDialog;
+import org.jets3t.apps.cockpit.gui.RequesterPaysDialog;
 import org.jets3t.apps.cockpit.gui.SignedGetUrlDialog;
 import org.jets3t.apps.cockpit.gui.StartupDialog;
 import org.jets3t.gui.AuthenticationDialog;
@@ -149,7 +149,6 @@ import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ObjectUtils;
-import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.TimeFormatter;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
@@ -166,14 +165,14 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener, 
     ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider 
 {    
-    private static final long serialVersionUID = -8486529295104147186L;
+    private static final long serialVersionUID = 1275456909864052884L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
     
     public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.s3.amazonaws.com/applications/cockpit.html";
     public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
     
-    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.6.1";
+    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.7.0";
     
     public static final String APPLICATION_TITLE = "JetS3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
@@ -211,6 +210,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem createBucketMenuItem = null;
     private JMenuItem manageDistributionsMenuItem = null;
     private JMenuItem updateBucketACLMenuItem = null;
+    private JMenuItem updateBucketRequesterPaysStatusMenuItem = null;
     private JMenuItem deleteBucketMenuItem = null;
     
     // Object main menu items
@@ -221,7 +221,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private JMenuItem updateObjectACLMenuItem = null;
     private JMenuItem downloadObjectMenuItem = null;
     private JMenuItem uploadFilesMenuItem = null;
-    private JMenuItem generatePublicGetUrl = null;
+    private JMenuItem generatePublicGetUrls = null;
     private JMenuItem generateTorrentUrl = null;
     private JMenuItem deleteObjectMenuItem = null;
     
@@ -410,12 +410,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         bucketsTable.getSelectionModel().addListSelectionListener(this);
         bucketsTable.setShowHorizontalLines(true);
         bucketsTable.setShowVerticalLines(false);
-        // Set column width for distributions indicator
+                
+        // Set column width for Cloud Front distributions indicator.
         TableColumn distributionFlagColumn = bucketsTable.getColumnModel().getColumn(1);
         int distributionFlagColumnWidth = 18; 
         distributionFlagColumn.setPreferredWidth(distributionFlagColumnWidth);
         distributionFlagColumn.setMaxWidth(distributionFlagColumnWidth);
-        distributionFlagColumn.setMinWidth(distributionFlagColumnWidth);        
+        distributionFlagColumn.setMinWidth(0);
+        
         bucketsTable.addMouseListener(new ContextMenuListener());
         bucketsPanel.add(new JScrollPane(bucketsTable), 
             new GridBagConstraints(0, 1, 2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
@@ -581,6 +583,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         updateBucketACLMenuItem.addActionListener(this);
         guiUtils.applyIcon(updateBucketACLMenuItem, "/images/nuvola/16x16/actions/encrypted.png");
         bucketActionMenu.add(updateBucketACLMenuItem);
+
+        updateBucketRequesterPaysStatusMenuItem = new JMenuItem("Update bucket's Requester Pays status...");
+        updateBucketRequesterPaysStatusMenuItem.setActionCommand("UpdateBucketRequesterPaysStatus");
+        updateBucketRequesterPaysStatusMenuItem.addActionListener(this);
+        guiUtils.applyIcon(updateBucketRequesterPaysStatusMenuItem, "/images/nuvola/16x16/actions/identity.png");
+        bucketActionMenu.add(updateBucketRequesterPaysStatusMenuItem);
         
         bucketActionMenu.add(new JSeparator());
 
@@ -589,12 +597,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         createBucketMenuItem.addActionListener(this);
         guiUtils.applyIcon(createBucketMenuItem, "/images/nuvola/16x16/actions/viewmag+.png");
         bucketActionMenu.add(createBucketMenuItem);
-
-        manageDistributionsMenuItem = new JMenuItem("Manage Distributions...");
-        manageDistributionsMenuItem.setActionCommand("ManageDistributions");
-        manageDistributionsMenuItem.addActionListener(this);
-        guiUtils.applyIcon(manageDistributionsMenuItem, "/images/nuvola/16x16/actions/irkick.png");
-        bucketActionMenu.add(manageDistributionsMenuItem);
 
         JMenuItem thirdPartyBucketMenuItem = new JMenuItem("Add third-party bucket...");
         thirdPartyBucketMenuItem.setActionCommand("AddThirdPartyBucket");
@@ -613,8 +615,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         viewBucketPropertiesMenuItem.setEnabled(false);
         refreshBucketMenuItem.setEnabled(false);
         createBucketMenuItem.setEnabled(false);
-        manageDistributionsMenuItem.setEnabled(false);
         updateBucketACLMenuItem.setEnabled(false);
+        updateBucketRequesterPaysStatusMenuItem.setEnabled(false);
         deleteBucketMenuItem.setEnabled(false);
 
         // Object action menu.
@@ -658,11 +660,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         objectActionMenu.add(new JSeparator());
 
-        generatePublicGetUrl = new JMenuItem("Generate Public GET URL...");
-        generatePublicGetUrl.setActionCommand("GeneratePublicGetURL");
-        generatePublicGetUrl.addActionListener(this);
-        guiUtils.applyIcon(generatePublicGetUrl, "/images/nuvola/16x16/actions/wizard.png");
-        objectActionMenu.add(generatePublicGetUrl);        
+        generatePublicGetUrls = new JMenuItem("Generate Public GET URLs...");
+        generatePublicGetUrls.setActionCommand("GeneratePublicGetURLs");
+        generatePublicGetUrls.addActionListener(this);
+        guiUtils.applyIcon(generatePublicGetUrls, "/images/nuvola/16x16/actions/wizard.png");
+        objectActionMenu.add(generatePublicGetUrls);        
         
         generateTorrentUrl = new JMenuItem("Generate Torrent URL...");
         generateTorrentUrl.setActionCommand("GenerateTorrentURL");
@@ -684,7 +686,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         updateObjectACLMenuItem.setEnabled(false);
         downloadObjectMenuItem.setEnabled(false);
         uploadFilesMenuItem.setEnabled(false);
-        generatePublicGetUrl.setEnabled(false);
+        generatePublicGetUrls.setEnabled(false);
         generateTorrentUrl.setEnabled(false);
         deleteObjectMenuItem.setEnabled(false);
         
@@ -697,6 +699,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         bucketLoggingMenuItem.setEnabled(false);
         guiUtils.applyIcon(bucketLoggingMenuItem, "/images/nuvola/16x16/actions/toggle_log.png");
         toolsMenu.add(bucketLoggingMenuItem);
+        
+        manageDistributionsMenuItem = new JMenuItem("Manage CloudFront Distributions...");
+        manageDistributionsMenuItem.setActionCommand("ManageDistributions");
+        manageDistributionsMenuItem.addActionListener(this);
+        guiUtils.applyIcon(manageDistributionsMenuItem, "/images/nuvola/16x16/actions/irkick.png");
+        manageDistributionsMenuItem.setEnabled(false);
+        toolsMenu.add(manageDistributionsMenuItem);
         
         toolsMenu.add(new JSeparator());
         
@@ -964,6 +973,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             addThirdPartyBucket();
         } else if ("UpdateBucketACL".equals(event.getActionCommand())) {
             updateBucketAccessControlList();
+        } else if ("UpdateBucketRequesterPaysStatus".equals(event.getActionCommand())) {
+            updateBucketRequesterPaysSetting();
         }
         
         // Object Events
@@ -975,8 +986,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             listObjects();
         } else if ("UpdateObjectACL".equals(event.getActionCommand())) {
             displayAclModificationDialog();
-        } else if ("GeneratePublicGetURL".equals(event.getActionCommand())) {
-            generatePublicGetUrl();
+        } else if ("GeneratePublicGetURLs".equals(event.getActionCommand())) {
+            generatePublicGetUrls();
         } else if ("GenerateTorrentURL".equals(event.getActionCommand())) {
             generateTorrentUrl();
         } else if ("DeleteObjects".equals(event.getActionCommand())) {
@@ -1110,7 +1121,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 cloudFrontService.listDistributions();
             } catch (CloudFrontServiceException e) {
                 if ("OptInRequired".equals(e.getErrorCode())) {
-                    log.warn("Your AWS account is not subscribed for the Amazon CloudFront service, "
+                    log.warn("Your AWS account is not subscribed to the Amazon CloudFront service, "
                         + "you will not be able to manage distributions");
                 }
                 cloudFrontService = null;                    
@@ -1189,16 +1200,27 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             runInBackgroundThread(new Runnable() {
                 public void run() {                
                     startProgressDialog("Retrieving details for bucket " + selectedBucket.getName());
-                    try {                    
-                        if (selectedBucket.getAcl() == null) {
-                            selectedBucket.setAcl(
-                                s3ServiceMulti.getS3Service().getBucketAcl(
-                                    selectedBucket));
-                        }
-                        if (!selectedBucket.isLocationKnown()) {
-                            selectedBucket.setLocation(
-                                s3ServiceMulti.getS3Service().getBucketLocation(
-                                    selectedBucket.getName()));
+                    try {            
+                        try {
+                            if (selectedBucket.getAcl() == null) {
+                                selectedBucket.setAcl(
+                                    s3ServiceMulti.getS3Service().getBucketAcl(
+                                        selectedBucket));
+                            }
+                            if (!selectedBucket.isLocationKnown()) {
+                                selectedBucket.setLocation(
+                                    s3ServiceMulti.getS3Service().getBucketLocation(
+                                        selectedBucket.getName()));
+                            }
+                            if (!selectedBucket.isRequesterPaysKnown()) {
+                                selectedBucket.setRequesterPays( 
+                                    s3ServiceMulti.getS3Service().isRequesterPaysBucket(
+                                        selectedBucket.getName()));
+                            }
+                        } catch (S3ServiceException e) { 
+                            // Retrieving details for a third-party bucket will
+                            // often fail when ACL or Location is retrieved, 
+                            // ignore these failures.
                         }
                         
                         stopProgressDialog();                                    
@@ -1384,6 +1406,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             viewBucketPropertiesMenuItem.setEnabled(false);
             refreshBucketMenuItem.setEnabled(true);
             updateBucketACLMenuItem.setEnabled(false);
+            updateBucketRequesterPaysStatusMenuItem.setEnabled(false);
             deleteBucketMenuItem.setEnabled(false);
             
             refreshObjectMenuItem.setEnabled(false);
@@ -1400,6 +1423,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         viewBucketPropertiesMenuItem.setEnabled(true);
         refreshBucketMenuItem.setEnabled(true);
         updateBucketACLMenuItem.setEnabled(true);
+        updateBucketRequesterPaysStatusMenuItem.setEnabled(true);
         deleteBucketMenuItem.setEnabled(true);
         
         refreshObjectMenuItem.setEnabled(true);
@@ -1430,7 +1454,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         deleteObjectMenuItem.setEnabled(count > 0);
         viewOrModifyObjectAttributesMenuItem.setEnabled(count > 0);
         copyObjectsMenuItem.setEnabled(count > 0);
-        generatePublicGetUrl.setEnabled(count == 1);
+        generatePublicGetUrls.setEnabled(count >= 1);
         generateTorrentUrl.setEnabled(count == 1);
     }
 
@@ -1745,6 +1769,54 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             ErrorDialog.showDialog(ownerFrame, this, message, e);
         }        
     }    
+    
+    /**
+     * Updates the ACL settings for the currently selected bucket.
+     */
+    private void updateBucketRequesterPaysSetting() {
+        try {
+            final S3Bucket selectedBucket = getCurrentSelectedBucket();
+            
+            if (!selectedBucket.isRequesterPaysKnown()) {
+                selectedBucket.setRequesterPays( 
+                    s3ServiceMulti.getS3Service().isRequesterPaysBucket(
+                        selectedBucket.getName()));                
+            }
+            
+            boolean originalRequesterPaysFlag = selectedBucket.isRequesterPays();
+
+            RequesterPaysDialog dialog = new RequesterPaysDialog(selectedBucket, ownerFrame, this);
+            dialog.setVisible(true);
+            
+            if (!dialog.getOkClicked()) {
+                return;
+            }
+            
+            final boolean newRequesterPaysFlag = dialog.isRequesterPaysSelected();
+            dialog.dispose();
+            
+            if (newRequesterPaysFlag != originalRequesterPaysFlag) {
+                runInBackgroundThread(new Runnable() {
+                    public void run() {
+                        try {
+                            s3ServiceMulti.getS3Service().setRequesterPaysBucket(
+                                selectedBucket.getName(), newRequesterPaysFlag);
+                            selectedBucket.setRequesterPays(newRequesterPaysFlag);
+                        } catch (final Exception e) {
+                            String message = "Unable to update Requester Pays status";
+                            log.error(message, e);
+                            ErrorDialog.showDialog(ownerFrame, null, message, e);
+                        }
+                    } 
+                 });            
+            }
+        } catch (Exception e) {
+            String message = "Unable to update bucket's Access Control List";
+            log.error(message, e);
+            ErrorDialog.showDialog(ownerFrame, this, message, e);
+        }        
+    }    
+
     
     /**
      * @return the set of objects currently selected in the gui, or an empty array if none are selected.
@@ -2574,77 +2646,17 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
     }
 
-    private void generatePublicGetUrl() {
+    private void generatePublicGetUrls() {
         final S3Object[] objects = getSelectedObjects(); 
 
-        if (objects.length != 1) {
-            log.warn("Ignoring Generate Public URL object command, can only operate on a single object");
+        if (objects.length < 1) {
+            log.warn("Ignoring Generate Public URLs object command because no objects are selected");
             return;            
         }
-        S3Object currentObject = objects[0];
-
-        SignedGetUrlDialog dialog = new SignedGetUrlDialog(ownerFrame, null);
+        
+        SignedGetUrlDialog dialog = new SignedGetUrlDialog(ownerFrame, this,
+            s3ServiceMulti.getS3Service(), objects);
         dialog.setVisible(true);
-        
-        boolean okClicked = dialog.getOkClicked();
-        boolean isVirtualHost = dialog.isVirtualHost();
-        String expiryTimeStr = dialog.getExpiryTime();
-        dialog.dispose();
-        
-        if (!okClicked) {
-            return;
-        }
-        
-        try {
-            // Determine expiry time for URL
-            double hoursFromNow = Double.parseDouble(expiryTimeStr);
-            int secondsFromNow = (int) (hoursFromNow * 60 * 60);
-            Calendar cal = Calendar.getInstance();
-            cal.add(Calendar.SECOND, secondsFromNow);
-            long secondsSinceEpoch = cal.getTimeInMillis() / 1000;
-
-            boolean isHttps = s3ServiceMulti.getS3Service().getJetS3tProperties()
-                .getBoolProperty("s3service.https-only", true);
-                        
-            // Include DevPay tokens in signed request if there are any available.
-            Map headersMap = new HashMap();
-            String specialParamName = null;
-            String devPayUserToken = s3ServiceMulti.getS3Service().getDevPayUserToken();
-            String devPayProductToken = s3ServiceMulti.getS3Service().getDevPayProductToken();            
-            if (devPayUserToken != null || devPayProductToken != null) {
-                // DevPay tokens have been provided, include these in the signed URL.
-                if (devPayProductToken != null) {
-                    String securityToken = devPayUserToken + "," + devPayProductToken;
-                    headersMap.put("x-amz-security-token", securityToken);
-                } else {
-                    headersMap.put("x-amz-security-token", devPayUserToken);                
-                }
-                specialParamName = "x-amz-security-token=" 
-                    + RestUtils.encodeUrlString((String) headersMap.get("x-amz-security-token"));
-            }
-            
-            // Generate URL
-            String signedUrl = S3Service.createSignedUrl("GET",
-                getCurrentSelectedBucket().getName(), currentObject.getKey(), specialParamName,
-                headersMap, s3ServiceMulti.getAWSCredentials(), secondsSinceEpoch, 
-                isVirtualHost, isHttps);
-            
-            // Display signed URL
-            JOptionPane.showInputDialog(ownerFrame,
-                "URL for '" + currentObject.getKey() + "'."
-                + "\n This URL will be valid until approximately " + cal.getTime() 
-                + "\n(Amazon's server time may be ahead of or behind your computer's clock)",
-                "Signed URL", JOptionPane.INFORMATION_MESSAGE, null, null, signedUrl);
-
-        } catch (NumberFormatException e) {
-            String message = "Hours must be a valid decimal value; eg 3, 0.1";
-            log.error(message, e);
-            ErrorDialog.showDialog(ownerFrame, this, message, e);
-        } catch (S3ServiceException e) {
-            String message = "Unable to generate public GET URL";
-            log.error(message, e);
-            ErrorDialog.showDialog(ownerFrame, this, message, e);
-        }
     }    
         
     private void generateTorrentUrl() {

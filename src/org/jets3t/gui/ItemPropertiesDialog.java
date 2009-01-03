@@ -30,13 +30,13 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -57,7 +57,7 @@ import org.jets3t.service.model.S3Object;
  * @author James Murty
  */
 public class ItemPropertiesDialog extends JDialog implements ActionListener {
-    private static final long serialVersionUID = -5701587170000431985L;
+    private static final long serialVersionUID = 7921838316856638675L;
 
     private static final Log log = LogFactory.getLog(ItemPropertiesDialog.class);
     
@@ -91,6 +91,9 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
     private JTextField ownerNameTextField = null;
     private JTextField ownerIdTextField = null;
     
+    private JLabel bucketIsRequesterPaysLabel = null;
+    private JCheckBox bucketIsRequesterPaysCheckBox = null;
+
     private JTextField bucketCreationDateTextField = null;
     
     private boolean includeMetadata = true;
@@ -165,6 +168,11 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             ownerIdTextField = skinsFactory.createSkinnedJTextField("OwnerIdTextField");
             ownerIdTextField.setEditable(false);
             
+            bucketIsRequesterPaysLabel = skinsFactory.createSkinnedJHtmlLabel("BucketIsRequesterPaysLabel");
+            bucketIsRequesterPaysLabel.setText("Requester Pays?");
+            bucketIsRequesterPaysCheckBox = skinsFactory.createSkinnedJCheckBox("BucketIsRequesterPaysCheckBox");
+            bucketIsRequesterPaysCheckBox.setEnabled(false);
+            
             int row = 0;
             commonPropertiesContainer.add(bucketNameLabel, new GridBagConstraints(0, row,
                 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
@@ -180,6 +188,11 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
                 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
             commonPropertiesContainer.add(bucketCreationDateTextField, new GridBagConstraints(1, row, 
                 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            
+            commonPropertiesContainer.add(bucketIsRequesterPaysLabel, new GridBagConstraints(0, ++row,
+                1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));            
+            commonPropertiesContainer.add(bucketIsRequesterPaysCheckBox, new GridBagConstraints(1, row,
+                1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));            
             
             commonPropertiesContainer.add(ownerNameLabel, new GridBagConstraints(0, ++row,
                 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
@@ -285,6 +298,8 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
 
         // Build grants table.
         grantsTableModel = new DefaultTableModel(new Object[] {"Grantee", "Permission" }, 0) {
+            private static final long serialVersionUID = -5882427163845726770L;
+
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
@@ -411,6 +426,15 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             grantsTable.setVisible(false);
         }
         
+        if (bucket.isRequesterPaysKnown()) {
+            bucketIsRequesterPaysLabel.setVisible(true);
+            bucketIsRequesterPaysCheckBox.setVisible(true);
+            bucketIsRequesterPaysCheckBox.setSelected(bucket.isRequesterPays());
+        } else {
+            bucketIsRequesterPaysLabel.setVisible(false);
+            bucketIsRequesterPaysCheckBox.setVisible(false);
+        }
+        
         this.pack();
         this.setSize(this.getWidth(), 350);            
         this.setLocationRelativeTo(this.getOwner());
@@ -528,26 +552,6 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             displayObjectProperties();
         } else if ("OK".equals(e.getActionCommand())) {
             this.setVisible(false);
-        }
-    }
-
-    /**
-     * Table to represent ACL grantees.
-     *  
-     * @author James Murty
-     */
-    private class GranteeTable extends JTable {
-        private static final long serialVersionUID = -5339684196750695854L;
-
-        public GranteeTable() {
-            super();
-            TableSorter sorter = new TableSorter(new DefaultTableModel(
-                new String[] {"Grantee", "Permission"}, 3));
-            this.setModel(sorter);
-            sorter.setTableHeader(this.getTableHeader());
-
-            getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-            getSelectionModel().addListSelectionListener(this);
         }
     }
 
