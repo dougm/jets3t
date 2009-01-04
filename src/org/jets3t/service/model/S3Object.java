@@ -211,7 +211,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
         this.dataInputFile = null;
 		this.dataInputStream = dataInputStream;
 	}	
-
+    
     /**
      * Sets the file containing the data content to associate with this object. This file will
      * be automatically opened as an input stream only when absolutely necessary, that is when
@@ -231,6 +231,16 @@ public class S3Object extends BaseS3Object implements Cloneable {
         this.dataInputStream = null;
         this.dataInputFile = dataInputFile;
     }
+    
+    /**
+     * @return
+     * Return the file that contains this object's data, if such a file has been
+     * provided. Null otherwise. 
+     */
+    public File getDataInputFile() {
+        return this.dataInputFile;
+    }
+
 
     /**
      * Closes the object's data input stream if it exists.

@@ -35,6 +35,7 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
+import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.security.EncryptionUtil;
@@ -204,9 +205,9 @@ public class ObjectUtils {
         String actionText = "";
 
         // Create a temporary file to hold data transformed from the original file. 
-        final File tempUploadFile = File.createTempFile("JetS3t",".tmp");        
+        final File tempUploadFile = new TempFile(File.createTempFile("JetS3t",".tmp"));        
         tempUploadFile.deleteOnExit();
-
+        
         // Transform data from original file, gzipping or encrypting as specified in user's options.
         OutputStream outputStream = null;
         InputStream inputStream = null;
@@ -332,5 +333,5 @@ public class ObjectUtils {
             return new DownloadPackage(object, fileTarget, isZipped, encryptionUtil);
         }
     }
-    
+        
 }

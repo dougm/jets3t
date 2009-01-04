@@ -25,12 +25,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -164,30 +162,44 @@ public class Synchronize {
      * Prepares a file to be uploaded to S3, creating an S3Object with the 
      * appropriate key and with some jets3t-specific metadata items set.
      * 
-     * @param bucket    the bucket to create the object in 
-     * @param targetKey the key name for the object
-     * @param file      the file to upload to S3
-     * @param aclString the ACL to apply to the uploaded object
-     * 
      * @throws Exception
      */
-    private S3Object prepareUploadObject(String targetKey, File file, String aclString, EncryptionUtil encryptionUtil) 
-        throws Exception 
-    {        
-        S3Object newObject = ObjectUtils
-            .createObjectForUpload(targetKey, file, encryptionUtil, isGzipEnabled, null);
+    
+    class LazyPreparedUploadObject {
+        private String targetKey;
+        private File file;
+        private String aclString;
+        private EncryptionUtil encryptionUtil;
 
-        if ("PUBLIC_READ".equalsIgnoreCase(aclString)) {
-            newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);                        
-        } else if ("PUBLIC_READ_WRITE".equalsIgnoreCase(aclString)) {
-            newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ_WRITE);            
-        } else if ("PRIVATE".equalsIgnoreCase(aclString)) {
-            // Private is the default, no need to add an ACL
-        } else {
-            throw new Exception("Invalid value for ACL string: " + aclString);
+        /**
+         * @param bucket    the bucket to create the object in 
+         * @param targetKey the key name for the object
+         * @param file      the file to upload to S3
+         * @param aclString the ACL to apply to the uploaded object
+         */
+        public LazyPreparedUploadObject(String targetKey, File file, String aclString, EncryptionUtil encryptionUtil) {
+            this.targetKey = targetKey;
+            this.file = file;
+            this.aclString = aclString;
+            this.encryptionUtil = encryptionUtil;
         }
         
-        return newObject;
+        public S3Object prepareUploadObject() throws Exception {        
+            S3Object newObject = ObjectUtils
+                .createObjectForUpload(targetKey, file, encryptionUtil, isGzipEnabled, null);
+    
+            if ("PUBLIC_READ".equalsIgnoreCase(aclString)) {
+                newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);                        
+            } else if ("PUBLIC_READ_WRITE".equalsIgnoreCase(aclString)) {
+                newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ_WRITE);            
+            } else if ("PRIVATE".equalsIgnoreCase(aclString)) {
+                // Private is the default, no need to add an ACL
+            } else {
+                throw new Exception("Invalid value for ACL string: " + aclString);
+            }
+            
+            return newObject;
+        }
     }
     
 
@@ -325,7 +337,7 @@ public class Synchronize {
             ArrayList sortedFilesKeys = new ArrayList(filesMap.keySet());
             Collections.sort(sortedFilesKeys);
             
-            Set objectsToUpload = new HashSet();
+            List objectsToUpload = new ArrayList();
             
             // Iterate through local files and perform the necessary action to synchronise them with S3.
             Iterator fileKeyIter = sortedFilesKeys.iterator();
@@ -359,14 +371,14 @@ public class Synchronize {
                     
                 if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
                     printOutputLine("N " + targetKey, REPORT_LEVEL_ACTIONS);
-                    objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
+                    objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
                 } else if (discrepancyResults.updatedOnClientKeys.contains(relativeKeyPath)) {
                     printOutputLine("U " + targetKey, REPORT_LEVEL_ACTIONS);
-                    objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
+                    objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
                 } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)) {
                     if (isForce) {
                         printOutputLine("F " + targetKey, REPORT_LEVEL_ACTIONS);
-                        objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
+                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
                     } else {
                         printOutputLine("- " + targetKey, REPORT_LEVEL_ALL);
                     }
@@ -376,7 +388,7 @@ public class Synchronize {
                         printOutputLine("r " + targetKey, REPORT_LEVEL_DIFFERENCES);                    
                     } else {
                         printOutputLine("R " + targetKey, REPORT_LEVEL_ACTIONS);
-                        objectsToUpload.add(prepareUploadObject(targetKey, file, aclString, encryptionUtil));
+                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
                     }
                 } else {
                     // Uh oh, program error here. The safest thing to do is abort!
@@ -385,10 +397,30 @@ public class Synchronize {
                         + ". Sorry, this is a program error - aborting to keep your data safe");
                 }
             }
-                    
+
+            int uploadBatchSize = objectsToUpload.size();            
+            if (isEncryptionEnabled || isGzipEnabled) {
+                // Limit uploads to small batches in batch mode -- based on the 
+                // number of upload threads that are available.
+                uploadBatchSize = properties.getIntProperty("upload.transformed-files-batch-size", 1000);                    
+            }            
+            
             // Upload New/Updated/Forced/Replaced objects to S3.
-            if (doAction && objectsToUpload.size() > 0) {
-                S3Object[] objects = (S3Object[]) objectsToUpload.toArray(new S3Object[objectsToUpload.size()]);
+            while (doAction && objectsToUpload.size() > 0) {
+                S3Object[] objects = null;
+                if (uploadBatchSize > objectsToUpload.size()) {
+                    objects = new S3Object[objectsToUpload.size()];
+                } else {
+                    objects = new S3Object[uploadBatchSize];                    
+                }
+
+                // Invoke lazy upload object creator.
+                for (int i = 0; i < objects.length; i++) {
+                    LazyPreparedUploadObject lazyObj = 
+                        (LazyPreparedUploadObject) objectsToUpload.remove(0);
+                    objects[i] = lazyObj.prepareUploadObject();
+                }
+
                 (new S3ServiceMulti(s3Service, serviceEventAdaptor)).putObjects(bucket, objects);
                 if (serviceEventAdaptor.wasErrorThrown()) {
                     Throwable thrown = serviceEventAdaptor.getErrorThrown();

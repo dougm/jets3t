@@ -20,6 +20,7 @@ package org.jets3t.service.multithread;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
@@ -42,6 +43,7 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
+import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
@@ -1885,6 +1887,8 @@ public class S3ServiceMulti implements Serializable {
 
         public void run() {
             try {
+                File underlyingFile = s3Object.getDataInputFile();
+                
                 if (s3Object.getDataInputStream() != null) {
                     interruptableInputStream = new InterruptableInputStream(s3Object.getDataInputStream());
                     ProgressMonitoredInputStream pmInputStream = new ProgressMonitoredInputStream(
@@ -1892,6 +1896,10 @@ public class S3ServiceMulti implements Serializable {
                     s3Object.setDataInputStream(pmInputStream);
                 }
                 result = s3Service.putObject(bucket, s3Object);
+                
+                if (underlyingFile instanceof TempFile) {
+                    underlyingFile.delete();
+                }
             } catch (S3ServiceException e) {
                 result = e;
             }
@@ -2155,6 +2163,8 @@ public class S3ServiceMulti implements Serializable {
 
         public void run() {
             try {
+                File underlyingFile = signedUrlAndObject.getObject().getDataInputFile();
+                
                 if (signedUrlAndObject.getObject().getDataInputStream() != null) {
                     interruptableInputStream = new InterruptableInputStream(
                         signedUrlAndObject.getObject().getDataInputStream());
@@ -2165,6 +2175,10 @@ public class S3ServiceMulti implements Serializable {
                 SignedUrlHandler signedPutUploader = (SignedUrlHandler) s3Service;
                 result = signedPutUploader.putObjectWithSignedUrl(
                     signedUrlAndObject.getSignedUrl(), signedUrlAndObject.getObject());
+                
+                if (underlyingFile instanceof TempFile) {
+                    underlyingFile.delete();
+                }                
             } catch (S3ServiceException e) {
                 result = e;
             } finally {

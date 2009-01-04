@@ -27,7 +27,11 @@ SYNCHRONIZE
 - Synchronize will now prompt for HTTP Proxy login credentials if required. If
   proxy credentials are pre-specified in the jets3t.properties file, you should
   not be prompted.
-
+- Improved handling of uploads of many files where the files must first be 
+  transformed (compressed or encrypted). In this case, files are now transformed
+  and uploaded in batches, where the batch size is set by the 
+  synchronize.properties setting 'upload.transformed-files-batch-size'
+  
 
 TOOLKIT
 
@@ -72,6 +76,9 @@ configurability.
 
 Nikolas Coukouma of Zmanda Inc. for patches to significantly improve support
 for Amazon DevPay in the library and Cockpit applications.
+
+Allan Frank for a patch that helped improved the Synchronize application's
+handling of uploads.
 
 -------------
 Version 0.6.1
