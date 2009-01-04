@@ -94,6 +94,10 @@ public class Synchronize {
     private final TimeFormatter timeFormatter = new TimeFormatter();
     private FileComparer fileComparer = null;
     private int maxTemporaryStringLength = 0;
+    
+    // Hacky variables to track progress of batched uploads for transformed files. 
+    private long partialUploadObjectsTotal = -1;
+    private long partialUploadObjectsProgressCount = 0;
 
     
     /**
@@ -399,11 +403,17 @@ public class Synchronize {
             }
 
             int uploadBatchSize = objectsToUpload.size();            
-            if (isEncryptionEnabled || isGzipEnabled) {
+            if ((isEncryptionEnabled || isGzipEnabled) 
+                && properties.containsKey("upload.transformed-files-batch-size")) 
+            {
                 // Limit uploads to small batches in batch mode -- based on the 
                 // number of upload threads that are available.
-                uploadBatchSize = properties.getIntProperty("upload.transformed-files-batch-size", 1000);                    
-            }            
+                uploadBatchSize = properties.getIntProperty("upload.transformed-files-batch-size", 1000);
+                partialUploadObjectsTotal = objectsToUpload.size();
+                partialUploadObjectsProgressCount = 0;
+            } else {
+                partialUploadObjectsTotal = -1;
+            }
             
             // Upload New/Updated/Forced/Replaced objects to S3.
             while (doAction && objectsToUpload.size() > 0) {
@@ -430,6 +440,7 @@ public class Synchronize {
                         throw new Exception(thrown);
                     }
                 }
+                partialUploadObjectsProgressCount += objects.length;
             }
         } while (priorLastKey != null);
         
@@ -939,7 +950,19 @@ public class Synchronize {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                displayProgressStatus("Upload: ", event.getThreadWatcher());                    
+                if (partialUploadObjectsTotal > event.getThreadWatcher().getThreadCount()) {
+                    long progressCount = partialUploadObjectsProgressCount + event.getThreadWatcher().getCompletedThreads();
+                    
+                    long percentage = (int) 
+                        (((double)progressCount / partialUploadObjectsTotal) * 100);
+
+                    String progressMessage = "Batched Upload: " + 
+                        progressCount + "/" + partialUploadObjectsTotal +
+                        " - " + percentage + "%";                
+                    printProgressLine(progressMessage);                
+                } else {
+                    displayProgressStatus("Upload: ", event.getThreadWatcher());                    
+                }                
             }
         }
         
