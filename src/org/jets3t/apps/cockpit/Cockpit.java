@@ -1467,9 +1467,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             return;
         }
         
-        objectTableModel.removeAllObjects();
-        objectsSummaryLabel.setText(" ");        
-
         final boolean listingCancelled[] = new boolean[1]; // Default to false.
         final CancelEventTrigger cancelListener = new CancelEventTrigger() {
             private static final long serialVersionUID = 6939193243303189876L;
@@ -1483,6 +1480,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         runInBackgroundThread(new Runnable() {
             public void run() {
                 try {                    
+                    objectTableModel.removeAllObjects();
+                    objectsSummaryLabel.setText(" ");        
+
                     startProgressDialog(
                         "Listing objects in " + getCurrentSelectedBucket().getName(),
                         "", 0, 0, "Cancel bucket listing", cancelListener);
@@ -2749,11 +2749,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             stopProgressDialog();                
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            listObjects(); // Refresh object listing.
             stopProgressDialog();        
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            listObjects(); // Refresh object listing.
             stopProgressDialog();
             
             String message = "Unable to delete objects";
