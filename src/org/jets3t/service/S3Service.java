@@ -446,12 +446,13 @@ public abstract class S3Service implements Serializable {
         String specialParamName, Map headersMap, AWSCredentials awsCredentials, 
         long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps) throws S3ServiceException
     {
-        if (awsCredentials instanceof AWSDevPayCredentials) {
-            throw new S3ServiceException("Can not use DevPay credentials to sign URLs");
-        }
         String uriPath = "";
         
         String hostname = (isVirtualHost? bucketName : generateS3HostnameForBucket(bucketName));
+        
+        if (headersMap == null) {
+            headersMap = new HashMap();
+        }
         
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
         String virtualBucketPath = "";
@@ -474,6 +475,22 @@ public abstract class S3Service implements Serializable {
         } else {
             uriPath += "?";
         }
+
+        // Include any DevPay tokens in signed request
+        if (awsCredentials instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) awsCredentials;
+            if (devPayCredentials.getProductToken() != null) {
+                String securityToken = devPayCredentials.getUserToken() 
+                    + "," + devPayCredentials.getProductToken();
+                headersMap.put("x-amz-security-token", securityToken);
+            } else {
+                headersMap.put("x-amz-security-token", devPayCredentials.getUserToken());                
+            }
+            
+            uriPath += "x-amz-security-token=" +  
+                RestUtils.encodeUrlString((String) headersMap.get("x-amz-security-token")) + "&";
+        }
+                
         uriPath += "AWSAccessKeyId=" + awsCredentials.getAccessKey();
         uriPath += "&Expires=" + secondsSinceEpoch;
         
@@ -481,9 +498,6 @@ public abstract class S3Service implements Serializable {
         if (specialParamName != null 
             && specialParamName.toLowerCase().indexOf(Constants.REQUESTER_PAYS_BUCKET_FLAG) >= 0) 
         {
-            if (headersMap == null) {
-                headersMap = new HashMap();
-            }
             String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
             headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
         }

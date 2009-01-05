@@ -25,8 +25,6 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
@@ -51,7 +49,6 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.utils.RestUtils;
 
 /**
  * Dialog box to query to generate Signed URLs for a given set of objects, based
@@ -214,32 +211,11 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener, Docum
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.SECOND, secondsFromNow);
             long secondsSinceEpoch = cal.getTimeInMillis() / 1000;
-
-            // Include DevPay tokens in signed request if these are 
-            // configured in our S3Service.
-            Map headersMap = new HashMap();
-            String specialParamName = null;
-            String devPayUserToken = this.s3Service.getDevPayUserToken();
-            String devPayProductToken = this.s3Service.getDevPayProductToken();            
-            if (devPayUserToken != null || devPayProductToken != null) {
-                // DevPay tokens have been provided, include these in the signed URL.
-                if (devPayProductToken != null) {
-                    String securityToken = devPayUserToken + "," + devPayProductToken;
-                    headersMap.put("x-amz-security-token", securityToken);
-                } else {
-                    headersMap.put("x-amz-security-token", devPayUserToken);                
-                }
-                specialParamName = "x-amz-security-token=" 
-                    + RestUtils.encodeUrlString((String) headersMap.get("x-amz-security-token"));
-            }
             
             // Include Requester Pays flag if our service has these buckets enabled.
+            String specialParamName = null;
             if (requesterPaysCheckBox.isSelected()) {
-                if (specialParamName == null) {
-                    specialParamName = Constants.REQUESTER_PAYS_BUCKET_FLAG;
-                } else {
-                    specialParamName += "&" + Constants.REQUESTER_PAYS_BUCKET_FLAG;
-                }
+                specialParamName = Constants.REQUESTER_PAYS_BUCKET_FLAG;
             }
             
             // Generate URLs
@@ -249,7 +225,7 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener, Docum
 
                 String signedUrl = S3Service.createSignedUrl("GET",
                     currentObject.getBucketName(), currentObject.getKey(), specialParamName,
-                    headersMap, this.s3Service.getAWSCredentials(), secondsSinceEpoch,
+                    null, this.s3Service.getAWSCredentials(), secondsSinceEpoch,
                     virtualHostCheckBox.isSelected(), httpsUrlsCheckBox.isSelected());
                 
                 signedUrlsBuffer.append(signedUrl + "\n");
