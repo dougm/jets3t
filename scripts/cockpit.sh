@@ -63,6 +63,7 @@ CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.1.jar
 CP=$CP:$JETS3T_HOME/libs/misc/BareBonesBrowserLaunch.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
+CP=$CP:$JETS3T_HOME/libs/java-xmlbuilder/java-xmlbuilder-1.jar
 
 # OutOfMemory errors? Increase the memory available by changing -Xmx128M
 
