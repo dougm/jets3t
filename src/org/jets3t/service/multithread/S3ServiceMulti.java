@@ -2057,6 +2057,9 @@ public class S3ServiceMulti implements Serializable {
                     SignedUrlHandler handler = (SignedUrlHandler) s3Service;
                     object = handler.getObjectWithSignedUrl(downloadPackage.getSignedUrl());
             	}
+                
+                // Replace the S3 object in the download package with the downloaded version to make metadata available.
+                downloadPackage.setObject(object);
 
                 // Setup monitoring of stream bytes transferred. 
                 interruptableInputStream = new InterruptableInputStream(object.getDataInputStream()); 

@@ -76,6 +76,10 @@ public class DownloadPackage {
         return object;
     }
     
+    public void setObject(S3Object object) {
+        this.object = object;
+    }
+    
     public File getDataFile() {
         return outputFile;
     }
