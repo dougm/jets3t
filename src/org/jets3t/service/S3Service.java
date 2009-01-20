@@ -217,7 +217,7 @@ public abstract class S3Service implements Serializable {
      * uploading data to S3, or retrieving data from the service. The default
      * value for the Requester Pays Enabled setting is set according to the
      * jets3t.properties setting
-     * <code>httpclient.requester-pay-buckets-enabled</code>.
+     * <code>httpclient.requester-pays-buckets-enabled</code>.
      * <p>
      * NOTE: Only the REST S3 API supports Requester Pays requests, this 
      * setting is ignored by the SOAP implementation 
@@ -236,7 +236,7 @@ public abstract class S3Service implements Serializable {
      * uploading data to S3, or retrieving data from the service. The default
      * value for the Requester Pays Enabled setting is set according to the
      * jets3t.properties setting
-     * <code>httpclient.requester-pay-buckets-enabled</code>.
+     * <code>httpclient.requester-pays-buckets-enabled</code>.
      * <p>
      * NOTE: Only the REST S3 API supports Requester Pays requests, this 
      * setting is ignored by the SOAP implementation 

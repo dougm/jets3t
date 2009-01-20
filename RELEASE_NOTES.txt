@@ -41,7 +41,7 @@ TOOLKIT
 - Added property "cloudfront-service.internal-error-retry-max" for defining the
   retry limit for CloudFront internal service errors.
 - Added support for configuring and accessing Requester Pays buckets.
-- Added property "httpclient.requester-pay-buckets-enabled" for defining whether
+- Added property "httpclient.requester-pays-buckets-enabled" for defining whether
   the RestS3Service supports Requester Pays buckets by default.
 - Improved support for accessing S3 using DevPay credentials with a new
   credentials class for defining and storing these credentials: 

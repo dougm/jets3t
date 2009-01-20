@@ -183,7 +183,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         this.connectionManager = initHttpResult.getHttpConnectionManager();
         
         this.setRequesterPaysEnabled(
-            this.jets3tProperties.getBoolProperty("httpclient.requester-pay-buckets-enabled", false));
+            this.jets3tProperties.getBoolProperty("httpclient.requester-pays-buckets-enabled", false));
         
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
