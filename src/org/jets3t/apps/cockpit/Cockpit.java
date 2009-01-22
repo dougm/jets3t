@@ -1129,9 +1129,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             
             refreshBucketMenuItem.setEnabled(true);
             createBucketMenuItem.setEnabled(true);
-            bucketLoggingMenuItem.setEnabled(true);
-            
-            manageDistributionsMenuItem.setEnabled(cloudFrontService != null);
+            bucketLoggingMenuItem.setEnabled(true);            
         } catch (Exception e) {
             String message = "Unable to log in to S3";
             log.error(message, e);
@@ -1327,6 +1325,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     } finally {
                         stopProgressDialog();
                         cloudFrontMembershipChecked = true;
+                        
+                        manageDistributionsMenuItem.setEnabled(cloudFrontService != null);                        
                     }
                 }
                 
@@ -1472,7 +1472,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         deleteObjectMenuItem.setEnabled(count > 0);
         viewOrModifyObjectAttributesMenuItem.setEnabled(count > 0);
         copyObjectsMenuItem.setEnabled(count > 0);
-        generatePublicGetUrls.setEnabled(count >= 1);
+        generatePublicGetUrls.setEnabled(count >= 1 && s3ServiceMulti.getAWSCredentials() != null);
         generateTorrentUrl.setEnabled(count == 1);
     }
 
