@@ -165,7 +165,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener, 
     ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider 
 {    
-    private static final long serialVersionUID = 1275456909864052884L;
+    private static final long serialVersionUID = -3982368878320163058L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
     
@@ -405,22 +405,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         bucketsPanel.add(bucketActionButton, 
             new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
 
-        bucketTableModel = new BucketTableModel();
+        bucketTableModel = new BucketTableModel(false);
         bucketTableModelSorter = new TableSorter(bucketTableModel);        
         bucketsTable = new JTable(bucketTableModelSorter);
         bucketTableModelSorter.setTableHeader(bucketsTable.getTableHeader());        
         bucketsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         bucketsTable.getSelectionModel().addListSelectionListener(this);
         bucketsTable.setShowHorizontalLines(true);
-        bucketsTable.setShowVerticalLines(false);
-                
-        // Set column width for Cloud Front distributions indicator.
-        TableColumn distributionFlagColumn = bucketsTable.getColumnModel().getColumn(1);
-        int distributionFlagColumnWidth = 18; 
-        distributionFlagColumn.setPreferredWidth(distributionFlagColumnWidth);
-        distributionFlagColumn.setMaxWidth(distributionFlagColumnWidth);
-        distributionFlagColumn.setMinWidth(0);
-        
+        bucketsTable.setShowVerticalLines(false);                        
         bucketsTable.addMouseListener(new ContextMenuListener());
         bucketsPanel.add(new JScrollPane(bucketsTable), 
             new GridBagConstraints(0, 1, 2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
@@ -1325,6 +1317,21 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     } finally {
                         stopProgressDialog();
                         cloudFrontMembershipChecked = true;
+                        
+                        // Update the bucket table to show, or not show, distributions
+                        bucketTableModel = new BucketTableModel(cloudFrontService != null);
+                        bucketTableModelSorter = new TableSorter(bucketTableModel);        
+                        bucketsTable.setModel(bucketTableModelSorter);
+                        bucketTableModelSorter.setTableHeader(bucketsTable.getTableHeader());
+                        
+                        if (cloudFrontService != null) {
+                            // Set column width for Cloud Front distributions indicator.
+                            TableColumn distributionFlagColumn = bucketsTable.getColumnModel().getColumn(1);
+                            int distributionFlagColumnWidth = 18; 
+                            distributionFlagColumn.setPreferredWidth(distributionFlagColumnWidth);
+                            distributionFlagColumn.setMaxWidth(distributionFlagColumnWidth);
+                            distributionFlagColumn.setMinWidth(0);
+                        }
                         
                         manageDistributionsMenuItem.setEnabled(cloudFrontService != null);                        
                     }
