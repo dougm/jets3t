@@ -530,7 +530,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
         if (!Constants.S3_HOSTNAME.equals(hostname)) {
-            int subdomainOffset = hostname.indexOf("." + Constants.S3_HOSTNAME);
+            int subdomainOffset = hostname.lastIndexOf("." + Constants.S3_HOSTNAME);
             if (subdomainOffset > 0) {
                 // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
                 fullUrl = "/" + hostname.substring(0, subdomainOffset) + httpMethod.getPath();                    
