@@ -197,7 +197,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private CloudFrontService cloudFrontService = null;
     private boolean cloudFrontMembershipChecked = false;
     
-    private Frame ownerFrame = null;
+    private JFrame ownerFrame = null;
     private boolean isStandAloneApplication = false;
     
     // Service main menu items
@@ -308,10 +308,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             while (!(c instanceof Frame) && c.getParent() != null) {
                 c = c.getParent();
             }
-            if (!(c instanceof Frame)) {
+            if (!(c instanceof JFrame)) {
                 this.ownerFrame = new JFrame();        
             } else {
-                this.ownerFrame = (Frame) c;                    
+                this.ownerFrame = (JFrame) c;                    
             }
         }
                         
@@ -528,7 +528,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private void initMenus() {
         JMenuBar appMenuBar = new JMenuBar();
-        this.setJMenuBar(appMenuBar);
+        if (this.isStandAloneApplication) {
+            ownerFrame.setJMenuBar(appMenuBar);
+        } else {
+            this.setJMenuBar(appMenuBar);            
+        }
         
         // Service menu
         JMenu serviceMenu = new JMenu("Service");
@@ -3014,6 +3018,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @throws Exception
      */
     public static void main(String args[]) throws Exception {
+        // When running on OS X, display app menu in the right place (i.e. not the app window) 
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        
         JFrame ownerFrame = new JFrame("JetS3t Cockpit");
         ownerFrame.addWindowListener(new WindowListener() {
             public void windowOpened(WindowEvent e) {
