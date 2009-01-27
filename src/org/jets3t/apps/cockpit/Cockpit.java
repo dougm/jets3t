@@ -1505,13 +1505,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }                        
         };
         
+        objectTableModel.removeAllObjects();
+        objectsSummaryLabel.setText(" ");        
+
         // This is all very convoluted, it was done this way to ensure we can display the dialog box.        
         runInBackgroundThread(new Runnable() {
             public void run() {
                 try {                    
-                    objectTableModel.removeAllObjects();
-                    objectsSummaryLabel.setText(" ");        
-
                     startProgressDialog(
                         "Listing objects in " + currentSelectedBucket.getName(),
                         "", 0, 0, "Cancel bucket listing", cancelListener);
