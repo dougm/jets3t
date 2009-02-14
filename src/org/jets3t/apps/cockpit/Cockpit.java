@@ -171,6 +171,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     
     public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.s3.amazonaws.com/applications/cockpit.html";
     public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
+    public static final String OS_NAME_MAC = "Mac OS X";
     
     public static final String APPLICATION_DESCRIPTION = "Cockpit/0.7.0";
     
@@ -528,10 +529,15 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private void initMenus() {
         JMenuBar appMenuBar = new JMenuBar();
-        if (this.isStandAloneApplication) {
+        if (this.isStandAloneApplication && OS_NAME_MAC.equals(System.getProperty("os.name"))) {
+            /*
+             * We need to check we're running on a Mac before adding the menu to the
+             * owner frame, otherwise the menus will be displayed *behind* the main
+             * GUI panel on Windows Vista and later [sigh]
+             */
             ownerFrame.setJMenuBar(appMenuBar);
         } else {
-            this.setJMenuBar(appMenuBar);            
+            this.setJMenuBar(appMenuBar);
         }
         
         // Service menu
