@@ -1,4 +1,23 @@
 -------------
+Version 0.7.1
+-------------
+
+COCKPIT
+- Fixed a menu display bug that caused the bucket and object action menus to 
+  appear behind other GUI elements on some Windows systems.
+
+TOOLKIT
+
+  * REST Implementation
+
+- Fixed a configuration error that caused the REST implementation to be limited
+  to 20 simultaneous connections, regardless of the "httpclient.max-connections" 
+  property setting. Now the HttpClient connection manager settings 
+  "max-per-host" and "max-total" are both set according to the JetS3t property
+  "httpclient.max-connections".
+
+
+-------------
 Version 0.7.0
 -------------
 
