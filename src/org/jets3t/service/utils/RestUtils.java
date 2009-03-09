@@ -280,12 +280,17 @@ public class RestUtils {
         connectionParams.setConnectionTimeout(jets3tProperties.
             getIntProperty("httpclient.connection-timeout-ms", 60000));
         connectionParams.setSoTimeout(jets3tProperties.
-            getIntProperty("httpclient.socket-timeout-ms", 60000));        
-        connectionParams.setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION,
-            jets3tProperties.getIntProperty("httpclient.max-connections", 4));
+            getIntProperty("httpclient.socket-timeout-ms", 60000));
         connectionParams.setStaleCheckingEnabled(jets3tProperties.
             getBoolProperty("httpclient.stale-checking-enabled", true));
-        
+
+        // Set the maximum connections per host for the HTTP connection manager,
+        // *and* also set the maximum number of total connections (new in 0.7.1)
+        connectionParams.setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION,
+            jets3tProperties.getIntProperty("httpclient.max-connections", 4));
+        connectionParams.setMaxTotalConnections(
+            jets3tProperties.getIntProperty("httpclient.max-connections", 4));
+                
         // Connection properties to take advantage of S3 window scaling.
         if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
             connectionParams.setReceiveBufferSize(jets3tProperties.
@@ -297,7 +302,7 @@ public class RestUtils {
         }
         
         connectionParams.setTcpNoDelay(true);
-        
+                
         MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
         connectionManager.setParams(connectionParams);
         
