@@ -373,6 +373,32 @@ public class SoapS3Service extends S3Service {
         return buckets;
     }
 
+    protected S3Owner getAccountOwnerImpl() throws S3ServiceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Looking up owner of S3 account via the ListAllBuckets response: " 
+                + getAWSCredentials().getAccessKey());
+        }
+        
+        S3Owner owner = null;
+        try {
+            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );            
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                Constants.SOAP_SERVICE_NAME + "ListAllMyBuckets" + convertDateToString(timestamp));
+            ListAllMyBucketsResult result = s3SoapBinding.listAllMyBuckets(
+                getAWSAccessKey(), timestamp, signature);
+            
+            owner = new S3Owner(
+                result.getOwner().getID(),
+                result.getOwner().getDisplayName());
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to List Buckets", e);
+        }
+        return owner;
+    }
+
     public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
         if (log.isDebugEnabled()) {
         	log.debug("Checking existence of bucket: " + bucketName);

@@ -39,6 +39,7 @@ import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.utils.RestUtils;
@@ -1328,6 +1329,23 @@ public abstract class S3Service implements Serializable {
         assertAuthenticatedConnection("List all buckets");
         return listAllBucketsImpl();
     }
+    
+    /**
+     * Returns the owner of an S3 account, using information available in the 
+     * ListAllBuckets response. 
+     * <p>
+     * This method cannot be performed by anonymous services, and will fail with an exception
+     * if the service is not authenticated.
+     * 
+     * @return
+     * the owner of the S3 account.
+     * @throws S3ServiceException
+     */
+    public S3Owner getAccountOwner() throws S3ServiceException {
+        assertAuthenticatedConnection("List all buckets to find account owner");
+        return getAccountOwnerImpl();
+        
+    }
 
     /**
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
@@ -2454,6 +2472,13 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     protected abstract S3Bucket[] listAllBucketsImpl() throws S3ServiceException;
+    
+    /**
+     * @return
+     * the owner of an S3 account.
+     * @throws S3ServiceException
+     */
+    protected abstract S3Owner getAccountOwnerImpl() throws S3ServiceException;
     
     /**
      * Lists objects in a bucket.

@@ -63,6 +63,7 @@ import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
@@ -1019,6 +1020,27 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             new HttpMethodReleaseInputStream(httpMethod)).getBuckets();
         return buckets;
     }
+    
+    protected S3Owner getAccountOwnerImpl() throws S3ServiceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Looking up owner of S3 account via the ListAllBuckets response: " 
+                + getAWSCredentials().getAccessKey());
+        }
+        
+        String bucketName = ""; // Root path of S3 service lists the user's buckets.
+        HttpMethodBase httpMethod =  performRestGet(bucketName, null, null, null);
+        String contentType = httpMethod.getResponseHeader("Content-Type").getValue();
+            
+        if (!Mimetypes.MIMETYPE_XML.equals(contentType)) {
+            throw new S3ServiceException("Expected XML document response from S3 but received content type " + 
+                contentType);
+        }
+
+        S3Owner owner = (new XmlResponsesSaxParser()).parseListMyBucketsResponse(
+            new HttpMethodReleaseInputStream(httpMethod)).getOwner();
+        return owner;        
+    }
+
 
     protected S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, 
         long maxListingLength) throws S3ServiceException 

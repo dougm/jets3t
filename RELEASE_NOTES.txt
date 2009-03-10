@@ -8,6 +8,12 @@ COCKPIT
 
 TOOLKIT
 
+  * General
+
+- Added method getAccountOwner() to S3Service which allows you to look up the
+  ID and display name of an S3 account's owner, even if the account contains
+  no buckets.
+
   * REST Implementation
 
 - Fixed a configuration error that caused the REST implementation to be limited
@@ -15,6 +21,11 @@ TOOLKIT
   property setting. Now the HttpClient connection manager settings 
   "max-per-host" and "max-total" are both set according to the JetS3t property
   "httpclient.max-connections".
+
+KUDOS TO:
+
+Laxmilal Menaria for a patch that contributed to the new 
+S3Service#getAccountOwner feature.
 
 
 -------------

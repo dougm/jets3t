@@ -492,6 +492,14 @@ public class XmlResponsesSaxParser {
         public S3Bucket[] getBuckets() {
             return (S3Bucket[]) buckets.toArray(new S3Bucket[buckets.size()]);
         }
+        
+        /**
+         * @return
+         * the owner of the buckets.
+         */
+        public S3Owner getOwner() {
+            return bucketsOwner;
+        }
 
         public void startDocument() {
         }
