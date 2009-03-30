@@ -446,6 +446,13 @@ public class XmlResponsesSaxParser {
             }
             // Owner details.
             else if (name.equals("ID")) {
+                // Work-around to support Eucalyptus responses, which do not
+                // contain Owner elements.
+                if (currentOwner == null) {
+                    currentOwner = new S3Owner();
+                    currentObject.setOwner(currentOwner);
+                }
+                
                 currentOwner.setId(elementText);
             } else if (name.equals("DisplayName")) {
                 currentOwner.setDisplayName(elementText);

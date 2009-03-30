@@ -282,6 +282,20 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     }
     
     /**
+     * @param contentType
+     * @return true if the given Content-Type string represents an XML document.
+     */
+    protected boolean isXmlContentType(String contentType) {
+        if (contentType != null
+            && contentType.toLowerCase().startsWith(Mimetypes.MIMETYPE_XML.toLowerCase())) 
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /**
      * Performs an HTTP/S request by invoking the provided HttpMethod object. If the HTTP
      * response code doesn't match the expected value, an exception is thrown.
      * 
@@ -364,7 +378,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                             + responseCode + ", expected " + expectedResponseCode);
                     }
                                         
-                    if (Mimetypes.MIMETYPE_XML.equals(contentType)
+                    if (isXmlContentType(contentType)
                         && httpMethod.getResponseBodyAsStream() != null
                         && httpMethod.getResponseContentLength() != 0) 
                     {
@@ -836,6 +850,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         }
 
         String hostname = generateS3HostnameForBucket(bucketName);
+        
+        // Allow for non-standard virtual directory paths on the server-side
+        String virtualPath = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint-virtual-path", "");
 
 		// Determine the resource string (ie the item's path in S3, including the bucket name)
         String resourceString = "/";
@@ -848,10 +866,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         String url = null;
         if (isHttpsOnly()) {
             int securePort = this.jets3tProperties.getIntProperty("s3service.s3-endpoint-https-port", 443);            
-            url = "https://" + hostname + ":" + securePort + resourceString;
+            url = "https://" + hostname + ":" + securePort + virtualPath + resourceString;
         } else {
             int insecurePort = this.jets3tProperties.getIntProperty("s3service.s3-endpoint-http-port", 80);            
-            url = "http://" + hostname + ":" + insecurePort + resourceString;        
+            url = "http://" + hostname + ":" + insecurePort + virtualPath + resourceString;        
         }
         if (log.isDebugEnabled()) {
             log.debug("S3 URL: " + url);
@@ -1013,7 +1031,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         HttpMethodBase httpMethod =  performRestGet(bucketName, null, null, null);
         String contentType = httpMethod.getResponseHeader("Content-Type").getValue();
             
-        if (!Mimetypes.MIMETYPE_XML.equals(contentType)) {
+        if (!isXmlContentType(contentType)) {
             throw new S3ServiceException("Expected XML document response from S3 but received content type " + 
                 contentType);
         }
@@ -1033,7 +1051,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         HttpMethodBase httpMethod =  performRestGet(bucketName, null, null, null);
         String contentType = httpMethod.getResponseHeader("Content-Type").getValue();
             
-        if (!Mimetypes.MIMETYPE_XML.equals(contentType)) {
+        if (!isXmlContentType(contentType)) {
             throw new S3ServiceException("Expected XML document response from S3 but received content type " + 
                 contentType);
         }

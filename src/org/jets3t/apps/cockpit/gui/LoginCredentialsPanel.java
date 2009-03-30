@@ -225,12 +225,22 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
     public String[] checkForInputErrors() {
         ArrayList errors = new ArrayList();
         
-        if (getAWSAccessKey().length() != 20) {
-            errors.add("AWS Access Key must have 20 characters");
+        if (getAWSAccessKey().length() == 20) {
+            // Correct length for AWS Access Key
+        } else if (getAWSAccessKey().length() == 22) {
+            // Correct length for Eucalyptus ID
+        } else {
+            errors.add("Access Key must have 20 or 22 characters");
         }
-        if (getAWSSecretKey().length() != 40) {
-            errors.add("AWS Secret Key must have 40 characters");
+        
+        if (getAWSSecretKey().length() == 40) {
+            // Correct length for AWS Access Key
+        } else if (getAWSSecretKey().length() == 38) {
+            // Correct length for Eucalyptus Secret Key
+        } else {
+            errors.add("Secret Key must have 40 or 38 characters");
         }
+        
         if (getUsingDevPay()) {
             if (getAWSUserToken().length() == 0) {
                 errors.add("DevPay User Token must be provided");
