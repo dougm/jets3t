@@ -63,7 +63,12 @@ CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.1.jar
 CP=$CP:$JETS3T_HOME/libs/misc/BareBonesBrowserLaunch.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 
-OSX_APP_NAME=-Xdock:name="JetS3t Uploader"
+# Set application name for OS X (Darwin)
+OSX_APP_NAME=""
+if [ `uname -s` = "Darwin" ]
+then
+  OSX_APP_NAME=-Xdock:name="JetS3t Uploader"
+fi
 
 # OutOfMemory errors? Increase the memory available by changing -Xmx128M
 

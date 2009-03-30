@@ -64,7 +64,12 @@ CP=$CP:$JETS3T_HOME/libs/misc/BareBonesBrowserLaunch.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
 
-OSX_APP_NAME=-Xdock:name="JetS3t Cockpit-Lite"
+# Set application name for OS X (Darwin)
+OSX_APP_NAME=""
+if [ `uname -s` = "Darwin" ]
+then
+	OSX_APP_NAME=-Xdock:name="JetS3t Cockpit-Lite"
+fi
 
 # OutOfMemory errors? Increase the memory available by changing -Xmx128M
 
