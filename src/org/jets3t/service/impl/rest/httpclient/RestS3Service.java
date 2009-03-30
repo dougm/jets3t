@@ -64,6 +64,7 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
@@ -489,6 +490,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             if (t instanceof S3ServiceException) {
                 throw (S3ServiceException) t;                
             } else {
+                MxDelegate.getInstance().registerS3ServiceExceptionEvent();
                 throw new S3ServiceException("S3 " + httpMethod.getName() 
                     + " connection failed for '" + httpMethod.getPath() + "'", t);                
             }            

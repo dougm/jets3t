@@ -102,6 +102,7 @@ zip-source-code   : Zips the JetS3t source code to an archive file with a
 			source="1.4"
 			target="${build.target}">
 			<classpath refid="classpath"/>
+			<exclude name="contribs/mx/**" unless="contribs.include-mx"/>
 		</javac>
 	</target>
 		
@@ -113,6 +114,7 @@ zip-source-code   : Zips the JetS3t source code to an archive file with a
 			>
 			<include name="org/jets3t/service/**"/>
 			<include name="org/apache/commons/httpclient/contrib/**"/>
+			<include name="contribs/mx/**" if="contribs.include-mx"/>
 		</jar>
         <jar
             basedir="${dir.build}"

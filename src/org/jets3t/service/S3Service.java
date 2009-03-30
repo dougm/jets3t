@@ -40,6 +40,7 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.utils.RestUtils;
@@ -102,7 +103,7 @@ public abstract class S3Service implements Serializable {
      * computer based on a response from an AWS server.
      */
     protected long timeOffset = 0;
-        
+    
     /**
      * Construct an <code>S3Service</code> identified by the given user credentials.
      * 
@@ -140,6 +141,9 @@ public abstract class S3Service implements Serializable {
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
+        
+        MxDelegate.getInstance().registerS3ServiceMBean();
+        MxDelegate.getInstance().registerS3ServiceExceptionMBean();
     }
 
     /**
@@ -1327,7 +1331,9 @@ public abstract class S3Service implements Serializable {
      */
     public S3Bucket[] listAllBuckets() throws S3ServiceException {
         assertAuthenticatedConnection("List all buckets");
-        return listAllBucketsImpl();
+        S3Bucket[] buckets = listAllBucketsImpl();
+        MxDelegate.getInstance().registerS3BucketMBeans(buckets);
+        return buckets;
     }
     
     /**
@@ -1402,7 +1408,10 @@ public abstract class S3Service implements Serializable {
     public S3Object[] listObjects(String bucketName, String prefix, String delimiter, 
         long maxListingLength) throws S3ServiceException
     {
-        return listObjectsImpl(bucketName, prefix, delimiter, maxListingLength);
+        MxDelegate.getInstance().registerS3BucketListEvent(bucketName);
+        S3Object[] objects = listObjectsImpl(bucketName, prefix, delimiter, maxListingLength);
+        MxDelegate.getInstance().registerS3ObjectMBean(bucketName, objects);
+        return objects;
     }
 
     /**
@@ -1436,8 +1445,11 @@ public abstract class S3Service implements Serializable {
     public S3ObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter, 
         long maxListingLength, String priorLastKey) throws S3ServiceException
     {
-        return listObjectsChunkedImpl(bucketName, prefix, delimiter, maxListingLength, 
+        MxDelegate.getInstance().registerS3BucketListEvent(bucketName);
+        S3ObjectsChunk chunk = listObjectsChunkedImpl(bucketName, prefix, delimiter, maxListingLength, 
             priorLastKey, false);
+        MxDelegate.getInstance().registerS3ObjectMBean(bucketName, chunk.getObjects());
+        return chunk;
     }
     
     /**
@@ -1475,8 +1487,11 @@ public abstract class S3Service implements Serializable {
     public S3ObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter, 
         long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException
     {
-        return listObjectsChunkedImpl(bucketName, prefix, delimiter, 
+        MxDelegate.getInstance().registerS3BucketListEvent(bucketName);
+        S3ObjectsChunk chunk = listObjectsChunkedImpl(bucketName, prefix, delimiter, 
             maxListingLength, priorLastKey, completeListing);
+        MxDelegate.getInstance().registerS3ObjectMBean(bucketName, chunk.getObjects());
+        return chunk;
     }    
 
     /**
@@ -1602,7 +1617,8 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public S3Object putObject(String bucketName, S3Object object) throws S3ServiceException {
-        assertValidObject(object, "Create Object in bucket " + bucketName);        
+        assertValidObject(object, "Create Object in bucket " + bucketName);
+        MxDelegate.getInstance().registerS3ObjectPutEvent(bucketName, object.getKey());
         return putObjectImpl(bucketName, object);
     }
     
@@ -1661,6 +1677,7 @@ public abstract class S3Service implements Serializable {
         Map destinationMetadata =
             replaceMetadata ? destinationObject.getModifiableMetadata() : null;
         
+        MxDelegate.getInstance().registerS3ObjectCopyEvent(sourceBucketName, sourceObjectKey);
         return copyObjectImpl(sourceBucketName, sourceObjectKey, 
             destinationBucketName, destinationObject.getKey(), 
             destinationObject.getAcl(), destinationMetadata,
@@ -1890,6 +1907,7 @@ public abstract class S3Service implements Serializable {
      */
     public void deleteObject(String bucketName, String objectKey) throws S3ServiceException {
         assertValidObject(objectKey, "deleteObject");
+        MxDelegate.getInstance().registerS3ObjectDeleteEvent(bucketName, objectKey);
         deleteObjectImpl(bucketName, objectKey);
     }
 
@@ -1926,6 +1944,7 @@ public abstract class S3Service implements Serializable {
         String[] ifNoneMatchTags) throws S3ServiceException
     {
         assertValidBucket(bucket, "Get Object Details");
+        MxDelegate.getInstance().registerS3ObjectHeadEvent(bucket.getName(), objectKey);
         return getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
             ifMatchTags, ifNoneMatchTags);
     }
@@ -1961,6 +1980,7 @@ public abstract class S3Service implements Serializable {
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
     {
+        MxDelegate.getInstance().registerS3ObjectHeadEvent(bucketName, objectKey);
         return getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
             ifMatchTags, ifNoneMatchTags);
     }
@@ -2009,6 +2029,7 @@ public abstract class S3Service implements Serializable {
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException 
     {
         assertValidBucket(bucket, "Get Object");
+        MxDelegate.getInstance().registerS3ObjectGetEvent(bucket.getName(), objectKey);
         return getObjectImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
             ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
     }
@@ -2055,6 +2076,7 @@ public abstract class S3Service implements Serializable {
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException 
     {
+        MxDelegate.getInstance().registerS3ObjectGetEvent(bucketName, objectKey);
         return getObjectImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
             ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
     }

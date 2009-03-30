@@ -21,6 +21,8 @@ package org.jets3t.service;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jets3t.service.mx.MxDelegate;
+
 /**
  * Exception for use by <code>S3Service</code>s and related utilities.
  * This exception can hold useful additional information about errors that occur
@@ -29,7 +31,7 @@ import java.util.regex.Pattern;
  * @author James Murty
  */
 public class S3ServiceException extends Exception {
-    private static final long serialVersionUID = 4788682643946844474L;
+    private static final long serialVersionUID = -410679741840406046L;
 
     private String xmlMessage = null;
     
@@ -50,6 +52,7 @@ public class S3ServiceException extends Exception {
 	public S3ServiceException(String message, String xmlMessage) {
 		super(message);
         parseS3XmlMessage(xmlMessage);
+        MxDelegate.getInstance().registerS3ServiceExceptionEvent(getS3ErrorCode());
 	}
 
 	public S3ServiceException() {

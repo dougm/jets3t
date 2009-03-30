@@ -30,6 +30,7 @@
 			target="${build.target}">
 			<classpath refid="classpath"/>			
             <exclude name="**/mir/**"/>
+            <exclude name="contribs/mx/**" unless="contribs.include-mx"/>
 		</javac>
 	</target>
 		
@@ -42,6 +43,7 @@
 			>
 			<include name="org/jets3t/service/**"/>
 			<include name="org/apache/commons/httpclient/contrib/**"/>
+			<include name="contribs/mx/**" if="contribs.include-mx"/>
 		</jar>
         <jar
             basedir="${dir.build}"
