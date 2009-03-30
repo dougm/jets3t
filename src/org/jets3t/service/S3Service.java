@@ -142,6 +142,13 @@ public abstract class S3Service implements Serializable {
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
         
+        // Override the default S3 Hostname constant if an alternative value is set.
+        String customS3Hostname = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_HOSTNAME);
+        if (!Constants.S3_HOSTNAME.equals(customS3Hostname)) {
+            Constants.S3_HOSTNAME = customS3Hostname;
+        }
+        
         MxDelegate.getInstance().registerS3ServiceMBean();
         MxDelegate.getInstance().registerS3ServiceExceptionMBean();
     }

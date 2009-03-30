@@ -26,11 +26,9 @@ import java.io.File;
  * @author James Murty
  * @author Nikolas Coukouma
  */
-public interface Constants {
-    
-    public static String S3_HOSTNAME = 
-        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getStringProperty("s3service.s3-endpoint", "s3.amazonaws.com");        
+public class Constants {
+
+    public static String S3_HOSTNAME = "s3.amazonaws.com";        
 
     ////////////////////////////////////
     // Default file names and locations.
