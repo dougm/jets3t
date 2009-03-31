@@ -34,7 +34,7 @@ KUDOS TO:
 Laxmilal Menaria of Chambal.com Inc. for a patch that contributed to the new 
 S3Service#getAccountOwner feature.
 
-Doug MacEachen of Hyperic.com for contributing the bulk of a JMX instrumentation
+Doug MacEachern of Hyperic.com for contributing the bulk of a JMX instrumentation
 implementation.
 
 
